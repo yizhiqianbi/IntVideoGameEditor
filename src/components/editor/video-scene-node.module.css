@@ -1,0 +1,148 @@
+.node {
+  width: 310px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(255, 246, 235, 0.92));
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+}
+
+.selected {
+  border-color: rgba(202, 90, 50, 0.55);
+  box-shadow:
+    0 0 0 3px rgba(202, 90, 50, 0.14),
+    var(--shadow-card);
+}
+
+.handle {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #fff;
+  background: var(--color-accent);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px 10px;
+}
+
+.titleBlock {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.eyebrow {
+  color: var(--color-muted);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.titleInput {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  color: var(--color-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.status {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.ready {
+  background: rgba(47, 133, 90, 0.12);
+  color: var(--color-success);
+}
+
+.generated {
+  background: rgba(67, 56, 202, 0.1);
+  color: #4c42c2;
+}
+
+.generating {
+  background: rgba(202, 90, 50, 0.1);
+  color: var(--color-accent);
+}
+
+.missing {
+  background: rgba(183, 121, 31, 0.14);
+  color: var(--color-warning);
+}
+
+.unsupported,
+.failed {
+  background: rgba(184, 50, 50, 0.1);
+  color: var(--color-danger);
+}
+
+.empty {
+  background: rgba(109, 93, 77, 0.1);
+  color: var(--color-muted);
+}
+
+.metaStrip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 0 16px 12px;
+  color: var(--color-muted);
+  font-size: 12px;
+}
+
+.videoFrame {
+  margin: 0 16px 16px;
+  aspect-ratio: 16 / 9;
+  border: 1px solid rgba(89, 62, 35, 0.12);
+  background:
+    radial-gradient(circle at top left, rgba(202, 90, 50, 0.18), transparent 35%),
+    linear-gradient(180deg, #332317 0%, #1f1610 100%);
+  overflow: hidden;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.placeholder {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 16px;
+  text-align: center;
+  color: rgba(255, 243, 231, 0.92);
+}
+
+.placeholderText {
+  display: grid;
+  gap: 8px;
+}
+
+.placeholderTitle {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.placeholderBody {
+  font-size: 13px;
+  line-height: 1.5;
+  color: rgba(255, 243, 231, 0.72);
+}

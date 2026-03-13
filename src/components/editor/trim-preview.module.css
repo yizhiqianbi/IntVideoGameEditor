@@ -1,0 +1,64 @@
+.wrap {
+  display: grid;
+  gap: 12px;
+}
+
+.playerShell {
+  border: 1px solid var(--color-line);
+  background: rgba(34, 22, 15, 0.96);
+  overflow: hidden;
+}
+
+.video {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: #0f0a07;
+}
+
+.timeline {
+  display: grid;
+  gap: 8px;
+}
+
+.rangeHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.range {
+  width: 100%;
+  accent-color: var(--color-accent);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--color-line);
+  background: rgba(255, 252, 248, 0.76);
+  font-size: 13px;
+}
+
+.empty {
+  display: grid;
+  gap: 8px;
+  padding: 18px;
+  border: 1px dashed var(--color-line-strong);
+  background: rgba(255, 252, 248, 0.58);
+}
+
+.emptyTitle {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.emptyBody {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.6;
+}

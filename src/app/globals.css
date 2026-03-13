@@ -1,0 +1,75 @@
+:root {
+  --color-background: #f4ecdf;
+  --color-surface: rgba(255, 249, 241, 0.88);
+  --color-surface-strong: #fff7ef;
+  --color-line: rgba(88, 61, 35, 0.14);
+  --color-line-strong: rgba(88, 61, 35, 0.25);
+  --color-text: #2c2016;
+  --color-muted: #6d5d4d;
+  --color-accent: #ca5a32;
+  --color-accent-soft: rgba(202, 90, 50, 0.14);
+  --color-success: #2f855a;
+  --color-warning: #b7791f;
+  --color-danger: #b83232;
+  --shadow-panel: 0 24px 60px rgba(86, 56, 26, 0.12);
+  --shadow-card: 0 16px 36px rgba(99, 63, 29, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  width: 100%;
+  min-height: 100%;
+}
+
+body {
+  color: var(--color-text);
+  background:
+    radial-gradient(circle at top left, rgba(224, 181, 137, 0.34), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(198, 111, 74, 0.18), transparent 32%),
+    linear-gradient(180deg, #f6efe4 0%, #efe2d2 100%);
+  font-family: var(--font-display), sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  background: none;
+  border: 0;
+}
+
+input,
+textarea {
+  border: 0;
+  outline: none;
+}
+
+::selection {
+  background: rgba(202, 90, 50, 0.2);
+}
+
+.react-flow__panel {
+  margin: 16px;
+}
+
+.react-flow__attribution {
+  display: none;
+}
