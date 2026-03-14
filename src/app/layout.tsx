@@ -15,8 +15,8 @@ const monoFont = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "互动影视节点编辑器",
-  description: "基于 React Flow 的节点式互动影视编辑器原型。",
+  title: "PencilStudio-VideoGame",
+  description: "PencilStudio-VideoGame 互动影视编辑工作台。",
 };
 
 export default function RootLayout({

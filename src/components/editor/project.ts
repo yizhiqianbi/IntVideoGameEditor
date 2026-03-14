@@ -10,9 +10,10 @@ import {
   type ImageGenerationModel,
 } from "../../lib/image-generation";
 
-export const PROJECT_VERSION = 2;
+export const PROJECT_VERSION = 3;
 export const VIDEO_SCENE_NODE_TYPE = "videoScene";
 export const CHARACTER_REFERENCE_NODE_TYPE = "characterReference";
+export const SCENE_REFERENCE_NODE_TYPE = "sceneReference";
 
 export type AssetKind = "video" | "image";
 
@@ -39,6 +40,18 @@ export type CharacterDefinition = {
   basePrompt: string;
   imageModel: ImageGenerationModel;
   referenceImageAssetRefs: AssetRef[];
+  placeholderUrl?: string;
+  canvasPosition: XYPosition;
+};
+
+export type SceneDefinition = {
+  id: string;
+  name: string;
+  description: string;
+  basePrompt: string;
+  imageModel: ImageGenerationModel;
+  referenceImageAssetRefs: AssetRef[];
+  placeholderUrl?: string;
   canvasPosition: XYPosition;
 };
 
@@ -130,6 +143,7 @@ export type EditorProject = {
   nodes: SerializedEditorNode[];
   edges: SerializedEditorEdge[];
   characters: CharacterDefinition[];
+  scenes: SceneDefinition[];
   settings: ProjectSettings;
 };
 
@@ -251,6 +265,12 @@ function sanitizeGeneration(value: unknown): NodeGenerationConfig {
             typeof item === "string" && item.trim().length > 0,
         )
       : [],
+    referenceSceneIds: Array.isArray(value.referenceSceneIds)
+      ? value.referenceSceneIds.filter(
+          (item): item is string =>
+            typeof item === "string" && item.trim().length > 0,
+        )
+      : [],
   };
 }
 
@@ -316,9 +336,46 @@ function sanitizeCharacter(value: unknown, index = 1): CharacterDefinition {
           .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
           .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
       : [],
+    placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
     canvasPosition: isPosition(value.canvasPosition)
       ? value.canvasPosition
       : { x: -320, y: 80 + Math.max(index - 1, 0) * 250 },
+  };
+}
+
+function sanitizeSceneDefinition(value: unknown, index = 1): SceneDefinition {
+  if (!isRecord(value)) {
+    throw new Error("场景结构无效。");
+  }
+
+  if (typeof value.id !== "string" || value.id.trim().length === 0) {
+    throw new Error("场景必须包含合法 ID。");
+  }
+
+  return {
+    id: value.id.trim(),
+    name:
+      typeof value.name === "string" && value.name.trim().length > 0
+        ? value.name.trim()
+        : `场景 ${index}`,
+    description: sanitizeString(value.description),
+    basePrompt: sanitizeString(value.basePrompt),
+    imageModel:
+      value.imageModel === "doubao-seedream-5-0-260128" ||
+      value.imageModel === "doubao-seedream-4-5-251128" ||
+      value.imageModel === "doubao-seedream-4-0-250828" ||
+      value.imageModel === "doubao-seedream-3-0-t2i-250415"
+        ? value.imageModel
+        : DEFAULT_CHARACTER_IMAGE_MODEL,
+    referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
+      ? value.referenceImageAssetRefs
+          .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
+          .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
+      : [],
+    placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
+    canvasPosition: isPosition(value.canvasPosition)
+      ? value.canvasPosition
+      : { x: -40, y: 80 + Math.max(index - 1, 0) * 250 },
   };
 }
 
@@ -512,8 +569,28 @@ export function createCharacterDefinition(
     basePrompt: overrides?.basePrompt ?? "",
     imageModel: overrides?.imageModel ?? DEFAULT_CHARACTER_IMAGE_MODEL,
     referenceImageAssetRefs: overrides?.referenceImageAssetRefs ?? [],
+    placeholderUrl: overrides?.placeholderUrl,
     canvasPosition: overrides?.canvasPosition ?? {
       x: -320,
+      y: 80 + Math.max(index - 1, 0) * 250,
+    },
+  };
+}
+
+export function createSceneDefinition(
+  index: number,
+  overrides?: Partial<SceneDefinition>,
+): SceneDefinition {
+  return {
+    id: overrides?.id ?? `scene_ref_${index}`,
+    name: overrides?.name ?? `场景 ${index}`,
+    description: overrides?.description ?? "",
+    basePrompt: overrides?.basePrompt ?? "",
+    imageModel: overrides?.imageModel ?? DEFAULT_CHARACTER_IMAGE_MODEL,
+    referenceImageAssetRefs: overrides?.referenceImageAssetRefs ?? [],
+    placeholderUrl: overrides?.placeholderUrl,
+    canvasPosition: overrides?.canvasPosition ?? {
+      x: -40,
       y: 80 + Math.max(index - 1, 0) * 250,
     },
   };
@@ -677,11 +754,13 @@ export function serializeProject(
   nodes: EditorFlowNode[],
   edges: EditorFlowEdge[],
   characters: CharacterDefinition[],
+  scenes: SceneDefinition[],
   settings: ProjectSettings,
 ): EditorProject {
   return {
     version: PROJECT_VERSION,
     characters,
+    scenes,
     settings,
     nodes: nodes.map((node) => ({
       id: node.id,
@@ -729,9 +808,9 @@ export function parseProject(value: unknown): EditorProject {
       ? value.version
       : undefined;
 
-  if (version !== 1 && version !== PROJECT_VERSION) {
+  if (version !== 1 && version !== 2 && version !== PROJECT_VERSION) {
     throw new Error(
-      `工程版本不匹配。当前支持版本 1 和 ${PROJECT_VERSION}。`,
+      `工程版本不匹配。当前支持版本 1、2 和 ${PROJECT_VERSION}。`,
     );
   }
 
@@ -745,6 +824,7 @@ export function parseProject(value: unknown): EditorProject {
       nodes: value.nodes.map((node) => migrateVersionOneNode(node)),
       edges: value.edges.map((edge) => sanitizeSerializedEdge(edge)),
       characters: [],
+      scenes: [],
       settings: {
         providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
       },
@@ -758,6 +838,11 @@ export function parseProject(value: unknown): EditorProject {
     characters: Array.isArray(value.characters)
       ? value.characters.map((character, index) =>
           sanitizeCharacter(character, index + 1),
+        )
+      : [],
+    scenes: Array.isArray(value.scenes)
+      ? value.scenes.map((scene, index) =>
+          sanitizeSceneDefinition(scene, index + 1),
         )
       : [],
     settings: sanitizeProjectSettings(),

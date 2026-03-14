@@ -40,6 +40,7 @@ import {
 import {
   IMAGE_MODEL_OPTIONS,
   buildCharacterImagePrompt,
+  buildSceneImagePrompt,
   type ImageGenerationModel,
 } from "../../lib/image-generation";
 import {
@@ -52,15 +53,27 @@ import {
   buildInteractiveExportBundle,
   buildTraversalExportBundles,
 } from "../../lib/export-packages";
+import {
+  applyDemoVisuals,
+  DEMO_AGENT_DRAFT,
+  DEMO_AGENT_SCREENPLAY,
+  DEMO_STORY_TEXT,
+} from "../../lib/demo-case";
 import styles from "./editor-shell.module.css";
 import {
   CharacterReferenceNode,
   type CharacterReferenceNodeData,
 } from "./character-reference-node";
 import {
+  SceneReferenceNode,
+  type SceneReferenceNodeData,
+} from "./scene-reference-node";
+import {
   buildTransitionEdge,
   CHARACTER_REFERENCE_NODE_TYPE,
+  SCENE_REFERENCE_NODE_TYPE,
   createCharacterDefinition,
+  createSceneDefinition,
   createConditionLabel,
   createConditionVariable,
   createSceneAction,
@@ -77,6 +90,7 @@ import {
   type EditorFlowEdge,
   type EditorFlowNode,
   type ProjectSettings,
+  type SceneDefinition,
   type SceneAction,
   type TrimRange,
 } from "./project";
@@ -90,7 +104,7 @@ type RuntimeAsset = {
 };
 
 type Notice = {
-  tone: "success" | "error";
+  tone: "success" | "error" | "info";
   message: string;
 };
 
@@ -99,11 +113,17 @@ type CharacterCanvasNode = Node<
   typeof CHARACTER_REFERENCE_NODE_TYPE
 >;
 
-type CanvasFlowNode = EditorFlowNode | CharacterCanvasNode;
+type SceneCanvasNode = Node<
+  SceneReferenceNodeData,
+  typeof SCENE_REFERENCE_NODE_TYPE
+>;
+
+type CanvasFlowNode = EditorFlowNode | CharacterCanvasNode | SceneCanvasNode;
 
 const nodeTypes = {
   videoScene: VideoSceneNode,
   characterReference: CharacterReferenceNode,
+  sceneReference: SceneReferenceNode,
 };
 
 const PROVIDER_STORAGE_KEY = "int-video-game-editor.provider-credentials.v1";
@@ -115,6 +135,7 @@ const DEFAULT_LOCAL_PROVIDER_CREDENTIALS: ProviderCredentialState = {
   },
 };
 const CHARACTER_NODE_ID_PREFIX = "character-card:";
+const SCENE_NODE_ID_PREFIX = "scene-card:";
 const REFERENCE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect width="720" height="720" rx="48" fill="#F2E6D7"/>
@@ -130,6 +151,20 @@ const REFERENCE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(
   <rect x="458" y="314" width="148" height="40" rx="20" fill="#D96C44"/>
   <text x="532" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#FFF8F0">参考图</text>
   <text x="360" y="642" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#7E6853">上传角色参考图</text>
+</svg>
+`)}`;
+const SCENE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg width="960" height="600" viewBox="0 0 960 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="600" rx="40" fill="#10202B"/>
+  <rect x="40" y="40" width="880" height="520" rx="28" fill="#173142" stroke="#4E86A4" stroke-width="3"/>
+  <rect x="88" y="96" width="280" height="30" rx="15" fill="#2A526A"/>
+  <rect x="88" y="142" width="360" height="22" rx="11" fill="#21465B"/>
+  <circle cx="760" cy="130" r="48" fill="#F7C77D"/>
+  <path d="M120 430C210 328 322 276 454 276C610 276 732 348 824 502H120V430Z" fill="#27495D"/>
+  <rect x="544" y="320" width="176" height="110" rx="18" fill="#21455B" stroke="#74C4DD" stroke-width="3" stroke-dasharray="10 10"/>
+  <path d="M596 373H668" stroke="#74C4DD" stroke-width="16" stroke-linecap="round"/>
+  <path d="M632 338V408" stroke="#74C4DD" stroke-width="16" stroke-linecap="round"/>
+  <text x="480" y="536" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#D9EEF6">上传场景参考图</text>
 </svg>
 `)}`;
 
@@ -259,6 +294,18 @@ function parseCharacterIdFromNodeId(nodeId: string) {
   return nodeId.slice(CHARACTER_NODE_ID_PREFIX.length);
 }
 
+function getSceneNodeId(sceneId: string) {
+  return `${SCENE_NODE_ID_PREFIX}${sceneId}`;
+}
+
+function parseSceneIdFromNodeId(nodeId: string) {
+  if (!nodeId.startsWith(SCENE_NODE_ID_PREFIX)) {
+    return null;
+  }
+
+  return nodeId.slice(SCENE_NODE_ID_PREFIX.length);
+}
+
 function slugifyCharacterId(value: string) {
   const nextValue = value
     .trim()
@@ -279,6 +326,41 @@ function buildUniqueCharacterId(
     characters
       .map((character) => character.id)
       .filter((characterId) => characterId !== currentId),
+  );
+
+  if (!existingIds.has(normalized)) {
+    return normalized;
+  }
+
+  let index = 2;
+
+  while (existingIds.has(`${normalized}_${index}`)) {
+    index += 1;
+  }
+
+  return `${normalized}_${index}`;
+}
+
+function slugifySceneId(value: string) {
+  const nextValue = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return nextValue || "scene";
+}
+
+function buildUniqueSceneId(
+  candidate: string,
+  scenes: SceneDefinition[],
+  currentId?: string,
+) {
+  const normalized = slugifySceneId(candidate);
+  const existingIds = new Set(
+    scenes
+      .map((scene) => scene.id)
+      .filter((sceneId) => sceneId !== currentId),
   );
 
   if (!existingIds.has(normalized)) {
@@ -318,11 +400,37 @@ function buildCharacterCanvasNode(
   };
 }
 
+function buildSceneCanvasNode(
+  scene: SceneDefinition,
+  previewUrl: string,
+  isActive: boolean,
+): SceneCanvasNode {
+  return {
+    id: getSceneNodeId(scene.id),
+    type: SCENE_REFERENCE_NODE_TYPE,
+    position: scene.canvasPosition,
+    data: {
+      sceneId: scene.id,
+      name: scene.name,
+      description: scene.description,
+      referenceCount: scene.referenceImageAssetRefs.length,
+      previewUrl,
+      isActive,
+    },
+    draggable: true,
+    selectable: true,
+    deletable: false,
+    connectable: false,
+  };
+}
+
 function buildNodePrompt(
   node: EditorFlowNode,
   characters: CharacterDefinition[],
+  scenes: SceneDefinition[],
 ) {
   const characterMap = new Map(characters.map((character) => [character.id, character]));
+  const sceneMap = new Map(scenes.map((scene) => [scene.id, scene]));
   const lines = [
     `镜头标题：${node.data.title}`,
     `镜头时长：${node.data.generation.durationSec} 秒`,
@@ -351,6 +459,28 @@ function buildNodePrompt(
 
       if (action.dialogue.trim().length > 0) {
         segments.push(`台词：${action.dialogue.trim()}`);
+      }
+
+      lines.push(`- ${segments.join("，")}`);
+    }
+  }
+
+  const referencedScenes = node.data.generation.referenceSceneIds
+    .map((sceneId) => sceneMap.get(sceneId))
+    .filter((scene): scene is SceneDefinition => Boolean(scene));
+
+  if (referencedScenes.length > 0) {
+    lines.push("场景设定：");
+
+    for (const scene of referencedScenes) {
+      const segments = [`${scene.name}(#${scene.id})`];
+
+      if (scene.description.trim().length > 0) {
+        segments.push(scene.description.trim());
+      }
+
+      if (scene.basePrompt.trim().length > 0) {
+        segments.push(`生成偏好：${scene.basePrompt.trim()}`);
       }
 
       lines.push(`- ${segments.join("，")}`);
@@ -416,6 +546,28 @@ function getNodePreviewUrl(
   return undefined;
 }
 
+function getCharacterPreviewUrl(
+  character: CharacterDefinition,
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+) {
+  return (
+    assetRuntimeMap[character.referenceImageAssetRefs[0]?.assetId ?? ""]?.objectUrl ??
+    character.placeholderUrl ??
+    REFERENCE_PLACEHOLDER_SVG
+  );
+}
+
+function getScenePreviewUrl(
+  scene: SceneDefinition,
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+) {
+  return (
+    assetRuntimeMap[scene.referenceImageAssetRefs[0]?.assetId ?? ""]?.objectUrl ??
+    scene.placeholderUrl ??
+    SCENE_PLACEHOLDER_SVG
+  );
+}
+
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -467,20 +619,24 @@ export function EditorShell() {
   ]);
   const [edges, setEdges] = useState<EditorFlowEdge[]>([]);
   const [characters, setCharacters] = useState<CharacterDefinition[]>([]);
+  const [scenes, setScenes] = useState<SceneDefinition[]>([]);
   const [settings, setSettings] = useState<ProjectSettings>({
     providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
   });
   const [providerCredentials, setProviderCredentials] =
     useState<ProviderCredentialState>(DEFAULT_LOCAL_PROVIDER_CREDENTIALS);
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
   const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
   const [isAgentModeOpen, setIsAgentModeOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [characterCanvasNodes, setCharacterCanvasNodes] = useState<
     CharacterCanvasNode[]
   >([]);
+  const [sceneCanvasNodes, setSceneCanvasNodes] = useState<SceneCanvasNode[]>([]);
   const [assetRuntimeMap, setAssetRuntimeMap] = useState<
     Record<string, RuntimeAsset>
   >({});
@@ -518,6 +674,8 @@ export function EditorShell() {
     nodes.find((node) => node.id === selectedNodeId) ?? null;
   const selectedCharacter =
     characters.find((character) => character.id === selectedCharacterId) ?? null;
+  const selectedScene =
+    scenes.find((scene) => scene.id === selectedSceneId) ?? null;
   const selectedEdge =
     edges.find((edge) => edge.id === selectedEdgeId) ?? null;
 
@@ -536,7 +694,7 @@ export function EditorShell() {
   );
 
   const selectedNodePrompt = selectedNode
-    ? buildNodePrompt(selectedNode, characters)
+    ? buildNodePrompt(selectedNode, characters, scenes)
     : "";
   const generatingCharacterIdSet = useMemo(
     () => new Set(generatingCharacterIds),
@@ -1014,19 +1172,26 @@ export function EditorShell() {
   useEffect(() => {
     setCharacterCanvasNodes(
       characters.map((character) => {
-        const previewAssetId = character.referenceImageAssetRefs[0]?.assetId;
-        const previewUrl =
-          (previewAssetId ? assetRuntimeMap[previewAssetId]?.objectUrl : undefined) ??
-          REFERENCE_PLACEHOLDER_SVG;
-
         return buildCharacterCanvasNode(
           character,
-          previewUrl,
+          getCharacterPreviewUrl(character, assetRuntimeMap),
           selectedCharacterId === character.id,
         );
       }),
     );
   }, [assetRuntimeMap, characters, selectedCharacterId]);
+
+  useEffect(() => {
+    setSceneCanvasNodes(
+      scenes.map((scene) => {
+        return buildSceneCanvasNode(
+          scene,
+          getScenePreviewUrl(scene, assetRuntimeMap),
+          selectedSceneId === scene.id,
+        );
+      }),
+    );
+  }, [assetRuntimeMap, scenes, selectedSceneId]);
 
   useEffect(() => {
     return () => {
@@ -1076,13 +1241,14 @@ export function EditorShell() {
   }, [providerCredentials]);
 
   useEffect(() => {
-    if (!isProviderModalOpen && !isAssetLibraryOpen && !isAgentModeOpen) {
+    if (!isExportModalOpen && !isProviderModalOpen && !isAssetLibraryOpen && !isAgentModeOpen) {
       document.body.style.overflow = "";
       return;
     }
 
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        setIsExportModalOpen(false);
         setIsProviderModalOpen(false);
         setIsAssetLibraryOpen(false);
         setIsAgentModeOpen(false);
@@ -1096,7 +1262,7 @@ export function EditorShell() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isAgentModeOpen, isAssetLibraryOpen, isProviderModalOpen]);
+  }, [isAgentModeOpen, isAssetLibraryOpen, isExportModalOpen, isProviderModalOpen]);
 
   useEffect(() => {
     if (!hasPollablePendingVideoTask) {
@@ -1252,6 +1418,44 @@ export function EditorShell() {
       tone: "success",
       message: "已新增一个视频节点。",
     });
+    setSelectedSceneId(null);
+  }
+
+  function handleLoadDemoCase() {
+    const nextGraph = applyAgentDraftToEditorGraph(DEMO_AGENT_DRAFT);
+    const demoVisuals = applyDemoVisuals({
+      characters: nextGraph.characters,
+      scenes: nextGraph.scenes,
+    });
+
+    cleanupAllAssets();
+
+    startTransition(() => {
+      setNodes(nextGraph.nodes);
+      setEdges(nextGraph.edges);
+      setCharacters(demoVisuals.characters);
+      setScenes(demoVisuals.scenes);
+      setSelectedNodeId(null);
+      setSelectedCharacterId(null);
+      setSelectedSceneId(null);
+      setSelectedEdgeId(null);
+      setAgentStoryText(DEMO_STORY_TEXT);
+      setAgentFeedbackText("");
+      setAgentDraft(DEMO_AGENT_DRAFT);
+      setAgentScreenplay(DEMO_AGENT_SCREENPLAY);
+    });
+
+    setNotice({
+      tone: "success",
+      message: "已加载高质量 Demo Case，可直接在角色卡和场景卡上继续上传参考图。",
+    });
+
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 220,
+        padding: 0.24,
+      });
+    });
   }
 
   function handleNodesChange(changes: NodeChange<CanvasFlowNode>[]) {
@@ -1265,9 +1469,18 @@ export function EditorShell() {
 
       const characterId = parseCharacterIdFromNodeId(change.id);
 
+      if (characterId) {
+        continue;
+      }
+
+      const sceneId = parseSceneIdFromNodeId(change.id);
+
+      if (sceneId) {
+        continue;
+      }
+
       if (!characterId) {
         sceneChanges.push(change as NodeChange<EditorFlowNode>);
-        continue;
       }
     }
 
@@ -1312,6 +1525,25 @@ export function EditorShell() {
               canvasPosition: position,
             }
           : character,
+      ),
+    );
+  }
+
+  function handleSceneNodeDragStop(nodeId: string, position: { x: number; y: number }) {
+    const sceneId = parseSceneIdFromNodeId(nodeId);
+
+    if (!sceneId || !Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      return;
+    }
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              canvasPosition: position,
+            }
+          : scene,
       ),
     );
   }
@@ -1363,6 +1595,7 @@ export function EditorShell() {
     setEdges((currentEdges) => [...currentEdges, nextEdge]);
     setSelectedNodeId(null);
     setSelectedCharacterId(null);
+    setSelectedSceneId(null);
     setSelectedEdgeId(nextEdge.id);
     setNotice({
       tone: "success",
@@ -1400,9 +1633,11 @@ export function EditorShell() {
         setNodes(nextNodes);
         setEdges(hydratedEdges.edges);
         setCharacters(project.characters);
+        setScenes(project.scenes);
         setSettings(project.settings);
         setSelectedNodeId(null);
         setSelectedCharacterId(null);
+        setSelectedSceneId(null);
         setSelectedEdgeId(null);
       });
 
@@ -1431,8 +1666,8 @@ export function EditorShell() {
     }
   }
 
-  function handleExport() {
-    const project = serializeProject(nodes, edges, characters, settings);
+  function handleExportProjectJson() {
+    const project = serializeProject(nodes, edges, characters, scenes, settings);
     const blob = new Blob([JSON.stringify(project, null, 2)], {
       type: "application/json",
     });
@@ -1710,8 +1945,10 @@ export function EditorShell() {
       setNodes(nextGraph.nodes);
       setEdges(nextGraph.edges);
       setCharacters(nextGraph.characters);
+      setScenes(nextGraph.scenes);
       setSelectedNodeId(null);
       setSelectedCharacterId(null);
+      setSelectedSceneId(null);
       setSelectedEdgeId(null);
       setIsAgentModeOpen(false);
     });
@@ -1850,6 +2087,7 @@ export function EditorShell() {
     setCharacters((currentCharacters) => [...currentCharacters, nextCharacter]);
     setSelectedCharacterId(nextCharacter.id);
     setSelectedNodeId(null);
+    setSelectedSceneId(null);
     setSelectedEdgeId(null);
     requestAnimationFrame(() => {
       reactFlowRef.current?.fitView({
@@ -1988,6 +2226,318 @@ export function EditorShell() {
     });
   }
 
+  async function handleSceneImageChange(
+    sceneId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
+
+    if (invalidFile) {
+      setNotice({
+        tone: "error",
+        message: `「${invalidFile.name}」不是图片文件。`,
+      });
+      return;
+    }
+
+    const runtimeEntries = files.map((file) => {
+      const assetId = crypto.randomUUID();
+
+      return {
+        assetRef: {
+          assetId,
+          fileName: file.name,
+          mimeType: file.type || undefined,
+          kind: "image" as const,
+        },
+        runtimeAsset: {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: "image" as const,
+        },
+      };
+    });
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: [
+                ...runtimeEntries.map((entry) => entry.assetRef),
+                ...scene.referenceImageAssetRefs,
+              ],
+            }
+          : scene,
+      ),
+    );
+    setAssetRuntimeMap((currentMap) => {
+      const nextMap = { ...currentMap };
+
+      for (const entry of runtimeEntries) {
+        nextMap[entry.assetRef.assetId] = entry.runtimeAsset;
+      }
+
+      return nextMap;
+    });
+    setNotice({
+      tone: "success",
+      message: `已为场景补充 ${files.length} 张参考图。`,
+    });
+  }
+
+  async function handleGenerateSceneImage(scene: SceneDefinition) {
+    if (!providerCredentials.doubao.apiKey.trim()) {
+      setNotice({
+        tone: "error",
+        message: "请先配置火山 API Key。",
+      });
+      return;
+    }
+
+    const prompt = buildSceneImagePrompt({
+      name: scene.name,
+      description: scene.description,
+      basePrompt: scene.basePrompt,
+    });
+
+    try {
+      const response = await fetch("/api/image/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey: providerCredentials.doubao.apiKey,
+          prompt,
+          model: scene.imageModel,
+        }),
+      });
+      const result = (await response.json()) as {
+        b64Json?: string;
+        mimeType?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !result.b64Json) {
+        throw new Error(result.message ?? "场景生图失败。");
+      }
+
+      const file = await dataUrlToFile(
+        `data:${result.mimeType ?? "image/png"};base64,${result.b64Json}`,
+        `${scene.id}-${Date.now()}.png`,
+      );
+      const assetId = crypto.randomUUID();
+
+      setScenes((currentScenes) =>
+        currentScenes.map((currentScene) =>
+          currentScene.id === scene.id
+            ? {
+                ...currentScene,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: file.name,
+                    mimeType: file.type || undefined,
+                    kind: "image",
+                  },
+                  ...currentScene.referenceImageAssetRefs,
+                ],
+              }
+            : currentScene,
+        ),
+      );
+      setAssetRuntimeMap((currentMap) => ({
+        ...currentMap,
+        [assetId]: {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: "image",
+        },
+      }));
+      setNotice({
+        tone: "success",
+        message: `已为「${scene.name}」生成场景参考图。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "场景生图失败。",
+      });
+    }
+  }
+
+  function removeSceneReferenceAsset(sceneId: string, assetId: string) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: scene.referenceImageAssetRefs.filter(
+                (assetRef) => assetRef.assetId !== assetId,
+              ),
+            }
+          : scene,
+      ),
+    );
+    revokeAssetsById([assetId]);
+  }
+
+  function attachExistingImageToScene(sceneId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "image") {
+      return;
+    }
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? scene.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId)
+            ? scene
+            : {
+                ...scene,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: runtimeAsset.file.name,
+                    mimeType: runtimeAsset.file.type || undefined,
+                    kind: "image",
+                  },
+                  ...scene.referenceImageAssetRefs,
+                ],
+              }
+          : scene,
+      ),
+    );
+  }
+
+  function handleAddScenePreset() {
+    const nextScene = createSceneDefinition(scenes.length + 1, {
+      id: buildUniqueSceneId(`scene_ref_${scenes.length + 1}`, scenes),
+    });
+
+    setScenes((currentScenes) => [...currentScenes, nextScene]);
+    setSelectedSceneId(nextScene.id);
+    setSelectedCharacterId(null);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 180,
+        padding: 0.24,
+      });
+    });
+    setNotice({
+      tone: "success",
+      message: "已新增一个场景卡。",
+    });
+  }
+
+  function handleSceneFieldChange(
+    sceneId: string,
+    field: keyof Pick<SceneDefinition, "name" | "description" | "basePrompt">,
+    value: string,
+  ) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              [field]: value,
+            }
+          : scene,
+      ),
+    );
+  }
+
+  function handleSceneImageModelChange(sceneId: string, imageModel: ImageGenerationModel) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              imageModel,
+            }
+          : scene,
+      ),
+    );
+  }
+
+  function handleSceneIdChange(sceneId: string, value: string) {
+    const nextId = buildUniqueSceneId(value, scenes, sceneId);
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              id: nextId,
+            }
+          : scene,
+      ),
+    );
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: node.data.generation.referenceSceneIds.map((referenceSceneId) =>
+              referenceSceneId === sceneId ? nextId : referenceSceneId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedSceneId === sceneId) {
+      setSelectedSceneId(nextId);
+    }
+  }
+
+  function handleDeleteScene(sceneId: string) {
+    const targetScene = scenes.find((scene) => scene.id === sceneId);
+
+    if (!targetScene) {
+      return;
+    }
+
+    revokeAssetsById(targetScene.referenceImageAssetRefs.map((assetRef) => assetRef.assetId));
+    setScenes((currentScenes) => currentScenes.filter((scene) => scene.id !== sceneId));
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: node.data.generation.referenceSceneIds.filter(
+              (referenceSceneId) => referenceSceneId !== sceneId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedSceneId === sceneId) {
+      setSelectedSceneId(null);
+    }
+
+    setNotice({
+      tone: "success",
+      message: `已删除场景「${targetScene.name}」。`,
+    });
+  }
+
   function handleAddAction(nodeId: string) {
     updateNode(nodeId, (node) => ({
       ...node,
@@ -2119,6 +2669,25 @@ export function EditorShell() {
     });
   }
 
+  function toggleReferenceScene(nodeId: string, sceneId: string) {
+    updateNode(nodeId, (node) => {
+      const alreadySelected = node.data.generation.referenceSceneIds.includes(sceneId);
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: alreadySelected
+              ? node.data.generation.referenceSceneIds.filter((item) => item !== sceneId)
+              : [...node.data.generation.referenceSceneIds, sceneId],
+          },
+        },
+      };
+    });
+  }
+
   async function collectReferenceImages(node: EditorFlowNode) {
     const uniqueCharacterIds = Array.from(
       new Set(
@@ -2136,6 +2705,12 @@ export function EditorShell() {
       )
       .filter((character): character is CharacterDefinition => Boolean(character))
       .flatMap((character) => character.referenceImageAssetRefs)
+      .concat(
+        node.data.generation.referenceSceneIds
+          .map((sceneId) => scenes.find((scene) => scene.id === sceneId))
+          .filter((scene): scene is SceneDefinition => Boolean(scene))
+          .flatMap((scene) => scene.referenceImageAssetRefs),
+      )
       .slice(0, 4);
 
     const imageFiles = referenceAssets
@@ -2166,7 +2741,7 @@ export function EditorShell() {
     }
 
     const requestBody: UnifiedVideoGenerationRequest = {
-      prompt: buildNodePrompt(node, characters),
+      prompt: buildNodePrompt(node, characters, scenes),
       mode: node.data.generation.mode,
       aspectRatio: node.data.generation.aspectRatio,
       durationSec: node.data.generation.durationSec,
@@ -2289,8 +2864,8 @@ export function EditorShell() {
   );
 
   const flowNodes = useMemo<CanvasFlowNode[]>(
-    () => [...characterCanvasNodes, ...sceneFlowNodes],
-    [characterCanvasNodes, sceneFlowNodes],
+    () => [...characterCanvasNodes, ...sceneCanvasNodes, ...sceneFlowNodes],
+    [characterCanvasNodes, sceneCanvasNodes, sceneFlowNodes],
   );
 
   const configuredProviders = getConfiguredProviderPriority(
@@ -2303,6 +2878,9 @@ export function EditorShell() {
         const linkedCharacters = characters.filter((character) =>
           character.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId),
         );
+        const linkedScenes = scenes.filter((scene) =>
+          scene.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId),
+        );
         const linkedNode = nodes.find((node) => node.data.assetRef?.assetId === assetId);
 
         return {
@@ -2311,26 +2889,29 @@ export function EditorShell() {
           objectUrl: runtimeAsset.objectUrl,
           fileName: runtimeAsset.file.name,
           linkedCharacters,
+          linkedScenes,
           linkedNode,
         };
       }),
-    [assetRuntimeMap, characters, nodes],
+    [assetRuntimeMap, characters, nodes, scenes],
   );
   const selectedNodePreviewUrl = selectedNode
     ? getNodePreviewUrl(selectedNode, assetRuntimeMap)
     : undefined;
   const selectedCharacterPreviewUrl = selectedCharacter
-    ? assetRuntimeMap[selectedCharacter.referenceImageAssetRefs[0]?.assetId ?? ""]?.objectUrl ??
-      REFERENCE_PLACEHOLDER_SVG
+    ? getCharacterPreviewUrl(selectedCharacter, assetRuntimeMap)
     : REFERENCE_PLACEHOLDER_SVG;
+  const selectedScenePreviewUrl = selectedScene
+    ? getScenePreviewUrl(selectedScene, assetRuntimeMap)
+    : SCENE_PLACEHOLDER_SVG;
 
   return (
     <div className={styles.page}>
       <div className={styles.layout}>
         <aside className={`${styles.panel} ${styles.sidebar}`}>
           <section className={styles.hero}>
-            <span className={styles.sectionTitle}>Interactive Film</span>
-            <h1 className={styles.heroTitle}>节点式互动影视编辑器</h1>
+            <span className={styles.sectionTitle}>PencilStudio</span>
+            <h1 className={styles.heroTitle}>PencilStudio-VideoGame</h1>
           </section>
 
           <section className={styles.section}>
@@ -2346,30 +2927,16 @@ export function EditorShell() {
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => importInputRef.current?.click()}
+                onClick={() => setIsExportModalOpen(true)}
               >
-                导入工程 JSON
+                导出设置
               </button>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={handleExport}
+                onClick={handleLoadDemoCase}
               >
-                导出工程 JSON
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={handleExportInteractivePackage}
-              >
-                导出互动版 HTML
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={handleExportTraversalPackage}
-              >
-                导出全分支版 HTML
+                加载 Demo Case
               </button>
               <button
                 type="button"
@@ -2429,37 +2996,14 @@ export function EditorShell() {
                     <div className={styles.assetGroup}>
                       <div className={styles.referenceStage}>
                         <div className={styles.referenceHero}>
-                          {character.referenceImageAssetRefs[0] ? (
-                            assetRuntimeMap[
-                              character.referenceImageAssetRefs[0].assetId
-                            ]?.objectUrl ? (
-                              <Image
-                                className={styles.referenceHeroImage}
-                                src={
-                                  assetRuntimeMap[
-                                    character.referenceImageAssetRefs[0].assetId
-                                  ]?.objectUrl ?? ""
-                                }
-                                alt={character.referenceImageAssetRefs[0].fileName}
-                                width={720}
-                                height={720}
-                                unoptimized
-                              />
-                            ) : (
-                              <div className={styles.referenceHeroMissing}>
-                                参考图引用已恢复，等待重新绑定
-                              </div>
-                            )
-                          ) : (
-                            <Image
-                              className={styles.referenceHeroImage}
-                              src={REFERENCE_PLACEHOLDER_SVG}
-                              alt="角色参考图占位"
-                              width={720}
-                              height={720}
-                              unoptimized
-                            />
-                          )}
+                          <Image
+                            className={styles.referenceHeroImage}
+                            src={getCharacterPreviewUrl(character, assetRuntimeMap)}
+                            alt={character.name || character.id}
+                            width={720}
+                            height={720}
+                            unoptimized
+                          />
                           <div className={styles.referenceOverlay}>
                             <span className={styles.referenceBadge}>
                               {character.referenceImageAssetRefs.length > 0
@@ -2520,6 +3064,7 @@ export function EditorShell() {
                           onClick={() => {
                             setSelectedCharacterId(character.id);
                             setSelectedNodeId(null);
+                            setSelectedSceneId(null);
                             setSelectedEdgeId(null);
                           }}
                         >
@@ -2532,6 +3077,103 @@ export function EditorShell() {
                           disabled={generatingCharacterIdSet.has(character.id)}
                         >
                           {generatingCharacterIdSet.has(character.id) ? "生成中..." : "生图"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.inlineHeader}>
+              <h2 className={styles.sectionTitle}>场景面板</h2>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={handleAddScenePreset}
+              >
+                新增场景
+              </button>
+            </div>
+
+            <div className={styles.characterList}>
+              {scenes.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyStateTitle}>暂无场景卡</p>
+                </div>
+              ) : (
+                scenes.map((scene) => (
+                  <article key={scene.id} className={styles.characterCard}>
+                    <div className={styles.characterCardHeader}>
+                      <div className={styles.characterIdentity}>
+                        <strong className={styles.characterName}>
+                          {scene.name || scene.id}
+                        </strong>
+                        <span className={styles.characterIdBadge}>#{scene.id}</span>
+                      </div>
+                      <button
+                        type="button"
+                        className={styles.miniDangerButton}
+                        onClick={() => handleDeleteScene(scene.id)}
+                      >
+                        删除
+                      </button>
+                    </div>
+
+                    <div className={styles.assetGroup}>
+                      <div className={styles.referenceStage}>
+                        <div className={styles.referenceHero}>
+                          <Image
+                            className={styles.referenceHeroImage}
+                            src={getScenePreviewUrl(scene, assetRuntimeMap)}
+                            alt={scene.name || scene.id}
+                            width={960}
+                            height={600}
+                            unoptimized
+                          />
+                          <div className={styles.referenceOverlay}>
+                            <span className={styles.referenceBadge}>
+                              {scene.referenceImageAssetRefs.length > 0
+                                ? `${scene.referenceImageAssetRefs.length} 张参考图`
+                                : "场景参考图区"}
+                            </span>
+                            <label className={styles.inlineLinkButton}>
+                              上传参考图
+                              <input
+                                className={styles.hiddenInput}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(event) =>
+                                  void handleSceneImageChange(scene.id, event)
+                                }
+                              />
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className={styles.actionGrid}>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => {
+                            setSelectedSceneId(scene.id);
+                            setSelectedCharacterId(null);
+                            setSelectedNodeId(null);
+                            setSelectedEdgeId(null);
+                          }}
+                        >
+                          编辑
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => void handleGenerateSceneImage(scene)}
+                        >
+                          生图
                         </button>
                       </div>
                     </div>
@@ -2593,6 +3235,8 @@ export function EditorShell() {
               className={`${styles.notice} ${
                 notice.tone === "success"
                   ? styles.noticeSuccess
+                  : notice.tone === "info"
+                    ? styles.noticeInfo
                   : styles.noticeError
               }`}
             >
@@ -2628,15 +3272,26 @@ export function EditorShell() {
             onNodeDragStop={(_, node) => {
               if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
                 handleCharacterNodeDragStop(node.id, node.position);
+                return;
+              }
+
+              if (node.type === SCENE_REFERENCE_NODE_TYPE) {
+                handleSceneNodeDragStop(node.id, node.position);
               }
             }}
             onNodeClick={(_, node) => {
               if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
                 setSelectedCharacterId(node.data.characterId);
                 setSelectedNodeId(null);
+                setSelectedSceneId(null);
+              } else if (node.type === SCENE_REFERENCE_NODE_TYPE) {
+                setSelectedSceneId(node.data.sceneId);
+                setSelectedNodeId(null);
+                setSelectedCharacterId(null);
               } else {
                 setSelectedNodeId(node.id);
                 setSelectedCharacterId(null);
+                setSelectedSceneId(null);
               }
 
               setSelectedEdgeId(null);
@@ -2645,10 +3300,12 @@ export function EditorShell() {
               setSelectedEdgeId(edge.id);
               setSelectedNodeId(null);
               setSelectedCharacterId(null);
+              setSelectedSceneId(null);
             }}
             onPaneClick={() => {
               setSelectedNodeId(null);
               setSelectedCharacterId(null);
+              setSelectedSceneId(null);
               setSelectedEdgeId(null);
             }}
             defaultEdgeOptions={{
@@ -2985,6 +3642,39 @@ export function EditorShell() {
                               }
                             >
                               {character.name}
+                            </button>
+                          );
+                        })
+                      )}
+                    </div>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label}>参考场景</label>
+                    <div className={styles.tagGrid}>
+                      {scenes.length === 0 ? (
+                        <p className={styles.hint}>
+                          先在左侧场景面板创建场景卡并上传参考图。
+                        </p>
+                      ) : (
+                        scenes.map((scene) => {
+                          const active =
+                            selectedNode.data.generation.referenceSceneIds.includes(
+                              scene.id,
+                            );
+
+                          return (
+                            <button
+                              key={scene.id}
+                              type="button"
+                              className={`${styles.tagChip} ${
+                                active ? styles.tagChipActive : ""
+                              }`}
+                              onClick={() =>
+                                toggleReferenceScene(selectedNode.id, scene.id)
+                              }
+                            >
+                              {scene.name}
                             </button>
                           );
                         })
@@ -3332,6 +4022,176 @@ export function EditorShell() {
                   删除当前角色
                 </button>
               </>
+            ) : selectedScene ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.label}>场景 ID</label>
+                  <input
+                    className={styles.textInput}
+                    value={selectedScene.id}
+                    onChange={(event) =>
+                      handleSceneIdChange(selectedScene.id, event.target.value)
+                    }
+                    placeholder="例如 station_night"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>场景名</label>
+                  <input
+                    className={styles.textInput}
+                    value={selectedScene.name}
+                    onChange={(event) =>
+                      handleSceneFieldChange(
+                        selectedScene.id,
+                        "name",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例如 深夜车站"
+                  />
+                </div>
+
+                <div className={styles.assetCard}>
+                  <p className={styles.assetStatus}>画布里的场景参考卡</p>
+                  <div className={styles.referenceStage}>
+                    <div className={styles.referenceHero}>
+                      <Image
+                        className={styles.referenceHeroImage}
+                        src={selectedScenePreviewUrl}
+                        alt={selectedScene.name || selectedScene.id}
+                        width={960}
+                        height={600}
+                        unoptimized
+                      />
+                      <div className={styles.referenceOverlay}>
+                        <span className={styles.referenceBadge}>
+                          {selectedScene.referenceImageAssetRefs.length > 0
+                            ? `${selectedScene.referenceImageAssetRefs.length} 张参考图`
+                            : "场景参考图区"}
+                        </span>
+                        <label className={styles.inlineLinkButton}>
+                          上传参考图
+                          <input
+                            className={styles.hiddenInput}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(event) =>
+                              void handleSceneImageChange(selectedScene.id, event)
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>场景设定</label>
+                  <textarea
+                    className={styles.compactTextArea}
+                    value={selectedScene.description}
+                    onChange={(event) =>
+                      handleSceneFieldChange(
+                        selectedScene.id,
+                        "description",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="写空间关系、时间、天气、色调、关键布景。"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>补充</label>
+                  <textarea
+                    className={styles.compactTextArea}
+                    value={selectedScene.basePrompt}
+                    onChange={(event) =>
+                      handleSceneFieldChange(
+                        selectedScene.id,
+                        "basePrompt",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="写镜头气质、材质偏好、禁忌元素。"
+                  />
+                </div>
+
+                <div className={styles.gridTwo}>
+                  <div className={styles.field}>
+                    <label className={styles.label}>生图模型</label>
+                    <select
+                      className={styles.selectInput}
+                      value={selectedScene.imageModel}
+                      onChange={(event) =>
+                        handleSceneImageModelChange(
+                          selectedScene.id,
+                          event.target.value as ImageGenerationModel,
+                        )
+                      }
+                    >
+                      {IMAGE_MODEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label}>操作</label>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => void handleGenerateSceneImage(selectedScene)}
+                    >
+                      生成参考图
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.thumbnailGrid}>
+                  {selectedScene.referenceImageAssetRefs.length === 0 ? (
+                    <div className={styles.thumbnailMissing}>暂无参考图</div>
+                  ) : (
+                    selectedScene.referenceImageAssetRefs.map((assetRef) => (
+                      <div key={assetRef.assetId} className={styles.thumbnailCard}>
+                        {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
+                          <Image
+                            className={styles.thumbnail}
+                            src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
+                            alt={assetRef.fileName}
+                            width={240}
+                            height={240}
+                            unoptimized
+                          />
+                        ) : (
+                          <div className={styles.thumbnailMissing}>待重绑</div>
+                        )}
+                        <button
+                          type="button"
+                          className={styles.thumbnailDelete}
+                          onClick={() =>
+                            removeSceneReferenceAsset(selectedScene.id, assetRef.assetId)
+                          }
+                        >
+                          移除
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={() => handleDeleteScene(selectedScene.id)}
+                >
+                  删除当前场景
+                </button>
+              </>
             ) : selectedEdge ? (
               <>
                 <div className={styles.field}>
@@ -3396,7 +4256,7 @@ export function EditorShell() {
               <div className={styles.emptyState}>
                 <p className={styles.emptyStateTitle}>选择一个节点或过渡</p>
                 <p className={styles.hint}>
-                  选中剧情节点后可以编辑动作和生成参数；选中角色卡后可以编辑角色参考图和人物设定；选中过渡后可以编辑条件变量。
+                  选中剧情节点后可以编辑动作和生成参数；选中角色卡或场景卡后可以维护参考图；选中过渡后可以编辑条件变量。
                 </p>
               </div>
             )}
@@ -3551,6 +4411,10 @@ export function EditorShell() {
                               <span>角色</span>
                             </div>
                             <div className={styles.agentStatItem}>
+                              <strong>{agentDraft.scenePresets.length}</strong>
+                              <span>场景</span>
+                            </div>
+                            <div className={styles.agentStatItem}>
                               <strong>{agentDraft.branches.length}</strong>
                               <span>分支</span>
                             </div>
@@ -3610,6 +4474,31 @@ export function EditorShell() {
                                     </div>
                                     <p className={styles.hint}>
                                       {branch.predictedOutcome}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </article>
+
+                            <article className={styles.agentCard}>
+                              <div className={styles.inlineHeader}>
+                                <strong>场景预设</strong>
+                                <span className={styles.priorityPill}>
+                                  {agentDraft.scenePresets.length}
+                                </span>
+                              </div>
+                              <div className={styles.agentCardList}>
+                                {agentDraft.scenePresets.map((scenePreset) => (
+                                  <div key={scenePreset.id} className={styles.agentListItem}>
+                                    <div className={styles.agentListHead}>
+                                      <strong>{scenePreset.name}</strong>
+                                      <span className={styles.characterIdBadge}>
+                                        #{scenePreset.id}
+                                      </span>
+                                    </div>
+                                    <p className={styles.hint}>{scenePreset.description}</p>
+                                    <p className={styles.agentPrompt}>
+                                      {scenePreset.appearancePrompt}
                                     </p>
                                   </div>
                                 ))}
@@ -3756,6 +4645,106 @@ export function EditorShell() {
                   </div>
                 )}
               </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isExportModalOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setIsExportModalOpen(false)}
+        >
+          <div
+            className={styles.modalCard}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>导出设置</span>
+                <h2 className={styles.modalTitle}>工程导入与导出</h2>
+                <p className={styles.hint}>
+                  把工程 JSON 和成片导出统一放在这里，不占主界面。
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsExportModalOpen(false)}
+                aria-label="关闭导出设置"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.providerGrid}>
+                <article className={styles.providerCard}>
+                  <div className={styles.providerHead}>
+                    <div>
+                      <strong>工程 JSON</strong>
+                      <p className={styles.providerMeta}>当前编辑器工程</p>
+                    </div>
+                  </div>
+                  <p className={styles.hint}>
+                    导入或导出当前节点、过渡、角色和场景卡结构。
+                  </p>
+                  <div className={styles.actionGrid}>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => importInputRef.current?.click()}
+                    >
+                      导入工程 JSON
+                    </button>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={handleExportProjectJson}
+                    >
+                      导出工程 JSON
+                    </button>
+                  </div>
+                </article>
+
+                <article className={styles.providerCard}>
+                  <div className={styles.providerHead}>
+                    <div>
+                      <strong>互动版</strong>
+                      <p className={styles.providerMeta}>纯视频 + 结尾选项</p>
+                    </div>
+                  </div>
+                  <p className={styles.hint}>
+                    播完一个片段后再出现选项，不带其他多余界面元素。
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleExportInteractivePackage}
+                  >
+                    导出互动版 HTML
+                  </button>
+                </article>
+
+                <article className={styles.providerCard}>
+                  <div className={styles.providerHead}>
+                    <div>
+                      <strong>全分支版</strong>
+                      <p className={styles.providerMeta}>每条路径一个独立视频包</p>
+                    </div>
+                  </div>
+                  <p className={styles.hint}>
+                    遍历每一条 root 到 leaf 路径，每条路径单独导出成一个纯视频播放页。
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleExportTraversalPackage}
+                  >
+                    导出全分支 HTML
+                  </button>
+                </article>
+              </div>
             </div>
           </div>
         </div>
@@ -4040,6 +5029,11 @@ export function EditorShell() {
                             角色：{asset.linkedCharacters.map((item) => item.name).join("、")}
                           </p>
                         ) : null}
+                        {asset.linkedScenes.length > 0 ? (
+                          <p className={styles.assetLibraryMeta}>
+                            场景：{asset.linkedScenes.map((item) => item.name).join("、")}
+                          </p>
+                        ) : null}
                         {asset.linkedNode ? (
                           <p className={styles.assetLibraryMeta}>
                             节点：{asset.linkedNode.data.title}
@@ -4058,6 +5052,20 @@ export function EditorShell() {
                               }
                             >
                               用于当前角色
+                            </button>
+                          ) : null}
+                          {asset.kind === "image" && selectedScene ? (
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() =>
+                                attachExistingImageToScene(
+                                  selectedScene.id,
+                                  asset.assetId,
+                                )
+                              }
+                            >
+                              用于当前场景
                             </button>
                           ) : null}
                           {asset.kind === "video" && selectedNode ? (
