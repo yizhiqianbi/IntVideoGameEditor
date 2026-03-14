@@ -1,18 +1,19 @@
 :root {
-  --color-background: #f4ecdf;
-  --color-surface: rgba(255, 249, 241, 0.88);
-  --color-surface-strong: #fff7ef;
-  --color-line: rgba(88, 61, 35, 0.14);
-  --color-line-strong: rgba(88, 61, 35, 0.25);
-  --color-text: #2c2016;
-  --color-muted: #6d5d4d;
-  --color-accent: #ca5a32;
-  --color-accent-soft: rgba(202, 90, 50, 0.14);
-  --color-success: #2f855a;
-  --color-warning: #b7791f;
-  --color-danger: #b83232;
-  --shadow-panel: 0 24px 60px rgba(86, 56, 26, 0.12);
-  --shadow-card: 0 16px 36px rgba(99, 63, 29, 0.12);
+  /* ComfyUI-inspired dark theme */
+  --color-background: #1a1a1a;
+  --color-surface: rgba(35, 35, 35, 0.95);
+  --color-surface-strong: #2a2a2a;
+  --color-line: rgba(255, 255, 255, 0.08);
+  --color-line-strong: rgba(255, 255, 255, 0.15);
+  --color-text: #e0e0e0;
+  --color-muted: #9e9e9e;
+  --color-accent: #7c4dff;
+  --color-accent-soft: rgba(124, 77, 255, 0.15);
+  --color-success: #00c853;
+  --color-warning: #ffd600;
+  --color-danger: #ff5252;
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 * {
@@ -30,9 +31,8 @@ body {
 body {
   color: var(--color-text);
   background:
-    radial-gradient(circle at top left, rgba(224, 181, 137, 0.34), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(198, 111, 74, 0.18), transparent 32%),
-    linear-gradient(180deg, #f6efe4 0%, #efe2d2 100%);
+    radial-gradient(circle at center, rgba(40, 40, 40, 0.5), transparent 70%),
+    linear-gradient(180deg, #121212 0%, #1a1a1a 100%);
   font-family: var(--font-display), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -63,7 +63,7 @@ textarea {
 }
 
 ::selection {
-  background: rgba(202, 90, 50, 0.2);
+  background: rgba(124, 77, 255, 0.3);
 }
 
 .react-flow__panel {
@@ -72,4 +72,44 @@ textarea {
 
 .react-flow__attribution {
   display: none;
+}
+
+/* ReactFlow dark theme overrides */
+.react-flow__edge-path {
+  stroke: rgba(124, 77, 255, 0.6);
+}
+
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: var(--color-accent);
+}
+
+.react-flow__controls {
+  background: rgba(35, 35, 35, 0.95);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.react-flow__controls-button {
+  background: transparent;
+  border-bottom: 1px solid var(--color-line);
+  fill: var(--color-text);
+}
+
+.react-flow__controls-button:hover {
+  background: rgba(60, 60, 60, 0.8);
+}
+
+.react-flow__minimap {
+  background: rgba(30, 30, 30, 0.95);
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+}
+
+.react-flow__minimap-mask {
+  fill: rgba(124, 77, 255, 0.2);
+  stroke: var(--color-accent);
+}
+
+.react-flow__background {
+  background: transparent;
 }

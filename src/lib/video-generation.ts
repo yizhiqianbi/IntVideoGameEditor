@@ -117,11 +117,11 @@ export const PROVIDER_DEFINITIONS: Record<VideoProviderId, ProviderDefinition> =
     id: "doubao",
     label: "火山引擎 / 豆包",
     vendor: "火山方舟 ModelArk",
-    videoModel: "doubao-seedance-1-0-pro-250528",
+    videoModel: "doubao-seedance-1-0-pro-fast-251015",
     imageModel: "doubao-seedream-4-5-250821",
     docsUrl: "https://www.volcengine.com/docs/82379/1520757",
     description:
-      "当前唯一支持的生成引擎。视频默认走火山方舟 Seedance 1.0 Pro，参考图相关能力按 Seedream 4.5 组织。",
+      "当前唯一支持的生成引擎。视频默认走火山方舟 Seedance 1.0 Pro Fast（Lite 版本），参考图相关能力按 Seedream 4.5 组织。",
     credentialFields: [
       {
         key: "apiKey",
@@ -211,7 +211,7 @@ export function getProviderDefaultModel(
   mode: VideoGenerationMode,
 ) {
   if (providerId === "doubao") {
-    return "doubao-seedance-1-0-pro-250528";
+    return "doubao-seedance-1-0-pro-fast-251015";
   }
 
   if (providerId === "minimax") {

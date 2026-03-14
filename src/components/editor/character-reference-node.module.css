@@ -1,22 +1,22 @@
 .node {
   width: 220px;
-  border: 1px solid rgba(88, 61, 35, 0.14);
-  border-radius: 22px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
   overflow: hidden;
-  background: linear-gradient(180deg, rgba(255, 251, 246, 0.98), rgba(247, 239, 228, 0.96));
-  box-shadow: 0 16px 36px rgba(99, 63, 29, 0.12);
+  background: rgba(40, 40, 40, 0.95);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .selected {
-  border-color: rgba(202, 90, 50, 0.55);
+  border-color: var(--color-accent);
   box-shadow:
-    0 0 0 3px rgba(202, 90, 50, 0.14),
-    0 16px 36px rgba(99, 63, 29, 0.12);
+    0 0 0 3px rgba(124, 77, 255, 0.2),
+    0 4px 16px rgba(0, 0, 0, 0.3);
 }
 
 .media {
   position: relative;
-  background: #f0e3d4;
+  background: rgba(30, 30, 30, 0.9);
 }
 
 .image {
@@ -33,7 +33,7 @@
   display: flex;
   justify-content: flex-end;
   padding: 10px;
-  background: linear-gradient(180deg, transparent, rgba(31, 22, 16, 0.72));
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
 }
 
 .badge {
@@ -41,9 +41,9 @@
   align-items: center;
   min-height: 28px;
   padding: 0 10px;
-  border-radius: 999px;
-  background: rgba(255, 249, 242, 0.92);
-  color: #2c2016;
+  border-radius: 6px;
+  background: rgba(50, 50, 50, 0.95);
+  color: var(--color-text);
   font-size: 11px;
   font-weight: 700;
 }
@@ -62,14 +62,14 @@
 }
 
 .eyebrow {
-  color: #6d5d4d;
+  color: var(--color-muted);
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .id {
-  color: #ca5a32;
+  color: var(--color-accent);
   font-size: 11px;
   font-weight: 700;
 }
@@ -80,7 +80,7 @@
 }
 
 .bio {
-  color: #6d5d4d;
+  color: var(--color-muted);
   font-size: 12px;
   line-height: 1.55;
 }
