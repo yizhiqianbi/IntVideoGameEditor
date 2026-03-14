@@ -51,6 +51,13 @@ function getPlaceholderCopy(node: EditorFlowNode) {
   }
 
   if (node.data.assetStatus === "generating") {
+    if (node.data.generationTask?.rawStatus === "succeeded") {
+      return {
+        title: "正在同步生成结果",
+        body: "任务已经完成，编辑器正在拉取最终的视频播放地址。",
+      };
+    }
+
     return {
       title: "正在生成视频",
       body:
@@ -98,12 +105,12 @@ export function VideoSceneNode({
     >
       <Handle
         type="target"
-        position={Position.Left}
+        position={Position.Top}
         className={styles.handle}
       />
       <Handle
         type="source"
-        position={Position.Right}
+        position={Position.Bottom}
         className={styles.handle}
       />
 

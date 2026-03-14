@@ -612,6 +612,279 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
+.agentModalCard {
+  width: min(1680px, calc(100vw - 20px));
+  height: min(940px, calc(100vh - 20px));
+  max-height: calc(100vh - 20px);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+.agentWorkbench {
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+  gap: 18px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.agentComposer,
+.agentPreviewPane,
+.agentPreviewColumn {
+  min-width: 0;
+  min-height: 0;
+}
+
+.agentComposer {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  gap: 16px;
+  overflow: auto;
+  padding-right: 4px;
+}
+
+.agentStoryInput {
+  min-height: 280px;
+}
+
+.agentFeedbackInput {
+  min-height: 136px;
+}
+
+.agentActionRow {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agentPreviewPane {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 16px;
+  overflow: hidden;
+}
+
+.agentSummaryCard {
+  display: grid;
+  gap: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background: rgba(255, 252, 248, 0.88);
+}
+
+.agentStatGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.agentStatItem {
+  display: grid;
+  gap: 4px;
+  padding: 12px 14px;
+  border: 1px solid rgba(88, 61, 35, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 249, 243, 0.92);
+}
+
+.agentStatItem strong {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.agentStatItem span {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.agentPreviewGrid {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.78fr) minmax(420px, 1.22fr);
+  gap: 16px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.agentPreviewColumn {
+  display: grid;
+  gap: 16px;
+  overflow: hidden;
+}
+
+.agentCard {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 20px;
+  background: rgba(255, 252, 248, 0.84);
+  min-height: 0;
+}
+
+.agentCardList {
+  display: grid;
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.agentListItem {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid rgba(88, 61, 35, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 249, 243, 0.9);
+}
+
+.agentListHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.agentPrompt {
+  white-space: pre-wrap;
+  color: var(--color-text);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.agentBranchGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.agentSceneGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  min-height: 0;
+  overflow: auto;
+  align-content: start;
+}
+
+.agentSceneGroup {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid rgba(88, 61, 35, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 249, 243, 0.9);
+}
+
+.agentSceneGroupHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.agentSceneGroupList {
+  display: grid;
+  gap: 10px;
+}
+
+.agentScriptCard {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 12px;
+  min-height: 0;
+  padding: 16px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background: rgba(255, 252, 248, 0.88);
+}
+
+.agentScriptActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.agentScriptBody {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.agentScriptMeta {
+  display: grid;
+  gap: 6px;
+}
+
+.agentScriptText {
+  min-height: 0;
+  max-height: 34vh;
+  overflow: auto;
+  margin: 0;
+  padding: 14px;
+  border: 1px solid rgba(88, 61, 35, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 249, 243, 0.9);
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-size: 12px;
+  line-height: 1.7;
+  font-family: var(--font-mono), monospace;
+}
+
+.assetLibraryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.assetLibraryCard {
+  display: grid;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid var(--color-line);
+  border-radius: 22px;
+  background: rgba(255, 252, 248, 0.84);
+}
+
+.assetLibraryMedia {
+  overflow: hidden;
+  border: 1px solid var(--color-line);
+  border-radius: 16px;
+  background: rgba(233, 220, 206, 0.46);
+}
+
+.assetLibraryImage,
+.assetLibraryVideo {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+
+.assetLibraryBody {
+  display: grid;
+  gap: 8px;
+}
+
+.assetLibraryName {
+  font-size: 15px;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.assetLibraryMeta {
+  color: var(--color-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 @media (max-width: 1420px) {
   .layout {
     grid-template-columns: 330px minmax(0, 1fr) 340px;
@@ -640,6 +913,26 @@
   .providerGrid {
     grid-template-columns: 1fr;
   }
+
+  .assetLibraryGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agentWorkbench {
+    grid-template-columns: 1fr;
+  }
+
+  .agentPreviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .agentStatGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .agentCardList {
+    max-height: none;
+  }
 }
 
 @media (max-width: 680px) {
@@ -649,12 +942,29 @@
 
   .gridTwo,
   .stats,
-  .thumbnailGrid {
+  .thumbnailGrid,
+  .assetLibraryGrid {
     grid-template-columns: 1fr;
   }
 
   .modalBackdrop {
     padding: 10px;
+  }
+
+  .agentModalCard {
+    width: 100%;
+    height: calc(100vh - 20px);
+    max-height: calc(100vh - 20px);
+    padding: 16px;
+  }
+
+  .agentActionRow,
+  .agentStatGrid,
+  .agentBranchGrid,
+  .agentSceneGrid,
+  .agentPreviewGrid,
+  .assetLibraryGrid {
+    grid-template-columns: 1fr;
   }
 
   .modalHeader,

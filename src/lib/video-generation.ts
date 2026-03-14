@@ -94,9 +94,6 @@ export type ProviderDefinition = {
 
 export const DEFAULT_PROVIDER_PRIORITY: VideoProviderId[] = [
   "doubao",
-  "minimax",
-  "vidu",
-  "kling",
 ];
 
 export const DEFAULT_PROVIDER_CREDENTIALS: ProviderCredentialState = {
@@ -118,18 +115,18 @@ export const DEFAULT_PROVIDER_CREDENTIALS: ProviderCredentialState = {
 export const PROVIDER_DEFINITIONS: Record<VideoProviderId, ProviderDefinition> = {
   doubao: {
     id: "doubao",
-    label: "字节 / Doubao",
-    vendor: "ByteDance ModelArk",
-    videoModel: "seedance-1-5-pro-251215",
-    imageModel: "seedream-4-5-251128",
-    docsUrl: "https://docs.byteplus.com/en/docs/ModelArk/1399008",
+    label: "火山引擎 / 豆包",
+    vendor: "火山方舟 ModelArk",
+    videoModel: "doubao-seedance-1-0-pro-250528",
+    imageModel: "doubao-seedream-4-5-250821",
+    docsUrl: "https://www.volcengine.com/docs/82379/1520757",
     description:
-      "默认首选。视频走 Seedance 1.5 Pro，参考图相关能力按 Seedream 4.5 的思路组织。",
+      "当前唯一支持的生成引擎。视频默认走火山方舟 Seedance 1.0 Pro，参考图相关能力按 Seedream 4.5 组织。",
     credentialFields: [
       {
         key: "apiKey",
         label: "API Key",
-        placeholder: "输入 BytePlus / ModelArk API Key",
+        placeholder: "输入火山引擎方舟 API Key",
         secret: true,
       },
     ],
@@ -214,7 +211,7 @@ export function getProviderDefaultModel(
   mode: VideoGenerationMode,
 ) {
   if (providerId === "doubao") {
-    return "seedance-1-5-pro-251215";
+    return "doubao-seedance-1-0-pro-250528";
   }
 
   if (providerId === "minimax") {

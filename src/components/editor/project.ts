@@ -5,6 +5,10 @@ import {
   type NodeGenerationConfig,
   type VideoProviderId,
 } from "../../lib/video-generation";
+import {
+  DEFAULT_CHARACTER_IMAGE_MODEL,
+  type ImageGenerationModel,
+} from "../../lib/image-generation";
 
 export const PROJECT_VERSION = 2;
 export const VIDEO_SCENE_NODE_TYPE = "videoScene";
@@ -33,6 +37,7 @@ export type CharacterDefinition = {
   name: string;
   bio: string;
   basePrompt: string;
+  imageModel: ImageGenerationModel;
   referenceImageAssetRefs: AssetRef[];
   canvasPosition: XYPosition;
 };
@@ -82,6 +87,7 @@ export type EditorFlowNode = Node<
 
 export type TransitionEdgeData = {
   conditionVariable: string;
+  choiceLabel?: string;
 };
 
 export type EditorFlowEdge = Edge<TransitionEdgeData>;
@@ -116,6 +122,7 @@ export type SerializedEditorEdge = {
   type?: string;
   animated?: boolean;
   conditionVariable?: string;
+  choiceLabel?: string;
 };
 
 export type EditorProject = {
@@ -208,11 +215,7 @@ function sanitizeGeneration(value: unknown): NodeGenerationConfig {
   }
 
   const providerId =
-    value.providerId === "auto" ||
-    value.providerId === "doubao" ||
-    value.providerId === "minimax" ||
-    value.providerId === "vidu" ||
-    value.providerId === "kling"
+    value.providerId === "auto" || value.providerId === "doubao"
       ? value.providerId
       : DEFAULT_GENERATION_CONFIG.providerId;
 
@@ -256,13 +259,7 @@ function sanitizeGenerationTask(value: unknown): NodeGenerationTask | undefined 
     return undefined;
   }
 
-  const providerId =
-    value.providerId === "doubao" ||
-    value.providerId === "minimax" ||
-    value.providerId === "vidu" ||
-    value.providerId === "kling"
-      ? value.providerId
-      : undefined;
+  const providerId = value.providerId === "doubao" ? value.providerId : undefined;
 
   const status =
     value.status === "idle" ||
@@ -307,6 +304,13 @@ function sanitizeCharacter(value: unknown, index = 1): CharacterDefinition {
         : value.id.trim(),
     bio: sanitizeString(value.bio),
     basePrompt: sanitizeString(value.basePrompt),
+    imageModel:
+      value.imageModel === "doubao-seedream-5-0-260128" ||
+      value.imageModel === "doubao-seedream-4-5-251128" ||
+      value.imageModel === "doubao-seedream-4-0-250828" ||
+      value.imageModel === "doubao-seedream-3-0-t2i-250415"
+        ? value.imageModel
+        : DEFAULT_CHARACTER_IMAGE_MODEL,
     referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
       ? value.referenceImageAssetRefs
           .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
@@ -318,28 +322,9 @@ function sanitizeCharacter(value: unknown, index = 1): CharacterDefinition {
   };
 }
 
-function sanitizeProjectSettings(value: unknown): ProjectSettings {
-  if (!isRecord(value)) {
-    return {
-      providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
-    };
-  }
-
-  const providerPriority = Array.isArray(value.providerPriority)
-    ? value.providerPriority.filter(
-        (providerId): providerId is VideoProviderId =>
-          providerId === "doubao" ||
-          providerId === "minimax" ||
-          providerId === "vidu" ||
-          providerId === "kling",
-      )
-    : [];
-
+function sanitizeProjectSettings(): ProjectSettings {
   return {
-    providerPriority:
-      providerPriority.length > 0
-        ? Array.from(new Set(providerPriority))
-        : [...DEFAULT_PROVIDER_PRIORITY],
+    providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
   };
 }
 
@@ -434,6 +419,10 @@ function sanitizeSerializedEdge(value: unknown): SerializedEditorEdge {
       typeof value.conditionVariable === "string"
         ? value.conditionVariable
         : undefined,
+    choiceLabel:
+      typeof value.choiceLabel === "string" && value.choiceLabel.trim().length > 0
+        ? value.choiceLabel.trim()
+        : undefined,
   };
 }
 
@@ -491,7 +480,14 @@ export function createConditionVariable(index: number) {
   return `condition_${index}`;
 }
 
-export function createConditionLabel(conditionVariable: string) {
+export function createConditionLabel(
+  conditionVariable: string,
+  choiceLabel?: string,
+) {
+  if (choiceLabel && choiceLabel.trim().length > 0) {
+    return `选项: ${choiceLabel.trim()}`;
+  }
+
   return `条件: ${conditionVariable}`;
 }
 
@@ -514,6 +510,7 @@ export function createCharacterDefinition(
     name: overrides?.name ?? `角色 ${index}`,
     bio: overrides?.bio ?? "",
     basePrompt: overrides?.basePrompt ?? "",
+    imageModel: overrides?.imageModel ?? DEFAULT_CHARACTER_IMAGE_MODEL,
     referenceImageAssetRefs: overrides?.referenceImageAssetRefs ?? [],
     canvasPosition: overrides?.canvasPosition ?? {
       x: -320,
@@ -529,6 +526,7 @@ export function buildTransitionEdge({
   sourceHandle,
   targetHandle,
   conditionVariable,
+  choiceLabel,
   animated,
 }: {
   id?: string;
@@ -537,6 +535,7 @@ export function buildTransitionEdge({
   sourceHandle?: string | null;
   targetHandle?: string | null;
   conditionVariable: string;
+  choiceLabel?: string;
   animated?: boolean;
 }): EditorFlowEdge {
   return {
@@ -549,8 +548,9 @@ export function buildTransitionEdge({
     animated: animated ?? false,
     data: {
       conditionVariable,
+      choiceLabel,
     },
-    label: createConditionLabel(conditionVariable),
+    label: createConditionLabel(conditionVariable, choiceLabel),
     labelStyle: {
       fontSize: 12,
       fontWeight: 600,
@@ -643,6 +643,10 @@ export function createVideoSceneNode(
   position: XYPosition,
   overrides?: Partial<SerializedEditorNode["data"]>,
 ): EditorFlowNode {
+  const isPendingGeneratedResult =
+    overrides?.generationTask?.status === "succeeded" &&
+    !overrides.generatedVideoUrl;
+
   return {
     id: crypto.randomUUID(),
     type: VIDEO_SCENE_NODE_TYPE,
@@ -655,7 +659,9 @@ export function createVideoSceneNode(
       generatedVideoUrl: overrides?.generatedVideoUrl,
       generatedCoverUrl: overrides?.generatedCoverUrl,
       assetError: undefined,
-      assetStatus: overrides?.assetRef
+      assetStatus: isPendingGeneratedResult
+        ? "generating"
+        : overrides?.assetRef
         ? "missing"
         : overrides?.generatedVideoUrl
           ? "generated"
@@ -704,6 +710,11 @@ export function serializeProject(
       conditionVariable:
         sanitizeConditionVariable(edge.data?.conditionVariable) ??
         createConditionVariable(index + 1),
+      choiceLabel:
+        typeof edge.data?.choiceLabel === "string" &&
+        edge.data.choiceLabel.trim().length > 0
+          ? edge.data.choiceLabel.trim()
+          : undefined,
     })),
   };
 }
@@ -749,7 +760,7 @@ export function parseProject(value: unknown): EditorProject {
           sanitizeCharacter(character, index + 1),
         )
       : [],
-    settings: sanitizeProjectSettings(value.settings),
+    settings: sanitizeProjectSettings(),
   };
 }
 
@@ -769,6 +780,9 @@ export function hydrateProjectNodes(project: EditorProject): EditorFlowNode[] {
       assetStatus: node.data.generationTask
         ? node.data.generationTask.status === "failed"
           ? "failed"
+          : node.data.generationTask.status === "succeeded" &&
+              !node.data.generatedVideoUrl
+            ? "generating"
           : node.data.generationTask.status === "queued" ||
               node.data.generationTask.status === "processing"
             ? "generating"
@@ -826,6 +840,7 @@ export function hydrateProjectEdges(project: EditorProject) {
         sourceHandle: edge.sourceHandle,
         targetHandle: edge.targetHandle,
         conditionVariable,
+        choiceLabel: edge.choiceLabel,
         animated: edge.animated ?? false,
       }),
     );

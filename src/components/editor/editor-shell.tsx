@@ -16,6 +16,7 @@ import {
 } from "@xyflow/react";
 import {
   startTransition,
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -36,6 +37,21 @@ import {
   type UnifiedVideoGenerationRequest,
   type VideoProviderId,
 } from "../../lib/video-generation";
+import {
+  IMAGE_MODEL_OPTIONS,
+  buildCharacterImagePrompt,
+  type ImageGenerationModel,
+} from "../../lib/image-generation";
+import {
+  applyAgentDraftToEditorGraph,
+  createRandomStoryTemplate,
+  type AgentScreenplay,
+  type AgentDraft,
+} from "../../lib/agent-mode";
+import {
+  buildInteractiveExportBundle,
+  buildTraversalExportBundles,
+} from "../../lib/export-packages";
 import styles from "./editor-shell.module.css";
 import {
   CharacterReferenceNode,
@@ -91,6 +107,12 @@ const nodeTypes = {
 };
 
 const PROVIDER_STORAGE_KEY = "int-video-game-editor.provider-credentials.v1";
+const DEFAULT_LOCAL_PROVIDER_CREDENTIALS: ProviderCredentialState = {
+  ...DEFAULT_PROVIDER_CREDENTIALS,
+  doubao: {
+    apiKey: process.env.NEXT_PUBLIC_VOLCENGINE_API_KEY ?? "",
+  },
+};
 const CHARACTER_NODE_ID_PREFIX = "character-card:";
 const REFERENCE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -196,6 +218,10 @@ function formatStatusLabel(node: EditorFlowNode) {
   }
 
   if (node.data.assetStatus === "generating") {
+    if (node.data.generationTask?.rawStatus === "succeeded") {
+      return "任务已完成，正在同步最终的视频预览地址。";
+    }
+
     return "生成任务已提交，编辑器会自动轮询最新状态。";
   }
 
@@ -265,6 +291,30 @@ function buildUniqueCharacterId(
   }
 
   return `${normalized}_${index}`;
+}
+
+function buildCharacterCanvasNode(
+  character: CharacterDefinition,
+  previewUrl: string,
+  isActive: boolean,
+): CharacterCanvasNode {
+  return {
+    id: getCharacterNodeId(character.id),
+    type: CHARACTER_REFERENCE_NODE_TYPE,
+    position: character.canvasPosition,
+    data: {
+      characterId: character.id,
+      name: character.name,
+      bio: character.bio,
+      referenceCount: character.referenceImageAssetRefs.length,
+      previewUrl,
+      isActive,
+    },
+    draggable: true,
+    selectable: true,
+    deletable: false,
+    connectable: false,
+  };
 }
 
 function buildNodePrompt(
@@ -386,6 +436,25 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+async function dataUrlToFile(dataUrl: string, fileName: string) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+
+  return new File([blob], fileName, {
+    type: blob.type || "image/png",
+  });
+}
+
+function downloadBlobFile(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = fileName;
+  link.click();
+  URL.revokeObjectURL(objectUrl);
+}
+
 export function EditorShell() {
   const [nodes, setNodes] = useState<EditorFlowNode[]>(() => [
     createVideoSceneNode(
@@ -401,17 +470,39 @@ export function EditorShell() {
     providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
   });
   const [providerCredentials, setProviderCredentials] =
-    useState<ProviderCredentialState>(DEFAULT_PROVIDER_CREDENTIALS);
+    useState<ProviderCredentialState>(DEFAULT_LOCAL_PROVIDER_CREDENTIALS);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
+  const [isAgentModeOpen, setIsAgentModeOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [characterCanvasNodes, setCharacterCanvasNodes] = useState<
+    CharacterCanvasNode[]
+  >([]);
   const [assetRuntimeMap, setAssetRuntimeMap] = useState<
     Record<string, RuntimeAsset>
   >({});
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [generatingCharacterIds, setGeneratingCharacterIds] = useState<string[]>(
+    [],
+  );
+  const [agentStoryText, setAgentStoryText] = useState("");
+  const [agentFeedbackText, setAgentFeedbackText] = useState("");
+  const [agentDraft, setAgentDraft] = useState<AgentDraft | null>(null);
+  const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(null);
+  const [isGeneratingAgentDraft, setIsGeneratingAgentDraft] = useState(false);
+  const [isGeneratingAgentScreenplay, setIsGeneratingAgentScreenplay] = useState(false);
+  const [isGeneratingRandomAgentStory, setIsGeneratingRandomAgentStory] =
+    useState(false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const assetRuntimeMapRef = useRef<Record<string, RuntimeAsset>>({});
+  const generatingCharacterIdsRef = useRef(new Set<string>());
+  const nodesRef = useRef<EditorFlowNode[]>([]);
+  const providerCredentialsRef = useRef<ProviderCredentialState>(
+    DEFAULT_LOCAL_PROVIDER_CREDENTIALS,
+  );
+  const pollingVideoTaskIdsRef = useRef(new Set<string>());
   const reactFlowRef =
     useRef<ReactFlowInstance<CanvasFlowNode, EditorFlowEdge> | null>(null);
 
@@ -439,6 +530,65 @@ export function EditorShell() {
   const selectedNodePrompt = selectedNode
     ? buildNodePrompt(selectedNode, characters)
     : "";
+  const generatingCharacterIdSet = useMemo(
+    () => new Set(generatingCharacterIds),
+    [generatingCharacterIds],
+  );
+  const agentSceneGroups = useMemo(() => {
+    if (!agentDraft) {
+      return [];
+    }
+
+    const groups = agentDraft.branches.map((branch) => ({
+      id: branch.id,
+      name: branch.name,
+      tone: branch.tone,
+      predictedOutcome: branch.predictedOutcome,
+      scenes: agentDraft.scenes.filter((scene) => scene.branchId === branch.id),
+    }));
+    const orphanScenes = agentDraft.scenes.filter(
+      (scene) => !agentDraft.branches.some((branch) => branch.id === scene.branchId),
+    );
+
+    if (orphanScenes.length > 0) {
+      groups.push({
+        id: "ungrouped",
+        name: "未归类",
+        tone: "草案",
+        predictedOutcome: "这些镜头暂时还没有落到明确分支里。",
+        scenes: orphanScenes,
+      });
+    }
+
+    return groups.filter((group) => group.scenes.length > 0);
+  }, [agentDraft]);
+  const agentRootSceneCount = useMemo(() => {
+    if (!agentDraft) {
+      return 0;
+    }
+
+    const targetSceneIds = new Set(
+      agentDraft.transitions.map((transition) => transition.targetSceneId),
+    );
+
+    return agentDraft.scenes.filter((scene) => !targetSceneIds.has(scene.id)).length;
+  }, [agentDraft]);
+  const hasPollablePendingVideoTask = useMemo(
+    () =>
+      nodes.some(
+        (node) =>
+          (node.data.generationTask?.status === "queued" ||
+            node.data.generationTask?.status === "processing" ||
+            (node.data.generationTask?.status === "succeeded" &&
+              (!node.data.generatedVideoUrl ||
+                node.data.generatedVideoUrl.trim().length === 0))) &&
+          Boolean(
+            node.data.generationTask?.taskId &&
+              node.data.generationTask.taskId !== "pending",
+          ),
+      ),
+    [nodes],
+  );
 
   function updateNode(
     nodeId: string,
@@ -626,24 +776,8 @@ export function EditorShell() {
     });
   }
 
-  async function handleCharacterImageChange(
-    characterId: string,
-    event: ChangeEvent<HTMLInputElement>,
-  ) {
-    const files = Array.from(event.target.files ?? []);
-    event.target.value = "";
-
+  function appendCharacterReferenceFiles(characterId: string, files: File[]) {
     if (files.length === 0) {
-      return;
-    }
-
-    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
-
-    if (invalidFile) {
-      setNotice({
-        tone: "error",
-        message: `「${invalidFile.name}」不是图片文件。`,
-      });
       return;
     }
 
@@ -671,8 +805,8 @@ export function EditorShell() {
           ? {
               ...character,
               referenceImageAssetRefs: [
-                ...character.referenceImageAssetRefs,
                 ...runtimeEntries.map((entry) => entry.assetRef),
+                ...character.referenceImageAssetRefs,
               ],
             }
           : character,
@@ -688,11 +822,105 @@ export function EditorShell() {
 
       return nextMap;
     });
+  }
+
+  async function handleCharacterImageChange(
+    characterId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
+
+    if (invalidFile) {
+      setNotice({
+        tone: "error",
+        message: `「${invalidFile.name}」不是图片文件。`,
+      });
+      return;
+    }
+
+    appendCharacterReferenceFiles(characterId, files);
 
     setNotice({
       tone: "success",
       message: `已为角色补充 ${files.length} 张参考图。`,
     });
+  }
+
+  async function handleGenerateCharacterImage(character: CharacterDefinition) {
+    if (!providerCredentials.doubao.apiKey.trim()) {
+      setNotice({
+        tone: "error",
+        message: "请先配置火山 API Key。",
+      });
+      return;
+    }
+
+    if (generatingCharacterIdsRef.current.has(character.id)) {
+      return;
+    }
+
+    const prompt = buildCharacterImagePrompt({
+      name: character.name,
+      bio: character.bio,
+      basePrompt: character.basePrompt,
+    });
+
+    generatingCharacterIdsRef.current.add(character.id);
+    setGeneratingCharacterIds((currentIds) =>
+      currentIds.includes(character.id) ? currentIds : [...currentIds, character.id],
+    );
+
+    try {
+      const response = await fetch("/api/image/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          apiKey: providerCredentials.doubao.apiKey,
+          prompt,
+          model: character.imageModel,
+        }),
+      });
+
+      const result = (await response.json()) as {
+        b64Json?: string;
+        mimeType?: string;
+        message?: string;
+      };
+
+      if (!response.ok || !result.b64Json) {
+        throw new Error(result.message ?? "角色生图失败。");
+      }
+
+      const file = await dataUrlToFile(
+        `data:${result.mimeType ?? "image/png"};base64,${result.b64Json}`,
+        `${character.id}-${Date.now()}.png`,
+      );
+
+      appendCharacterReferenceFiles(character.id, [file]);
+      setNotice({
+        tone: "success",
+        message: `已为「${character.name}」生成参考图。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "角色生图失败。",
+      });
+    } finally {
+      generatingCharacterIdsRef.current.delete(character.id);
+      setGeneratingCharacterIds((currentIds) =>
+        currentIds.filter((currentId) => currentId !== character.id),
+      );
+    }
   }
 
   function removeCharacterReferenceAsset(characterId: string, assetId: string) {
@@ -711,9 +939,86 @@ export function EditorShell() {
     revokeAssetsById([assetId]);
   }
 
+  function attachExistingImageToCharacter(characterId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "image") {
+      return;
+    }
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? character.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId)
+            ? character
+            : {
+                ...character,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: runtimeAsset.file.name,
+                    mimeType: runtimeAsset.file.type || undefined,
+                    kind: "image",
+                  },
+                  ...character.referenceImageAssetRefs,
+                ],
+              }
+          : character,
+      ),
+    );
+  }
+
+  function attachExistingVideoToNode(nodeId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "video") {
+      return;
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef: {
+          assetId,
+          fileName: runtimeAsset.file.name,
+          mimeType: runtimeAsset.file.type || undefined,
+          kind: "video",
+        },
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "ready",
+      },
+    }));
+  }
+
   useEffect(() => {
     assetRuntimeMapRef.current = assetRuntimeMap;
   }, [assetRuntimeMap]);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    providerCredentialsRef.current = providerCredentials;
+  }, [providerCredentials]);
+
+  useEffect(() => {
+    setCharacterCanvasNodes(
+      characters.map((character) => {
+        const previewAssetId = character.referenceImageAssetRefs[0]?.assetId;
+        const previewUrl =
+          (previewAssetId ? assetRuntimeMap[previewAssetId]?.objectUrl : undefined) ??
+          REFERENCE_PLACEHOLDER_SVG;
+
+        return buildCharacterCanvasNode(
+          character,
+          previewUrl,
+          selectedCharacterId === character.id,
+        );
+      }),
+    );
+  }, [assetRuntimeMap, characters, selectedCharacterId]);
 
   useEffect(() => {
     return () => {
@@ -735,7 +1040,9 @@ export function EditorShell() {
 
       setProviderCredentials({
         doubao: {
-          apiKey: parsed.doubao?.apiKey ?? "",
+          apiKey:
+            parsed.doubao?.apiKey ??
+            DEFAULT_LOCAL_PROVIDER_CREDENTIALS.doubao.apiKey,
         },
         minimax: {
           apiKey: parsed.minimax?.apiKey ?? "",
@@ -761,7 +1068,7 @@ export function EditorShell() {
   }, [providerCredentials]);
 
   useEffect(() => {
-    if (!isProviderModalOpen) {
+    if (!isProviderModalOpen && !isAssetLibraryOpen && !isAgentModeOpen) {
       document.body.style.overflow = "";
       return;
     }
@@ -769,6 +1076,8 @@ export function EditorShell() {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
         setIsProviderModalOpen(false);
+        setIsAssetLibraryOpen(false);
+        setIsAgentModeOpen(false);
       }
     }
 
@@ -779,20 +1088,31 @@ export function EditorShell() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isProviderModalOpen]);
+  }, [isAgentModeOpen, isAssetLibraryOpen, isProviderModalOpen]);
 
   useEffect(() => {
-    const pendingNodes = nodes.filter(
-      (node) =>
-        node.data.generationTask?.status === "queued" ||
-        node.data.generationTask?.status === "processing",
-    );
-
-    if (pendingNodes.length === 0) {
+    if (!hasPollablePendingVideoTask) {
       return;
     }
 
-    const intervalId = window.setInterval(() => {
+    const pollPendingNodes = () => {
+      const pendingNodes = nodesRef.current.filter(
+        (node) =>
+          (node.data.generationTask?.status === "queued" ||
+            node.data.generationTask?.status === "processing" ||
+            (node.data.generationTask?.status === "succeeded" &&
+              (!node.data.generatedVideoUrl ||
+                node.data.generatedVideoUrl.trim().length === 0))) &&
+          Boolean(
+            node.data.generationTask?.taskId &&
+              node.data.generationTask.taskId !== "pending",
+          ),
+      );
+
+      if (pendingNodes.length === 0) {
+        return;
+      }
+
       void Promise.all(
         pendingNodes.map(async (node) => {
           const generationTask = node.data.generationTask;
@@ -800,6 +1120,14 @@ export function EditorShell() {
           if (!generationTask) {
             return;
           }
+
+          const pollingKey = `${generationTask.providerId}:${generationTask.taskId}`;
+
+          if (pollingVideoTaskIdsRef.current.has(pollingKey)) {
+            return;
+          }
+
+          pollingVideoTaskIdsRef.current.add(pollingKey);
 
           try {
             const response = await fetch("/api/video/status", {
@@ -810,7 +1138,7 @@ export function EditorShell() {
               body: JSON.stringify({
                 providerId: generationTask.providerId,
                 taskId: generationTask.taskId,
-                credentials: providerCredentials,
+                credentials: providerCredentialsRef.current,
               }),
             });
             const result = (await response.json()) as UnifiedVideoCreateResponse & {
@@ -821,61 +1149,84 @@ export function EditorShell() {
               throw new Error(result.message ?? "查询任务状态失败。");
             }
 
+            const hasGeneratedVideo =
+              result.status === "succeeded" &&
+              typeof result.videoUrl === "string" &&
+              result.videoUrl.trim().length > 0;
+
             updateNode(node.id, (currentNode) => ({
               ...currentNode,
               data: {
                 ...currentNode.data,
                 generatedVideoUrl:
-                  result.status === "succeeded"
+                  hasGeneratedVideo
                     ? result.videoUrl ?? currentNode.data.generatedVideoUrl
                     : currentNode.data.generatedVideoUrl,
                 generatedCoverUrl:
-                  result.status === "succeeded"
+                  hasGeneratedVideo
                     ? result.coverUrl ?? currentNode.data.generatedCoverUrl
                     : currentNode.data.generatedCoverUrl,
                 generationTask: currentNode.data.generationTask
                   ? {
                       ...currentNode.data.generationTask,
-                      status: result.status,
+                      status:
+                        result.status === "failed"
+                          ? "failed"
+                          : hasGeneratedVideo
+                            ? "succeeded"
+                            : "processing",
                       rawStatus: result.rawStatus,
                       errorMessage: result.errorMessage,
                     }
                   : undefined,
                 assetStatus:
-                  result.status === "succeeded"
+                  hasGeneratedVideo
                     ? "generated"
                     : result.status === "failed"
                       ? "failed"
                       : "generating",
               },
             }));
-          } catch (error) {
-            updateNode(node.id, (currentNode) => ({
-              ...currentNode,
-              data: {
-                ...currentNode.data,
-                generationTask: currentNode.data.generationTask
-                  ? {
-                      ...currentNode.data.generationTask,
-                      status: "failed",
-                      errorMessage:
-                        error instanceof Error
-                          ? error.message
-                          : "查询状态失败。",
-                    }
-                  : undefined,
-                assetStatus: "failed",
-              },
-            }));
+          } catch {
+            updateNode(node.id, (currentNode) => {
+              if (
+                !currentNode.data.generationTask ||
+                currentNode.data.generationTask.taskId !== generationTask.taskId
+              ) {
+                return currentNode;
+              }
+
+              return {
+                ...currentNode,
+                data: {
+                  ...currentNode.data,
+                  generationTask: {
+                    ...currentNode.data.generationTask,
+                    errorMessage:
+                      currentNode.data.generationTask.status === "failed"
+                        ? currentNode.data.generationTask.errorMessage
+                        : undefined,
+                  },
+                },
+              };
+            });
+          } finally {
+            pollingVideoTaskIdsRef.current.delete(pollingKey);
           }
         }),
       );
+    };
+
+    pollPendingNodes();
+
+    const intervalId = window.setInterval(() => {
+      pollPendingNodes();
     }, 4500);
 
     return () => {
       window.clearInterval(intervalId);
     };
-  }, [nodes, providerCredentials]);
+  }, [hasPollablePendingVideoTask]);
 
   function handleAddNode() {
     setNodes((currentNodes) => [
@@ -897,10 +1248,6 @@ export function EditorShell() {
 
   function handleNodesChange(changes: NodeChange<CanvasFlowNode>[]) {
     const sceneChanges: NodeChange<EditorFlowNode>[] = [];
-    const characterPositionChanges: Array<{
-      characterId: string;
-      position: { x: number; y: number };
-    }> = [];
 
     for (const change of changes) {
       if (change.type === "add") {
@@ -913,13 +1260,6 @@ export function EditorShell() {
       if (!characterId) {
         sceneChanges.push(change as NodeChange<EditorFlowNode>);
         continue;
-      }
-
-      if (change.type === "position" && change.position) {
-        characterPositionChanges.push({
-          characterId,
-          position: change.position,
-        });
       }
     }
 
@@ -947,25 +1287,25 @@ export function EditorShell() {
     if (sceneChanges.length > 0) {
       setNodes((currentNodes) => applyNodeChanges(sceneChanges, currentNodes));
     }
+  }
 
-    if (characterPositionChanges.length > 0) {
-      setCharacters((currentCharacters) =>
-        currentCharacters.map((character) => {
-          const matchingChange = characterPositionChanges.find(
-            (change) => change.characterId === character.id,
-          );
+  function handleCharacterNodeDragStop(nodeId: string, position: { x: number; y: number }) {
+    const characterId = parseCharacterIdFromNodeId(nodeId);
 
-          if (!matchingChange) {
-            return character;
-          }
-
-          return {
-            ...character,
-            canvasPosition: matchingChange.position,
-          };
-        }),
-      );
+    if (!characterId || !Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      return;
     }
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              canvasPosition: position,
+            }
+          : character,
+      ),
+    );
   }
 
   function handleEdgesChange(changes: EdgeChange<EditorFlowEdge>[]) {
@@ -1009,6 +1349,7 @@ export function EditorShell() {
       sourceHandle: connection.sourceHandle,
       targetHandle: connection.targetHandle,
       conditionVariable: createConditionVariable(edges.length + 1),
+      choiceLabel: "继续",
     });
 
     setEdges((currentEdges) => [...currentEdges, nextEdge]);
@@ -1021,7 +1362,7 @@ export function EditorShell() {
     });
   }
 
-  function handleNodeTitleChange(nodeId: string, title: string) {
+  const handleNodeTitleChange = useCallback((nodeId: string, title: string) => {
     updateNode(nodeId, (node) => ({
       ...node,
       data: {
@@ -1029,7 +1370,7 @@ export function EditorShell() {
         title,
       },
     }));
-  }
+  }, []);
 
   async function handleImportChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
@@ -1087,17 +1428,288 @@ export function EditorShell() {
     const blob = new Blob([JSON.stringify(project, null, 2)], {
       type: "application/json",
     });
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-
-    link.href = objectUrl;
-    link.download = `interactive-project-v${PROJECT_VERSION}.json`;
-    link.click();
-    URL.revokeObjectURL(objectUrl);
+    downloadBlobFile(blob, `interactive-project-v${PROJECT_VERSION}.json`);
 
     setNotice({
       tone: "success",
       message: "工程 JSON 已导出。",
+    });
+  }
+
+  function handleExportInteractivePackage() {
+    try {
+      const bundle = buildInteractiveExportBundle({
+        nodes,
+        edges,
+        characters,
+      });
+      const blob = new Blob([bundle.content], {
+        type: "text/html;charset=utf-8",
+      });
+
+      downloadBlobFile(blob, bundle.fileName);
+      setNotice({
+        tone: "success",
+        message:
+          bundle.missingVideoCount > 0
+            ? `互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
+            : `互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "导出互动版失败。",
+      });
+    }
+  }
+
+  function handleExportTraversalPackage() {
+    try {
+      const bundles = buildTraversalExportBundles({
+        nodes,
+        edges,
+        characters,
+      });
+      bundles.forEach((bundle, index) => {
+        const blob = new Blob([bundle.content], {
+          type: "text/html;charset=utf-8",
+        });
+
+        window.setTimeout(() => {
+          downloadBlobFile(blob, bundle.fileName);
+        }, index * 80);
+      });
+
+      const totalSceneCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.sceneCount,
+        0,
+      );
+      const totalPlayableCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.playableSceneCount,
+        0,
+      );
+      const totalMissingCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.missingVideoCount,
+        0,
+      );
+
+      setNotice({
+        tone: "success",
+        message:
+          totalMissingCount > 0
+            ? `已导出 ${bundles.length} 条路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
+            : `已导出 ${bundles.length} 条路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "导出全分支遍历版失败。",
+      });
+    }
+  }
+
+  async function requestAgentDraft(storyText: string, feedback: string) {
+    const response = await fetch("/api/agent/draft", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        storyText,
+        feedback,
+      }),
+    });
+    const result = (await response.json()) as AgentDraft & { message?: string };
+
+    if (!response.ok) {
+      throw new Error(result.message ?? "Agent 草案生成失败。");
+    }
+
+    return result;
+  }
+
+  async function handleGenerateAgentDraft() {
+    const storyText = agentStoryText.trim();
+    const feedback = agentFeedbackText.trim();
+
+    if (storyText.length === 0) {
+      setNotice({
+        tone: "error",
+        message: "请先输入故事模板。",
+      });
+      return;
+    }
+
+    setIsGeneratingAgentDraft(true);
+
+    try {
+      const result = await requestAgentDraft(storyText, feedback);
+
+      setAgentDraft(result);
+      setAgentScreenplay(null);
+      setNotice({
+        tone: "success",
+        message: `Agent 已生成「${result.storyTitle}」草案。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Agent 草案生成失败。",
+      });
+    } finally {
+      setIsGeneratingAgentDraft(false);
+    }
+  }
+
+  async function requestAgentScreenplay(
+    storyText: string,
+    feedback: string,
+    draft: AgentDraft | null,
+  ) {
+    const response = await fetch("/api/agent/script", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        storyText,
+        feedback,
+        draft,
+      }),
+    });
+    const result = (await response.json()) as AgentScreenplay & { message?: string };
+
+    if (!response.ok) {
+      throw new Error(result.message ?? "Agent 剧本生成失败。");
+    }
+
+    return result;
+  }
+
+  async function handleGenerateAgentScreenplay() {
+    const storyText = agentStoryText.trim();
+    const feedback = agentFeedbackText.trim();
+
+    if (storyText.length === 0) {
+      setNotice({
+        tone: "error",
+        message: "请先输入故事模板。",
+      });
+      return;
+    }
+
+    setIsGeneratingAgentScreenplay(true);
+    setNotice({
+      tone: "success",
+      message: "正在生成剧本...",
+    });
+
+    try {
+      const result = await requestAgentScreenplay(storyText, feedback, agentDraft);
+
+      setAgentScreenplay(result);
+      setNotice({
+        tone: "success",
+        message: `Agent 已生成「${result.title}」剧本。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Agent 剧本生成失败。",
+      });
+    } finally {
+      setIsGeneratingAgentScreenplay(false);
+    }
+  }
+
+  async function handleGenerateRandomAgentStory() {
+    const storyText = createRandomStoryTemplate();
+
+    setAgentStoryText(storyText);
+    setAgentFeedbackText("");
+    setAgentDraft(null);
+    setAgentScreenplay(null);
+    setIsGeneratingRandomAgentStory(true);
+    setNotice({
+      tone: "success",
+      message: "正在随机生成剧本...",
+    });
+
+    try {
+      setIsGeneratingAgentDraft(true);
+      const nextDraft = await requestAgentDraft(storyText, "");
+      setAgentDraft(nextDraft);
+      setIsGeneratingAgentDraft(false);
+
+      setIsGeneratingAgentScreenplay(true);
+      const nextScreenplay = await requestAgentScreenplay(storyText, "", nextDraft);
+      setAgentScreenplay(nextScreenplay);
+      setNotice({
+        tone: "success",
+        message: `已随机生成「${nextScreenplay.title}」。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "随机剧本生成失败。",
+      });
+    } finally {
+      setIsGeneratingRandomAgentStory(false);
+      setIsGeneratingAgentDraft(false);
+      setIsGeneratingAgentScreenplay(false);
+    }
+  }
+
+  async function handleCopyAgentScreenplay() {
+    if (!agentScreenplay?.script) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(agentScreenplay.script);
+      setNotice({
+        tone: "success",
+        message: "剧本已复制到剪贴板。",
+      });
+    } catch {
+      setNotice({
+        tone: "error",
+        message: "复制剧本失败，请手动选择文本复制。",
+      });
+    }
+  }
+
+  function handleApplyAgentDraft() {
+    if (!agentDraft) {
+      return;
+    }
+
+    const nextGraph = applyAgentDraftToEditorGraph(agentDraft);
+
+    cleanupAllAssets();
+
+    startTransition(() => {
+      setNodes(nextGraph.nodes);
+      setEdges(nextGraph.edges);
+      setCharacters(nextGraph.characters);
+      setSelectedNodeId(null);
+      setSelectedCharacterId(null);
+      setSelectedEdgeId(null);
+      setIsAgentModeOpen(false);
+    });
+
+    setNotice({
+      tone: "success",
+      message: `已将 Agent 草案「${agentDraft.storyTitle}」应用到画布。`,
+    });
+
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 220,
+        padding: 0.24,
+      });
     });
   }
 
@@ -1136,9 +1748,34 @@ export function EditorShell() {
           ? {
               ...edge,
               data: {
+                ...edge.data,
                 conditionVariable,
               },
-              label: createConditionLabel(conditionVariable || "未设置"),
+              label: createConditionLabel(
+                conditionVariable || "未设置",
+                edge.data?.choiceLabel,
+              ),
+            }
+          : edge,
+      ),
+    );
+  }
+
+  function updateEdgeChoiceLabel(edgeId: string, choiceLabel: string) {
+    setEdges((currentEdges) =>
+      currentEdges.map((edge) =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              data: {
+                ...edge.data,
+                conditionVariable: edge.data?.conditionVariable ?? "",
+                choiceLabel,
+              },
+              label: createConditionLabel(
+                edge.data?.conditionVariable ?? "",
+                choiceLabel,
+              ),
             }
           : edge,
       ),
@@ -1156,9 +1793,16 @@ export function EditorShell() {
       return;
     }
 
-    const fallbackVariable = createConditionVariable(
-      edges.findIndex((edge) => edge.id === selectedEdge.id) + 1 || 1,
-    );
+    const choiceLabelSlug = selectedEdge.data?.choiceLabel
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const fallbackVariable = choiceLabelSlug
+      ? `choice_${choiceLabelSlug}`
+      : createConditionVariable(
+          edges.findIndex((edge) => edge.id === selectedEdge.id) + 1 || 1,
+        );
 
     updateEdgeConditionVariable(selectedEdge.id, fallbackVariable);
     setNotice({
@@ -1215,6 +1859,22 @@ export function EditorShell() {
           ? {
               ...character,
               [field]: value,
+            }
+          : character,
+      ),
+    );
+  }
+
+  function handleCharacterImageModelChange(
+    characterId: string,
+    imageModel: ImageGenerationModel,
+  ) {
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              imageModel,
             }
           : character,
       ),
@@ -1538,17 +2198,22 @@ export function EditorShell() {
         throw new Error(result.message ?? "创建生成任务失败。");
       }
 
+      const hasGeneratedVideo =
+        result.status === "succeeded" &&
+        typeof result.videoUrl === "string" &&
+        result.videoUrl.trim().length > 0;
+
       updateNode(nodeId, (currentNode) => ({
         ...currentNode,
         data: {
           ...currentNode.data,
-          generatedVideoUrl: result.status === "succeeded" ? result.videoUrl : undefined,
-          generatedCoverUrl: result.status === "succeeded" ? result.coverUrl : undefined,
+          generatedVideoUrl: hasGeneratedVideo ? result.videoUrl : undefined,
+          generatedCoverUrl: hasGeneratedVideo ? result.coverUrl : undefined,
           generationTask: {
             providerId: result.providerId,
             taskId: result.taskId,
             status:
-              result.status === "succeeded"
+              hasGeneratedVideo
                 ? "succeeded"
                 : result.status === "failed"
                   ? "failed"
@@ -1558,7 +2223,7 @@ export function EditorShell() {
             submittedAt: new Date().toISOString(),
           },
           assetStatus:
-            result.status === "succeeded"
+            hasGeneratedVideo
               ? "generated"
               : result.status === "failed"
                 ? "failed"
@@ -1594,45 +2259,46 @@ export function EditorShell() {
     }
   }
 
-  const sceneFlowNodes: EditorFlowNode[] = nodes.map((node) => ({
-    ...node,
-    data: {
-      ...node.data,
-      previewUrl: getNodePreviewUrl(node, assetRuntimeMap),
-      onTitleChange: handleNodeTitleChange,
-    },
-  }));
+  const sceneFlowNodes = useMemo<EditorFlowNode[]>(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          previewUrl: getNodePreviewUrl(node, assetRuntimeMap),
+          onTitleChange: handleNodeTitleChange,
+        },
+      })),
+    [assetRuntimeMap, handleNodeTitleChange, nodes],
+  );
 
-  const characterFlowNodes: CharacterCanvasNode[] = characters.map((character) => {
-    const previewAssetId = character.referenceImageAssetRefs[0]?.assetId;
-    const previewUrl =
-      (previewAssetId ? assetRuntimeMap[previewAssetId]?.objectUrl : undefined) ??
-      REFERENCE_PLACEHOLDER_SVG;
-
-    return {
-      id: getCharacterNodeId(character.id),
-      type: CHARACTER_REFERENCE_NODE_TYPE,
-      position: character.canvasPosition,
-      data: {
-        characterId: character.id,
-        name: character.name,
-        bio: character.bio,
-        referenceCount: character.referenceImageAssetRefs.length,
-        previewUrl,
-        isActive: selectedCharacterId === character.id,
-      },
-      draggable: true,
-      selectable: true,
-      deletable: false,
-      connectable: false,
-    };
-  });
-
-  const flowNodes: CanvasFlowNode[] = [...characterFlowNodes, ...sceneFlowNodes];
+  const flowNodes = useMemo<CanvasFlowNode[]>(
+    () => [...characterCanvasNodes, ...sceneFlowNodes],
+    [characterCanvasNodes, sceneFlowNodes],
+  );
 
   const configuredProviders = getConfiguredProviderPriority(
     providerCredentials,
     settings.providerPriority,
+  );
+  const assetLibraryItems = useMemo(
+    () =>
+      Object.entries(assetRuntimeMap).map(([assetId, runtimeAsset]) => {
+        const linkedCharacters = characters.filter((character) =>
+          character.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId),
+        );
+        const linkedNode = nodes.find((node) => node.data.assetRef?.assetId === assetId);
+
+        return {
+          assetId,
+          kind: runtimeAsset.kind,
+          objectUrl: runtimeAsset.objectUrl,
+          fileName: runtimeAsset.file.name,
+          linkedCharacters,
+          linkedNode,
+        };
+      }),
+    [assetRuntimeMap, characters, nodes],
   );
   const selectedNodePreviewUrl = selectedNode
     ? getNodePreviewUrl(selectedNode, assetRuntimeMap)
@@ -1649,9 +2315,6 @@ export function EditorShell() {
           <section className={styles.hero}>
             <span className={styles.sectionTitle}>Interactive Film</span>
             <h1 className={styles.heroTitle}>节点式互动影视编辑器</h1>
-            <p className={styles.heroBody}>
-              这版已经切成结构化剧情编辑器：角色、镜头动作、参考图、国产视频模型接入和时间裁剪都在同一个工作台里。
-            </p>
           </section>
 
           <section className={styles.section}>
@@ -1678,6 +2341,27 @@ export function EditorShell() {
               >
                 导出工程 JSON
               </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleExportInteractivePackage}
+              >
+                导出互动版 HTML
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={handleExportTraversalPackage}
+              >
+                导出全分支版 HTML
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setIsAgentModeOpen(true)}
+              >
+                Agent 模式
+              </button>
               <input
                 ref={importInputRef}
                 className={styles.hiddenInput}
@@ -1699,17 +2383,11 @@ export function EditorShell() {
                 新增角色
               </button>
             </div>
-            <p className={styles.hint}>
-              每个角色会同步生成一张可拖拽的角色参考卡，直接贴在 Story Graph 画布里。
-            </p>
 
             <div className={styles.characterList}>
               {characters.length === 0 ? (
                 <div className={styles.emptyState}>
-                  <p className={styles.emptyStateTitle}>先建角色，再写动作</p>
-                  <p className={styles.hint}>
-                    每个角色都有唯一 ID。节点动作里的 `@角色` 和参考图绑定都会引用这个 ID。
-                  </p>
+                  <p className={styles.emptyStateTitle}>暂无角色</p>
                 </div>
               ) : (
                 characters.map((character) => (
@@ -1730,66 +2408,6 @@ export function EditorShell() {
                       >
                         删除
                       </button>
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>角色 ID</label>
-                      <input
-                        className={styles.textInput}
-                        value={character.id}
-                        onChange={(event) =>
-                          handleCharacterIdChange(character.id, event.target.value)
-                        }
-                        placeholder="例如 hero_li"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>角色名</label>
-                      <input
-                        className={styles.textInput}
-                        value={character.name}
-                        onChange={(event) =>
-                          handleCharacterFieldChange(
-                            character.id,
-                            "name",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="例如 李沐"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>人物设定</label>
-                      <textarea
-                        className={styles.compactTextArea}
-                        value={character.bio}
-                        onChange={(event) =>
-                          handleCharacterFieldChange(
-                            character.id,
-                            "bio",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="写外形、年龄感、服装、身份。"
-                      />
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>生成补充</label>
-                      <textarea
-                        className={styles.compactTextArea}
-                        value={character.basePrompt}
-                        onChange={(event) =>
-                          handleCharacterFieldChange(
-                            character.id,
-                            "basePrompt",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="写镜头风格、表演偏好、禁忌项。"
-                      />
                     </div>
 
                     <div className={styles.assetGroup}>
@@ -1846,10 +2464,6 @@ export function EditorShell() {
                             </label>
                           </div>
                         </div>
-
-                        <p className={styles.hint}>
-                          这里的图会作为参考图生成视频的主要输入。建议先放角色正脸、半身和服装一致性的图。
-                        </p>
                       </div>
 
                       <div className={styles.thumbnailGrid}>
@@ -1882,6 +2496,28 @@ export function EditorShell() {
                           </div>
                         ))}
                       </div>
+
+                      <div className={styles.actionGrid}>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => {
+                            setSelectedCharacterId(character.id);
+                            setSelectedNodeId(null);
+                            setSelectedEdgeId(null);
+                          }}
+                        >
+                          编辑
+                        </button>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => void handleGenerateCharacterImage(character)}
+                          disabled={generatingCharacterIdSet.has(character.id)}
+                        >
+                          {generatingCharacterIdSet.has(character.id) ? "生成中..." : "生图"}
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))
@@ -1897,7 +2533,14 @@ export function EditorShell() {
                 className={styles.ghostButton}
                 onClick={() => setIsProviderModalOpen(true)}
               >
-                打开 API 设置
+                火山 API 设置
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={() => setIsAssetLibraryOpen(true)}
+              >
+                资产库
               </button>
             </div>
             <div className={styles.providerSummaryCard}>
@@ -1908,9 +2551,6 @@ export function EditorShell() {
                   </span>
                 ))}
               </div>
-              <p className={styles.hint}>
-                主界面只保留摘要。具体 API key 在弹窗里配置，避免占用主要创作空间。
-              </p>
               <div className={styles.providerStatusRow}>
                 {settings.providerPriority.map((providerId) => (
                   <span
@@ -1932,38 +2572,6 @@ export function EditorShell() {
             </div>
           </section>
 
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>统计</h2>
-            <div className={styles.stats}>
-              <article className={styles.statCard}>
-                <span className={styles.statValue}>{nodes.length}</span>
-                <span className={styles.statLabel}>节点数量</span>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statValue}>{edges.length}</span>
-                <span className={styles.statLabel}>连线数量</span>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statValue}>{characters.length}</span>
-                <span className={styles.statLabel}>角色数量</span>
-              </article>
-              <article className={styles.statCard}>
-                <span className={styles.statValue}>{configuredProviders.length}</span>
-                <span className={styles.statLabel}>已配置 API</span>
-              </article>
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>提示</h2>
-            <p className={styles.hint}>
-              导出的工程文件会保存节点、角色、过渡条件变量和生成参数，但不会打包本地图片或视频。重新导入后，需要重新绑定角色参考图和本地视频。
-            </p>
-            <p className={styles.hint}>
-              “裁剪”当前实现的是时间范围裁剪，只调整预览和后续流程里使用的时间窗口，不会直接修改原始视频文件。
-            </p>
-          </section>
-
           {notice ? (
             <p
               className={`${styles.notice} ${
@@ -1980,9 +2588,6 @@ export function EditorShell() {
         <section className={`${styles.panel} ${styles.canvasPanel}`}>
           <div className={styles.canvasHeader}>
             <h2 className={styles.canvasTitle}>Story Graph</h2>
-            <p className={styles.canvasCaption}>
-              现在角色也可以贴在 Story Graph 画布里，像参考卡一样自由摆放；剧情节点继续负责分镜和过渡。
-            </p>
           </div>
 
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
@@ -2004,6 +2609,11 @@ export function EditorShell() {
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
             onConnect={handleConnect}
+            onNodeDragStop={(_, node) => {
+              if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
+                handleCharacterNodeDragStop(node.id, node.position);
+              }
+            }}
             onNodeClick={(_, node) => {
               if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
                 setSelectedCharacterId(node.data.characterId);
@@ -2214,7 +2824,7 @@ export function EditorShell() {
                 <section className={styles.section}>
                   <h3 className={styles.sectionTitle}>生成设置</h3>
                   <div className={styles.field}>
-                    <label className={styles.label}>Provider</label>
+                    <label className={styles.label}>生成引擎</label>
                     <select
                       className={styles.selectInput}
                       value={selectedNode.data.generation.providerId}
@@ -2226,7 +2836,7 @@ export function EditorShell() {
                         )
                       }
                     >
-                      <option value="auto">按项目优先级</option>
+                      <option value="auto">按项目默认（火山引擎）</option>
                       {settings.providerPriority.map((providerId) => (
                         <option key={providerId} value={providerId}>
                           {PROVIDER_DEFINITIONS[providerId].label}
@@ -2596,7 +3206,7 @@ export function EditorShell() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>人物设定</label>
+                  <label className={styles.label}>设定</label>
                   <textarea
                     className={styles.compactTextArea}
                     value={selectedCharacter.bio}
@@ -2612,7 +3222,7 @@ export function EditorShell() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>生成补充</label>
+                  <label className={styles.label}>补充</label>
                   <textarea
                     className={styles.compactTextArea}
                     value={selectedCharacter.basePrompt}
@@ -2625,6 +3235,42 @@ export function EditorShell() {
                     }
                     placeholder="写镜头风格、表演偏好、禁忌项。"
                   />
+                </div>
+
+                <div className={styles.gridTwo}>
+                  <div className={styles.field}>
+                    <label className={styles.label}>生图模型</label>
+                    <select
+                      className={styles.selectInput}
+                      value={selectedCharacter.imageModel}
+                      onChange={(event) =>
+                        handleCharacterImageModelChange(
+                          selectedCharacter.id,
+                          event.target.value as ImageGenerationModel,
+                        )
+                      }
+                    >
+                      {IMAGE_MODEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className={styles.field}>
+                    <label className={styles.label}>操作</label>
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => void handleGenerateCharacterImage(selectedCharacter)}
+                      disabled={generatingCharacterIdSet.has(selectedCharacter.id)}
+                    >
+                      {generatingCharacterIdSet.has(selectedCharacter.id)
+                        ? "正在生图..."
+                        : "生成参考图"}
+                    </button>
+                  </div>
                 </div>
 
                 <div className={styles.thumbnailGrid}>
@@ -2662,16 +3308,6 @@ export function EditorShell() {
                   )}
                 </div>
 
-                <div className={styles.metaList}>
-                  <div className={styles.metaRow}>
-                    <span>角色卡位置</span>
-                    <code>
-                      {Math.round(selectedCharacter.canvasPosition.x)},{" "}
-                      {Math.round(selectedCharacter.canvasPosition.y)}
-                    </code>
-                  </div>
-                </div>
-
                 <button
                   type="button"
                   className={styles.dangerButton}
@@ -2682,6 +3318,24 @@ export function EditorShell() {
               </>
             ) : selectedEdge ? (
               <>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="edge-choice">
+                    选项文案
+                  </label>
+                  <input
+                    id="edge-choice"
+                    className={styles.textInput}
+                    value={selectedEdge.data?.choiceLabel ?? ""}
+                    onChange={(event) =>
+                      updateEdgeChoiceLabel(
+                        selectedEdge.id,
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例如 继续主线 / 改走支线"
+                  />
+                </div>
+
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="edge-condition">
                     过渡条件变量
@@ -2703,6 +3357,9 @@ export function EditorShell() {
 
                 <div className={styles.assetCard}>
                   <p className={styles.assetStatus}>过渡信息</p>
+                  <p className={styles.assetMeta}>
+                    选项：{selectedEdge.data?.choiceLabel?.trim() || "未设置"}
+                  </p>
                   <p className={styles.assetMeta}>
                     起点：{nodeTitleMap[selectedEdge.source] ?? selectedEdge.source}
                   </p>
@@ -2731,6 +3388,340 @@ export function EditorShell() {
         </aside>
       </div>
 
+      {isAgentModeOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setIsAgentModeOpen(false)}
+        >
+          <div
+            className={`${styles.modalCard} ${styles.agentModalCard}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>Agent 模式</span>
+                <h2 className={styles.modalTitle}>故事拆解工作台</h2>
+                <p className={styles.hint}>
+                  输入故事，生成角色、镜头、分支和过渡草案，再应用到画布。
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsAgentModeOpen(false)}
+                aria-label="关闭 Agent 模式"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.agentWorkbench}>
+              <section className={styles.agentComposer}>
+                <div className={styles.field}>
+                  <label className={styles.label}>故事模板</label>
+                  <textarea
+                    className={`${styles.textArea} ${styles.agentStoryInput}`}
+                    value={agentStoryText}
+                    onChange={(event) => setAgentStoryText(event.target.value)}
+                    placeholder="输入完整故事、关键选择点、主要结局方向。"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>给 Agent 的意见</label>
+                  <textarea
+                    className={`${styles.compactTextArea} ${styles.agentFeedbackInput}`}
+                    value={agentFeedbackText}
+                    onChange={(event) => setAgentFeedbackText(event.target.value)}
+                    placeholder="例如：把女主塑造成更冷静；增加一个失败分支。"
+                  />
+                </div>
+
+                <div className={styles.agentActionRow}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateRandomAgentStory()}
+                    disabled={
+                      isGeneratingRandomAgentStory ||
+                      isGeneratingAgentDraft ||
+                      isGeneratingAgentScreenplay
+                    }
+                  >
+                    {isGeneratingRandomAgentStory ? "随机生成中..." : "随机剧本"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateAgentDraft()}
+                    disabled={isGeneratingAgentDraft || isGeneratingRandomAgentStory}
+                  >
+                    {isGeneratingAgentDraft ? "生成中..." : "生成草案"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => void handleGenerateAgentDraft()}
+                    disabled={
+                      isGeneratingAgentDraft ||
+                      isGeneratingRandomAgentStory ||
+                      agentStoryText.trim().length === 0
+                    }
+                  >
+                    根据意见重算
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => void handleGenerateAgentScreenplay()}
+                    disabled={
+                      isGeneratingAgentScreenplay ||
+                      isGeneratingRandomAgentStory ||
+                      agentStoryText.trim().length === 0
+                    }
+                  >
+                    {isGeneratingAgentScreenplay ? "剧本生成中..." : "生成剧本"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={handleApplyAgentDraft}
+                    disabled={!agentDraft}
+                  >
+                    应用到画布
+                  </button>
+                </div>
+              </section>
+
+              <section className={styles.agentPreviewPane}>
+                {agentDraft || agentScreenplay ? (
+                  <>
+                    {agentDraft ? (
+                      <>
+                        <article className={styles.agentSummaryCard}>
+                          <div className={styles.inlineHeader}>
+                            <strong>{agentDraft.storyTitle}</strong>
+                            <span className={styles.priorityPill}>
+                              {agentDraft.scenes.length} 镜头
+                            </span>
+                          </div>
+                          <p className={styles.hint}>{agentDraft.summary}</p>
+                          <div className={styles.agentStatGrid}>
+                            <div className={styles.agentStatItem}>
+                              <strong>{agentDraft.characters.length}</strong>
+                              <span>角色</span>
+                            </div>
+                            <div className={styles.agentStatItem}>
+                              <strong>{agentDraft.branches.length}</strong>
+                              <span>分支</span>
+                            </div>
+                            <div className={styles.agentStatItem}>
+                              <strong>{agentRootSceneCount}</strong>
+                              <span>Root</span>
+                            </div>
+                            <div className={styles.agentStatItem}>
+                              <strong>{agentDraft.transitions.length}</strong>
+                              <span>连接</span>
+                            </div>
+                          </div>
+                        </article>
+
+                        <div className={styles.agentPreviewGrid}>
+                          <div className={styles.agentPreviewColumn}>
+                            <article className={styles.agentCard}>
+                              <div className={styles.inlineHeader}>
+                                <strong>角色</strong>
+                                <span className={styles.priorityPill}>
+                                  {agentDraft.characters.length}
+                                </span>
+                              </div>
+                              <div className={styles.agentCardList}>
+                                {agentDraft.characters.map((character) => (
+                                  <div key={character.id} className={styles.agentListItem}>
+                                    <div className={styles.agentListHead}>
+                                      <strong>{character.name}</strong>
+                                      <span className={styles.characterIdBadge}>
+                                        @{character.id}
+                                      </span>
+                                    </div>
+                                    <p className={styles.hint}>{character.bio}</p>
+                                    <p className={styles.agentPrompt}>
+                                      {character.appearancePrompt}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </article>
+
+                            <article className={styles.agentCard}>
+                              <div className={styles.inlineHeader}>
+                                <strong>分支</strong>
+                                <span className={styles.priorityPill}>
+                                  {agentDraft.branches.length}
+                                </span>
+                              </div>
+                              <div className={styles.agentBranchGrid}>
+                                {agentDraft.branches.map((branch) => (
+                                  <div key={branch.id} className={styles.agentListItem}>
+                                    <div className={styles.agentListHead}>
+                                      <strong>{branch.name}</strong>
+                                      <span className={styles.providerBadge}>
+                                        {branch.tone}
+                                      </span>
+                                    </div>
+                                    <p className={styles.hint}>
+                                      {branch.predictedOutcome}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </article>
+                          </div>
+
+                          <div className={styles.agentPreviewColumn}>
+                            <article className={styles.agentCard}>
+                              <div className={styles.inlineHeader}>
+                                <strong>镜头</strong>
+                                <span className={styles.priorityPill}>
+                                  {agentDraft.scenes.length}
+                                </span>
+                              </div>
+                              <div className={styles.agentSceneGrid}>
+                                {agentSceneGroups.map((group) => (
+                                  <section
+                                    key={group.id}
+                                    className={styles.agentSceneGroup}
+                                  >
+                                    <div className={styles.agentSceneGroupHead}>
+                                      <strong>{group.name}</strong>
+                                      <span className={styles.providerBadge}>
+                                        {group.scenes.length} 镜头
+                                      </span>
+                                    </div>
+                                    <p className={styles.hint}>
+                                      {group.predictedOutcome}
+                                    </p>
+                                    <div className={styles.agentSceneGroupList}>
+                                      {group.scenes.map((scene) => (
+                                        <div
+                                          key={scene.id}
+                                          className={styles.agentListItem}
+                                        >
+                                          <div className={styles.agentListHead}>
+                                            <strong>{scene.title}</strong>
+                                            <span className={styles.characterIdBadge}>
+                                              {group.tone}
+                                            </span>
+                                          </div>
+                                          <p className={styles.hint}>
+                                            {scene.summary}
+                                          </p>
+                                          <p className={styles.agentPrompt}>
+                                            {scene.videoPrompt}
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </section>
+                                ))}
+                              </div>
+                            </article>
+
+                            <article className={styles.agentCard}>
+                              <div className={styles.inlineHeader}>
+                                <strong>连接</strong>
+                                <span className={styles.priorityPill}>
+                                  {agentDraft.transitions.length}
+                                </span>
+                              </div>
+                              <div className={styles.agentCardList}>
+                                {agentDraft.transitions.map((transition) => {
+                                  const source = agentDraft.scenes.find(
+                                    (scene) => scene.id === transition.sourceSceneId,
+                                  );
+                                  const target = agentDraft.scenes.find(
+                                    (scene) => scene.id === transition.targetSceneId,
+                                  );
+
+                                  return (
+                                    <div key={transition.id} className={styles.agentListItem}>
+                                      <div className={styles.agentListHead}>
+                                        <strong>{transition.choiceLabel}</strong>
+                                        <span className={styles.characterIdBadge}>
+                                          {transition.conditionVariable}
+                                        </span>
+                                      </div>
+                                      <p className={styles.hint}>
+                                        {source?.title ?? transition.sourceSceneId} →{" "}
+                                        {target?.title ?? transition.targetSceneId}
+                                      </p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </article>
+                          </div>
+                        </div>
+                      </>
+                    ) : null}
+
+                    <article className={styles.agentScriptCard}>
+                      <div className={styles.inlineHeader}>
+                        <strong>剧本</strong>
+                        <div className={styles.agentScriptActions}>
+                          {agentScreenplay ? (
+                            <button
+                              type="button"
+                              className={styles.ghostButton}
+                              onClick={() => void handleCopyAgentScreenplay()}
+                            >
+                              复制
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            onClick={() => void handleGenerateAgentScreenplay()}
+                            disabled={
+                              isGeneratingAgentScreenplay ||
+                              agentStoryText.trim().length === 0
+                            }
+                          >
+                            {isGeneratingAgentScreenplay ? "生成中..." : "生成剧本"}
+                          </button>
+                        </div>
+                      </div>
+                      {agentScreenplay ? (
+                        <div className={styles.agentScriptBody}>
+                          <div className={styles.agentScriptMeta}>
+                            <strong>{agentScreenplay.title}</strong>
+                            <p className={styles.hint}>{agentScreenplay.logline}</p>
+                          </div>
+                          <pre className={styles.agentScriptText}>
+                            {agentScreenplay.script}
+                          </pre>
+                        </div>
+                      ) : (
+                        <div className={styles.emptyState}>
+                          <p className={styles.emptyStateTitle}>还没有生成剧本</p>
+                          <p className={styles.hint}>
+                            先生成草案，或者直接基于故事模板生成一版剧本。
+                          </p>
+                        </div>
+                      )}
+                    </article>
+                  </>
+                ) : (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>输入故事后生成</p>
+                  </div>
+                )}
+              </section>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {isProviderModalOpen ? (
         <div
           className={styles.modalBackdrop}
@@ -2743,9 +3734,9 @@ export function EditorShell() {
             <div className={styles.modalHeader}>
               <div className={styles.modalTitleBlock}>
                 <span className={styles.sectionTitle}>API 设置</span>
-                <h2 className={styles.modalTitle}>国产视频模型配置</h2>
+                <h2 className={styles.modalTitle}>火山引擎 API 配置</h2>
                 <p className={styles.hint}>
-                  这里集中配置字节 / Doubao、MiniMax、Vidu、Kling。只在当前浏览器本地保存，不会写进工程 JSON。
+                  这里只配置火山方舟 / 豆包视频生成 API。凭证只保存在当前浏览器，不会写进工程 JSON。
                 </p>
               </div>
               <button
@@ -2767,7 +3758,7 @@ export function EditorShell() {
                 ))}
               </div>
               <p className={styles.hint}>
-                当前节点若选择“按项目优先级”，会从上面顺序里挑选已配置的 provider。
+                当前节点若选择“按项目默认”，会直接使用这里配置好的火山引擎凭证。
               </p>
             </div>
 
@@ -2840,6 +3831,111 @@ export function EditorShell() {
                   );
                 })}
               </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isAssetLibraryOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setIsAssetLibraryOpen(false)}
+        >
+          <div
+            className={styles.modalCard}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>资产库</span>
+                <h2 className={styles.modalTitle}>图片与视频资产</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsAssetLibraryOpen(false)}
+                aria-label="关闭资产库"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.modalBody}>
+              {assetLibraryItems.length === 0 ? (
+                <div className={styles.emptyState}>
+                  <p className={styles.emptyStateTitle}>暂无资产</p>
+                </div>
+              ) : (
+                <div className={styles.assetLibraryGrid}>
+                  {assetLibraryItems.map((asset) => (
+                    <article key={asset.assetId} className={styles.assetLibraryCard}>
+                      <div className={styles.assetLibraryMedia}>
+                        {asset.kind === "image" ? (
+                          <Image
+                            className={styles.assetLibraryImage}
+                            src={asset.objectUrl}
+                            alt={asset.fileName}
+                            width={480}
+                            height={480}
+                            unoptimized
+                          />
+                        ) : (
+                          <video
+                            className={styles.assetLibraryVideo}
+                            src={asset.objectUrl}
+                            muted
+                            playsInline
+                            preload="metadata"
+                          />
+                        )}
+                      </div>
+                      <div className={styles.assetLibraryBody}>
+                        <strong className={styles.assetLibraryName}>{asset.fileName}</strong>
+                        <p className={styles.assetLibraryMeta}>
+                          {asset.kind === "image" ? "图片" : "视频"}
+                        </p>
+                        {asset.linkedCharacters.length > 0 ? (
+                          <p className={styles.assetLibraryMeta}>
+                            角色：{asset.linkedCharacters.map((item) => item.name).join("、")}
+                          </p>
+                        ) : null}
+                        {asset.linkedNode ? (
+                          <p className={styles.assetLibraryMeta}>
+                            节点：{asset.linkedNode.data.title}
+                          </p>
+                        ) : null}
+                        <div className={styles.actionGrid}>
+                          {asset.kind === "image" && selectedCharacter ? (
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() =>
+                                attachExistingImageToCharacter(
+                                  selectedCharacter.id,
+                                  asset.assetId,
+                                )
+                              }
+                            >
+                              用于当前角色
+                            </button>
+                          ) : null}
+                          {asset.kind === "video" && selectedNode ? (
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() =>
+                                attachExistingVideoToNode(selectedNode.id, asset.assetId)
+                              }
+                            >
+                              用于当前节点
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
