@@ -72,6 +72,7 @@ export type NodeGenerationConfig = {
   resolution: VideoResolution;
   promptOverride: string;
   referenceCharacterIds: string[];
+  referenceSceneIds: string[];
 };
 
 export type CredentialField = {
@@ -200,6 +201,7 @@ export const DEFAULT_GENERATION_CONFIG: NodeGenerationConfig = {
   resolution: "1080p",
   promptOverride: "",
   referenceCharacterIds: [],
+  referenceSceneIds: [],
 };
 
 export function getProviderDefinition(providerId: VideoProviderId) {

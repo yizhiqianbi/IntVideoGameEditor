@@ -51,3 +51,15 @@ export function buildCharacterImagePrompt(input: {
 
   return `${subject}，单人角色设定图，正脸清晰，服装稳定，电影感人像，适合作为互动影视角色参考图。`;
 }
+
+export function buildSceneImagePrompt(input: {
+  name: string;
+  description: string;
+  basePrompt: string;
+}) {
+  const segments = [input.name.trim(), input.description.trim(), input.basePrompt.trim()]
+    .filter((value) => value.length > 0);
+  const subject = segments.join("，");
+
+  return `${subject}，电影级场景设定图，无人物主导，环境细节清晰，构图稳定，适合作为互动影视场景参考图。`;
+}

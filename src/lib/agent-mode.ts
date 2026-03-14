@@ -9,12 +9,14 @@ import {
 import {
   buildTransitionEdge,
   createConditionVariable,
+  createSceneDefinition,
   createSceneAction,
   createVideoSceneNode,
   type CharacterDefinition,
   type EditorFlowEdge,
   type EditorFlowNode,
   type SceneAction,
+  type SceneDefinition,
 } from "../components/editor/project";
 
 export type AgentCharacterDraft = {
@@ -35,6 +37,15 @@ export type AgentSceneDraft = {
   involvedCharacterIds: string[];
   actions: SceneAction[];
   videoPrompt: string;
+};
+
+export type AgentScenePresetDraft = {
+  id: string;
+  name: string;
+  description: string;
+  appearancePrompt: string;
+  basePrompt: string;
+  imageModel: ImageGenerationModel;
 };
 
 export type AgentTransitionDraft = {
@@ -59,6 +70,7 @@ export type AgentDraft = {
   feedback: string;
   summary: string;
   characters: AgentCharacterDraft[];
+  scenePresets: AgentScenePresetDraft[];
   scenes: AgentSceneDraft[];
   transitions: AgentTransitionDraft[];
   branches: AgentBranchDraft[];
@@ -489,6 +501,102 @@ function sanitizeImageModel(value: unknown): ImageGenerationModel {
     : DEFAULT_IMAGE_MODEL;
 }
 
+function dedupeScenePresets(scenePresets: AgentScenePresetDraft[]) {
+  const seen = new Set<string>();
+
+  return scenePresets.filter((scenePreset) => {
+    const key = `${scenePreset.name}::${scenePreset.description}`.trim().toLowerCase();
+
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
+}
+
+function buildScenePresetDescription(summary: string) {
+  const match = summary.match(/在([^，。；]+?)(?:里|中|内|上|旁|前|后|时|，|。|；|$)/);
+
+  if (match?.[1]) {
+    return `${match[1]}，叙事中的关键环境，需要保持空间气质和光线连续。`;
+  }
+
+  return `${summary}，作为剧情中的关键场景参考，需要保持环境和氛围一致。`;
+}
+
+function buildScenePresetDrafts(
+  storyText: string,
+  scenes: AgentSceneDraft[],
+  branches: AgentBranchDraft[],
+): AgentScenePresetDraft[] {
+  const presets = scenes.slice(0, 5).map((scene, index) => {
+    const branch = branches.find((item) => item.id === scene.branchId);
+    const description =
+      scene.summary.trim().length > 0
+        ? scene.summary.trim()
+        : buildScenePresetDescription(storyText);
+
+    return {
+      id: `scene_preset_${index + 1}`,
+      name:
+        scene.title.replace(/^片段[:：\s-]*/g, "").trim() || `场景预设 ${index + 1}`,
+      description,
+      appearancePrompt: `${description}，${branch?.tone ?? "电影感"}氛围，环境设定图，空间构图明确，光线与色调稳定。`,
+      basePrompt: `${description}，保持场景布局、材质和时间段一致，适合作为互动影视环境参考图。`,
+      imageModel: DEFAULT_IMAGE_MODEL,
+    } satisfies AgentScenePresetDraft;
+  });
+
+  if (presets.length > 0) {
+    return dedupeScenePresets(presets);
+  }
+
+  return [
+    {
+      id: "scene_preset_1",
+      name: "主场景",
+      description: buildScenePresetDescription(storyText),
+      appearancePrompt: `${buildScenePresetDescription(storyText)}，环境设定图，电影感氛围，稳定构图。`,
+      basePrompt: "保持主场景的空间布局、色调和时间氛围一致，适合作为互动影视场景参考图。",
+      imageModel: DEFAULT_IMAGE_MODEL,
+    },
+  ];
+}
+
+function pickReferenceSceneIds(
+  scene: AgentSceneDraft,
+  scenePresets: AgentScenePresetDraft[],
+) {
+  const haystack = `${scene.title} ${scene.summary} ${scene.videoPrompt}`.toLowerCase();
+  const scored = scenePresets
+    .map((scenePreset) => {
+      const keywords = `${scenePreset.name} ${scenePreset.description}`
+        .toLowerCase()
+        .split(/[\s，。；、,:：\-]+/g)
+        .filter((token) => token.length >= 2);
+      const score = keywords.reduce(
+        (total, token) => (haystack.includes(token) ? total + 1 : total),
+        0,
+      );
+
+      return {
+        id: scenePreset.id,
+        score,
+      };
+    })
+    .sort((left, right) => right.score - left.score);
+
+  const matched = scored.filter((item) => item.score > 0).slice(0, 2).map((item) => item.id);
+
+  if (matched.length > 0) {
+    return matched;
+  }
+
+  return scenePresets[0] ? [scenePresets[0].id] : [];
+}
+
 function extractJsonBlock(text: string) {
   const fencedMatch = text.match(/```json\s*([\s\S]+?)```/i);
 
@@ -542,6 +650,35 @@ export function normalizeAgentDraft(
         })
         .filter((item): item is AgentCharacterDraft => Boolean(item))
     : baseDraft.characters;
+  const draftScenePresets = Array.isArray(value.scenePresets)
+    ? value.scenePresets
+        .map((item, index) => {
+          if (!isRecord(item)) {
+            return null;
+          }
+
+          const name = sanitizeString(item.name, `场景预设 ${index + 1}`);
+
+          return {
+            id: slugify(sanitizeString(item.id, name)),
+            name,
+            description: sanitizeString(
+              item.description,
+              `${name}，作为剧情环境参考，需要保持空间与氛围一致。`,
+            ),
+            appearancePrompt: sanitizeString(
+              item.appearancePrompt,
+              `${name}，环境设定图，空间与光线明确，电影感写实。`,
+            ),
+            basePrompt: sanitizeString(
+              item.basePrompt,
+              `保持 ${name} 的场景布局、光线和材质一致。`,
+            ),
+            imageModel: sanitizeImageModel(item.imageModel),
+          } satisfies AgentScenePresetDraft;
+        })
+        .filter((item): item is AgentScenePresetDraft => Boolean(item))
+    : baseDraft.scenePresets;
 
   const characterIds = new Set(characters.map((item) => item.id));
   const branches = Array.isArray(value.branches)
@@ -708,6 +845,10 @@ export function normalizeAgentDraft(
     feedback: input.feedback?.trim() ?? "",
     summary: sanitizeString(value.summary, baseDraft.summary),
     characters: characters.length > 0 ? characters : baseDraft.characters,
+    scenePresets:
+      draftScenePresets.length > 0
+        ? dedupeScenePresets(draftScenePresets)
+        : baseDraft.scenePresets,
     scenes: scenes.length > 0 ? scenes : baseDraft.scenes,
     transitions,
     branches: branches.length > 0 ? branches : baseDraft.branches,
@@ -1280,6 +1421,7 @@ export function createLocalAgentDraft(input: {
   const branches = createBranchDrafts(toSentenceList(storyText));
   const scenePlan = createLocalScenePlan(storyText, feedback, characters, branches);
   const transitions = createTransitionDraftsFromPlan(scenePlan, branches);
+  const scenePresets = buildScenePresetDrafts(storyText, scenePlan.scenes, branches);
 
   return {
     id: crypto.randomUUID(),
@@ -1288,6 +1430,7 @@ export function createLocalAgentDraft(input: {
     feedback,
     summary,
     characters,
+    scenePresets,
     scenes: scenePlan.scenes,
     transitions,
     branches,
@@ -1296,6 +1439,7 @@ export function createLocalAgentDraft(input: {
 
 export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
   characters: CharacterDefinition[];
+  scenes: SceneDefinition[];
   nodes: EditorFlowNode[];
   edges: EditorFlowEdge[];
 } {
@@ -1454,6 +1598,22 @@ export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
       y: 80 + index * 250,
     },
   }));
+  const scenes: SceneDefinition[] = draft.scenePresets.map((scenePreset, index) =>
+    createSceneDefinition(index + 1, {
+      id: scenePreset.id,
+      name: scenePreset.name,
+      description: [scenePreset.description, scenePreset.appearancePrompt]
+        .filter((item) => item.trim().length > 0)
+        .join("\n"),
+      basePrompt: scenePreset.basePrompt,
+      imageModel: scenePreset.imageModel,
+      referenceImageAssetRefs: [],
+      canvasPosition: {
+        x: -40,
+        y: 80 + index * 250,
+      },
+    }),
+  );
 
   const sceneNodeMap = new Map<string, EditorFlowNode>();
   const sceneOrderMap = new Map<string, number>();
@@ -1470,6 +1630,7 @@ export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
           durationSec: scene.durationSec,
           promptOverride: scene.videoPrompt,
           referenceCharacterIds: [...scene.involvedCharacterIds],
+          referenceSceneIds: pickReferenceSceneIds(scene, draft.scenePresets),
         } satisfies NodeGenerationConfig,
       },
     );
@@ -1510,6 +1671,7 @@ export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
 
   return {
     characters,
+    scenes,
     nodes,
     edges,
   };
