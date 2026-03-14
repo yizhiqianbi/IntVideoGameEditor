@@ -1,24 +1,23 @@
 .node {
   width: 310px;
   border: 1px solid var(--color-line);
-  border-radius: 22px;
-  background:
-    linear-gradient(180deg, rgba(255, 252, 247, 0.98), rgba(255, 246, 235, 0.92));
+  border-radius: 8px;
+  background: rgba(40, 40, 40, 0.95);
   box-shadow: var(--shadow-card);
   overflow: hidden;
 }
 
 .selected {
-  border-color: rgba(202, 90, 50, 0.55);
+  border-color: var(--color-accent);
   box-shadow:
-    0 0 0 3px rgba(202, 90, 50, 0.14),
+    0 0 0 3px rgba(124, 77, 255, 0.2),
     var(--shadow-card);
 }
 
 .handle {
   width: 12px;
   height: 12px;
-  border: 2px solid #fff;
+  border: 2px solid #555;
   background: var(--color-accent);
 }
 
@@ -64,33 +63,33 @@
 }
 
 .ready {
-  background: rgba(47, 133, 90, 0.12);
+  background: rgba(0, 200, 83, 0.15);
   color: var(--color-success);
 }
 
 .generated {
-  background: rgba(67, 56, 202, 0.1);
-  color: #4c42c2;
+  background: rgba(124, 77, 255, 0.15);
+  color: var(--color-accent);
 }
 
 .generating {
-  background: rgba(202, 90, 50, 0.1);
+  background: rgba(124, 77, 255, 0.15);
   color: var(--color-accent);
 }
 
 .missing {
-  background: rgba(183, 121, 31, 0.14);
+  background: rgba(255, 214, 0, 0.15);
   color: var(--color-warning);
 }
 
 .unsupported,
 .failed {
-  background: rgba(184, 50, 50, 0.1);
+  background: rgba(255, 82, 82, 0.15);
   color: var(--color-danger);
 }
 
 .empty {
-  background: rgba(109, 93, 77, 0.1);
+  background: rgba(158, 158, 158, 0.15);
   color: var(--color-muted);
 }
 
@@ -107,10 +106,10 @@
 .videoFrame {
   margin: 0 16px 16px;
   aspect-ratio: 16 / 9;
-  border: 1px solid rgba(89, 62, 35, 0.12);
+  border: 1px solid var(--color-line);
   background:
-    radial-gradient(circle at top left, rgba(202, 90, 50, 0.18), transparent 35%),
-    linear-gradient(180deg, #332317 0%, #1f1610 100%);
+    radial-gradient(circle at top left, rgba(124, 77, 255, 0.2), transparent 35%),
+    linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 100%);
   overflow: hidden;
 }
 
@@ -128,7 +127,7 @@
   height: 100%;
   padding: 16px;
   text-align: center;
-  color: rgba(255, 243, 231, 0.92);
+  color: rgba(224, 224, 224, 0.9);
 }
 
 .placeholderText {
@@ -144,5 +143,5 @@
 .placeholderBody {
   font-size: 13px;
   line-height: 1.5;
-  color: rgba(255, 243, 231, 0.72);
+  color: rgba(224, 224, 224, 0.7);
 }

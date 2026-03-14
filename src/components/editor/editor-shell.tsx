@@ -107,6 +107,7 @@ const nodeTypes = {
 };
 
 const PROVIDER_STORAGE_KEY = "int-video-game-editor.provider-credentials.v1";
+const AGENT_API_KEY_STORAGE_KEY = "int-video-game-editor.agent-api-key.v1";
 const DEFAULT_LOCAL_PROVIDER_CREDENTIALS: ProviderCredentialState = {
   ...DEFAULT_PROVIDER_CREDENTIALS,
   doubao: {
@@ -489,6 +490,13 @@ export function EditorShell() {
   );
   const [agentStoryText, setAgentStoryText] = useState("");
   const [agentFeedbackText, setAgentFeedbackText] = useState("");
+  const [agentImageUrl, setAgentImageUrl] = useState("");
+  const [agentApiKey, setAgentApiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(AGENT_API_KEY_STORAGE_KEY) ?? "";
+    }
+    return "";
+  });
   const [agentDraft, setAgentDraft] = useState<AgentDraft | null>(null);
   const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(null);
   const [isGeneratingAgentDraft, setIsGeneratingAgentDraft] = useState(false);
@@ -1510,7 +1518,11 @@ export function EditorShell() {
     }
   }
 
-  async function requestAgentDraft(storyText: string, feedback: string) {
+  async function requestAgentDraft(
+    storyText: string,
+    feedback: string,
+    imageUrl?: string,
+  ) {
     const response = await fetch("/api/agent/draft", {
       method: "POST",
       headers: {
@@ -1519,6 +1531,8 @@ export function EditorShell() {
       body: JSON.stringify({
         storyText,
         feedback,
+        imageUrl,
+        apiKey: agentApiKey,
       }),
     });
     const result = (await response.json()) as AgentDraft & { message?: string };
@@ -1533,11 +1547,12 @@ export function EditorShell() {
   async function handleGenerateAgentDraft() {
     const storyText = agentStoryText.trim();
     const feedback = agentFeedbackText.trim();
+    const imageUrl = agentImageUrl.trim();
 
-    if (storyText.length === 0) {
+    if (storyText.length === 0 && imageUrl.length === 0) {
       setNotice({
         tone: "error",
-        message: "请先输入故事模板。",
+        message: "请先输入故事模板或上传图片。",
       });
       return;
     }
@@ -1545,7 +1560,7 @@ export function EditorShell() {
     setIsGeneratingAgentDraft(true);
 
     try {
-      const result = await requestAgentDraft(storyText, feedback);
+      const result = await requestAgentDraft(storyText, feedback, imageUrl);
 
       setAgentDraft(result);
       setAgentScreenplay(null);
@@ -1577,6 +1592,7 @@ export function EditorShell() {
         storyText,
         feedback,
         draft,
+        apiKey: agentApiKey,
       }),
     });
     const result = (await response.json()) as AgentScreenplay & { message?: string };
@@ -2644,13 +2660,13 @@ export function EditorShell() {
             selectionOnDrag
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={24} color="rgba(121, 86, 54, 0.14)" />
+            <Background gap={24} color="rgba(255, 255, 255, 0.08)" />
             <MiniMap
               pannable
               zoomable
               style={{
-                backgroundColor: "rgba(255, 250, 244, 0.92)",
-                border: "1px solid rgba(88, 61, 35, 0.12)",
+                backgroundColor: "rgba(30, 30, 30, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
               }}
             />
             <Controls showInteractive={false} />
@@ -3428,6 +3444,29 @@ export function EditorShell() {
                 </div>
 
                 <div className={styles.field}>
+                  <label className={styles.label}>参考图片（可选）</label>
+                  <input
+                    type="text"
+                    className={styles.textInput}
+                    value={agentImageUrl}
+                    onChange={(event) => setAgentImageUrl(event.target.value)}
+                    placeholder="输入图片 URL，Agent 将根据图片内容生成故事"
+                  />
+                  {agentImageUrl && (
+                    <div className={styles.agentImagePreview}>
+                      <img
+                        src={agentImageUrl}
+                        alt="预览"
+                        className={styles.agentImagePreviewImg}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.field}>
                   <label className={styles.label}>给 Agent 的意见</label>
                   <textarea
                     className={`${styles.compactTextArea} ${styles.agentFeedbackInput}`}
@@ -3465,7 +3504,7 @@ export function EditorShell() {
                     disabled={
                       isGeneratingAgentDraft ||
                       isGeneratingRandomAgentStory ||
-                      agentStoryText.trim().length === 0
+                      (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
                     }
                   >
                     根据意见重算
@@ -3477,7 +3516,7 @@ export function EditorShell() {
                     disabled={
                       isGeneratingAgentScreenplay ||
                       isGeneratingRandomAgentStory ||
-                      agentStoryText.trim().length === 0
+                      (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
                     }
                   >
                     {isGeneratingAgentScreenplay ? "剧本生成中..." : "生成剧本"}
@@ -3830,6 +3869,108 @@ export function EditorShell() {
                     </article>
                   );
                 })}
+              </div>
+
+              {/* Agent API Key 配置 */}
+              <div className={styles.providerCard} style={{ marginTop: "20px" }}>
+                <div className={styles.providerHead}>
+                  <div>
+                    <strong>Agent API 配置</strong>
+                    <p className={styles.providerMeta}>豆包方舟 - 故事生成与剧本创作</p>
+                  </div>
+                  <span
+                    className={`${styles.providerBadge} ${
+                      agentApiKey.trim().length > 0
+                        ? styles.providerReady
+                        : styles.providerMissing
+                    }`}
+                  >
+                    {agentApiKey.trim().length > 0 ? "已配置" : "未配置"}
+                  </span>
+                </div>
+                <p className={styles.hint}>
+                  Agent 用于故事拆解和剧本创作。支持图像理解功能。
+                  凭证保存在浏览器 localStorage 中。
+                </p>
+                <div className={styles.field}>
+                  <label className={styles.label}>Agent API Key</label>
+                  <input
+                    className={styles.textInput}
+                    type="password"
+                    value={agentApiKey}
+                    onChange={(event) => {
+                      const newKey = event.target.value;
+                      setAgentApiKey(newKey);
+                      if (typeof window !== "undefined") {
+                        if (newKey.trim()) {
+                          localStorage.setItem(AGENT_API_KEY_STORAGE_KEY, newKey);
+                        } else {
+                          localStorage.removeItem(AGENT_API_KEY_STORAGE_KEY);
+                        }
+                      }
+                    }}
+                    placeholder="输入豆包方舟 API Key"
+                  />
+                </div>
+                <div className={styles.field}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={async () => {
+                      if (!agentApiKey.trim()) {
+                        setNotice({
+                          tone: "error",
+                          message: "请先输入 API Key",
+                        });
+                        return;
+                      }
+
+                      setNotice({
+                        tone: "info",
+                        message: "正在测试 API Key...",
+                      });
+
+                      try {
+                        const response = await fetch("/api/agent/test", {
+                          method: "POST",
+                          headers: {
+                            "Content-Type": "application/json",
+                          },
+                          body: JSON.stringify({ apiKey: agentApiKey }),
+                        });
+
+                        const result = await response.json();
+
+                        if (result.success) {
+                          setNotice({
+                            tone: "success",
+                            message: "✅ API Key 配置正确！可以开始使用 Agent 功能了。",
+                          });
+                        } else {
+                          setNotice({
+                            tone: "error",
+                            message: `❌ API Key 测试失败：${result.message}`,
+                          });
+                        }
+                      } catch (error) {
+                        setNotice({
+                          tone: "error",
+                          message: `测试失败：${error instanceof Error ? error.message : "未知错误"}`,
+                        });
+                      }
+                    }}
+                  >
+                    测试 API Key 连接
+                  </button>
+                </div>
+                <a
+                  className={styles.inlineLinkButton}
+                  href="https://www.volcengine.com/docs/ark"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打开官方文档获取 API Key
+                </a>
               </div>
             </div>
           </div>

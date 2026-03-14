@@ -4,10 +4,17 @@ import {
   normalizeAgentDraft,
   normalizeAgentDraftFromText,
 } from "../../../../lib/agent-mode";
+import {
+  DRAFT_SYSTEM_PROMPT,
+  buildDraftUserPrompt,
+  buildDraftUserPromptWithImage,
+} from "../../../../lib/agent-prompts";
 
 type RequestBody = {
   storyText?: string;
   feedback?: string;
+  imageUrl?: string;
+  apiKey?: string;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -70,56 +77,57 @@ export async function POST(request: Request) {
     const body = (await request.json()) as RequestBody;
     const storyText = body.storyText?.trim() ?? "";
     const feedback = body.feedback?.trim() ?? "";
+    const imageUrl = body.imageUrl?.trim() ?? "";
 
-    if (storyText.length === 0) {
+    if (storyText.length === 0 && imageUrl.length === 0) {
       return NextResponse.json(
-        { message: "故事内容不能为空。" },
+        { message: "故事内容或图片不能为空。" },
         { status: 400 },
       );
     }
 
     const apiKey =
+      body.apiKey?.trim() ??
       process.env.AGENT_API_KEY?.trim() ??
       process.env.NEXT_PUBLIC_VOLCENGINE_API_KEY?.trim() ??
       "";
     const model =
-      process.env.AGENT_API_MODEL?.trim() ?? "doubao-seed-2-0-lite-260215";
+      process.env.AGENT_API_MODEL?.trim() ?? "doubao-seed-2-0-pro-260215";
 
     if (!apiKey) {
       return NextResponse.json(createLocalAgentDraft({ storyText, feedback }));
     }
 
-    const systemPrompt = [
-      "你是互动影视故事拆解 Agent。",
-      "你的任务是把用户的故事拆成可直接进入节点编辑器的结构化草案。",
-      "你必须只输出 JSON，不要输出 markdown，不要输出解释。",
-      "JSON 顶层字段必须包含：storyTitle, summary, characters, branches, scenes, transitions。",
-      "characters[].字段必须包含：id, name, bio, appearancePrompt, basePrompt, imageModel。",
-      "characters[].bio 必须是可直接用于角色生图的人物设定，不要只写抽象职责。",
-      "branches[].字段必须包含：id, name, predictedOutcome, tone。",
-      "scenes[].字段必须包含：id, title, summary, branchId, durationSec, involvedCharacterIds, actions, videoPrompt。",
-      "actions[].字段必须包含：characterId, action, emotion, dialogue。",
-      "transitions[].字段必须包含：id, sourceSceneId, targetSceneId, conditionVariable, choiceLabel。",
-      "所有 id 必须稳定、简短、ASCII 可序列化。",
-      "每个场景时长控制在 3 到 8 秒。",
-      "分支结果要有明显差异；如无明确分支，就只输出单线结构。",
-      "整个 scenes + transitions 必须形成单根树结构：只有一个 root，没有断点，没有孤立节点，没有空场景。",
-      "线性推进也要输出 transitions，choiceLabel 使用“继续”，不能省略。",
-      "角色外观提示词要利于后续生图和图生视频保持一致性。",
-    ].join("\n");
+    const systemPrompt = DRAFT_SYSTEM_PROMPT;
 
-    const userPrompt = [
-      `故事内容：\n${storyText}`,
-      feedback.length > 0 ? `修订意见：\n${feedback}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    // 根据是否有图片来构建不同的 prompt
+    const hasImage = imageUrl.length > 0;
+    const userPrompt = hasImage
+      ? buildDraftUserPromptWithImage(storyText, feedback, imageUrl)
+      : buildDraftUserPrompt(storyText, feedback);
+
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 18000); // 增加超时时间以处理图像
 
     let response: Response;
 
     try {
+      // 构建 user content
+      const userContent: unknown[] = [];
+
+      if (hasImage) {
+        // 有图像时，先添加图像，再添加文本
+        userContent.push({
+          type: "input_image",
+          image_url: imageUrl,
+        });
+      }
+
+      userContent.push({
+        type: "input_text",
+        text: userPrompt,
+      });
+
       response = await fetch("https://ark.cn-beijing.volces.com/api/v3/responses", {
         method: "POST",
         headers: {
@@ -141,12 +149,7 @@ export async function POST(request: Request) {
             },
             {
               role: "user",
-              content: [
-                {
-                  type: "input_text",
-                  text: userPrompt,
-                },
-              ],
+              content: userContent,
             },
           ],
         }),

@@ -5,11 +5,16 @@ import {
   normalizeAgentScreenplayFromText,
   type AgentDraft,
 } from "../../../../lib/agent-mode";
+import {
+  SCRIPT_SYSTEM_PROMPT,
+  buildScriptUserPrompt,
+} from "../../../../lib/agent-prompts";
 
 type RequestBody = {
   storyText?: string;
   feedback?: string;
   draft?: AgentDraft | null;
+  apiKey?: string;
 };
 
 type UnknownRecord = Record<string, unknown>;
@@ -78,6 +83,7 @@ export async function POST(request: Request) {
     }
 
     const apiKey =
+      body.apiKey?.trim() ??
       process.env.AGENT_API_KEY?.trim() ??
       process.env.NEXT_PUBLIC_VOLCENGINE_API_KEY?.trim() ??
       "";
@@ -94,24 +100,13 @@ export async function POST(request: Request) {
       );
     }
 
-    const systemPrompt = [
-      "你是互动影视剧本编剧 Agent。",
-      "你的任务是根据故事模板和已有分镜草案，输出一份适合互动影视项目继续制作的剧本。",
-      "你必须只输出 JSON，不要输出 markdown，不要输出解释。",
-      "JSON 顶层字段必须包含：title, logline, script。",
-      "script 必须是完整中文剧本文本，包含角色设定、分镜剧本、分支选择和结果走向。",
-      "每个镜头都要明确画面、角色动作、情绪和分支钩子。",
-      "如果用户提供了草案，优先沿用草案中的角色、镜头和分支命名，不要随意改名。",
-      "整体风格要适合短剧/互动影视制作，不要写小说体。",
-    ].join("\n");
+    const systemPrompt = SCRIPT_SYSTEM_PROMPT;
 
-    const userPrompt = [
-      `故事内容：\n${storyText}`,
-      feedback.length > 0 ? `修订意见：\n${feedback}` : "",
-      body.draft ? `现有草案：\n${JSON.stringify(body.draft, null, 2)}` : "",
-    ]
-      .filter(Boolean)
-      .join("\n\n");
+    const userPrompt = buildScriptUserPrompt(
+      storyText,
+      feedback,
+      body.draft ?? null,
+    );
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 12000);
 
