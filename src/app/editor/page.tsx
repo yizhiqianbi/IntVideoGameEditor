@@ -1,24 +1,5 @@
-"use client";
-
-import { useEffect, useState } from "react";
-import { EditorShell } from "@/components/editor/editor-shell";
+import { redirect } from "next/navigation";
 
 export default function EditorPage() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    const frameId = window.requestAnimationFrame(() => {
-      setMounted(true);
-    });
-
-    return () => {
-      window.cancelAnimationFrame(frameId);
-    };
-  }, []);
-
-  if (!mounted) {
-    return null;
-  }
-
-  return <EditorShell />;
+  redirect("/pencil-studio-vid");
 }
