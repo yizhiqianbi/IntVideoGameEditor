@@ -95,6 +95,9 @@ export type ProviderDefinition = {
 
 export const DEFAULT_PROVIDER_PRIORITY: VideoProviderId[] = [
   "doubao",
+  "minimax",
+  "vidu",
+  "kling",
 ];
 
 export const DEFAULT_PROVIDER_CREDENTIALS: ProviderCredentialState = {
@@ -122,7 +125,7 @@ export const PROVIDER_DEFINITIONS: Record<VideoProviderId, ProviderDefinition> =
     imageModel: "doubao-seedream-4-5-250821",
     docsUrl: "https://www.volcengine.com/docs/82379/1520757",
     description:
-      "当前唯一支持的生成引擎。视频默认走火山方舟 Seedance 1.0 Pro Fast（Lite 版本），参考图相关能力按 Seedream 4.5 组织。",
+      "第一优先。视频默认走火山方舟 Seedance，适合国内部署和统一接入。",
     credentialFields: [
       {
         key: "apiKey",

@@ -148,6 +148,12 @@ export type EditorProject = {
 };
 
 type UnknownRecord = Record<string, unknown>;
+const ALL_VIDEO_PROVIDERS: VideoProviderId[] = [
+  "doubao",
+  "minimax",
+  "vidu",
+  "kling",
+];
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null;
@@ -229,7 +235,11 @@ function sanitizeGeneration(value: unknown): NodeGenerationConfig {
   }
 
   const providerId =
-    value.providerId === "auto" || value.providerId === "doubao"
+    value.providerId === "auto" ||
+    value.providerId === "doubao" ||
+    value.providerId === "minimax" ||
+    value.providerId === "vidu" ||
+    value.providerId === "kling"
       ? value.providerId
       : DEFAULT_GENERATION_CONFIG.providerId;
 
@@ -279,7 +289,13 @@ function sanitizeGenerationTask(value: unknown): NodeGenerationTask | undefined 
     return undefined;
   }
 
-  const providerId = value.providerId === "doubao" ? value.providerId : undefined;
+  const providerId =
+    value.providerId === "doubao" ||
+    value.providerId === "minimax" ||
+    value.providerId === "vidu" ||
+    value.providerId === "kling"
+      ? value.providerId
+      : undefined;
 
   const status =
     value.status === "idle" ||
@@ -379,9 +395,37 @@ function sanitizeSceneDefinition(value: unknown, index = 1): SceneDefinition {
   };
 }
 
-function sanitizeProjectSettings(): ProjectSettings {
+function sanitizeProviderPriority(value: unknown): VideoProviderId[] {
+  const nextPriority: VideoProviderId[] = [];
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      if (
+        (item === "doubao" ||
+          item === "minimax" ||
+          item === "vidu" ||
+          item === "kling") &&
+        !nextPriority.includes(item)
+      ) {
+        nextPriority.push(item);
+      }
+    }
+  }
+
+  for (const providerId of ALL_VIDEO_PROVIDERS) {
+    if (!nextPriority.includes(providerId)) {
+      nextPriority.push(providerId);
+    }
+  }
+
+  return nextPriority;
+}
+
+function sanitizeProjectSettings(value?: unknown): ProjectSettings {
   return {
-    providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
+    providerPriority: sanitizeProviderPriority(
+      isRecord(value) ? value.providerPriority : undefined,
+    ),
   };
 }
 
@@ -845,7 +889,7 @@ export function parseProject(value: unknown): EditorProject {
           sanitizeSceneDefinition(scene, index + 1),
         )
       : [],
-    settings: sanitizeProjectSettings(),
+    settings: sanitizeProjectSettings(value.settings),
   };
 }
 

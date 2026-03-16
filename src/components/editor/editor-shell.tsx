@@ -134,6 +134,32 @@ const DEFAULT_LOCAL_PROVIDER_CREDENTIALS: ProviderCredentialState = {
     apiKey: process.env.NEXT_PUBLIC_VOLCENGINE_API_KEY ?? "",
   },
 };
+
+function normalizeProviderPriority(priority?: unknown): VideoProviderId[] {
+  const nextPriority: VideoProviderId[] = [];
+
+  if (Array.isArray(priority)) {
+    for (const item of priority) {
+      if (
+        (item === "doubao" ||
+          item === "minimax" ||
+          item === "vidu" ||
+          item === "kling") &&
+        !nextPriority.includes(item)
+      ) {
+        nextPriority.push(item);
+      }
+    }
+  }
+
+  for (const providerId of DEFAULT_PROVIDER_PRIORITY) {
+    if (!nextPriority.includes(providerId)) {
+      nextPriority.push(providerId);
+    }
+  }
+
+  return nextPriority;
+}
 const CHARACTER_NODE_ID_PREFIX = "character-card:";
 const SCENE_NODE_ID_PREFIX = "scene-card:";
 const REFERENCE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
@@ -621,7 +647,7 @@ export function EditorShell() {
   const [characters, setCharacters] = useState<CharacterDefinition[]>([]);
   const [scenes, setScenes] = useState<SceneDefinition[]>([]);
   const [settings, setSettings] = useState<ProjectSettings>({
-    providerPriority: [...DEFAULT_PROVIDER_PRIORITY],
+    providerPriority: normalizeProviderPriority(DEFAULT_PROVIDER_PRIORITY),
   });
   const [providerCredentials, setProviderCredentials] =
     useState<ProviderCredentialState>(DEFAULT_LOCAL_PROVIDER_CREDENTIALS);
@@ -1239,6 +1265,28 @@ export function EditorShell() {
       JSON.stringify(providerCredentials),
     );
   }, [providerCredentials]);
+
+  useEffect(() => {
+    setSettings((currentSettings) => {
+      const normalizedPriority = normalizeProviderPriority(
+        currentSettings.providerPriority,
+      );
+
+      if (
+        normalizedPriority.length === currentSettings.providerPriority.length &&
+        normalizedPriority.every(
+          (providerId, index) => providerId === currentSettings.providerPriority[index],
+        )
+      ) {
+        return currentSettings;
+      }
+
+      return {
+        ...currentSettings,
+        providerPriority: normalizedPriority,
+      };
+    });
+  }, []);
 
   useEffect(() => {
     if (!isExportModalOpen && !isProviderModalOpen && !isAssetLibraryOpen && !isAgentModeOpen) {
@@ -3191,7 +3239,7 @@ export function EditorShell() {
                 className={styles.ghostButton}
                 onClick={() => setIsProviderModalOpen(true)}
               >
-                火山 API 设置
+                视频 API 设置
               </button>
               <button
                 type="button"
@@ -3509,7 +3557,7 @@ export function EditorShell() {
                         )
                       }
                     >
-                      <option value="auto">按项目默认（火山引擎）</option>
+                      <option value="auto">按项目默认（项目优先级）</option>
                       {settings.providerPriority.map((providerId) => (
                         <option key={providerId} value={providerId}>
                           {PROVIDER_DEFINITIONS[providerId].label}
@@ -4762,9 +4810,9 @@ export function EditorShell() {
             <div className={styles.modalHeader}>
               <div className={styles.modalTitleBlock}>
                 <span className={styles.sectionTitle}>API 设置</span>
-                <h2 className={styles.modalTitle}>火山引擎 API 配置</h2>
+                <h2 className={styles.modalTitle}>视频生成 API 配置</h2>
                 <p className={styles.hint}>
-                  这里只配置火山方舟 / 豆包视频生成 API。凭证只保存在当前浏览器，不会写进工程 JSON。
+                  这里统一配置豆包、MiniMax、Vidu、Kling 的视频生成凭证。凭证只保存在当前浏览器，不会写进工程 JSON。
                 </p>
               </div>
               <button
@@ -4786,7 +4834,7 @@ export function EditorShell() {
                 ))}
               </div>
               <p className={styles.hint}>
-                当前节点若选择“按项目默认”，会直接使用这里配置好的火山引擎凭证。
+                当前节点若选择“按项目默认”，会按这里的 provider 优先级自动选择已配置凭证。
               </p>
             </div>
 
