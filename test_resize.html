@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+.container {
+  display: flex;
+  gap: 16px;
+  height: 100vh;
+  padding: 20px;
+  background: #333;
+}
+.sidebar, .details {
+  background: #666;
+  color: white;
+  padding: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  resize: horizontal;
+  width: 300px;
+  min-width: 200px;
+  max-width: 500px;
+}
+.main {
+  flex: 1;
+  background: #999;
+  min-width: 0;
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="sidebar">Sidebar (resize bottom-right corner)</div>
+  <div class="main">Main Canvas</div>
+  <div class="details">Details (resize bottom-right corner)</div>
+</div>
+</body>
+</html>

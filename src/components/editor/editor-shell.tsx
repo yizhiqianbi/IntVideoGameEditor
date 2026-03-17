@@ -59,6 +59,7 @@ import {
   DEMO_AGENT_SCREENPLAY,
   DEMO_STORY_TEXT,
 } from "../../lib/demo-case";
+import { useResizer } from "./use-resizer";
 import styles from "./editor-shell.module.css";
 import {
   CharacterReferenceNode,
@@ -695,6 +696,9 @@ export function EditorShell() {
   const pollingVideoTaskIdsRef = useRef(new Set<string>());
   const reactFlowRef =
     useRef<ReactFlowInstance<CanvasFlowNode, EditorFlowEdge> | null>(null);
+
+  const sidebarResizer = useResizer(360, 240, 600, 'right');
+  const detailsResizer = useResizer(360, 240, 600, 'left');
 
   const selectedNode =
     nodes.find((node) => node.id === selectedNodeId) ?? null;
@@ -2955,8 +2959,14 @@ export function EditorShell() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.layout}>
-        <aside className={`${styles.panel} ${styles.sidebar}`}>
+      <div
+        className={styles.layout}
+        style={{
+          '--sidebar-width': sidebarResizer.collapsed ? '0px' : `${sidebarResizer.width}px`,
+          '--details-width': detailsResizer.collapsed ? '0px' : `${detailsResizer.width}px`,
+        } as React.CSSProperties}
+      >
+        <aside className={`${styles.panel} ${styles.sidebar} ${sidebarResizer.collapsed ? styles.panelCollapsed : ''}`}>
           <section className={styles.hero}>
             <span className={styles.sectionTitle}>PencilStudio</span>
             <h1 className={styles.heroTitle}>PencilStudio-VideoGame</h1>
@@ -3293,6 +3303,20 @@ export function EditorShell() {
           ) : null}
         </aside>
 
+        <div
+          className={`${styles.resizeHandle} ${sidebarResizer.isDragging ? styles.resizeHandleActive : ''}`}
+          onMouseDown={sidebarResizer.startDrag}
+        >
+          <button
+            type="button"
+            className={`${styles.collapseBtn} ${styles.collapseBtnLeft}`}
+            onClick={sidebarResizer.toggleCollapse}
+            aria-label={sidebarResizer.collapsed ? '展开左侧面板' : '折叠左侧面板'}
+          >
+            {sidebarResizer.collapsed ? '▶' : '◀'}
+          </button>
+        </div>
+
         <section className={`${styles.panel} ${styles.canvasPanel}`}>
           <div className={styles.canvasHeader}>
             <h2 className={styles.canvasTitle}>Story Graph</h2>
@@ -3378,7 +3402,21 @@ export function EditorShell() {
           </ReactFlow>
         </section>
 
-        <aside className={`${styles.panel} ${styles.details}`}>
+        <div
+          className={`${styles.resizeHandle} ${detailsResizer.isDragging ? styles.resizeHandleActive : ''}`}
+          onMouseDown={detailsResizer.startDrag}
+        >
+          <button
+            type="button"
+            className={`${styles.collapseBtn} ${styles.collapseBtnRight}`}
+            onClick={detailsResizer.toggleCollapse}
+            aria-label={detailsResizer.collapsed ? '展开右侧面板' : '折叠右侧面板'}
+          >
+            {detailsResizer.collapsed ? '◀' : '▶'}
+          </button>
+        </div>
+
+        <aside className={`${styles.panel} ${styles.details} ${detailsResizer.collapsed ? styles.panelCollapsed : ''}`}>
           <section className={styles.section}>
             <h2 className={styles.sectionTitle}>属性面板</h2>
 
