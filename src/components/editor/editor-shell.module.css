@@ -5,8 +5,8 @@
 
 .layout {
   display: grid;
-  grid-template-columns: 360px minmax(0, 1fr) 360px;
-  gap: 16px;
+  grid-template-columns: var(--sidebar-width, 360px) auto minmax(0, 1fr) auto var(--details-width, 360px);
+  gap: 0;
   min-height: calc(100vh - 36px);
 }
 
@@ -330,14 +330,19 @@
   border: 1px solid var(--color-line);
   border-radius: 8px;
   background: rgba(40, 40, 40, 0.9);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .referenceHeroImage,
 .referenceHeroMissing {
   display: block;
   width: 100%;
-  aspect-ratio: 1 / 1;
-  object-fit: cover;
+  height: auto;
+  max-height: 200px;
+  object-fit: contain;
 }
 
 .referenceHeroMissing {
@@ -906,15 +911,74 @@
   line-height: 1.5;
 }
 
+.resizeHandle {
+  width: 6px;
+  cursor: col-resize;
+  background: transparent;
+  transition: background 150ms ease;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.resizeHandle:hover,
+.resizeHandleActive {
+  background: rgba(124, 77, 255, 0.35);
+}
+
+.collapseBtn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 3;
+  width: 20px;
+  height: 48px;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: rgba(50, 50, 50, 0.95);
+  color: var(--color-muted);
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.collapseBtn:hover {
+  background: rgba(80, 80, 80, 0.95);
+  color: var(--color-text);
+}
+
+.collapseBtnLeft {
+  right: -10px;
+}
+
+.collapseBtnRight {
+  left: -10px;
+}
+
+.panelCollapsed {
+  width: 0 !important;
+  min-width: 0 !important;
+  padding: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+}
+
 @media (max-width: 1420px) {
   .layout {
-    grid-template-columns: 330px minmax(0, 1fr) 340px;
+    grid-template-columns: var(--sidebar-width, 330px) auto minmax(0, 1fr) auto var(--details-width, 340px);
   }
 }
 
 @media (max-width: 1220px) {
   .layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important;
+  }
+
+  .resizeHandle {
+    display: none;
   }
 
   .sidebar,
