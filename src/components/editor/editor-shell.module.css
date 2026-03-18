@@ -12,10 +12,11 @@
 
 .panel {
   border: 1px solid var(--color-line);
-  border-radius: 8px;
-  background: var(--color-surface);
-  backdrop-filter: blur(10px);
+  border-radius: var(--radius-md);
+  background: rgba(22, 22, 28, 0.92);
+  backdrop-filter: blur(20px);
   box-shadow: var(--shadow-panel);
+  transition: border-color var(--transition-med);
 }
 
 .sidebar,
@@ -26,6 +27,19 @@
   padding: 20px;
   max-height: calc(100vh - 36px);
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 77, 255, 0.2) transparent;
+}
+
+.sidebar::-webkit-scrollbar,
+.details::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb,
+.details::-webkit-scrollbar-thumb {
+  background: rgba(124, 77, 255, 0.2);
+  border-radius: 4px;
 }
 
 .canvasPanel {
@@ -41,12 +55,12 @@
   z-index: 5;
   display: grid;
   gap: 6px;
-  padding: 14px 16px;
+  padding: 14px 18px;
   border: 1px solid var(--color-line);
-  border-radius: 8px;
-  background: rgba(30, 30, 30, 0.95);
-  backdrop-filter: blur(12px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: var(--radius-md);
+  background: rgba(18, 18, 22, 0.88);
+  backdrop-filter: blur(20px);
+  box-shadow: var(--shadow-panel);
 }
 
 .canvasTitle {
@@ -65,8 +79,9 @@
   height: 100%;
   min-height: 760px;
   background:
-    radial-gradient(circle at top left, rgba(60, 60, 60, 0.3), transparent 24%),
-    linear-gradient(180deg, rgba(20, 20, 20, 0.95), rgba(30, 30, 30, 0.98));
+    radial-gradient(ellipse 40% 30% at 15% 10%, rgba(124, 77, 255, 0.05), transparent),
+    radial-gradient(ellipse 35% 35% at 85% 85%, rgba(9, 196, 217, 0.04), transparent),
+    linear-gradient(180deg, rgba(14, 14, 18, 0.98), rgba(18, 18, 22, 0.99));
 }
 
 .section {
@@ -116,14 +131,15 @@
   justify-content: center;
   min-height: 36px;
   padding: 0 14px;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   border: 1px solid transparent;
   font-weight: 600;
   cursor: pointer;
   transition:
-    transform 140ms ease,
-    box-shadow 140ms ease,
-    background 140ms ease;
+    transform var(--transition-fast),
+    box-shadow var(--transition-fast),
+    background var(--transition-fast),
+    border-color var(--transition-fast);
 }
 
 .primaryButton:hover,
@@ -138,22 +154,36 @@
 
 .primaryButton {
   width: 100%;
-  background: linear-gradient(135deg, var(--color-accent), #6200ea);
+  background: var(--gradient-accent);
   color: #ffffff;
-  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.3);
+  box-shadow: 0 4px 14px rgba(124, 77, 255, 0.28);
+}
+
+.primaryButton:hover {
+  box-shadow: 0 6px 20px rgba(124, 77, 255, 0.38);
 }
 
 .secondaryButton {
   width: 100%;
   border-color: var(--color-line-strong);
-  background: rgba(60, 60, 60, 0.8);
+  background: rgba(50, 50, 60, 0.7);
+}
+
+.secondaryButton:hover {
+  border-color: rgba(9, 196, 217, 0.25);
+  background: rgba(9, 196, 217, 0.08);
 }
 
 .dangerButton {
   width: 100%;
-  border-color: rgba(255, 82, 82, 0.3);
-  background: rgba(255, 82, 82, 0.15);
+  border-color: rgba(255, 77, 106, 0.25);
+  background: rgba(255, 77, 106, 0.12);
   color: var(--color-danger);
+}
+
+.dangerButton:hover {
+  border-color: rgba(255, 77, 106, 0.4);
+  background: rgba(255, 77, 106, 0.18);
 }
 
 .ghostButton,
@@ -203,8 +233,18 @@
   gap: 12px;
   padding: 14px;
   border: 1px solid var(--color-line);
-  background: rgba(45, 45, 45, 0.9);
-  border-radius: 8px;
+  background: rgba(28, 28, 36, 0.85);
+  border-radius: var(--radius-md);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.characterCard:hover,
+.providerSummaryCard:hover,
+.providerCard:hover,
+.actionCard:hover,
+.assetCard:hover {
+  border-color: rgba(124, 77, 255, 0.15);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
 }
 
 .characterCardHeader,
@@ -286,20 +326,21 @@
 .selectInput {
   width: 100%;
   border: 1px solid var(--color-line);
-  border-radius: 6px;
-  background: rgba(40, 40, 40, 0.9);
+  border-radius: var(--radius-sm);
+  background: rgba(22, 22, 28, 0.9);
   padding: 13px 14px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .textInput:focus,
 .textArea:focus,
 .compactTextArea:focus,
 .selectInput:focus {
-  border-color: rgba(124, 77, 255, 0.5);
+  border-color: rgba(9, 196, 217, 0.45);
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.05),
-    0 0 0 3px rgba(124, 77, 255, 0.15);
+    inset 0 1px 0 rgba(255, 255, 255, 0.03),
+    0 0 0 3px rgba(9, 196, 217, 0.10);
 }
 
 .textArea {
@@ -445,8 +486,13 @@
   gap: 6px;
   padding: 14px;
   border: 1px solid var(--color-line);
-  border-radius: 8px;
-  background: rgba(45, 45, 45, 0.9);
+  border-radius: var(--radius-md);
+  background: rgba(28, 28, 36, 0.85);
+  transition: border-color var(--transition-fast);
+}
+
+.statCard:hover {
+  border-color: rgba(9, 196, 217, 0.18);
 }
 
 .statValue {
@@ -563,8 +609,8 @@
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(10px);
+  background: rgba(0, 0, 0, 0.65);
+  backdrop-filter: blur(16px);
 }
 
 .modalCard {
@@ -573,11 +619,12 @@
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr);
   gap: 16px;
-  padding: 20px;
-  border: 1px solid var(--color-line);
-  border-radius: 12px;
-  background: rgba(35, 35, 35, 0.98);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  padding: 24px;
+  border: 1px solid rgba(124, 77, 255, 0.12);
+  border-radius: var(--radius-lg);
+  background: rgba(22, 22, 28, 0.96);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), var(--glow-accent);
 }
 
 .modalHeader {
@@ -911,11 +958,174 @@
   line-height: 1.5;
 }
 
+/* ── Export modal redesign ── */
+.exportModalCard {
+  width: min(640px, 100%);
+  max-height: calc(100vh - 48px);
+  padding: 28px;
+  border: 1px solid rgba(9, 196, 217, 0.12);
+  border-radius: var(--radius-lg);
+  background: rgba(22, 22, 28, 0.96);
+  backdrop-filter: blur(24px);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), var(--glow-accent2);
+  display: grid;
+  gap: 24px;
+  overflow: auto;
+}
+
+.exportModalHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.exportModalTitle {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.exportModalSubtitle {
+  margin-top: 6px;
+  color: var(--color-muted);
+  font-size: 14px;
+}
+
+.exportGrid {
+  display: grid;
+  gap: 12px;
+}
+
+.exportCard {
+  display: grid;
+  grid-template-columns: 48px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius-md);
+  background: rgba(28, 28, 36, 0.7);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.exportCard:hover {
+  border-color: rgba(9, 196, 217, 0.18);
+  box-shadow: 0 2px 16px rgba(0, 0, 0, 0.3);
+}
+
+.exportCardIcon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  border-radius: var(--radius-md);
+  background: var(--gradient-accent-subtle);
+  font-size: 22px;
+  flex-shrink: 0;
+}
+
+.exportCardBody {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.exportCardTitle {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.exportCardDesc {
+  color: var(--color-muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.exportCardActions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.exportCardActions .primaryButton,
+.exportCardActions .secondaryButton {
+  width: auto;
+  min-width: 72px;
+  padding: 0 16px;
+  min-height: 36px;
+  font-size: 13px;
+}
+
+/* ── Canvas context menu ── */
+.canvasContextMenu {
+  position: absolute;
+  z-index: 10;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-md);
+  background: rgba(22, 22, 28, 0.94);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55), var(--glow-accent);
+  display: grid;
+  gap: 2px;
+  animation: contextMenuIn 120ms var(--ease-out);
+}
+
+@keyframes contextMenuIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.contextMenuItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  text-align: left;
+}
+
+.contextMenuItem:hover {
+  background: rgba(124, 77, 255, 0.12);
+  color: #fff;
+}
+
+.contextMenuIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.contextMenuDivider {
+  height: 1px;
+  margin: 4px 8px;
+  background: var(--color-line);
+}
+
 .resizeHandle {
   width: 6px;
   cursor: col-resize;
   background: transparent;
-  transition: background 150ms ease;
+  transition: background var(--transition-fast);
   position: relative;
   z-index: 2;
   flex-shrink: 0;
@@ -923,7 +1133,7 @@
 
 .resizeHandle:hover,
 .resizeHandleActive {
-  background: rgba(124, 77, 255, 0.35);
+  background: linear-gradient(180deg, rgba(124, 77, 255, 0.35), rgba(9, 196, 217, 0.25));
 }
 
 .collapseBtn {
@@ -934,19 +1144,21 @@
   width: 20px;
   height: 48px;
   border: 1px solid var(--color-line);
-  border-radius: 4px;
-  background: rgba(50, 50, 50, 0.95);
+  border-radius: var(--radius-sm);
+  background: rgba(28, 28, 36, 0.95);
+  backdrop-filter: blur(12px);
   color: var(--color-muted);
   font-size: 12px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 140ms ease, color 140ms ease;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
 }
 
 .collapseBtn:hover {
-  background: rgba(80, 80, 80, 0.95);
+  background: rgba(124, 77, 255, 0.12);
+  border-color: rgba(124, 77, 255, 0.25);
   color: var(--color-text);
 }
 

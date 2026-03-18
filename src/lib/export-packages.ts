@@ -225,100 +225,150 @@ function buildBaseHtml({
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${escapeHtml(title)}</title>
     <style>
-      * { box-sizing: border-box; }
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
       html, body {
-        margin: 0;
-        width: 100%;
-        height: 100%;
-        overflow: hidden;
-        background: #000;
-        font-family: "SF Pro Text", "PingFang SC", "Helvetica Neue", sans-serif;
+        width: 100%; height: 100%; overflow: hidden;
+        background: #0a0a0f;
+        font-family: -apple-system, "SF Pro Text", "PingFang SC", "Helvetica Neue", "Noto Sans SC", sans-serif;
+        -webkit-font-smoothing: antialiased;
       }
       .player {
         position: relative;
-        width: 100vw;
-        height: 100vh;
-        background: #000;
+        width: 100vw; height: 100vh;
+        background:
+          radial-gradient(ellipse 60% 50% at 20% 20%, rgba(124, 77, 255, 0.06), transparent),
+          radial-gradient(ellipse 50% 40% at 80% 80%, rgba(9, 196, 217, 0.04), transparent),
+          #0a0a0f;
       }
       video, .slide {
-        width: 100%;
-        height: 100%;
-        display: block;
-        background: #000;
+        width: 100%; height: 100%;
+        display: block; background: transparent;
       }
       video {
         object-fit: contain;
+        border-radius: 0;
       }
+      video::-webkit-media-controls-panel {
+        background: linear-gradient(0deg, rgba(0,0,0,0.7), transparent);
+      }
+
+      /* Slide (placeholder when no video) */
       .slide {
-        display: grid;
-        place-items: center;
-        padding: 40px;
-        color: rgba(255, 248, 240, 0.94);
+        display: grid; place-items: center;
+        padding: 48px;
+        color: rgba(228, 228, 236, 0.94);
         text-align: center;
+        background:
+          radial-gradient(ellipse 40% 35% at 50% 40%, rgba(124, 77, 255, 0.08), transparent),
+          transparent;
       }
-      .slideInner {
-        display: grid;
-        gap: 12px;
-        max-width: 680px;
-      }
+      .slideInner { display: grid; gap: 14px; max-width: 640px; }
       .slideTitle {
-        font-size: clamp(26px, 3vw, 42px);
-        font-weight: 700;
-        line-height: 1.2;
+        font-size: clamp(28px, 3.5vw, 48px);
+        font-weight: 700; line-height: 1.15;
+        background: linear-gradient(135deg, #e4e4ec, #a8b4c8);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       .slideBody {
-        font-size: 16px;
-        line-height: 1.65;
-        color: rgba(255, 248, 240, 0.78);
+        font-size: 16px; line-height: 1.7;
+        color: rgba(228, 228, 236, 0.6);
       }
+
+      /* Overlay (choices, start screen, end screen) */
       .overlay {
-        position: absolute;
-        inset: 0;
-        display: grid;
-        place-items: center;
+        position: absolute; inset: 0;
+        display: grid; place-items: center;
         padding: 32px;
-        background: linear-gradient(180deg, rgba(0, 0, 0, 0.28), rgba(0, 0, 0, 0.74));
+        background: rgba(10, 10, 15, 0.8);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+        animation: overlayIn 300ms cubic-bezier(0.16, 1, 0.3, 1);
       }
-      .overlay[hidden] {
-        display: none;
+      @keyframes overlayIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
       }
+      .overlay[hidden] { display: none; }
       .overlayInner {
-        display: grid;
-        gap: 14px;
-        width: min(560px, 100%);
-        justify-items: center;
-        text-align: center;
+        display: grid; gap: 20px;
+        width: min(480px, 100%);
+        justify-items: center; text-align: center;
       }
       .overlayTitle {
-        color: #fff8f0;
-        font-size: clamp(24px, 2.6vw, 38px);
-        font-weight: 700;
-        line-height: 1.2;
+        font-size: clamp(26px, 3vw, 42px);
+        font-weight: 700; line-height: 1.15;
+        background: linear-gradient(135deg, #fff, #c8d0e0);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
       .overlayBody {
-        color: rgba(255, 248, 240, 0.82);
-        font-size: 15px;
-        line-height: 1.6;
+        color: rgba(228, 228, 236, 0.65);
+        font-size: 15px; line-height: 1.65;
       }
+
+      /* Button group */
       .buttonGroup {
-        display: grid;
-        gap: 12px;
-        width: min(420px, 100%);
+        display: grid; gap: 10px;
+        width: min(380px, 100%);
+        margin-top: 4px;
       }
       .choiceButton {
+        position: relative;
         min-height: 52px;
-        border: 0;
-        border-radius: 999px;
-        padding: 0 18px;
-        font-size: 16px;
-        font-weight: 700;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 14px;
+        padding: 14px 22px;
+        font-size: 15px; font-weight: 600;
         cursor: pointer;
-        background: rgba(255, 248, 240, 0.92);
-        color: #241710;
+        background: rgba(255, 255, 255, 0.06);
+        color: rgba(228, 228, 236, 0.9);
+        backdrop-filter: blur(8px);
+        transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1),
+                    border-color 180ms ease,
+                    box-shadow 180ms ease,
+                    background 180ms ease;
+      }
+      .choiceButton:hover {
+        transform: translateY(-2px);
+        border-color: rgba(9, 196, 217, 0.3);
+        background: rgba(9, 196, 217, 0.08);
+        box-shadow: 0 4px 20px rgba(9, 196, 217, 0.12);
+      }
+      .choiceButton:active {
+        transform: translateY(0);
       }
       .choiceButton.primary {
-        background: linear-gradient(135deg, #d76c43, #bf4d29);
-        color: #fff8f0;
+        border: none;
+        background: linear-gradient(135deg, #6b3cff 0%, #7c4dff 40%, #09c4d9 100%);
+        color: #fff;
+        box-shadow: 0 8px 28px rgba(124, 77, 255, 0.3), 0 0 0 1px rgba(124, 77, 255, 0.15);
+      }
+      .choiceButton.primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 36px rgba(124, 77, 255, 0.4), 0 0 0 1px rgba(124, 77, 255, 0.25);
+      }
+
+      /* Branding watermark */
+      .watermark {
+        position: absolute; bottom: 16px; left: 50%;
+        transform: translateX(-50%);
+        font-size: 11px; letter-spacing: 0.08em;
+        color: rgba(228, 228, 236, 0.18);
+        pointer-events: none; z-index: 1;
+      }
+
+      /* Progress indicator */
+      .sceneIndicator {
+        position: absolute; top: 16px; right: 20px;
+        padding: 6px 14px;
+        border-radius: 999px;
+        background: rgba(28, 28, 34, 0.7);
+        backdrop-filter: blur(8px);
+        color: rgba(228, 228, 236, 0.5);
+        font-size: 12px; font-weight: 600;
+        letter-spacing: 0.04em;
+        pointer-events: none; z-index: 1;
       }
     </style>
   </head>
@@ -334,10 +384,12 @@ function buildBaseHtml({
       <div id="overlay" class="overlay">
         <div class="overlayInner">
           <div id="overlayTitle" class="overlayTitle">开始播放</div>
-          <div id="overlayBody" class="overlayBody">点击开始。</div>
+          <div id="overlayBody" class="overlayBody"></div>
           <div id="buttonGroup" class="buttonGroup"></div>
         </div>
       </div>
+      <div id="sceneIndicator" class="sceneIndicator" hidden></div>
+      <div class="watermark">PencilStudio</div>
     </main>
     <script id="payload" type="application/json">${serializeForHtml(payload)}</script>
     <script>

@@ -1,19 +1,47 @@
 :root {
-  /* ComfyUI-inspired dark theme */
-  --color-background: #1a1a1a;
-  --color-surface: rgba(35, 35, 35, 0.95);
-  --color-surface-strong: #2a2a2a;
-  --color-line: rgba(255, 255, 255, 0.08);
-  --color-line-strong: rgba(255, 255, 255, 0.15);
-  --color-text: #e0e0e0;
-  --color-muted: #9e9e9e;
+  /* ComfyUI × LibLib-inspired dark theme */
+  --color-background: #111114;
+  --color-surface: rgba(28, 28, 34, 0.95);
+  --color-surface-strong: #22222a;
+  --color-surface-elevated: rgba(38, 38, 48, 0.98);
+  --color-line: rgba(255, 255, 255, 0.07);
+  --color-line-strong: rgba(255, 255, 255, 0.14);
+  --color-text: #e4e4ec;
+  --color-muted: #8a8a9a;
+
+  /* Dual-tone accent: purple + teal (inspired by LibLib ocean-blue) */
   --color-accent: #7c4dff;
   --color-accent-soft: rgba(124, 77, 255, 0.15);
+  --color-accent2: #09c4d9;
+  --color-accent2-soft: rgba(9, 196, 217, 0.12);
+
+  /* Gradient tokens */
+  --gradient-accent: linear-gradient(135deg, #6b3cff 0%, #7c4dff 40%, #09c4d9 100%);
+  --gradient-accent-subtle: linear-gradient(135deg, rgba(124, 77, 255, 0.18), rgba(9, 196, 217, 0.10));
+  --gradient-surface: linear-gradient(180deg, rgba(28, 28, 34, 0.98), rgba(18, 18, 22, 0.99));
+
+  /* Status colors */
   --color-success: #00c853;
-  --color-warning: #ffd600;
-  --color-danger: #ff5252;
-  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.4);
-  --shadow-card: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --color-warning: #ffc400;
+  --color-danger: #ff4d6a;
+
+  /* Glow & shadow tokens */
+  --glow-accent: 0 0 20px rgba(124, 77, 255, 0.25), 0 0 60px rgba(124, 77, 255, 0.08);
+  --glow-accent2: 0 0 20px rgba(9, 196, 217, 0.20), 0 0 60px rgba(9, 196, 217, 0.06);
+  --shadow-panel: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(124, 77, 255, 0.2);
+
+  /* Radius tokens */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+
+  /* Transition tokens */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --transition-fast: 140ms var(--ease-out);
+  --transition-med: 240ms var(--ease-out);
 }
 
 * {
@@ -31,8 +59,9 @@ body {
 body {
   color: var(--color-text);
   background:
-    radial-gradient(circle at center, rgba(40, 40, 40, 0.5), transparent 70%),
-    linear-gradient(180deg, #121212 0%, #1a1a1a 100%);
+    radial-gradient(ellipse 80% 60% at 20% 10%, rgba(124, 77, 255, 0.06), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 80%, rgba(9, 196, 217, 0.04), transparent),
+    linear-gradient(180deg, #0e0e12 0%, #111114 100%);
   font-family: var(--font-display), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -74,42 +103,120 @@ textarea {
   display: none;
 }
 
-/* ReactFlow dark theme overrides */
+/* ReactFlow dark theme overrides — ComfyUI-inspired */
 .react-flow__edge-path {
-  stroke: rgba(124, 77, 255, 0.6);
+  stroke: rgba(124, 77, 255, 0.5);
+  stroke-width: 2;
+  transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
+}
+
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke: rgba(9, 196, 217, 0.8);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 6px rgba(9, 196, 217, 0.35));
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
   stroke: var(--color-accent);
+  stroke-width: 2.5;
+  filter: drop-shadow(0 0 8px rgba(124, 77, 255, 0.4));
 }
 
+/* Animated flow dots on edges */
+.react-flow__edge-path {
+  stroke-dasharray: 5 5;
+  animation: flowDash 1s linear infinite;
+}
+
+@keyframes flowDash {
+  to { stroke-dashoffset: -10; }
+}
+
+.react-flow__edge.selected .react-flow__edge-path,
+.react-flow__edge:hover .react-flow__edge-path {
+  stroke-dasharray: none;
+  animation: none;
+}
+
+/* Connection line while dragging */
+.react-flow__connection-path {
+  stroke: var(--color-accent2);
+  stroke-width: 2;
+  stroke-dasharray: 6 4;
+  filter: drop-shadow(0 0 6px rgba(9, 196, 217, 0.4));
+}
+
+/* Node handles — glowing dots (top-to-bottom flow) */
+.react-flow__handle {
+  width: 10px;
+  height: 10px;
+  background: var(--color-accent);
+  border: 2px solid var(--color-surface);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.4);
+  box-shadow: 0 0 10px rgba(124, 77, 255, 0.5);
+}
+
+/* Target handle (top) — teal accent for "input" */
+.react-flow__handle-top {
+  background: var(--color-accent2);
+}
+
+.react-flow__handle-top:hover {
+  box-shadow: 0 0 10px rgba(9, 196, 217, 0.5);
+}
+
+/* Source handle (bottom) — purple accent for "output" */
+.react-flow__handle-bottom {
+  background: var(--color-accent);
+}
+
+/* Controls panel — glassmorphism */
 .react-flow__controls {
-  background: rgba(35, 35, 35, 0.95);
+  background: rgba(28, 28, 34, 0.85);
+  backdrop-filter: blur(16px);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
 }
 
 .react-flow__controls-button {
   background: transparent;
   border-bottom: 1px solid var(--color-line);
-  fill: var(--color-text);
+  fill: var(--color-muted);
+  transition: fill var(--transition-fast), background var(--transition-fast);
 }
 
 .react-flow__controls-button:hover {
-  background: rgba(60, 60, 60, 0.8);
+  background: rgba(124, 77, 255, 0.1);
+  fill: var(--color-text);
 }
 
+/* Minimap — refined */
 .react-flow__minimap {
-  background: rgba(30, 30, 30, 0.95);
+  background: rgba(18, 18, 22, 0.92);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--color-line);
-  border-radius: 8px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-panel);
 }
 
 .react-flow__minimap-mask {
-  fill: rgba(124, 77, 255, 0.2);
-  stroke: var(--color-accent);
+  fill: rgba(9, 196, 217, 0.12);
+  stroke: var(--color-accent2);
 }
 
 .react-flow__background {
   background: transparent;
+}
+
+/* Selection box */
+.react-flow__selection {
+  background: rgba(124, 77, 255, 0.08);
+  border: 1px solid rgba(124, 77, 255, 0.3);
+  border-radius: var(--radius-sm);
 }

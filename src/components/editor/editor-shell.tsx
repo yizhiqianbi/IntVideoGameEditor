@@ -4,6 +4,7 @@ import {
   applyEdgeChanges,
   applyNodeChanges,
   Background,
+  ConnectionMode,
   Controls,
   MarkerType,
   MiniMap,
@@ -686,6 +687,11 @@ export function EditorShell() {
   const [isGeneratingAgentScreenplay, setIsGeneratingAgentScreenplay] = useState(false);
   const [isGeneratingRandomAgentStory, setIsGeneratingRandomAgentStory] =
     useState(false);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    flowPosition: { x: number; y: number };
+  } | null>(null);
   const importInputRef = useRef<HTMLInputElement | null>(null);
   const assetRuntimeMapRef = useRef<Record<string, RuntimeAsset>>({});
   const generatingCharacterIdsRef = useRef(new Set<string>());
@@ -1653,6 +1659,90 @@ export function EditorShell() {
       tone: "success",
       message: "已创建过渡，并自动分配条件变量。",
     });
+  }
+
+  function handleConnectEnd(
+    _event: MouseEvent | TouchEvent,
+    connectionState: { fromHandle?: { nodeId?: string; type?: string } | null; toNode?: { id?: string } | null; isValid?: boolean | null },
+  ) {
+    // If xyflow already found a valid target handle, it handled via onConnect — skip.
+    if (connectionState.isValid) return;
+
+    const fromNodeId = connectionState.fromHandle?.nodeId;
+    const toNode = connectionState.toNode;
+    if (!fromNodeId || !toNode?.id || fromNodeId === toNode.id) return;
+
+    // Determine direction: if we dragged from a source handle (bottom), the
+    // dropped-on node is the target. If we dragged from a target handle (top),
+    // the dropped-on node becomes the source.
+    const draggedFromSource = connectionState.fromHandle?.type === "source";
+    const source = draggedFromSource ? fromNodeId : toNode.id;
+    const target = draggedFromSource ? toNode.id : fromNodeId;
+
+    handleConnect({
+      source,
+      target,
+      sourceHandle: null,
+      targetHandle: null,
+    });
+  }
+
+  function handleAddNodeAtPosition(position: { x: number; y: number }) {
+    const newNode = createVideoSceneNode(position, {
+      title: `片段 ${nodes.length + 1}`,
+    });
+    setNodes((currentNodes) => [...currentNodes, newNode]);
+    setSelectedNodeId(newNode.id);
+    setSelectedCharacterId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在画布位置新增视频节点。" });
+  }
+
+  function handleAddCharacterAtPosition(position: { x: number; y: number }) {
+    const nextIndex = characters.length + 1;
+    const newChar = createCharacterDefinition(nextIndex, {
+      canvasPosition: position,
+    });
+    setCharacters((prev) => [...prev, newChar]);
+    setSelectedCharacterId(newChar.id);
+    setSelectedNodeId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在画布位置新增角色卡。" });
+  }
+
+  function handleAddSceneAtPosition(position: { x: number; y: number }) {
+    const nextIndex = scenes.length + 1;
+    const newScene = createSceneDefinition(nextIndex, {
+      canvasPosition: position,
+    });
+    setScenes((prev) => [...prev, newScene]);
+    setSelectedSceneId(newScene.id);
+    setSelectedNodeId(null);
+    setSelectedCharacterId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在画布位置新增场景卡。" });
+  }
+
+  function handlePaneContextMenu(event: MouseEvent | React.MouseEvent) {
+    event.preventDefault();
+    if (!reactFlowRef.current) return;
+    const bounds = (event.target as HTMLElement).closest(".react-flow")?.getBoundingClientRect();
+    if (!bounds) return;
+    const flowPosition = reactFlowRef.current.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    setContextMenu({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+      flowPosition,
+    });
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
   }
 
   const handleNodeTitleChange = useCallback((nodeId: string, title: string) => {
@@ -3329,6 +3419,7 @@ export function EditorShell() {
             nodeTypes={nodeTypes}
             fitView
             fitViewOptions={{ padding: 0.24 }}
+            connectionMode={ConnectionMode.Loose}
             onInit={(instance) => {
               reactFlowRef.current = instance;
               requestAnimationFrame(() => {
@@ -3341,6 +3432,7 @@ export function EditorShell() {
             onNodesChange={handleNodesChange}
             onEdgesChange={handleEdgesChange}
             onConnect={handleConnect}
+            onConnectEnd={handleConnectEnd}
             onNodeDragStop={(_, node) => {
               if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
                 handleCharacterNodeDragStop(node.id, node.position);
@@ -3379,7 +3471,10 @@ export function EditorShell() {
               setSelectedCharacterId(null);
               setSelectedSceneId(null);
               setSelectedEdgeId(null);
+              closeContextMenu();
             }}
+            onPaneContextMenu={handlePaneContextMenu}
+            onMoveStart={closeContextMenu}
             defaultEdgeOptions={{
               type: "smoothstep",
               markerEnd: { type: MarkerType.ArrowClosed },
@@ -3399,6 +3494,59 @@ export function EditorShell() {
               }}
             />
             <Controls showInteractive={false} />
+
+            {contextMenu && (
+              <div
+                className={styles.canvasContextMenu}
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+              >
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddNodeAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>▶</span>
+                  添加视频节点
+                </button>
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddCharacterAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>👤</span>
+                  添加角色卡
+                </button>
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddSceneAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>🏞</span>
+                  添加场景卡
+                </button>
+                <div className={styles.contextMenuDivider} />
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    reactFlowRef.current?.fitView({ duration: 220, padding: 0.24 });
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>⊞</span>
+                  适配画布
+                </button>
+              </div>
+            )}
           </ReactFlow>
         </section>
 
@@ -4742,95 +4890,88 @@ export function EditorShell() {
           onClick={() => setIsExportModalOpen(false)}
         >
           <div
-            className={styles.modalCard}
+            className={styles.exportModalCard}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTitleBlock}>
-                <span className={styles.sectionTitle}>导出设置</span>
-                <h2 className={styles.modalTitle}>工程导入与导出</h2>
-                <p className={styles.hint}>
-                  把工程 JSON 和成片导出统一放在这里，不占主界面。
-                </p>
+            <div className={styles.exportModalHeader}>
+              <div>
+                <h2 className={styles.exportModalTitle}>导入 & 导出</h2>
+                <p className={styles.exportModalSubtitle}>管理工程文件和成片导出</p>
               </div>
               <button
                 type="button"
                 className={styles.modalClose}
                 onClick={() => setIsExportModalOpen(false)}
-                aria-label="关闭导出设置"
+                aria-label="关闭"
               >
-                关闭
+                ✕
               </button>
             </div>
 
-            <div className={styles.modalBody}>
-              <div className={styles.providerGrid}>
-                <article className={styles.providerCard}>
-                  <div className={styles.providerHead}>
-                    <div>
-                      <strong>工程 JSON</strong>
-                      <p className={styles.providerMeta}>当前编辑器工程</p>
-                    </div>
-                  </div>
-                  <p className={styles.hint}>
-                    导入或导出当前节点、过渡、角色和场景卡结构。
+            <div className={styles.exportGrid}>
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>📄</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>工程 JSON</h3>
+                  <p className={styles.exportCardDesc}>
+                    导入或导出节点、过渡、角色和场景卡结构
                   </p>
-                  <div className={styles.actionGrid}>
-                    <button
-                      type="button"
-                      className={styles.secondaryButton}
-                      onClick={() => importInputRef.current?.click()}
-                    >
-                      导入工程 JSON
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={handleExportProjectJson}
-                    >
-                      导出工程 JSON
-                    </button>
-                  </div>
-                </article>
+                </div>
+                <div className={styles.exportCardActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    导入
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={handleExportProjectJson}
+                  >
+                    导出
+                  </button>
+                </div>
+              </article>
 
-                <article className={styles.providerCard}>
-                  <div className={styles.providerHead}>
-                    <div>
-                      <strong>互动版</strong>
-                      <p className={styles.providerMeta}>纯视频 + 结尾选项</p>
-                    </div>
-                  </div>
-                  <p className={styles.hint}>
-                    播完一个片段后再出现选项，不带其他多余界面元素。
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>🎬</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>互动版 HTML</h3>
+                  <p className={styles.exportCardDesc}>
+                    播完片段后出现选项分支，可直接在浏览器打开体验
                   </p>
+                </div>
+                <div className={styles.exportCardActions}>
                   <button
                     type="button"
                     className={styles.primaryButton}
                     onClick={handleExportInteractivePackage}
                   >
-                    导出互动版 HTML
+                    导出互动版
                   </button>
-                </article>
+                </div>
+              </article>
 
-                <article className={styles.providerCard}>
-                  <div className={styles.providerHead}>
-                    <div>
-                      <strong>全分支版</strong>
-                      <p className={styles.providerMeta}>每条路径一个独立视频包</p>
-                    </div>
-                  </div>
-                  <p className={styles.hint}>
-                    遍历每一条 root 到 leaf 路径，每条路径单独导出成一个纯视频播放页。
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>🔀</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>全分支遍历版</h3>
+                  <p className={styles.exportCardDesc}>
+                    每条路径单独导出为独立的纯视频播放页
                   </p>
+                </div>
+                <div className={styles.exportCardActions}>
                   <button
                     type="button"
                     className={styles.primaryButton}
                     onClick={handleExportTraversalPackage}
                   >
-                    导出全分支 HTML
+                    导出全分支
                   </button>
-                </article>
-              </div>
+                </div>
+              </article>
             </div>
           </div>
         </div>
