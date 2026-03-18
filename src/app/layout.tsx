@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Mono, Space_Grotesk } from "next/font/google";
 import "@xyflow/react/dist/style.css";
 import "./globals.css";
+import AuthSessionProvider from "@/components/session-provider";
 
 const displayFont = Space_Grotesk({
   variable: "--font-display",
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${displayFont.variable} ${monoFont.variable}`}>
-        {children}
+        <AuthSessionProvider>{children}</AuthSessionProvider>
       </body>
     </html>
   );
