@@ -1662,22 +1662,46 @@ export function EditorShell() {
   }
 
   function handleConnectEnd(
-    _event: MouseEvent | TouchEvent,
+    event: MouseEvent | TouchEvent,
     connectionState: { fromHandle?: { nodeId?: string; type?: string } | null; toNode?: { id?: string } | null; isValid?: boolean | null },
   ) {
     // If xyflow already found a valid target handle, it handled via onConnect — skip.
     if (connectionState.isValid) return;
 
     const fromNodeId = connectionState.fromHandle?.nodeId;
-    const toNode = connectionState.toNode;
-    if (!fromNodeId || !toNode?.id || fromNodeId === toNode.id) return;
+    let toNodeId = connectionState.toNode?.id;
+
+    // If xyflow didn't find a toNode (dropped on card body, not handle),
+    // manually find the node under the cursor.
+    if (!toNodeId && reactFlowRef.current) {
+      const clientPos = "changedTouches" in event
+        ? { x: (event as TouchEvent).changedTouches[0].clientX, y: (event as TouchEvent).changedTouches[0].clientY }
+        : { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY };
+      const flowPos = reactFlowRef.current.screenToFlowPosition(clientPos);
+      const nearbyNode = nodes.find((n) => {
+        if (n.id === fromNodeId) return false;
+        const w = n.measured?.width ?? n.width ?? 280;
+        const h = n.measured?.height ?? n.height ?? 200;
+        // Generous hit area — 40px padding around the node
+        const pad = 40;
+        return (
+          flowPos.x >= n.position.x - pad &&
+          flowPos.x <= n.position.x + w + pad &&
+          flowPos.y >= n.position.y - pad &&
+          flowPos.y <= n.position.y + h + pad
+        );
+      });
+      if (nearbyNode) toNodeId = nearbyNode.id;
+    }
+
+    if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) return;
 
     // Determine direction: if we dragged from a source handle (bottom), the
     // dropped-on node is the target. If we dragged from a target handle (top),
     // the dropped-on node becomes the source.
     const draggedFromSource = connectionState.fromHandle?.type === "source";
-    const source = draggedFromSource ? fromNodeId : toNode.id;
-    const target = draggedFromSource ? toNode.id : fromNodeId;
+    const source = draggedFromSource ? fromNodeId : toNodeId;
+    const target = draggedFromSource ? toNodeId : fromNodeId;
 
     handleConnect({
       source,
@@ -3420,6 +3444,7 @@ export function EditorShell() {
             fitView
             fitViewOptions={{ padding: 0.24 }}
             connectionMode={ConnectionMode.Loose}
+            connectionRadius={80}
             onInit={(instance) => {
               reactFlowRef.current = instance;
               requestAnimationFrame(() => {
