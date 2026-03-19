@@ -3432,8 +3432,49 @@ export function EditorShell() {
         </div>
 
         <section className={`${styles.panel} ${styles.canvasPanel}`}>
-          <div className={styles.canvasHeader}>
-            <h2 className={styles.canvasTitle}>Story Graph</h2>
+          {/* LibLib-style floating toolbar */}
+          <div className={styles.canvasToolbar}>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="添加视频节点"
+              onClick={handleAddNode}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="添加角色"
+              onClick={handleAddCharacter}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M3 16.5c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="添加场景"
+              onClick={handleAddScenePreset}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/><circle cx="6" cy="7" r="1.5" stroke="currentColor" strokeWidth="1"/><path d="M2 11l4-3 3 2 3-2.5L16 11" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
+            <div className={styles.toolbarDivider} />
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="适配画布"
+              onClick={() => reactFlowRef.current?.fitView({ duration: 220, padding: 0.24 })}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 6V3a1 1 0 011-1h3M12 2h3a1 1 0 011 1v3M16 12v3a1 1 0 01-1 1h-3M6 16H3a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="加载 Demo"
+              onClick={() => handleLoadDemoCase()}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5l4 4 8-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
           </div>
 
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
@@ -3509,7 +3550,7 @@ export function EditorShell() {
             selectionOnDrag
             proOptions={{ hideAttribution: true }}
           >
-            <Background gap={24} color="rgba(255, 255, 255, 0.08)" />
+            <Background gap={28} color="rgba(255, 255, 255, 0.04)" size={1} />
             <MiniMap
               pannable
               zoomable
