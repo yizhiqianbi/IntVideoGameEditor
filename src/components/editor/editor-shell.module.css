@@ -235,7 +235,9 @@
   border: 1px solid var(--color-line);
   background: rgba(28, 28, 36, 0.85);
   border-radius: var(--radius-md);
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  cursor: grab;
+  user-select: none;
 }
 
 .characterCard:hover,
@@ -243,8 +245,19 @@
 .providerCard:hover,
 .actionCard:hover,
 .assetCard:hover {
-  border-color: rgba(124, 77, 255, 0.15);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  border-color: rgba(124, 77, 255, 0.2);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
+}
+
+.characterCard:active,
+.providerSummaryCard:active,
+.providerCard:active,
+.actionCard:active,
+.assetCard:active {
+  cursor: grabbing;
+  transform: scale(0.98);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
 }
 
 .characterCardHeader,
@@ -288,17 +301,23 @@
 
 .characterIdentity {
   display: grid;
-  gap: 4px;
+  gap: 2px;
+  min-width: 0;
 }
 
 .characterName {
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .characterIdBadge {
   color: var(--color-accent);
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 11px;
+  font-weight: 600;
+  opacity: 0.7;
 }
 
 .field {

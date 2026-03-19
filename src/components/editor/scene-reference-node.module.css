@@ -1,22 +1,35 @@
 .node {
-  width: 240px;
-  border: 1px solid rgba(112, 214, 255, 0.18);
-  border-radius: 8px;
+  width: 220px;
+  border: 1px solid rgba(112, 214, 255, 0.1);
+  border-radius: 12px;
   overflow: hidden;
-  background: rgba(24, 34, 42, 0.96);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  background: rgba(20, 30, 38, 0.95);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  cursor: grab;
+}
+
+.node:hover {
+  border-color: rgba(112, 214, 255, 0.25);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(112, 214, 255, 0.1);
+  transform: translateY(-2px);
+}
+
+.node:active {
+  cursor: grabbing;
+  transform: scale(0.98);
 }
 
 .selected {
-  border-color: #70d6ff;
+  border-color: rgba(112, 214, 255, 0.5);
   box-shadow:
-    0 0 0 3px rgba(112, 214, 255, 0.18),
-    0 4px 16px rgba(0, 0, 0, 0.3);
+    0 0 0 2px rgba(112, 214, 255, 0.15),
+    0 6px 24px rgba(112, 214, 255, 0.1);
 }
 
 .media {
   position: relative;
-  background: rgba(11, 19, 25, 0.96);
+  background: rgba(10, 18, 24, 0.9);
 }
 
 .image {
@@ -27,60 +40,75 @@
   object-fit: cover;
 }
 
+.scenePlaceholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  background: linear-gradient(135deg, rgba(112, 214, 255, 0.04), rgba(20, 30, 38, 0.9));
+}
+
 .overlay {
   position: absolute;
   inset: auto 0 0 0;
   display: flex;
   justify-content: flex-end;
-  padding: 10px;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8));
+  padding: 8px;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.75));
 }
 
 .badge {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(17, 28, 37, 0.95);
-  color: #dff7ff;
-  font-size: 11px;
-  font-weight: 700;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  color: rgba(220, 240, 255, 0.7);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .body {
   display: grid;
-  gap: 8px;
-  padding: 12px 14px 14px;
+  gap: 4px;
+  padding: 10px 12px 12px;
 }
 
 .header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
 }
 
 .eyebrow {
-  color: rgba(210, 236, 244, 0.75);
-  font-size: 11px;
-  letter-spacing: 0.12em;
+  color: rgba(200, 230, 244, 0.4);
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
 }
 
 .id {
-  color: #70d6ff;
-  font-size: 11px;
-  font-weight: 700;
+  color: rgba(112, 214, 255, 0.6);
+  font-size: 10px;
+  font-weight: 600;
 }
 
 .name {
-  font-size: 18px;
+  font-size: 15px;
+  font-weight: 700;
   line-height: 1.2;
+  color: rgba(220, 240, 255, 0.9);
 }
 
 .description {
-  color: rgba(214, 228, 234, 0.78);
-  font-size: 12px;
-  line-height: 1.55;
+  color: rgba(200, 220, 234, 0.4);
+  font-size: 11px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
