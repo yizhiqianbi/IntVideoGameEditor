@@ -10,10 +10,12 @@ import {
   type ImageGenerationModel,
 } from "../../lib/image-generation";
 
-export const PROJECT_VERSION = 3;
+export const PROJECT_VERSION = 4;
 export const VIDEO_SCENE_NODE_TYPE = "videoScene";
 export const CHARACTER_REFERENCE_NODE_TYPE = "characterReference";
 export const SCENE_REFERENCE_NODE_TYPE = "sceneReference";
+export const VIDEO_SCENE_TARGET_HANDLE_ID = "video-scene-target";
+export const VIDEO_SCENE_SOURCE_HANDLE_ID = "video-scene-source";
 
 export type AssetKind = "video" | "image";
 
@@ -41,6 +43,7 @@ export type CharacterDefinition = {
   imageModel: ImageGenerationModel;
   referenceImageAssetRefs: AssetRef[];
   placeholderUrl?: string;
+  canvasPinned: boolean;
   canvasPosition: XYPosition;
 };
 
@@ -52,6 +55,7 @@ export type SceneDefinition = {
   imageModel: ImageGenerationModel;
   referenceImageAssetRefs: AssetRef[];
   placeholderUrl?: string;
+  canvasPinned: boolean;
   canvasPosition: XYPosition;
 };
 
@@ -347,12 +351,13 @@ function sanitizeCharacter(value: unknown, index = 1): CharacterDefinition {
       value.imageModel === "doubao-seedream-3-0-t2i-250415"
         ? value.imageModel
         : DEFAULT_CHARACTER_IMAGE_MODEL,
-    referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
-      ? value.referenceImageAssetRefs
-          .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
-          .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
-      : [],
-    placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
+      referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
+        ? value.referenceImageAssetRefs
+            .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
+            .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
+        : [],
+      placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
+      canvasPinned: typeof value.canvasPinned === "boolean" ? value.canvasPinned : false,
     canvasPosition: isPosition(value.canvasPosition)
       ? value.canvasPosition
       : { x: -320, y: 80 + Math.max(index - 1, 0) * 250 },
@@ -383,12 +388,13 @@ function sanitizeSceneDefinition(value: unknown, index = 1): SceneDefinition {
       value.imageModel === "doubao-seedream-3-0-t2i-250415"
         ? value.imageModel
         : DEFAULT_CHARACTER_IMAGE_MODEL,
-    referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
-      ? value.referenceImageAssetRefs
-          .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
-          .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
-      : [],
-    placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
+      referenceImageAssetRefs: Array.isArray(value.referenceImageAssetRefs)
+        ? value.referenceImageAssetRefs
+            .map((assetRef) => sanitizeAssetRef(assetRef, "image"))
+            .filter((assetRef): assetRef is AssetRef => Boolean(assetRef))
+        : [],
+      placeholderUrl: sanitizeString(value.placeholderUrl) || undefined,
+      canvasPinned: typeof value.canvasPinned === "boolean" ? value.canvasPinned : false,
     canvasPosition: isPosition(value.canvasPosition)
       ? value.canvasPosition
       : { x: -40, y: 80 + Math.max(index - 1, 0) * 250 },
@@ -614,6 +620,7 @@ export function createCharacterDefinition(
     imageModel: overrides?.imageModel ?? DEFAULT_CHARACTER_IMAGE_MODEL,
     referenceImageAssetRefs: overrides?.referenceImageAssetRefs ?? [],
     placeholderUrl: overrides?.placeholderUrl,
+    canvasPinned: overrides?.canvasPinned ?? false,
     canvasPosition: overrides?.canvasPosition ?? {
       x: -320,
       y: 80 + Math.max(index - 1, 0) * 250,
@@ -633,6 +640,7 @@ export function createSceneDefinition(
     imageModel: overrides?.imageModel ?? DEFAULT_CHARACTER_IMAGE_MODEL,
     referenceImageAssetRefs: overrides?.referenceImageAssetRefs ?? [],
     placeholderUrl: overrides?.placeholderUrl,
+    canvasPinned: overrides?.canvasPinned ?? false,
     canvasPosition: overrides?.canvasPosition ?? {
       x: -40,
       y: 80 + Math.max(index - 1, 0) * 250,
@@ -663,8 +671,8 @@ export function buildTransitionEdge({
     id: id ?? crypto.randomUUID(),
     source,
     target,
-    sourceHandle,
-    targetHandle,
+    sourceHandle: sourceHandle ?? VIDEO_SCENE_SOURCE_HANDLE_ID,
+    targetHandle: targetHandle ?? VIDEO_SCENE_TARGET_HANDLE_ID,
     type: "smoothstep",
     animated: animated ?? false,
     data: {
@@ -852,9 +860,9 @@ export function parseProject(value: unknown): EditorProject {
       ? value.version
       : undefined;
 
-  if (version !== 1 && version !== 2 && version !== PROJECT_VERSION) {
+  if (version !== 1 && version !== 2 && version !== 3 && version !== PROJECT_VERSION) {
     throw new Error(
-      `工程版本不匹配。当前支持版本 1、2 和 ${PROJECT_VERSION}。`,
+      `工程版本不匹配。当前支持版本 1、2、3 和 ${PROJECT_VERSION}。`,
     );
   }
 

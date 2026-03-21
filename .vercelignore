@@ -1,0 +1,10 @@
+.git
+.gitignore
+.claude
+.codex-merge-main-20260315
+.playwright-cli
+.data
+node_modules
+.next
+coverage
+*.log

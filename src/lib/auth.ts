@@ -2,6 +2,11 @@ import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { getLocalCachedUserByEmail } from "./local-auth-cache";
+
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -14,16 +19,37 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) return null;
 
-        const user = await prisma.user.findUnique({
-          where: { email: credentials.email },
-        });
+        const normalizedEmail = normalizeEmail(credentials.email);
 
-        if (!user) return null;
+        try {
+          const user = await prisma.user.findUnique({
+            where: { email: normalizedEmail },
+          });
 
-        const valid = await bcrypt.compare(credentials.password, user.password);
+          if (user) {
+            const valid = await bcrypt.compare(credentials.password, user.password);
+            if (!valid) return null;
+
+            return { id: user.id, email: user.email, name: user.name };
+          }
+        } catch {
+          // Fall back to the local auth cache for local development.
+        }
+
+        const localUser = await getLocalCachedUserByEmail(normalizedEmail);
+
+        if (!localUser) {
+          return null;
+        }
+
+        const valid = await bcrypt.compare(credentials.password, localUser.password);
         if (!valid) return null;
 
-        return { id: user.id, email: user.email, name: user.name };
+        return {
+          id: localUser.id,
+          email: localUser.email,
+          name: localUser.name,
+        };
       },
     }),
   ],

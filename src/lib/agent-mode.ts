@@ -259,6 +259,21 @@ type LocalScenePlan = {
   trunkSceneIds: string[];
 };
 
+const REFERENCE_LANE_CHARACTER_X = -520;
+const REFERENCE_LANE_SCENE_X = -180;
+const REFERENCE_LANE_START_Y = 84;
+const REFERENCE_LANE_GAP_Y = 244;
+
+function buildReferenceLanePosition(
+  type: "character" | "scene",
+  index: number,
+) {
+  return {
+    x: type === "character" ? REFERENCE_LANE_CHARACTER_X : REFERENCE_LANE_SCENE_X,
+    y: REFERENCE_LANE_START_Y + Math.max(index, 0) * REFERENCE_LANE_GAP_Y,
+  };
+}
+
 type UnknownRecord = Record<string, unknown>;
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -1593,10 +1608,8 @@ export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
     basePrompt: character.basePrompt,
     imageModel: character.imageModel,
     referenceImageAssetRefs: [],
-    canvasPosition: {
-      x: -340,
-      y: 80 + index * 250,
-    },
+    canvasPinned: true,
+    canvasPosition: buildReferenceLanePosition("character", index),
   }));
   const scenes: SceneDefinition[] = draft.scenePresets.map((scenePreset, index) =>
     createSceneDefinition(index + 1, {
@@ -1608,10 +1621,8 @@ export function applyAgentDraftToEditorGraph(draft: AgentDraft): {
       basePrompt: scenePreset.basePrompt,
       imageModel: scenePreset.imageModel,
       referenceImageAssetRefs: [],
-      canvasPosition: {
-        x: -40,
-        y: 80 + index * 250,
-      },
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition("scene", index),
     }),
   );
 

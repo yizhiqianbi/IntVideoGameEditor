@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "../login/auth.module.css";
+
+const LAST_ACCOUNT_STORAGE_KEY = "pencil-studio:last-account";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -13,6 +15,28 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      const rawValue = window.localStorage.getItem(LAST_ACCOUNT_STORAGE_KEY);
+
+      if (!rawValue) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawValue) as { email?: string; name?: string };
+
+      if (typeof parsed.email === "string") {
+        setEmail(parsed.email);
+      }
+
+      if (typeof parsed.name === "string") {
+        setName(parsed.name);
+      }
+    } catch {
+      window.localStorage.removeItem(LAST_ACCOUNT_STORAGE_KEY);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +71,14 @@ export default function RegisterPage() {
         setError("Account created but sign-in failed. Please try logging in.");
         return;
       }
+
+      window.localStorage.setItem(
+        LAST_ACCOUNT_STORAGE_KEY,
+        JSON.stringify({
+          email: email.trim().toLowerCase(),
+          name: name.trim(),
+        }),
+      );
 
       router.push("/pencil-studio-vid");
     } catch {

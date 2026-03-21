@@ -1,9 +1,12 @@
 "use client";
 
-import type { ChangeEvent } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import styles from "./video-scene-node.module.css";
-import type { EditorFlowNode } from "./project";
+import {
+  VIDEO_SCENE_SOURCE_HANDLE_ID,
+  VIDEO_SCENE_TARGET_HANDLE_ID,
+  type EditorFlowNode,
+} from "./project";
 
 function getStatusLabel(node: EditorFlowNode) {
   if (node.data.assetStatus === "generating") {
@@ -93,10 +96,6 @@ export function VideoSceneNode({
     data,
   } as EditorFlowNode);
 
-  function handleTitleChange(event: ChangeEvent<HTMLInputElement>) {
-    data.onTitleChange?.(id, event.target.value);
-  }
-
   return (
     <article
       className={[styles.node, selected ? styles.selected : ""]
@@ -104,11 +103,13 @@ export function VideoSceneNode({
         .join(" ")}
     >
       <Handle
+        id={VIDEO_SCENE_TARGET_HANDLE_ID}
         type="target"
         position={Position.Top}
         className={styles.handle}
       />
       <Handle
+        id={VIDEO_SCENE_SOURCE_HANDLE_ID}
         type="source"
         position={Position.Bottom}
         className={styles.handle}
@@ -117,12 +118,7 @@ export function VideoSceneNode({
       <header className={styles.header}>
         <div className={styles.titleBlock}>
           <span className={styles.eyebrow}>Video Scene</span>
-          <input
-            className={`nodrag nopan ${styles.titleInput}`}
-            value={data.title}
-            onChange={handleTitleChange}
-            placeholder="输入节点标题"
-          />
+          <h3 className={styles.title}>{data.title || "未命名节点"}</h3>
         </div>
         <span
           className={[

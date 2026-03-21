@@ -43,14 +43,15 @@
   text-transform: uppercase;
 }
 
-.titleInput {
-  width: 100%;
-  padding: 0;
-  background: transparent;
+.title {
+  margin: 0;
   color: var(--color-text);
   font-size: 18px;
   font-weight: 600;
   line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .status {

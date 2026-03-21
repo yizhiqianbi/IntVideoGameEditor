@@ -16,6 +16,7 @@
 # next.js
 /.next/
 /out/
+/.data/
 
 # production
 /build
@@ -44,3 +45,4 @@ next-env.d.ts
 /src/generated/prisma
 *.db
 *.db-journal
+.env*.local

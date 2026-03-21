@@ -642,9 +642,10 @@ export function buildInteractiveExportBundle(input: {
   characters: CharacterDefinition[];
 }): ExportBundle {
   const graph = buildExportGraph(input.nodes, input.edges, input.characters);
+  const fileBaseName = sanitizeFileNamePart(graph.title, "interactive-branching-export");
 
   return {
-    fileName: "interactive-branching-export.html",
+    fileName: `${fileBaseName}.html`,
     content: buildInteractiveHtml(graph),
     missingVideoCount: graph.missingVideoCount,
     playableSceneCount: graph.playableSceneCount,
@@ -664,7 +665,8 @@ export function buildTraversalExportBundles(input: {
   }
 
   return graph.paths.map((path, index) => {
-    const fileName = `branch-path-${String(index + 1).padStart(2, "0")}-${sanitizeFileNamePart(
+    const graphFileBase = sanitizeFileNamePart(graph.title, "interactive-story");
+    const fileName = `${graphFileBase}-${String(index + 1).padStart(2, "0")}-${sanitizeFileNamePart(
       path.title,
       `path-${index + 1}`,
     )}.html`;

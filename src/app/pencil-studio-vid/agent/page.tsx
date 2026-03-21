@@ -5,7 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { EditorShell } from "@/components/editor/editor-shell";
 
-export default function PencilStudioVidPage() {
+export default function PencilStudioVidAgentPage() {
   const { status } = useSession();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
@@ -34,5 +34,5 @@ export default function PencilStudioVidPage() {
     return null;
   }
 
-  return <EditorShell workspace="editor" />;
+  return <EditorShell workspace="agent" />;
 }

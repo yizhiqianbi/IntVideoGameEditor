@@ -25,6 +25,7 @@ import {
   type ChangeEvent,
 } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import {
   DEFAULT_PROVIDER_CREDENTIALS,
   DEFAULT_PROVIDER_PRIORITY,
@@ -55,12 +56,30 @@ import {
   buildTraversalExportBundles,
 } from "../../lib/export-packages";
 import {
+  collectProjectReferencedAssetIds,
+  deleteProjectTemplate,
+  getTemplatePreviewFallback,
+  listProjectTemplates,
+  loadProjectTemplate,
+  saveProjectTemplate,
+  updateProjectTemplate,
+  type ProjectTemplateSummary,
+  type TemplateMediaInput,
+} from "../../lib/project-templates";
+import {
   applyDemoVisuals,
   DEMO_AGENT_DRAFT,
   DEMO_AGENT_SCREENPLAY,
   DEMO_STORY_TEXT,
 } from "../../lib/demo-case";
 import { useResizer } from "./use-resizer";
+import {
+  consumePendingEditorSession,
+  getCachedEditorSession,
+  queuePendingEditorSession,
+  setCachedEditorSession,
+  type RuntimeAsset,
+} from "./editor-session";
 import styles from "./editor-shell.module.css";
 import {
   CharacterReferenceNode,
@@ -86,11 +105,14 @@ import {
   PROJECT_VERSION,
   serializeProject,
   validateTreeConnection,
+  VIDEO_SCENE_SOURCE_HANDLE_ID,
+  VIDEO_SCENE_TARGET_HANDLE_ID,
   type AssetKind,
   type AssetRef,
   type CharacterDefinition,
   type EditorFlowEdge,
   type EditorFlowNode,
+  type EditorProject,
   type ProjectSettings,
   type SceneDefinition,
   type SceneAction,
@@ -99,16 +121,21 @@ import {
 import { TrimPreview } from "./trim-preview";
 import { VideoSceneNode } from "./video-scene-node";
 
-type RuntimeAsset = {
-  file: File;
-  objectUrl: string;
-  kind: AssetKind;
-};
-
 type Notice = {
   tone: "success" | "error" | "info";
   message: string;
 };
+
+type TemplateDialogState =
+  | {
+      mode: "apply";
+      template: ProjectTemplateSummary;
+    }
+  | {
+      mode: "delete";
+      template: ProjectTemplateSummary;
+    }
+  | null;
 
 type CharacterCanvasNode = Node<
   CharacterReferenceNodeData,
@@ -121,6 +148,7 @@ type SceneCanvasNode = Node<
 >;
 
 type CanvasFlowNode = EditorFlowNode | CharacterCanvasNode | SceneCanvasNode;
+type HtmlExportMode = "inline" | "linked";
 
 const nodeTypes = {
   videoScene: VideoSceneNode,
@@ -195,6 +223,20 @@ const SCENE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <text x="480" y="536" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#D9EEF6">上传场景参考图</text>
 </svg>
 `)}`;
+const REFERENCE_LANE_CHARACTER_X = -520;
+const REFERENCE_LANE_SCENE_X = -180;
+const REFERENCE_LANE_START_Y = 84;
+const REFERENCE_LANE_GAP_Y = 244;
+
+function buildReferenceLanePosition(
+  type: "character" | "scene",
+  index: number,
+) {
+  return {
+    x: type === "character" ? REFERENCE_LANE_CHARACTER_X : REFERENCE_LANE_SCENE_X,
+    y: REFERENCE_LANE_START_Y + Math.max(index, 0) * REFERENCE_LANE_GAP_Y,
+  };
+}
 
 function getVideoErrorMessage(error: MediaError | null) {
   if (!error) {
@@ -270,6 +312,19 @@ function probeVideoPreview(objectUrl: string) {
 
 function formatNodePosition(node: EditorFlowNode) {
   return `${Math.round(node.position.x)}, ${Math.round(node.position.y)}`;
+}
+
+function formatTemplateUpdatedAt(value: string) {
+  try {
+    return new Intl.DateTimeFormat("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
 }
 
 function formatStatusLabel(node: EditorFlowNode) {
@@ -452,6 +507,64 @@ function buildSceneCanvasNode(
   };
 }
 
+function syncCharacterCanvasNodes(
+  currentNodes: CharacterCanvasNode[],
+  characters: CharacterDefinition[],
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+  selectedCharacterId: string | null,
+) {
+  const currentPositionMap = new Map(
+    currentNodes.map((node) => [node.data.characterId, node.position]),
+  );
+
+  return characters
+    .filter((character) => character.canvasPinned)
+    .map((character) => {
+      const nextNode = buildCharacterCanvasNode(
+        character,
+        getCharacterPreviewUrl(character, assetRuntimeMap),
+        selectedCharacterId === character.id,
+      );
+      const currentPosition = currentPositionMap.get(character.id);
+
+      return currentPosition
+        ? {
+            ...nextNode,
+            position: currentPosition,
+          }
+        : nextNode;
+    });
+}
+
+function syncSceneCanvasNodes(
+  currentNodes: SceneCanvasNode[],
+  scenes: SceneDefinition[],
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+  selectedSceneId: string | null,
+) {
+  const currentPositionMap = new Map(
+    currentNodes.map((node) => [node.data.sceneId, node.position]),
+  );
+
+  return scenes
+    .filter((scene) => scene.canvasPinned)
+    .map((scene) => {
+      const nextNode = buildSceneCanvasNode(
+        scene,
+        getScenePreviewUrl(scene, assetRuntimeMap),
+        selectedSceneId === scene.id,
+      );
+      const currentPosition = currentPositionMap.get(scene.id);
+
+      return currentPosition
+        ? {
+            ...nextNode,
+            position: currentPosition,
+          }
+        : nextNode;
+    });
+}
+
 function buildNodePrompt(
   node: EditorFlowNode,
   characters: CharacterDefinition[],
@@ -617,6 +730,27 @@ function readFileAsDataUrl(file: File) {
   });
 }
 
+function readBlobAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Blob 读取失败。"));
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Blob 读取失败。"));
+    };
+
+    reader.readAsDataURL(blob);
+  });
+}
+
 async function dataUrlToFile(dataUrl: string, fileName: string) {
   const response = await fetch(dataUrl);
   const blob = await response.blob();
@@ -626,37 +760,93 @@ async function dataUrlToFile(dataUrl: string, fileName: string) {
   });
 }
 
+async function fetchExportMediaBlob(sourceUrl: string) {
+  const response = await fetch("/api/export/media", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      url: sourceUrl,
+    }),
+  });
+
+  if (!response.ok) {
+    let message = "导出时读取远程媒体失败。";
+
+    try {
+      const result = (await response.json()) as { message?: string };
+      message = result.message ?? message;
+    } catch {
+      // Ignore JSON parse errors and keep the fallback message.
+    }
+
+    throw new Error(message);
+  }
+
+  return response.blob();
+}
+
 function downloadBlobFile(blob: Blob, fileName: string) {
   const objectUrl = URL.createObjectURL(blob);
   const link = document.createElement("a");
 
   link.href = objectUrl;
   link.download = fileName;
+  document.body.append(link);
   link.click();
-  URL.revokeObjectURL(objectUrl);
+  window.setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+    link.remove();
+  }, 1200);
 }
 
-export function EditorShell() {
-  const [nodes, setNodes] = useState<EditorFlowNode[]>(() => [
-    createVideoSceneNode(
-      { x: 80, y: 120 },
-      {
-        title: "开场镜头",
-      },
-    ),
-  ]);
-  const [edges, setEdges] = useState<EditorFlowEdge[]>([]);
-  const [characters, setCharacters] = useState<CharacterDefinition[]>([]);
-  const [scenes, setScenes] = useState<SceneDefinition[]>([]);
-  const [settings, setSettings] = useState<ProjectSettings>({
-    providerPriority: normalizeProviderPriority(DEFAULT_PROVIDER_PRIORITY),
+export function EditorShell({
+  workspace = "editor",
+}: {
+  workspace?: "editor" | "agent";
+}) {
+  const router = useRouter();
+  const [initialSession] = useState(() => {
+    return consumePendingEditorSession() ?? getCachedEditorSession();
   });
+  const [nodes, setNodes] = useState<EditorFlowNode[]>(
+    () =>
+      initialSession?.nodes ?? [
+        createVideoSceneNode(
+          { x: 80, y: 120 },
+          {
+            title: "开场镜头",
+          },
+        ),
+      ],
+  );
+  const [edges, setEdges] = useState<EditorFlowEdge[]>(() => initialSession?.edges ?? []);
+  const [characters, setCharacters] = useState<CharacterDefinition[]>(
+    () => initialSession?.characters ?? [],
+  );
+  const [scenes, setScenes] = useState<SceneDefinition[]>(
+    () => initialSession?.scenes ?? [],
+  );
+  const [settings, setSettings] = useState<ProjectSettings>(
+    () =>
+      initialSession?.settings ?? {
+        providerPriority: normalizeProviderPriority(DEFAULT_PROVIDER_PRIORITY),
+      },
+  );
   const [providerCredentials, setProviderCredentials] =
-    useState<ProviderCredentialState>(DEFAULT_LOCAL_PROVIDER_CREDENTIALS);
+    useState<ProviderCredentialState>(
+      () => initialSession?.providerCredentials ?? DEFAULT_LOCAL_PROVIDER_CREDENTIALS,
+    );
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
-  const [isAssetLibraryOpen, setIsAssetLibraryOpen] = useState(false);
-  const [isAgentModeOpen, setIsAgentModeOpen] = useState(false);
+  const [isResourceDrawerOpen, setIsResourceDrawerOpen] = useState(false);
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
+  const [leftDrawerTab, setLeftDrawerTab] = useState<"characters" | "scenes" | "assets">(
+    "characters",
+  );
+  const [isAdvancedInspectorOpen, setIsAdvancedInspectorOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
@@ -667,22 +857,48 @@ export function EditorShell() {
   const [sceneCanvasNodes, setSceneCanvasNodes] = useState<SceneCanvasNode[]>([]);
   const [assetRuntimeMap, setAssetRuntimeMap] = useState<
     Record<string, RuntimeAsset>
-  >({});
+  >(() => initialSession?.assetRuntimeMap ?? {});
   const [notice, setNotice] = useState<Notice | null>(null);
+  const [templateRecords, setTemplateRecords] = useState<ProjectTemplateSummary[]>([]);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
+    () => initialSession?.activeTemplateId ?? null,
+  );
+  const [templateSaveName, setTemplateSaveName] = useState(
+    () => initialSession?.templateSaveName ?? "",
+  );
+  const [templateSaveDescription, setTemplateSaveDescription] = useState(
+    () => initialSession?.templateSaveDescription ?? "",
+  );
+  const [templateDialogState, setTemplateDialogState] = useState<TemplateDialogState>(null);
+  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
+  const [renamingTemplateName, setRenamingTemplateName] = useState("");
+  const [renamingTemplateDescription, setRenamingTemplateDescription] = useState("");
   const [generatingCharacterIds, setGeneratingCharacterIds] = useState<string[]>(
     [],
   );
-  const [agentStoryText, setAgentStoryText] = useState("");
-  const [agentFeedbackText, setAgentFeedbackText] = useState("");
-  const [agentImageUrl, setAgentImageUrl] = useState("");
+  const [agentStoryText, setAgentStoryText] = useState(
+    () => initialSession?.agentStoryText ?? "",
+  );
+  const [agentFeedbackText, setAgentFeedbackText] = useState(
+    () => initialSession?.agentFeedbackText ?? "",
+  );
+  const [agentImageUrl, setAgentImageUrl] = useState(
+    () => initialSession?.agentImageUrl ?? "",
+  );
   const [agentApiKey, setAgentApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(AGENT_API_KEY_STORAGE_KEY) ?? "";
     }
     return "";
   });
-  const [agentDraft, setAgentDraft] = useState<AgentDraft | null>(null);
-  const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(null);
+  const [agentDraft, setAgentDraft] = useState<AgentDraft | null>(
+    () => initialSession?.agentDraft ?? null,
+  );
+  const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(
+    () => initialSession?.agentScreenplay ?? null,
+  );
   const [isGeneratingAgentDraft, setIsGeneratingAgentDraft] = useState(false);
   const [isGeneratingAgentScreenplay, setIsGeneratingAgentScreenplay] = useState(false);
   const [isGeneratingRandomAgentStory, setIsGeneratingRandomAgentStory] =
@@ -703,7 +919,7 @@ export function EditorShell() {
   const reactFlowRef =
     useRef<ReactFlowInstance<CanvasFlowNode, EditorFlowEdge> | null>(null);
 
-  const sidebarResizer = useResizer(360, 240, 600, 'right');
+  const sidebarResizer = useResizer(280, 220, 420, 'right');
   const detailsResizer = useResizer(360, 240, 600, 'left');
 
   const selectedNode =
@@ -735,6 +951,16 @@ export function EditorShell() {
   const generatingCharacterIdSet = useMemo(
     () => new Set(generatingCharacterIds),
     [generatingCharacterIds],
+  );
+  const selectedNodeIncomingChoices = useMemo(
+    () =>
+      selectedNode
+        ? edges
+            .filter((edge) => edge.target === selectedNode.id)
+            .map((edge) => edge.data?.choiceLabel?.trim())
+            .filter((label): label is string => Boolean(label))
+        : [],
+    [edges, selectedNode],
   );
   const agentSceneGroups = useMemo(() => {
     if (!agentDraft) {
@@ -790,6 +1016,16 @@ export function EditorShell() {
           ),
       ),
     [nodes],
+  );
+
+  const openResourceDrawer = useCallback(
+    (tab: "characters" | "scenes" | "assets") => {
+      setLeftDrawerTab(tab);
+      setIsSettingsDrawerOpen(false);
+      setIsTemplateDrawerOpen(false);
+      setIsResourceDrawerOpen(true);
+    },
+    [],
   );
 
   function updateNode(
@@ -1206,36 +1442,62 @@ export function EditorShell() {
   }, [providerCredentials]);
 
   useEffect(() => {
-    setCharacterCanvasNodes(
-      characters.map((character) => {
-        return buildCharacterCanvasNode(
-          character,
-          getCharacterPreviewUrl(character, assetRuntimeMap),
-          selectedCharacterId === character.id,
-        );
-      }),
+    setCharacterCanvasNodes((currentNodes) =>
+      syncCharacterCanvasNodes(
+        currentNodes,
+        characters,
+        assetRuntimeMap,
+        selectedCharacterId,
+      ),
     );
   }, [assetRuntimeMap, characters, selectedCharacterId]);
 
   useEffect(() => {
-    setSceneCanvasNodes(
-      scenes.map((scene) => {
-        return buildSceneCanvasNode(
-          scene,
-          getScenePreviewUrl(scene, assetRuntimeMap),
-          selectedSceneId === scene.id,
-        );
-      }),
+    setSceneCanvasNodes((currentNodes) =>
+      syncSceneCanvasNodes(
+        currentNodes,
+        scenes,
+        assetRuntimeMap,
+        selectedSceneId,
+      ),
     );
   }, [assetRuntimeMap, scenes, selectedSceneId]);
 
   useEffect(() => {
-    return () => {
-      for (const runtimeAsset of Object.values(assetRuntimeMapRef.current)) {
-        URL.revokeObjectURL(runtimeAsset.objectUrl);
-      }
-    };
-  }, []);
+    setCachedEditorSession({
+      nodes,
+      edges,
+      characters,
+      scenes,
+      settings,
+      providerCredentials,
+      assetRuntimeMap,
+      agentStoryText,
+      agentFeedbackText,
+      agentImageUrl,
+      agentDraft,
+      agentScreenplay,
+      activeTemplateId,
+      templateSaveName,
+      templateSaveDescription,
+    });
+  }, [
+    activeTemplateId,
+    agentDraft,
+    agentFeedbackText,
+    agentImageUrl,
+    agentScreenplay,
+    agentStoryText,
+    assetRuntimeMap,
+    characters,
+    edges,
+    nodes,
+    providerCredentials,
+    scenes,
+    settings,
+    templateSaveDescription,
+    templateSaveName,
+  ]);
 
   useEffect(() => {
     const rawValue = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
@@ -1299,7 +1561,14 @@ export function EditorShell() {
   }, []);
 
   useEffect(() => {
-    if (!isExportModalOpen && !isProviderModalOpen && !isAssetLibraryOpen && !isAgentModeOpen) {
+    if (
+      !isExportModalOpen &&
+      !isProviderModalOpen &&
+      !isResourceDrawerOpen &&
+      !isSettingsDrawerOpen &&
+      !isTemplateDrawerOpen &&
+      !templateDialogState
+    ) {
       document.body.style.overflow = "";
       return;
     }
@@ -1308,8 +1577,10 @@ export function EditorShell() {
       if (event.key === "Escape") {
         setIsExportModalOpen(false);
         setIsProviderModalOpen(false);
-        setIsAssetLibraryOpen(false);
-        setIsAgentModeOpen(false);
+        setIsResourceDrawerOpen(false);
+        setIsSettingsDrawerOpen(false);
+        setIsTemplateDrawerOpen(false);
+        setTemplateDialogState(null);
       }
     }
 
@@ -1320,7 +1591,18 @@ export function EditorShell() {
       document.body.style.overflow = "";
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isAgentModeOpen, isAssetLibraryOpen, isExportModalOpen, isProviderModalOpen]);
+  }, [
+    isExportModalOpen,
+    isProviderModalOpen,
+    isResourceDrawerOpen,
+    isSettingsDrawerOpen,
+    isTemplateDrawerOpen,
+    templateDialogState,
+  ]);
+
+  useEffect(() => {
+    setIsAdvancedInspectorOpen(false);
+  }, [selectedCharacterId, selectedEdgeId, selectedNodeId, selectedSceneId]);
 
   useEffect(() => {
     if (!hasPollablePendingVideoTask) {
@@ -1497,6 +1779,9 @@ export function EditorShell() {
       setSelectedCharacterId(null);
       setSelectedSceneId(null);
       setSelectedEdgeId(null);
+      setActiveTemplateId(null);
+      setTemplateSaveName("");
+      setTemplateSaveDescription("");
       setAgentStoryText(DEMO_STORY_TEXT);
       setAgentFeedbackText("");
       setAgentDraft(DEMO_AGENT_DRAFT);
@@ -1517,32 +1802,34 @@ export function EditorShell() {
   }
 
   function handleNodesChange(changes: NodeChange<CanvasFlowNode>[]) {
-    const sceneChanges: NodeChange<EditorFlowNode>[] = [];
+    const storyNodeChanges: NodeChange<EditorFlowNode>[] = [];
+    const characterChanges: NodeChange<CharacterCanvasNode>[] = [];
+    const sceneReferenceChanges: NodeChange<SceneCanvasNode>[] = [];
 
     for (const change of changes) {
       if (change.type === "add") {
-        sceneChanges.push(change as NodeChange<EditorFlowNode>);
+        storyNodeChanges.push(change as NodeChange<EditorFlowNode>);
         continue;
       }
 
       const characterId = parseCharacterIdFromNodeId(change.id);
 
       if (characterId) {
+        characterChanges.push(change as NodeChange<CharacterCanvasNode>);
         continue;
       }
 
       const sceneId = parseSceneIdFromNodeId(change.id);
 
       if (sceneId) {
+        sceneReferenceChanges.push(change as NodeChange<SceneCanvasNode>);
         continue;
       }
 
-      if (!characterId) {
-        sceneChanges.push(change as NodeChange<EditorFlowNode>);
-      }
+      storyNodeChanges.push(change as NodeChange<EditorFlowNode>);
     }
 
-    const removedIds = sceneChanges
+    const removedIds = storyNodeChanges
       .filter((change) => change.type === "remove")
       .map((change) => change.id);
 
@@ -1563,8 +1850,20 @@ export function EditorShell() {
       }
     }
 
-    if (sceneChanges.length > 0) {
-      setNodes((currentNodes) => applyNodeChanges(sceneChanges, currentNodes));
+    if (characterChanges.length > 0) {
+      setCharacterCanvasNodes((currentNodes) =>
+        applyNodeChanges(characterChanges, currentNodes),
+      );
+    }
+
+    if (sceneReferenceChanges.length > 0) {
+      setSceneCanvasNodes((currentNodes) =>
+        applyNodeChanges(sceneReferenceChanges, currentNodes),
+      );
+    }
+
+    if (storyNodeChanges.length > 0) {
+      setNodes((currentNodes) => applyNodeChanges(storyNodeChanges, currentNodes));
     }
   }
 
@@ -1575,12 +1874,23 @@ export function EditorShell() {
       return;
     }
 
+    const pinnedIndex = characters
+      .filter((character) => character.canvasPinned)
+      .findIndex((character) => character.id === characterId);
+    const lanePosition = buildReferenceLanePosition(
+      "character",
+      pinnedIndex >= 0 ? pinnedIndex : 0,
+    );
+
     setCharacters((currentCharacters) =>
       currentCharacters.map((character) =>
         character.id === characterId
           ? {
               ...character,
-              canvasPosition: position,
+              canvasPosition: {
+                x: lanePosition.x,
+                y: Math.max(REFERENCE_LANE_START_Y, position.y),
+              },
             }
           : character,
       ),
@@ -1594,12 +1904,23 @@ export function EditorShell() {
       return;
     }
 
+    const pinnedIndex = scenes
+      .filter((scene) => scene.canvasPinned)
+      .findIndex((scene) => scene.id === sceneId);
+    const lanePosition = buildReferenceLanePosition(
+      "scene",
+      pinnedIndex >= 0 ? pinnedIndex : 0,
+    );
+
     setScenes((currentScenes) =>
       currentScenes.map((scene) =>
         scene.id === sceneId
           ? {
               ...scene,
-              canvasPosition: position,
+              canvasPosition: {
+                x: lanePosition.x,
+                y: Math.max(REFERENCE_LANE_START_Y, position.y),
+              },
             }
           : scene,
       ),
@@ -1706,8 +2027,8 @@ export function EditorShell() {
     handleConnect({
       source,
       target,
-      sourceHandle: null,
-      targetHandle: null,
+      sourceHandle: VIDEO_SCENE_SOURCE_HANDLE_ID,
+      targetHandle: VIDEO_SCENE_TARGET_HANDLE_ID,
     });
   }
 
@@ -1723,30 +2044,38 @@ export function EditorShell() {
     setNotice({ tone: "success", message: "已在画布位置新增视频节点。" });
   }
 
-  function handleAddCharacterAtPosition(position: { x: number; y: number }) {
+  function handleAddCharacterAtPosition(_position: { x: number; y: number }) {
     const nextIndex = characters.length + 1;
     const newChar = createCharacterDefinition(nextIndex, {
-      canvasPosition: position,
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition(
+        "character",
+        characters.filter((character) => character.canvasPinned).length,
+      ),
     });
     setCharacters((prev) => [...prev, newChar]);
     setSelectedCharacterId(newChar.id);
     setSelectedNodeId(null);
     setSelectedSceneId(null);
     setSelectedEdgeId(null);
-    setNotice({ tone: "success", message: "已在画布位置新增角色卡。" });
+    setNotice({ tone: "success", message: "已在参考层新增角色卡。" });
   }
 
-  function handleAddSceneAtPosition(position: { x: number; y: number }) {
+  function handleAddSceneAtPosition(_position: { x: number; y: number }) {
     const nextIndex = scenes.length + 1;
     const newScene = createSceneDefinition(nextIndex, {
-      canvasPosition: position,
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition(
+        "scene",
+        scenes.filter((scene) => scene.canvasPinned).length,
+      ),
     });
     setScenes((prev) => [...prev, newScene]);
     setSelectedSceneId(newScene.id);
     setSelectedNodeId(null);
     setSelectedCharacterId(null);
     setSelectedEdgeId(null);
-    setNotice({ tone: "success", message: "已在画布位置新增场景卡。" });
+    setNotice({ tone: "success", message: "已在参考层新增场景卡。" });
   }
 
   function handlePaneContextMenu(event: MouseEvent | React.MouseEvent) {
@@ -1790,36 +2119,15 @@ export function EditorShell() {
     try {
       const rawText = await file.text();
       const project = parseProject(JSON.parse(rawText));
-      const nextNodes = hydrateProjectNodes(project);
       const hydratedEdges = hydrateProjectEdges(project);
-
-      cleanupAllAssets();
-
-      startTransition(() => {
-        setNodes(nextNodes);
-        setEdges(hydratedEdges.edges);
-        setCharacters(project.characters);
-        setScenes(project.scenes);
-        setSettings(project.settings);
-        setSelectedNodeId(null);
-        setSelectedCharacterId(null);
-        setSelectedSceneId(null);
-        setSelectedEdgeId(null);
-      });
-
-      setNotice({
-        tone: "success",
-        message:
+      applyProjectSnapshot(project, {}, {
+        activeTemplateId: null,
+        templateName: "",
+        templateDescription: "",
+        noticeMessage:
           hydratedEdges.skippedCount > 0 || hydratedEdges.normalizedConditionCount > 0
             ? `工程已导入。已跳过 ${hydratedEdges.skippedCount} 条不符合树结构的连线，补全 ${hydratedEdges.normalizedConditionCount} 个缺失的条件变量；所有本地图片和视频引用都需要重新绑定。`
             : "工程已导入。节点、角色和供应商顺序已恢复，所有本地图片和视频引用都需要重新绑定。",
-      });
-
-      requestAnimationFrame(() => {
-        reactFlowRef.current?.fitView({
-          duration: 240,
-          padding: 0.24,
-        });
       });
     } catch (error) {
       setNotice({
@@ -1845,10 +2153,11 @@ export function EditorShell() {
     });
   }
 
-  function handleExportInteractivePackage() {
+  async function handleExportInteractivePackage(mode: HtmlExportMode = "inline") {
     try {
+      const exportNodes = await prepareNodesForHtmlExport(mode);
       const bundle = buildInteractiveExportBundle({
-        nodes,
+        nodes: exportNodes,
         edges,
         characters,
       });
@@ -1856,27 +2165,42 @@ export function EditorShell() {
         type: "text/html;charset=utf-8",
       });
 
-      downloadBlobFile(blob, bundle.fileName);
+      downloadBlobFile(
+        blob,
+        bundle.fileName.replace(
+          /\.html$/i,
+          mode === "inline" ? "-local.html" : "-remote.html",
+        ),
+      );
       setNotice({
         tone: "success",
         message:
-          bundle.missingVideoCount > 0
-            ? `互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
-            : `互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`,
+          mode === "inline"
+            ? bundle.missingVideoCount > 0
+              ? `本地单文件互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
+              : `本地单文件互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`
+            : bundle.missingVideoCount > 0
+              ? `远程兼容互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
+              : `远程兼容互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`,
       });
     } catch (error) {
       setNotice({
         tone: "error",
         message:
-          error instanceof Error ? error.message : "导出互动版失败。",
+          error instanceof Error
+            ? error.message
+            : mode === "inline"
+              ? "导出本地单文件互动版失败。"
+              : "导出远程兼容互动版失败。",
       });
     }
   }
 
-  function handleExportTraversalPackage() {
+  async function handleExportTraversalPackage(mode: HtmlExportMode = "inline") {
     try {
+      const exportNodes = await prepareNodesForHtmlExport(mode);
       const bundles = buildTraversalExportBundles({
-        nodes,
+        nodes: exportNodes,
         edges,
         characters,
       });
@@ -1886,7 +2210,13 @@ export function EditorShell() {
         });
 
         window.setTimeout(() => {
-          downloadBlobFile(blob, bundle.fileName);
+          downloadBlobFile(
+            blob,
+            bundle.fileName.replace(
+              /\.html$/i,
+              mode === "inline" ? "-local.html" : "-remote.html",
+            ),
+          );
         }, index * 80);
       });
 
@@ -1906,15 +2236,23 @@ export function EditorShell() {
       setNotice({
         tone: "success",
         message:
-          totalMissingCount > 0
-            ? `已导出 ${bundles.length} 条路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
-            : `已导出 ${bundles.length} 条路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`,
+          mode === "inline"
+            ? totalMissingCount > 0
+              ? `已导出 ${bundles.length} 条本地单文件路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
+              : `已导出 ${bundles.length} 条本地单文件路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`
+            : totalMissingCount > 0
+              ? `已导出 ${bundles.length} 条远程兼容路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
+              : `已导出 ${bundles.length} 条远程兼容路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`,
       });
     } catch (error) {
       setNotice({
         tone: "error",
         message:
-          error instanceof Error ? error.message : "导出全分支遍历版失败。",
+          error instanceof Error
+            ? error.message
+            : mode === "inline"
+              ? "导出本地单文件全分支失败。"
+              : "导出远程兼容全分支失败。",
       });
     }
   }
@@ -2104,19 +2442,41 @@ export function EditorShell() {
     }
 
     const nextGraph = applyAgentDraftToEditorGraph(agentDraft);
+    const nextSessionSnapshot = {
+      nodes: nextGraph.nodes,
+      edges: nextGraph.edges,
+      characters: nextGraph.characters,
+      scenes: nextGraph.scenes,
+      settings,
+      providerCredentials,
+      assetRuntimeMap: {},
+      agentStoryText,
+      agentFeedbackText,
+      agentImageUrl,
+      agentDraft,
+      agentScreenplay,
+      activeTemplateId: null,
+      templateSaveName: "",
+      templateSaveDescription: "",
+    } as const;
 
     cleanupAllAssets();
+    setCachedEditorSession(nextSessionSnapshot);
+    queuePendingEditorSession(nextSessionSnapshot);
 
     startTransition(() => {
-      setNodes(nextGraph.nodes);
-      setEdges(nextGraph.edges);
-      setCharacters(nextGraph.characters);
-      setScenes(nextGraph.scenes);
+      setNodes(nextSessionSnapshot.nodes);
+      setEdges(nextSessionSnapshot.edges);
+      setCharacters(nextSessionSnapshot.characters);
+      setScenes(nextSessionSnapshot.scenes);
+      setAssetRuntimeMap(nextSessionSnapshot.assetRuntimeMap);
       setSelectedNodeId(null);
       setSelectedCharacterId(null);
       setSelectedSceneId(null);
       setSelectedEdgeId(null);
-      setIsAgentModeOpen(false);
+      setActiveTemplateId(nextSessionSnapshot.activeTemplateId);
+      setTemplateSaveName(nextSessionSnapshot.templateSaveName);
+      setTemplateSaveDescription(nextSessionSnapshot.templateSaveDescription);
     });
 
     setNotice({
@@ -2130,6 +2490,10 @@ export function EditorShell() {
         padding: 0.24,
       });
     });
+
+    if (workspace === "agent") {
+      router.push("/pencil-studio-vid");
+    }
   }
 
   function handleDeleteSelectedNode() {
@@ -2245,9 +2609,51 @@ export function EditorShell() {
     });
   }
 
+  function toggleCharacterCanvasPinned(characterId: string) {
+    setCharacters((currentCharacters) => {
+      const nextPinnedIndex = currentCharacters.filter(
+        (character) => character.canvasPinned && character.id !== characterId,
+      ).length;
+
+      return currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              canvasPinned: !character.canvasPinned,
+              canvasPosition: !character.canvasPinned
+                ? buildReferenceLanePosition("character", nextPinnedIndex)
+                : character.canvasPosition,
+            }
+          : character,
+      );
+    });
+  }
+
+  function toggleSceneCanvasPinned(sceneId: string) {
+    setScenes((currentScenes) => {
+      const nextPinnedIndex = currentScenes.filter(
+        (scene) => scene.canvasPinned && scene.id !== sceneId,
+      ).length;
+
+      return currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              canvasPinned: !scene.canvasPinned,
+              canvasPosition: !scene.canvasPinned
+                ? buildReferenceLanePosition("scene", nextPinnedIndex)
+                : scene.canvasPosition,
+            }
+          : scene,
+      );
+    });
+  }
+
   function handleAddCharacter() {
     const nextCharacter = createCharacterDefinition(characters.length + 1, {
       id: buildUniqueCharacterId(`character_${characters.length + 1}`, characters),
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition("character", characters.filter((character) => character.canvasPinned).length),
     });
 
     setCharacters((currentCharacters) => [...currentCharacters, nextCharacter]);
@@ -2588,6 +2994,8 @@ export function EditorShell() {
   function handleAddScenePreset() {
     const nextScene = createSceneDefinition(scenes.length + 1, {
       id: buildUniqueSceneId(`scene_ref_${scenes.length + 1}`, scenes),
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition("scene", scenes.filter((scene) => scene.canvasPinned).length),
     });
 
     setScenes((currentScenes) => [...currentScenes, nextScene]);
@@ -2901,7 +3309,7 @@ export function EditorShell() {
     ) {
       setNotice({
         tone: "error",
-        message: "图生视频至少需要一个角色参考图。请先在角色面板上传图片。",
+        message: "图生视频至少需要一个角色参考图。请先在资源库里为角色上传图片。",
       });
       return;
     }
@@ -3071,6 +3479,751 @@ export function EditorShell() {
     ? getScenePreviewUrl(selectedScene, assetRuntimeMap)
     : SCENE_PLACEHOLDER_SVG;
 
+  const activeTemplateSummary =
+    templateRecords.find((templateRecord) => templateRecord.id === activeTemplateId) ?? null;
+
+  const applyProjectSnapshot = useCallback(
+    (
+      project: EditorProject,
+      nextAssetRuntimeMap: Record<string, RuntimeAsset>,
+      options?: {
+        activeTemplateId?: string | null;
+        templateName?: string;
+        templateDescription?: string;
+        noticeMessage?: string;
+      },
+    ) => {
+      const nextNodes = hydrateProjectNodes(project).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          assetStatus: node.data.generatedVideoUrl
+            ? "generated"
+            : node.data.assetRef && nextAssetRuntimeMap[node.data.assetRef.assetId]
+              ? "ready"
+              : node.data.assetRef
+                ? "missing"
+                : node.data.assetStatus,
+        },
+      }));
+      const hydratedEdges = hydrateProjectEdges(project);
+
+      cleanupAllAssets();
+
+      startTransition(() => {
+        setNodes(nextNodes);
+        setEdges(hydratedEdges.edges);
+        setCharacters(project.characters);
+        setScenes(project.scenes);
+        setSettings(project.settings);
+        setAssetRuntimeMap(nextAssetRuntimeMap);
+        setSelectedNodeId(null);
+        setSelectedCharacterId(null);
+        setSelectedSceneId(null);
+        setSelectedEdgeId(null);
+        setActiveTemplateId(options?.activeTemplateId ?? null);
+        setTemplateSaveName(options?.templateName ?? "");
+        setTemplateSaveDescription(options?.templateDescription ?? "");
+      });
+
+      if (options?.noticeMessage) {
+        setNotice({
+          tone: "success",
+          message: options.noticeMessage,
+        });
+      }
+
+      requestAnimationFrame(() => {
+        reactFlowRef.current?.fitView({
+          duration: 240,
+          padding: 0.24,
+        });
+      });
+    },
+    [cleanupAllAssets],
+  );
+
+  const refreshTemplates = useCallback(async () => {
+    setIsLoadingTemplates(true);
+
+    try {
+      const nextTemplates = await listProjectTemplates();
+      setTemplateRecords(nextTemplates);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "读取模板库失败。",
+      });
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshTemplates();
+  }, [refreshTemplates]);
+
+  async function buildTemplatePreviewImage(
+    project: EditorProject,
+    mediaInputs: TemplateMediaInput[],
+  ) {
+    const runtimeImageMap: Record<string, string> = {};
+
+    for (const mediaEntry of mediaInputs) {
+      if (mediaEntry.kind !== "image") {
+        continue;
+      }
+
+      runtimeImageMap[mediaEntry.assetId] = await readBlobAsDataUrl(mediaEntry.blob);
+    }
+
+    return getTemplatePreviewFallback(project, runtimeImageMap);
+  }
+
+  async function resolveExportableMediaUrl(
+    sourceUrl?: string,
+    fallbackFile?: File,
+    options?: {
+      inlineRemote?: boolean;
+    },
+  ) {
+    if (fallbackFile) {
+      return readFileAsDataUrl(fallbackFile);
+    }
+
+    if (!sourceUrl || sourceUrl.trim().length === 0) {
+      return undefined;
+    }
+
+    if (sourceUrl.startsWith("data:")) {
+      return sourceUrl;
+    }
+
+    if (sourceUrl.startsWith("blob:")) {
+      const response = await fetch(sourceUrl);
+
+      if (!response.ok) {
+        throw new Error("导出时读取本地媒体失败。");
+      }
+
+      return readBlobAsDataUrl(await response.blob());
+    }
+
+    if (options?.inlineRemote) {
+      return readBlobAsDataUrl(await fetchExportMediaBlob(sourceUrl));
+    }
+
+    return sourceUrl;
+  }
+
+  async function buildCurrentTemplateSnapshot() {
+    const project = serializeProject(nodes, edges, characters, scenes, settings);
+    const normalizedNodes = await Promise.all(
+      project.nodes.map(async (node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generatedVideoUrl: await resolveExportableMediaUrl(
+            node.data.generatedVideoUrl,
+          ),
+          generatedCoverUrl: await resolveExportableMediaUrl(
+            node.data.generatedCoverUrl,
+          ),
+        },
+      })),
+    );
+    const normalizedProject: EditorProject = {
+      ...project,
+      nodes: normalizedNodes,
+    };
+    const referencedAssetIds = collectProjectReferencedAssetIds(normalizedProject);
+    const mediaInputs: TemplateMediaInput[] = [];
+
+    for (const assetId of referencedAssetIds) {
+      const runtimeAsset = assetRuntimeMap[assetId];
+
+      if (!runtimeAsset) {
+        continue;
+      }
+
+      mediaInputs.push({
+        assetId,
+        kind: runtimeAsset.kind,
+        fileName: runtimeAsset.file.name,
+        mimeType: runtimeAsset.file.type || undefined,
+        blob: runtimeAsset.file,
+      });
+    }
+    const previewImageUrl = await buildTemplatePreviewImage(
+      normalizedProject,
+      mediaInputs,
+    );
+
+    return {
+      project: normalizedProject,
+      referencedAssetIds,
+      mediaInputs,
+      previewImageUrl,
+    };
+  }
+
+  async function persistTemplate(mode: "create" | "update" | "rename") {
+    const trimmedName = templateSaveName.trim();
+
+    if (!trimmedName) {
+      setNotice({
+        tone: "error",
+        message: "先给模板起一个名字。",
+      });
+      return;
+    }
+
+    if (mode !== "create" && !activeTemplateId) {
+      setNotice({
+        tone: "error",
+        message: "当前没有可更新的模板。",
+      });
+      return;
+    }
+
+    setIsSavingTemplate(true);
+
+    try {
+      let savedRecord;
+
+      if (mode === "rename" && activeTemplateId) {
+        const loadedTemplate = await loadProjectTemplate(activeTemplateId);
+        savedRecord = await updateProjectTemplate(activeTemplateId, {
+          name: trimmedName,
+          description: templateSaveDescription.trim(),
+          previewImageUrl:
+            loadedTemplate.record.previewImageUrl,
+          project: loadedTemplate.record.project,
+          referencedAssetIds: loadedTemplate.record.referencedAssetIds,
+          media: loadedTemplate.media.map((mediaEntry) => ({
+            assetId: mediaEntry.assetId,
+            kind: mediaEntry.kind,
+            fileName: mediaEntry.fileName,
+            mimeType: mediaEntry.mimeType,
+            blob: mediaEntry.blob,
+          })),
+        });
+      } else {
+        const templateSnapshot = await buildCurrentTemplateSnapshot();
+        savedRecord =
+          mode === "update" && activeTemplateId
+            ? await updateProjectTemplate(activeTemplateId, {
+                name: trimmedName,
+                description: templateSaveDescription.trim(),
+                previewImageUrl: templateSnapshot.previewImageUrl,
+                project: templateSnapshot.project,
+                referencedAssetIds: templateSnapshot.referencedAssetIds,
+                media: templateSnapshot.mediaInputs,
+              })
+            : await saveProjectTemplate({
+                name: trimmedName,
+                description: templateSaveDescription.trim(),
+                previewImageUrl: templateSnapshot.previewImageUrl,
+                project: templateSnapshot.project,
+                referencedAssetIds: templateSnapshot.referencedAssetIds,
+                media: templateSnapshot.mediaInputs,
+              });
+      }
+
+      setActiveTemplateId(savedRecord.id);
+      setTemplateSaveName(savedRecord.name);
+      setTemplateSaveDescription(savedRecord.description);
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message:
+          mode === "update"
+            ? "当前模板已更新。"
+            : mode === "rename"
+              ? "模板名称已更新。"
+              : "已保存为新模板。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "保存模板失败。",
+      });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  }
+
+  async function handleApplyTemplate(templateId: string) {
+    try {
+      const loadedTemplate = await loadProjectTemplate(templateId);
+      const nextAssetRuntimeMap: Record<string, RuntimeAsset> = {};
+
+      for (const mediaEntry of loadedTemplate.media) {
+        const file = new File([mediaEntry.blob], mediaEntry.fileName, {
+          type: mediaEntry.mimeType || mediaEntry.blob.type || undefined,
+        });
+
+        nextAssetRuntimeMap[mediaEntry.assetId] = {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: mediaEntry.kind,
+        };
+      }
+
+      applyProjectSnapshot(loadedTemplate.record.project, nextAssetRuntimeMap, {
+        activeTemplateId: loadedTemplate.record.id,
+        templateName: loadedTemplate.record.name,
+        templateDescription: loadedTemplate.record.description,
+        noticeMessage: `模板「${loadedTemplate.record.name}」已加载。`,
+      });
+      setTemplateDialogState(null);
+      setIsTemplateDrawerOpen(false);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "加载模板失败。",
+      });
+    }
+  }
+
+  async function handleDeleteTemplate(templateId: string) {
+    try {
+      await deleteProjectTemplate(templateId);
+      if (activeTemplateId === templateId) {
+        setActiveTemplateId(null);
+        setTemplateSaveName("");
+        setTemplateSaveDescription("");
+      }
+      setTemplateDialogState(null);
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message: "模板已删除。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "删除模板失败。",
+      });
+    }
+  }
+
+  function startRenamingTemplate(templateRecord: ProjectTemplateSummary) {
+    setRenamingTemplateId(templateRecord.id);
+    setRenamingTemplateName(templateRecord.name);
+    setRenamingTemplateDescription(templateRecord.description);
+  }
+
+  async function submitTemplateRename(templateId: string) {
+    const trimmedName = renamingTemplateName.trim();
+
+    if (!trimmedName) {
+      setNotice({
+        tone: "error",
+        message: "模板名称不能为空。",
+      });
+      return;
+    }
+
+    try {
+      const loadedTemplate = await loadProjectTemplate(templateId);
+      await updateProjectTemplate(templateId, {
+        name: trimmedName,
+        description: renamingTemplateDescription.trim(),
+        previewImageUrl: loadedTemplate.record.previewImageUrl,
+        project: loadedTemplate.record.project,
+        referencedAssetIds: loadedTemplate.record.referencedAssetIds,
+        media: loadedTemplate.media.map((mediaEntry) => ({
+          assetId: mediaEntry.assetId,
+          kind: mediaEntry.kind,
+          fileName: mediaEntry.fileName,
+          mimeType: mediaEntry.mimeType,
+          blob: mediaEntry.blob,
+        })),
+      });
+      if (activeTemplateId === templateId) {
+        setTemplateSaveName(trimmedName);
+        setTemplateSaveDescription(renamingTemplateDescription.trim());
+      }
+      setRenamingTemplateId(null);
+      setRenamingTemplateName("");
+      setRenamingTemplateDescription("");
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message: "模板名称已更新。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "重命名模板失败。",
+      });
+    }
+  }
+
+  async function prepareNodesForHtmlExport(mode: HtmlExportMode = "inline") {
+    return Promise.all(
+      nodes.map(async (node) => {
+        const localRuntimeAsset = node.data.assetRef
+          ? assetRuntimeMap[node.data.assetRef.assetId]
+          : undefined;
+        const resolvedVideoUrl = node.data.generatedVideoUrl
+          ? await resolveExportableMediaUrl(node.data.generatedVideoUrl, undefined, {
+              inlineRemote: mode === "inline",
+            })
+          : localRuntimeAsset?.kind === "video"
+            ? await resolveExportableMediaUrl(undefined, localRuntimeAsset.file)
+            : undefined;
+        const resolvedCoverUrl = await resolveExportableMediaUrl(
+          node.data.generatedCoverUrl,
+          undefined,
+          {
+            inlineRemote: mode === "inline",
+          },
+        );
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            generatedVideoUrl: resolvedVideoUrl,
+            generatedCoverUrl: resolvedCoverUrl,
+          },
+        };
+      }),
+    );
+  }
+
+  if (workspace === "agent") {
+    return (
+      <div className={styles.agentPage}>
+        <div className={styles.agentPageHeader}>
+          <div className={styles.agentPageTitleBlock}>
+            <span className={styles.sectionTitle}>Agent 工作台</span>
+            <h1 className={styles.agentPageTitle}>故事拆解与落图</h1>
+            <p className={styles.hint}>
+              在这里先完成故事策划，再把角色、场景、节点和过渡一次性落到编辑器里。
+            </p>
+          </div>
+          <div className={styles.agentPageActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => router.push("/pencil-studio-vid")}
+            >
+              返回编辑器
+            </button>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={handleApplyAgentDraft}
+              disabled={!agentDraft}
+            >
+              应用到画布
+            </button>
+          </div>
+        </div>
+
+        {notice ? (
+          <p
+            className={`${styles.notice} ${
+              notice.tone === "success"
+                ? styles.noticeSuccess
+                : notice.tone === "info"
+                  ? styles.noticeInfo
+                  : styles.noticeError
+            }`}
+          >
+            {notice.message}
+          </p>
+        ) : null}
+
+        <div className={styles.agentWorkbenchStandalone}>
+          <section className={styles.agentComposer}>
+            <div className={styles.field}>
+              <label className={styles.label}>故事模板</label>
+              <textarea
+                className={`${styles.textArea} ${styles.agentStoryInput}`}
+                value={agentStoryText}
+                onChange={(event) => setAgentStoryText(event.target.value)}
+                placeholder="输入完整故事、关键选择点、主要结局方向。"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>参考图片（可选）</label>
+              <input
+                type="text"
+                className={styles.textInput}
+                value={agentImageUrl}
+                onChange={(event) => setAgentImageUrl(event.target.value)}
+                placeholder="输入图片 URL，Agent 将根据图片内容生成故事"
+              />
+              {agentImageUrl ? (
+                <div className={styles.agentImagePreview}>
+                  <img
+                    src={agentImageUrl}
+                    alt="预览"
+                    className={styles.agentImagePreviewImg}
+                    onError={(event) => {
+                      (event.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>给 Agent 的意见</label>
+              <textarea
+                className={`${styles.compactTextArea} ${styles.agentFeedbackInput}`}
+                value={agentFeedbackText}
+                onChange={(event) => setAgentFeedbackText(event.target.value)}
+                placeholder="例如：把女主塑造成更冷静；增加一个失败分支。"
+              />
+            </div>
+
+            <div className={styles.agentActionRow}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleGenerateRandomAgentStory()}
+                disabled={
+                  isGeneratingRandomAgentStory ||
+                  isGeneratingAgentDraft ||
+                  isGeneratingAgentScreenplay
+                }
+              >
+                {isGeneratingRandomAgentStory ? "随机生成中..." : "随机剧本"}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleGenerateAgentDraft()}
+                disabled={isGeneratingAgentDraft || isGeneratingRandomAgentStory}
+              >
+                {isGeneratingAgentDraft ? "生成中..." : "生成草案"}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => void handleGenerateAgentDraft()}
+                disabled={
+                  isGeneratingAgentDraft ||
+                  isGeneratingRandomAgentStory ||
+                  (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
+                }
+              >
+                根据意见重算
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => void handleGenerateAgentScreenplay()}
+                disabled={
+                  isGeneratingAgentScreenplay ||
+                  isGeneratingRandomAgentStory ||
+                  (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
+                }
+              >
+                {isGeneratingAgentScreenplay ? "剧本生成中..." : "生成剧本"}
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.agentPreviewPane}>
+            {agentDraft || agentScreenplay ? (
+              <>
+                {agentDraft ? (
+                  <div className={styles.agentSummaryCard}>
+                    <div>
+                      <h2 className={styles.modalTitle}>{agentDraft.storyTitle}</h2>
+                      <p className={styles.hint}>{agentDraft.summary}</p>
+                    </div>
+                    <div className={styles.agentStatGrid}>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.characters.length}</strong>
+                        <span>角色</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.scenePresets.length}</strong>
+                        <span>场景</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.branches.length}</strong>
+                        <span>分支</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.scenes.length}</strong>
+                        <span>镜头</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={styles.agentPreviewGrid}>
+                  <div className={styles.agentPreviewColumn}>
+                    {agentDraft ? (
+                      <>
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>角色预设</h3>
+                            <span className={styles.hint}>
+                              {agentDraft.characters.length} 个
+                            </span>
+                          </div>
+                          <div className={styles.agentCardList}>
+                            {agentDraft.characters.map((character) => (
+                              <div key={character.id} className={styles.agentListItem}>
+                                <div className={styles.agentListHead}>
+                                  <strong>{character.name}</strong>
+                                  <span className={styles.characterIdBadge}>
+                                    @{character.id}
+                                  </span>
+                                </div>
+                                <p className={styles.hint}>{character.bio}</p>
+                                <pre className={styles.agentPrompt}>
+                                  {character.appearancePrompt}
+                                </pre>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>场景预设</h3>
+                            <span className={styles.hint}>
+                              {agentDraft.scenePresets.length} 个
+                            </span>
+                          </div>
+                          <div className={styles.agentCardList}>
+                            {agentDraft.scenePresets.map((scenePreset) => (
+                              <div key={scenePreset.id} className={styles.agentListItem}>
+                                <div className={styles.agentListHead}>
+                                  <strong>{scenePreset.name}</strong>
+                                  <span className={styles.characterIdBadge}>
+                                    #{scenePreset.id}
+                                  </span>
+                                </div>
+                                <p className={styles.hint}>{scenePreset.description}</p>
+                                <pre className={styles.agentPrompt}>
+                                  {scenePreset.appearancePrompt}
+                                </pre>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+                      </>
+                    ) : null}
+                  </div>
+
+                  <div className={styles.agentPreviewColumn}>
+                    {agentDraft ? (
+                      <>
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>分支与结果</h3>
+                            <span className={styles.hint}>
+                              Root {agentRootSceneCount}
+                            </span>
+                          </div>
+                          <div className={styles.agentBranchGrid}>
+                            {agentDraft.branches.map((branch) => (
+                              <div key={branch.id} className={styles.agentListItem}>
+                                <div className={styles.agentListHead}>
+                                  <strong>{branch.name}</strong>
+                                  <span className={styles.providerBadge}>
+                                    {branch.tone}
+                                  </span>
+                                </div>
+                                <p className={styles.hint}>{branch.predictedOutcome}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>镜头草案</h3>
+                            <span className={styles.hint}>
+                              {agentDraft.transitions.length} 条连接
+                            </span>
+                          </div>
+                          <div className={styles.agentSceneGrid}>
+                            {agentSceneGroups.map((group) => (
+                              <div key={group.id} className={styles.agentSceneGroup}>
+                                <div className={styles.agentSceneGroupHead}>
+                                  <strong>{group.name}</strong>
+                                  <span className={styles.hint}>{group.tone}</span>
+                                </div>
+                                <p className={styles.hint}>{group.predictedOutcome}</p>
+                                <div className={styles.agentSceneGroupList}>
+                                  {group.scenes.map((scene) => (
+                                    <div key={scene.id} className={styles.agentListItem}>
+                                      <div className={styles.agentListHead}>
+                                        <strong>{scene.title}</strong>
+                                        <span className={styles.hint}>
+                                          {scene.durationSec} 秒
+                                        </span>
+                                      </div>
+                                      <p className={styles.hint}>{scene.summary}</p>
+                                      <pre className={styles.agentPrompt}>
+                                        {scene.videoPrompt}
+                                      </pre>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+                      </>
+                    ) : null}
+
+                    {agentScreenplay ? (
+                      <article className={styles.agentScriptCard}>
+                        <div className={styles.agentScriptMeta}>
+                          <h3 className={styles.sectionTitle}>剧本</h3>
+                          <strong>{agentScreenplay.title}</strong>
+                          <p className={styles.hint}>{agentScreenplay.logline}</p>
+                        </div>
+                        <div className={styles.agentScriptActions}>
+                          <button
+                            type="button"
+                            className={styles.secondaryButton}
+                            onClick={() => void handleCopyAgentScreenplay()}
+                          >
+                            复制剧本
+                          </button>
+                        </div>
+                        <pre className={styles.agentScriptText}>
+                          {agentScreenplay.script}
+                        </pre>
+                      </article>
+                    ) : null}
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyStateTitle}>先生成一个故事草案</p>
+                <p className={styles.hint}>
+                  Agent 会输出角色预设、场景预设、剧情节点、分支结果和剧本。
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={styles.page}>
       <div
@@ -3084,6 +4237,9 @@ export function EditorShell() {
           <section className={styles.hero}>
             <span className={styles.sectionTitle}>PencilStudio</span>
             <h1 className={styles.heroTitle}>PencilStudio-VideoGame</h1>
+            <p className={styles.heroBody}>
+              让创作变简单，先搭剧情树，再逐节点生成视频。
+            </p>
           </section>
 
           <section className={styles.section}>
@@ -3106,16 +4262,37 @@ export function EditorShell() {
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={handleLoadDemoCase}
+                onClick={() => openResourceDrawer("characters")}
               >
-                加载 Demo Case
+                资源库
               </button>
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => setIsAgentModeOpen(true)}
+                onClick={() => {
+                  setIsTemplateDrawerOpen(false);
+                  setIsSettingsDrawerOpen(true);
+                }}
               >
-                Agent 模式
+                模型配置
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => {
+                  setIsResourceDrawerOpen(false);
+                  setIsSettingsDrawerOpen(false);
+                  setIsTemplateDrawerOpen(true);
+                }}
+              >
+                模板
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => router.push("/pencil-studio-vid/agent")}
+              >
+                Agent 工作台
               </button>
               <input
                 ref={importInputRef}
@@ -3128,8 +4305,44 @@ export function EditorShell() {
           </section>
 
           <section className={styles.section}>
-            <div className={styles.inlineHeader}>
-              <h2 className={styles.sectionTitle}>角色面板</h2>
+            <div className={styles.compactSummaryGrid}>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("characters")}
+              >
+                <strong>{characters.length}</strong>
+                <span>角色资产</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("scenes")}
+              >
+                <strong>{scenes.length}</strong>
+                <span>场景资产</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("assets")}
+              >
+                <strong>{assetLibraryItems.length}</strong>
+                <span>图片 / 视频</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => setIsSettingsDrawerOpen(true)}
+              >
+                <strong>{configuredProviders.length}</strong>
+                <span>已配置引擎</span>
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.quickActions}>
               <button
                 type="button"
                 className={styles.ghostButton}
@@ -3137,130 +4350,6 @@ export function EditorShell() {
               >
                 新增角色
               </button>
-            </div>
-
-            <div className={styles.characterList}>
-              {characters.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <p className={styles.emptyStateTitle}>暂无角色</p>
-                </div>
-              ) : (
-                characters.map((character) => (
-                  <article key={character.id} className={styles.characterCard}>
-                    <div className={styles.characterCardHeader}>
-                      <div className={styles.characterIdentity}>
-                        <strong className={styles.characterName}>
-                          {character.name || character.id}
-                        </strong>
-                        <span className={styles.characterIdBadge}>
-                          @{character.id}
-                        </span>
-                      </div>
-                      <button
-                        type="button"
-                        className={styles.miniDangerButton}
-                        onClick={() => handleDeleteCharacter(character.id)}
-                      >
-                        删除
-                      </button>
-                    </div>
-
-                    <div className={styles.assetGroup}>
-                      <div className={styles.referenceStage}>
-                        <div className={styles.referenceHero}>
-                          <Image
-                            className={styles.referenceHeroImage}
-                            src={getCharacterPreviewUrl(character, assetRuntimeMap)}
-                            alt={character.name || character.id}
-                            width={720}
-                            height={720}
-                            unoptimized
-                          />
-                          <div className={styles.referenceOverlay}>
-                            <span className={styles.referenceBadge}>
-                              {character.referenceImageAssetRefs.length > 0
-                                ? `${character.referenceImageAssetRefs.length} 张参考图`
-                                : "角色参考图区"}
-                            </span>
-                            <label className={styles.inlineLinkButton}>
-                              上传参考图
-                              <input
-                                className={styles.hiddenInput}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(event) =>
-                                  void handleCharacterImageChange(character.id, event)
-                                }
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={styles.thumbnailGrid}>
-                        {character.referenceImageAssetRefs.map((assetRef) => (
-                          <div key={assetRef.assetId} className={styles.thumbnailCard}>
-                            {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
-                              <Image
-                                className={styles.thumbnail}
-                                src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
-                                alt={assetRef.fileName}
-                                width={240}
-                                height={240}
-                                unoptimized
-                              />
-                            ) : (
-                              <div className={styles.thumbnailMissing}>待重绑</div>
-                            )}
-                            <button
-                              type="button"
-                              className={styles.thumbnailDelete}
-                              onClick={() =>
-                                removeCharacterReferenceAsset(
-                                  character.id,
-                                  assetRef.assetId,
-                                )
-                              }
-                            >
-                              移除
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-
-                      <div className={styles.actionGrid}>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => {
-                            setSelectedCharacterId(character.id);
-                            setSelectedNodeId(null);
-                            setSelectedSceneId(null);
-                            setSelectedEdgeId(null);
-                          }}
-                        >
-                          编辑
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => void handleGenerateCharacterImage(character)}
-                          disabled={generatingCharacterIdSet.has(character.id)}
-                        >
-                          {generatingCharacterIdSet.has(character.id) ? "生成中..." : "生图"}
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <div className={styles.inlineHeader}>
-              <h2 className={styles.sectionTitle}>场景面板</h2>
               <button
                 type="button"
                 className={styles.ghostButton}
@@ -3268,137 +4357,13 @@ export function EditorShell() {
               >
                 新增场景
               </button>
-            </div>
-
-            <div className={styles.characterList}>
-              {scenes.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <p className={styles.emptyStateTitle}>暂无场景卡</p>
-                </div>
-              ) : (
-                scenes.map((scene) => (
-                  <article key={scene.id} className={styles.characterCard}>
-                    <div className={styles.characterCardHeader}>
-                      <div className={styles.characterIdentity}>
-                        <strong className={styles.characterName}>
-                          {scene.name || scene.id}
-                        </strong>
-                        <span className={styles.characterIdBadge}>#{scene.id}</span>
-                      </div>
-                      <button
-                        type="button"
-                        className={styles.miniDangerButton}
-                        onClick={() => handleDeleteScene(scene.id)}
-                      >
-                        删除
-                      </button>
-                    </div>
-
-                    <div className={styles.assetGroup}>
-                      <div className={styles.referenceStage}>
-                        <div className={styles.referenceHero}>
-                          <Image
-                            className={styles.referenceHeroImage}
-                            src={getScenePreviewUrl(scene, assetRuntimeMap)}
-                            alt={scene.name || scene.id}
-                            width={960}
-                            height={600}
-                            unoptimized
-                          />
-                          <div className={styles.referenceOverlay}>
-                            <span className={styles.referenceBadge}>
-                              {scene.referenceImageAssetRefs.length > 0
-                                ? `${scene.referenceImageAssetRefs.length} 张参考图`
-                                : "场景参考图区"}
-                            </span>
-                            <label className={styles.inlineLinkButton}>
-                              上传参考图
-                              <input
-                                className={styles.hiddenInput}
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={(event) =>
-                                  void handleSceneImageChange(scene.id, event)
-                                }
-                              />
-                            </label>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className={styles.actionGrid}>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => {
-                            setSelectedSceneId(scene.id);
-                            setSelectedCharacterId(null);
-                            setSelectedNodeId(null);
-                            setSelectedEdgeId(null);
-                          }}
-                        >
-                          编辑
-                        </button>
-                        <button
-                          type="button"
-                          className={styles.secondaryButton}
-                          onClick={() => void handleGenerateSceneImage(scene)}
-                        >
-                          生图
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                ))
-              )}
-            </div>
-          </section>
-
-          <section className={styles.section}>
-            <div className={styles.inlineHeader}>
-              <h2 className={styles.sectionTitle}>模型配置</h2>
               <button
                 type="button"
                 className={styles.ghostButton}
-                onClick={() => setIsProviderModalOpen(true)}
+                onClick={handleLoadDemoCase}
               >
-                视频 API 设置
+                加载 Demo Case
               </button>
-              <button
-                type="button"
-                className={styles.ghostButton}
-                onClick={() => setIsAssetLibraryOpen(true)}
-              >
-                资产库
-              </button>
-            </div>
-            <div className={styles.providerSummaryCard}>
-              <div className={styles.priorityRow}>
-                {settings.providerPriority.map((providerId, index) => (
-                  <span key={providerId} className={styles.priorityPill}>
-                    {index + 1}. {PROVIDER_DEFINITIONS[providerId].label}
-                  </span>
-                ))}
-              </div>
-              <div className={styles.providerStatusRow}>
-                {settings.providerPriority.map((providerId) => (
-                  <span
-                    key={providerId}
-                    className={`${styles.providerBadge} ${
-                      isCredentialConfigured(providerId, providerCredentials)
-                        ? styles.providerReady
-                        : styles.providerMissing
-                    }`}
-                  >
-                    {PROVIDER_DEFINITIONS[providerId].label}
-                    {" · "}
-                    {isCredentialConfigured(providerId, providerCredentials)
-                      ? "已配置"
-                      : "未配置"}
-                  </span>
-                ))}
-              </div>
             </div>
           </section>
 
@@ -3475,6 +4440,19 @@ export function EditorShell() {
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5l4 4 8-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
             </button>
+          </div>
+
+          <div className={styles.canvasLayerLegend}>
+            <div className={styles.layerLegendCard}>
+              <span className={styles.layerLegendEyebrow}>Reference Lane</span>
+              <strong>参考层</strong>
+              <p>只显示已钉住的角色卡和场景卡，固定贴在左侧。</p>
+            </div>
+            <div className={`${styles.layerLegendCard} ${styles.layerLegendCardAccent}`}>
+              <span className={styles.layerLegendEyebrow}>Story Graph</span>
+              <strong>主叙事层</strong>
+              <p>剧情节点和分支只在中轴区域自上而下生长。</p>
+            </div>
           </div>
 
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
@@ -3651,135 +4629,13 @@ export function EditorShell() {
                   />
                 </div>
 
-                <section className={styles.section}>
-                  <div className={styles.inlineHeader}>
-                    <h3 className={styles.sectionTitle}>动作脚本</h3>
-                    <button
-                      type="button"
-                      className={styles.ghostButton}
-                      onClick={() => handleAddAction(selectedNode.id)}
-                    >
-                      添加动作
-                    </button>
-                  </div>
-
-                  <div className={styles.actionList}>
-                    {selectedNode.data.actions.length === 0 ? (
-                      <div className={styles.emptyState}>
-                        <p className={styles.emptyStateTitle}>先写“@谁做什么”</p>
-                        <p className={styles.hint}>
-                          每一行动作都会进入提示词，供视频模型生成镜头。
-                        </p>
-                      </div>
-                    ) : (
-                      selectedNode.data.actions.map((action) => (
-                        <article key={action.id} className={styles.actionCard}>
-                          <div className={styles.actionCardHeader}>
-                            <span className={styles.actionHandle}>
-                              @
-                              {(
-                                (characterNameMap[action.characterId] ??
-                                  action.characterId) ||
-                                "未指定"
-                              )}
-                            </span>
-                            <button
-                              type="button"
-                              className={styles.miniDangerButton}
-                              onClick={() =>
-                                handleRemoveAction(selectedNode.id, action.id)
-                              }
-                            >
-                              移除
-                            </button>
-                          </div>
-
-                          <div className={styles.field}>
-                            <label className={styles.label}>角色</label>
-                            <select
-                              className={styles.selectInput}
-                              value={action.characterId}
-                              onChange={(event) =>
-                                handleActionChange(
-                                  selectedNode.id,
-                                  action.id,
-                                  "characterId",
-                                  event.target.value,
-                                )
-                              }
-                            >
-                              <option value="">未指定角色</option>
-                              {characters.map((character) => (
-                                <option key={character.id} value={character.id}>
-                                  {character.name} (@{character.id})
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          <div className={styles.field}>
-                            <label className={styles.label}>动作</label>
-                            <input
-                              className={styles.textInput}
-                              value={action.action}
-                              onChange={(event) =>
-                                handleActionChange(
-                                  selectedNode.id,
-                                  action.id,
-                                  "action",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="例如 推门走进房间"
-                            />
-                          </div>
-
-                          <div className={styles.field}>
-                            <label className={styles.label}>情绪 / 状态</label>
-                            <input
-                              className={styles.textInput}
-                              value={action.emotion}
-                              onChange={(event) =>
-                                handleActionChange(
-                                  selectedNode.id,
-                                  action.id,
-                                  "emotion",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="例如 紧张、克制"
-                            />
-                          </div>
-
-                          <div className={styles.field}>
-                            <label className={styles.label}>台词</label>
-                            <textarea
-                              className={styles.compactTextArea}
-                              value={action.dialogue}
-                              onChange={(event) =>
-                                handleActionChange(
-                                  selectedNode.id,
-                                  action.id,
-                                  "dialogue",
-                                  event.target.value,
-                                )
-                              }
-                              placeholder="可选，写角色说的话。"
-                            />
-                          </div>
-                        </article>
-                      ))
-                    )}
-                  </div>
-                </section>
-
                 <div className={styles.field}>
                   <label className={styles.label} htmlFor="node-notes">
-                    节点备注
+                    主 Prompt / 一句话描述
                   </label>
                   <textarea
                     id="node-notes"
-                    className={styles.textArea}
+                    className={styles.compactTextArea}
                     value={selectedNode.data.shotNotes}
                     onChange={(event) =>
                       updateNode(selectedNode.id, (node) => ({
@@ -3790,256 +4646,59 @@ export function EditorShell() {
                         },
                       }))
                     }
-                    placeholder="记录这个镜头的场景描述、摄影需求或氛围要求。"
+                    placeholder="先写清这个镜头要发生什么。"
                   />
                 </div>
 
-                <section className={styles.section}>
-                  <h3 className={styles.sectionTitle}>生成设置</h3>
+                {selectedNodeIncomingChoices.length > 0 ? (
                   <div className={styles.field}>
-                    <label className={styles.label}>生成引擎</label>
-                    <select
-                      className={styles.selectInput}
-                      value={selectedNode.data.generation.providerId}
-                      onChange={(event) =>
-                        handleGenerationConfigChange(
-                          selectedNode.id,
-                          "providerId",
-                          event.target.value as GenerationProviderSelection,
-                        )
-                      }
-                    >
-                      <option value="auto">按项目默认（项目优先级）</option>
-                      {settings.providerPriority.map((providerId) => (
-                        <option key={providerId} value={providerId}>
-                          {PROVIDER_DEFINITIONS[providerId].label}
-                        </option>
+                    <label className={styles.label}>进入当前节点的选项</label>
+                    <div className={styles.tagGrid}>
+                      {selectedNodeIncomingChoices.map((choiceLabel) => (
+                        <span key={choiceLabel} className={styles.tagChip}>
+                          {choiceLabel}
+                        </span>
                       ))}
-                    </select>
-                  </div>
-
-                  <div className={styles.gridTwo}>
-                    <div className={styles.field}>
-                      <label className={styles.label}>生成模式</label>
-                      <select
-                        className={styles.selectInput}
-                        value={selectedNode.data.generation.mode}
-                        onChange={(event) =>
-                          handleGenerationConfigChange(
-                            selectedNode.id,
-                            "mode",
-                            event.target.value,
-                          )
-                        }
-                      >
-                        <option value="image-to-video">参考图生成视频</option>
-                        <option value="text-to-video">纯提示词生成</option>
-                      </select>
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>模型</label>
-                      <input
-                        className={styles.textInput}
-                        value={selectedNode.data.generation.model}
-                        onChange={(event) =>
-                          handleGenerationConfigChange(
-                            selectedNode.id,
-                            "model",
-                            event.target.value,
-                          )
-                        }
-                        placeholder={
-                          selectedNode.data.generation.providerId === "auto"
-                            ? PROVIDER_DEFINITIONS[settings.providerPriority[0]].videoModel
-                            : PROVIDER_DEFINITIONS[selectedNode.data.generation.providerId]
-                                .videoModel
-                        }
-                      />
                     </div>
                   </div>
+                ) : null}
 
-                  <div className={styles.gridTwo}>
-                    <div className={styles.field}>
-                      <label className={styles.label}>画面比例</label>
-                      <select
-                        className={styles.selectInput}
-                        value={selectedNode.data.generation.aspectRatio}
-                        onChange={(event) =>
-                          handleGenerationConfigChange(
-                            selectedNode.id,
-                            "aspectRatio",
-                            event.target.value,
-                          )
-                        }
-                      >
-                        <option value="16:9">16:9</option>
-                        <option value="9:16">9:16</option>
-                        <option value="1:1">1:1</option>
-                      </select>
-                    </div>
-
-                    <div className={styles.field}>
-                      <label className={styles.label}>分辨率</label>
-                      <select
-                        className={styles.selectInput}
-                        value={selectedNode.data.generation.resolution}
-                        onChange={(event) =>
-                          handleGenerationConfigChange(
-                            selectedNode.id,
-                            "resolution",
-                            event.target.value,
-                          )
-                        }
-                      >
-                        <option value="720p">720p</option>
-                        <option value="1080p">1080p</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>时长（秒）</label>
-                    <input
-                      className={styles.textInput}
-                      type="number"
-                      min={3}
-                      max={12}
-                      value={selectedNode.data.generation.durationSec}
-                      onChange={(event) =>
-                        handleGenerationConfigChange(
-                          selectedNode.id,
-                          "durationSec",
-                          Number(event.target.value),
-                        )
-                      }
-                    />
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>参考角色</label>
-                    <div className={styles.tagGrid}>
-                      {characters.length === 0 ? (
-                        <p className={styles.hint}>
-                          先在左侧角色面板创建角色并上传参考图。
-                        </p>
-                      ) : (
-                        characters.map((character) => {
-                          const active =
-                            selectedNode.data.generation.referenceCharacterIds.includes(
-                              character.id,
-                            );
-
-                          return (
-                            <button
-                              key={character.id}
-                              type="button"
-                              className={`${styles.tagChip} ${
-                                active ? styles.tagChipActive : ""
-                              }`}
-                              onClick={() =>
-                                toggleReferenceCharacter(selectedNode.id, character.id)
-                              }
-                            >
-                              {character.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>参考场景</label>
-                    <div className={styles.tagGrid}>
-                      {scenes.length === 0 ? (
-                        <p className={styles.hint}>
-                          先在左侧场景面板创建场景卡并上传参考图。
-                        </p>
-                      ) : (
-                        scenes.map((scene) => {
-                          const active =
-                            selectedNode.data.generation.referenceSceneIds.includes(
-                              scene.id,
-                            );
-
-                          return (
-                            <button
-                              key={scene.id}
-                              type="button"
-                              className={`${styles.tagChip} ${
-                                active ? styles.tagChipActive : ""
-                              }`}
-                              onClick={() =>
-                                toggleReferenceScene(selectedNode.id, scene.id)
-                              }
-                            >
-                              {scene.name}
-                            </button>
-                          );
-                        })
-                      )}
-                    </div>
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>补充提示词</label>
-                    <textarea
-                      className={styles.compactTextArea}
-                      value={selectedNode.data.generation.promptOverride}
-                      onChange={(event) =>
-                        handleGenerationConfigChange(
-                          selectedNode.id,
-                          "promptOverride",
-                          event.target.value,
-                        )
-                      }
-                      placeholder="可选，补充风格、镜头语言、光影、运镜要求。"
-                    />
-                  </div>
-
-                  <div className={styles.assetCard}>
-                    <p className={styles.assetStatus}>最终提示词预览</p>
-                    <pre className={styles.promptPreview}>{selectedNodePrompt}</pre>
-                  </div>
-
-                  <div className={styles.assetCard}>
-                    <p
-                      className={`${styles.assetStatus} ${
-                        selectedNode.data.assetStatus === "generated"
-                          ? styles.assetReady
-                          : selectedNode.data.assetStatus === "generating"
-                            ? styles.assetMissing
-                            : selectedNode.data.assetStatus === "failed"
-                              ? styles.assetUnsupported
-                              : styles.assetEmpty
-                      }`}
-                    >
-                      {selectedNode.data.generationTask
-                        ? `任务状态：${selectedNode.data.generationTask.status}${
-                            selectedNode.data.generationTask.rawStatus
-                              ? ` / ${selectedNode.data.generationTask.rawStatus}`
-                              : ""
-                          }`
-                        : "还没有提交生成任务。"}
-                    </p>
-                    <p className={styles.assetMeta}>
-                      当前执行 provider：
-                      {selectedNode.data.generation.providerId === "auto"
-                        ? configuredProviders[0]
-                          ? PROVIDER_DEFINITIONS[configuredProviders[0]].label
-                          : "尚未配置 API"
-                        : PROVIDER_DEFINITIONS[selectedNode.data.generation.providerId].label}
-                    </p>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={() => void handleGenerateVideo(selectedNode.id)}
-                    >
-                      生成视频
-                    </button>
-                  </div>
-                </section>
+                <div className={styles.assetCard}>
+                  <p
+                    className={`${styles.assetStatus} ${
+                      selectedNode.data.assetStatus === "generated"
+                        ? styles.assetReady
+                        : selectedNode.data.assetStatus === "generating"
+                          ? styles.assetMissing
+                          : selectedNode.data.assetStatus === "failed"
+                            ? styles.assetUnsupported
+                            : styles.assetEmpty
+                    }`}
+                  >
+                    {selectedNode.data.generationTask
+                      ? `任务状态：${selectedNode.data.generationTask.status}${
+                          selectedNode.data.generationTask.rawStatus
+                            ? ` / ${selectedNode.data.generationTask.rawStatus}`
+                            : ""
+                        }`
+                      : "还没有提交生成任务。"}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    当前执行 provider：
+                    {selectedNode.data.generation.providerId === "auto"
+                      ? configuredProviders[0]
+                        ? PROVIDER_DEFINITIONS[configuredProviders[0]].label
+                        : "尚未配置 API"
+                      : PROVIDER_DEFINITIONS[selectedNode.data.generation.providerId].label}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateVideo(selectedNode.id)}
+                  >
+                    生成视频
+                  </button>
+                </div>
 
                 <div className={styles.assetCard}>
                   <p
@@ -4060,18 +4719,15 @@ export function EditorShell() {
                     {formatStatusLabel(selectedNode)}
                   </p>
                   <p className={styles.assetMeta}>
-                    本地素材：
-                    {selectedNode.data.assetRef?.fileName ?? "未绑定"}
+                    生成结果：
+                    {selectedNode.data.generatedVideoUrl ? "已生成，可预览" : "暂无"}
                   </p>
                   <p className={styles.assetMeta}>
-                    生成结果：
-                    {selectedNode.data.generatedVideoUrl
-                      ? "已生成，可预览"
-                      : "暂无"}
+                    本地素材：{selectedNode.data.assetRef?.fileName ?? "未绑定"}
                   </p>
-                  <div className={styles.actionGrid}>
+                  <div className={styles.secondaryActions}>
                     <label className={styles.secondaryButton}>
-                      绑定本地视频
+                      绑定已有视频
                       <input
                         className={styles.hiddenInput}
                         type="file"
@@ -4093,6 +4749,383 @@ export function EditorShell() {
                     >
                       清空本地视频
                     </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <section className={styles.section}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>动作脚本</h3>
+                        <button
+                          type="button"
+                          className={styles.ghostButton}
+                          onClick={() => handleAddAction(selectedNode.id)}
+                        >
+                          添加动作
+                        </button>
+                      </div>
+
+                      <div className={styles.actionList}>
+                        {selectedNode.data.actions.length === 0 ? (
+                          <div className={styles.emptyState}>
+                            <p className={styles.emptyStateTitle}>先写“@谁做什么”</p>
+                            <p className={styles.hint}>
+                              每一行动作都会进入提示词，供视频模型生成镜头。
+                            </p>
+                          </div>
+                        ) : (
+                          selectedNode.data.actions.map((action) => (
+                            <article key={action.id} className={styles.actionCard}>
+                              <div className={styles.actionCardHeader}>
+                                <span className={styles.actionHandle}>
+                                  @
+                                  {(
+                                    (characterNameMap[action.characterId] ??
+                                      action.characterId) ||
+                                    "未指定"
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={styles.miniDangerButton}
+                                  onClick={() =>
+                                    handleRemoveAction(selectedNode.id, action.id)
+                                  }
+                                >
+                                  移除
+                                </button>
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>角色</label>
+                                <select
+                                  className={styles.selectInput}
+                                  value={action.characterId}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "characterId",
+                                      event.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">未指定角色</option>
+                                  {characters.map((character) => (
+                                    <option key={character.id} value={character.id}>
+                                      {character.name} (@{character.id})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>动作</label>
+                                <input
+                                  className={styles.textInput}
+                                  value={action.action}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "action",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="例如 推门走进房间"
+                                />
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>情绪 / 状态</label>
+                                <input
+                                  className={styles.textInput}
+                                  value={action.emotion}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "emotion",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="例如 紧张、克制"
+                                />
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>台词</label>
+                                <textarea
+                                  className={styles.compactTextArea}
+                                  value={action.dialogue}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "dialogue",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="可选，写角色说的话。"
+                                />
+                              </div>
+                            </article>
+                          ))
+                        )}
+                      </div>
+                    </section>
+
+                    <section className={styles.section}>
+                      <h3 className={styles.sectionTitle}>生成设置</h3>
+                      <div className={styles.field}>
+                        <label className={styles.label}>生成引擎</label>
+                        <select
+                          className={styles.selectInput}
+                          value={selectedNode.data.generation.providerId}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "providerId",
+                              event.target.value as GenerationProviderSelection,
+                            )
+                          }
+                        >
+                          <option value="auto">按项目默认（项目优先级）</option>
+                          {settings.providerPriority.map((providerId) => (
+                            <option key={providerId} value={providerId}>
+                              {PROVIDER_DEFINITIONS[providerId].label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>生成模式</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.mode}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "mode",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="image-to-video">参考图生成视频</option>
+                            <option value="text-to-video">纯提示词生成</option>
+                          </select>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>模型</label>
+                          <input
+                            className={styles.textInput}
+                            value={selectedNode.data.generation.model}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "model",
+                                event.target.value,
+                              )
+                            }
+                            placeholder={
+                              selectedNode.data.generation.providerId === "auto"
+                                ? PROVIDER_DEFINITIONS[settings.providerPriority[0]].videoModel
+                                : PROVIDER_DEFINITIONS[
+                                    selectedNode.data.generation.providerId
+                                  ].videoModel
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>画面比例</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.aspectRatio}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "aspectRatio",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="16:9">16:9</option>
+                            <option value="9:16">9:16</option>
+                            <option value="1:1">1:1</option>
+                          </select>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>分辨率</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.resolution}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "resolution",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>时长（秒）</label>
+                        <input
+                          className={styles.textInput}
+                          type="number"
+                          min={3}
+                          max={12}
+                          value={selectedNode.data.generation.durationSec}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "durationSec",
+                              Number(event.target.value),
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>参考角色</label>
+                        <div className={styles.tagGrid}>
+                          {characters.length === 0 ? (
+                            <p className={styles.hint}>
+                              先在资源库中创建角色并上传参考图。
+                            </p>
+                          ) : (
+                            characters.map((character) => {
+                              const active =
+                                selectedNode.data.generation.referenceCharacterIds.includes(
+                                  character.id,
+                                );
+
+                              return (
+                                <button
+                                  key={character.id}
+                                  type="button"
+                                  className={`${styles.tagChip} ${
+                                    active ? styles.tagChipActive : ""
+                                  }`}
+                                  onClick={() =>
+                                    toggleReferenceCharacter(selectedNode.id, character.id)
+                                  }
+                                >
+                                  {character.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>参考场景</label>
+                        <div className={styles.tagGrid}>
+                          {scenes.length === 0 ? (
+                            <p className={styles.hint}>
+                              先在资源库中创建场景卡并上传参考图。
+                            </p>
+                          ) : (
+                            scenes.map((scene) => {
+                              const active =
+                                selectedNode.data.generation.referenceSceneIds.includes(
+                                  scene.id,
+                                );
+
+                              return (
+                                <button
+                                  key={scene.id}
+                                  type="button"
+                                  className={`${styles.tagChip} ${
+                                    active ? styles.tagChipActive : ""
+                                  }`}
+                                  onClick={() =>
+                                    toggleReferenceScene(selectedNode.id, scene.id)
+                                  }
+                                >
+                                  {scene.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>补充提示词</label>
+                        <textarea
+                          className={styles.compactTextArea}
+                          value={selectedNode.data.generation.promptOverride}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "promptOverride",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="可选，补充风格、镜头语言、光影、运镜要求。"
+                        />
+                      </div>
+
+                      <div className={styles.assetCard}>
+                        <p className={styles.assetStatus}>最终提示词预览</p>
+                        <pre className={styles.promptPreview}>{selectedNodePrompt}</pre>
+                      </div>
+                    </section>
+
+                    <section className={styles.section}>
+                      <h3 className={styles.sectionTitle}>时间裁剪</h3>
+                      <TrimPreview
+                        src={selectedNodePreviewUrl}
+                        poster={selectedNode.data.generatedCoverUrl}
+                        trim={selectedNode.data.trim}
+                        onTrimChange={(trim: TrimRange) =>
+                          updateNode(selectedNode.id, (node) => ({
+                            ...node,
+                            data: {
+                              ...node.data,
+                              trim,
+                            },
+                          }))
+                        }
+                      />
+                    </section>
+
+                    <div className={styles.metaList}>
+                      <div className={styles.metaRow}>
+                        <span>节点 ID</span>
+                        <code>{selectedNode.id}</code>
+                      </div>
+                      <div className={styles.metaRow}>
+                        <span>画布位置</span>
+                        <code>{formatNodePosition(selectedNode)}</code>
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       className={styles.dangerButton}
@@ -4100,37 +5133,8 @@ export function EditorShell() {
                     >
                       清空生成结果
                     </button>
-                  </div>
-                </div>
-
-                <section className={styles.section}>
-                  <h3 className={styles.sectionTitle}>时间裁剪</h3>
-                  <TrimPreview
-                    src={selectedNodePreviewUrl}
-                    poster={selectedNode.data.generatedCoverUrl}
-                    trim={selectedNode.data.trim}
-                    onTrimChange={(trim: TrimRange) =>
-                      updateNode(selectedNode.id, (node) => ({
-                        ...node,
-                        data: {
-                          ...node.data,
-                          trim,
-                        },
-                      }))
-                    }
-                  />
-                </section>
-
-                <div className={styles.metaList}>
-                  <div className={styles.metaRow}>
-                    <span>节点 ID</span>
-                    <code>{selectedNode.id}</code>
-                  </div>
-                  <div className={styles.metaRow}>
-                    <span>画布位置</span>
-                    <code>{formatNodePosition(selectedNode)}</code>
-                  </div>
-                </div>
+                  </>
+                ) : null}
 
                 <button
                   type="button"
@@ -4142,21 +5146,6 @@ export function EditorShell() {
               </>
             ) : selectedCharacter ? (
               <>
-                <div className={styles.field}>
-                  <label className={styles.label}>角色 ID</label>
-                  <input
-                    className={styles.textInput}
-                    value={selectedCharacter.id}
-                    onChange={(event) =>
-                      handleCharacterIdChange(
-                        selectedCharacter.id,
-                        event.target.value,
-                      )
-                    }
-                    placeholder="例如 hero_li"
-                  />
-                </div>
-
                 <div className={styles.field}>
                   <label className={styles.label}>角色名</label>
                   <input
@@ -4171,10 +5160,13 @@ export function EditorShell() {
                     }
                     placeholder="例如 李沐"
                   />
+                  <p className={styles.hint}>@{selectedCharacter.id}</p>
                 </div>
 
                 <div className={styles.assetCard}>
-                  <p className={styles.assetStatus}>画布里的角色参考卡</p>
+                  <p className={styles.assetStatus}>
+                    {selectedCharacter.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
+                  </p>
                   <div className={styles.referenceStage}>
                     <div className={styles.referenceHero}>
                       <Image
@@ -4212,7 +5204,7 @@ export function EditorShell() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>设定</label>
+                  <label className={styles.label}>简介</label>
                   <textarea
                     className={styles.compactTextArea}
                     value={selectedCharacter.bio}
@@ -4227,92 +5219,125 @@ export function EditorShell() {
                   />
                 </div>
 
-                <div className={styles.field}>
-                  <label className={styles.label}>补充</label>
-                  <textarea
-                    className={styles.compactTextArea}
-                    value={selectedCharacter.basePrompt}
-                    onChange={(event) =>
-                      handleCharacterFieldChange(
-                        selectedCharacter.id,
-                        "basePrompt",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="写镜头风格、表演偏好、禁忌项。"
-                  />
-                </div>
-
                 <div className={styles.gridTwo}>
-                  <div className={styles.field}>
-                    <label className={styles.label}>生图模型</label>
-                    <select
-                      className={styles.selectInput}
-                      value={selectedCharacter.imageModel}
-                      onChange={(event) =>
-                        handleCharacterImageModelChange(
-                          selectedCharacter.id,
-                          event.target.value as ImageGenerationModel,
-                        )
-                      }
-                    >
-                      {IMAGE_MODEL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>操作</label>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={() => void handleGenerateCharacterImage(selectedCharacter)}
-                      disabled={generatingCharacterIdSet.has(selectedCharacter.id)}
-                    >
-                      {generatingCharacterIdSet.has(selectedCharacter.id)
-                        ? "正在生图..."
-                        : "生成参考图"}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateCharacterImage(selectedCharacter)}
+                    disabled={generatingCharacterIdSet.has(selectedCharacter.id)}
+                  >
+                    {generatingCharacterIdSet.has(selectedCharacter.id)
+                      ? "正在生图..."
+                      : "生成参考图"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => toggleCharacterCanvasPinned(selectedCharacter.id)}
+                  >
+                    {selectedCharacter.canvasPinned ? "取消钉住" : "钉到画布"}
+                  </button>
                 </div>
 
-                <div className={styles.thumbnailGrid}>
-                  {selectedCharacter.referenceImageAssetRefs.length === 0 ? (
-                    <div className={styles.thumbnailMissing}>暂无参考图</div>
-                  ) : (
-                    selectedCharacter.referenceImageAssetRefs.map((assetRef) => (
-                      <div key={assetRef.assetId} className={styles.thumbnailCard}>
-                        {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
-                          <Image
-                            className={styles.thumbnail}
-                            src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
-                            alt={assetRef.fileName}
-                            width={240}
-                            height={240}
-                            unoptimized
-                          />
-                        ) : (
-                          <div className={styles.thumbnailMissing}>待重绑</div>
-                        )}
-                        <button
-                          type="button"
-                          className={styles.thumbnailDelete}
-                          onClick={() =>
-                            removeCharacterReferenceAsset(
-                              selectedCharacter.id,
-                              assetRef.assetId,
-                            )
-                          }
-                        >
-                          移除
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <div className={styles.field}>
+                      <label className={styles.label}>角色 ID</label>
+                      <input
+                        className={styles.textInput}
+                        value={selectedCharacter.id}
+                        onChange={(event) =>
+                          handleCharacterIdChange(
+                            selectedCharacter.id,
+                            event.target.value,
+                          )
+                        }
+                        placeholder="例如 hero_li"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>补充 Prompt</label>
+                      <textarea
+                        className={styles.compactTextArea}
+                        value={selectedCharacter.basePrompt}
+                        onChange={(event) =>
+                          handleCharacterFieldChange(
+                            selectedCharacter.id,
+                            "basePrompt",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="写镜头风格、表演偏好、禁忌项。"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>生图模型</label>
+                      <select
+                        className={styles.selectInput}
+                        value={selectedCharacter.imageModel}
+                        onChange={(event) =>
+                          handleCharacterImageModelChange(
+                            selectedCharacter.id,
+                            event.target.value as ImageGenerationModel,
+                          )
+                        }
+                      >
+                        {IMAGE_MODEL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.thumbnailGrid}>
+                      {selectedCharacter.referenceImageAssetRefs.length === 0 ? (
+                        <div className={styles.thumbnailMissing}>暂无参考图</div>
+                      ) : (
+                        selectedCharacter.referenceImageAssetRefs.map((assetRef) => (
+                          <div key={assetRef.assetId} className={styles.thumbnailCard}>
+                            {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
+                              <Image
+                                className={styles.thumbnail}
+                                src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
+                                alt={assetRef.fileName}
+                                width={240}
+                                height={240}
+                                unoptimized
+                              />
+                            ) : (
+                              <div className={styles.thumbnailMissing}>待重绑</div>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.thumbnailDelete}
+                              onClick={() =>
+                                removeCharacterReferenceAsset(
+                                  selectedCharacter.id,
+                                  assetRef.assetId,
+                                )
+                              }
+                            >
+                              移除
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                ) : null}
 
                 <button
                   type="button"
@@ -4324,18 +5349,6 @@ export function EditorShell() {
               </>
             ) : selectedScene ? (
               <>
-                <div className={styles.field}>
-                  <label className={styles.label}>场景 ID</label>
-                  <input
-                    className={styles.textInput}
-                    value={selectedScene.id}
-                    onChange={(event) =>
-                      handleSceneIdChange(selectedScene.id, event.target.value)
-                    }
-                    placeholder="例如 station_night"
-                  />
-                </div>
-
                 <div className={styles.field}>
                   <label className={styles.label}>场景名</label>
                   <input
@@ -4350,10 +5363,13 @@ export function EditorShell() {
                     }
                     placeholder="例如 深夜车站"
                   />
+                  <p className={styles.hint}>#{selectedScene.id}</p>
                 </div>
 
                 <div className={styles.assetCard}>
-                  <p className={styles.assetStatus}>画布里的场景参考卡</p>
+                  <p className={styles.assetStatus}>
+                    {selectedScene.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
+                  </p>
                   <div className={styles.referenceStage}>
                     <div className={styles.referenceHero}>
                       <Image
@@ -4388,7 +5404,7 @@ export function EditorShell() {
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>场景设定</label>
+                  <label className={styles.label}>简介</label>
                   <textarea
                     className={styles.compactTextArea}
                     value={selectedScene.description}
@@ -4403,86 +5419,116 @@ export function EditorShell() {
                   />
                 </div>
 
-                <div className={styles.field}>
-                  <label className={styles.label}>补充</label>
-                  <textarea
-                    className={styles.compactTextArea}
-                    value={selectedScene.basePrompt}
-                    onChange={(event) =>
-                      handleSceneFieldChange(
-                        selectedScene.id,
-                        "basePrompt",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="写镜头气质、材质偏好、禁忌元素。"
-                  />
-                </div>
-
                 <div className={styles.gridTwo}>
-                  <div className={styles.field}>
-                    <label className={styles.label}>生图模型</label>
-                    <select
-                      className={styles.selectInput}
-                      value={selectedScene.imageModel}
-                      onChange={(event) =>
-                        handleSceneImageModelChange(
-                          selectedScene.id,
-                          event.target.value as ImageGenerationModel,
-                        )
-                      }
-                    >
-                      {IMAGE_MODEL_OPTIONS.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className={styles.field}>
-                    <label className={styles.label}>操作</label>
-                    <button
-                      type="button"
-                      className={styles.primaryButton}
-                      onClick={() => void handleGenerateSceneImage(selectedScene)}
-                    >
-                      生成参考图
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateSceneImage(selectedScene)}
+                  >
+                    生成参考图
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => toggleSceneCanvasPinned(selectedScene.id)}
+                  >
+                    {selectedScene.canvasPinned ? "取消钉住" : "钉到画布"}
+                  </button>
                 </div>
 
-                <div className={styles.thumbnailGrid}>
-                  {selectedScene.referenceImageAssetRefs.length === 0 ? (
-                    <div className={styles.thumbnailMissing}>暂无参考图</div>
-                  ) : (
-                    selectedScene.referenceImageAssetRefs.map((assetRef) => (
-                      <div key={assetRef.assetId} className={styles.thumbnailCard}>
-                        {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
-                          <Image
-                            className={styles.thumbnail}
-                            src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
-                            alt={assetRef.fileName}
-                            width={240}
-                            height={240}
-                            unoptimized
-                          />
-                        ) : (
-                          <div className={styles.thumbnailMissing}>待重绑</div>
-                        )}
-                        <button
-                          type="button"
-                          className={styles.thumbnailDelete}
-                          onClick={() =>
-                            removeSceneReferenceAsset(selectedScene.id, assetRef.assetId)
-                          }
-                        >
-                          移除
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <div className={styles.field}>
+                      <label className={styles.label}>场景 ID</label>
+                      <input
+                        className={styles.textInput}
+                        value={selectedScene.id}
+                        onChange={(event) =>
+                          handleSceneIdChange(selectedScene.id, event.target.value)
+                        }
+                        placeholder="例如 station_night"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>补充 Prompt</label>
+                      <textarea
+                        className={styles.compactTextArea}
+                        value={selectedScene.basePrompt}
+                        onChange={(event) =>
+                          handleSceneFieldChange(
+                            selectedScene.id,
+                            "basePrompt",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="写镜头气质、材质偏好、禁忌元素。"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>生图模型</label>
+                      <select
+                        className={styles.selectInput}
+                        value={selectedScene.imageModel}
+                        onChange={(event) =>
+                          handleSceneImageModelChange(
+                            selectedScene.id,
+                            event.target.value as ImageGenerationModel,
+                          )
+                        }
+                      >
+                        {IMAGE_MODEL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.thumbnailGrid}>
+                      {selectedScene.referenceImageAssetRefs.length === 0 ? (
+                        <div className={styles.thumbnailMissing}>暂无参考图</div>
+                      ) : (
+                        selectedScene.referenceImageAssetRefs.map((assetRef) => (
+                          <div key={assetRef.assetId} className={styles.thumbnailCard}>
+                            {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
+                              <Image
+                                className={styles.thumbnail}
+                                src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
+                                alt={assetRef.fileName}
+                                width={240}
+                                height={240}
+                                unoptimized
+                              />
+                            ) : (
+                              <div className={styles.thumbnailMissing}>待重绑</div>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.thumbnailDelete}
+                              onClick={() =>
+                                removeSceneReferenceAsset(selectedScene.id, assetRef.assetId)
+                              }
+                            >
+                              移除
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                ) : null}
 
                 <button
                   type="button"
@@ -4564,387 +5610,635 @@ export function EditorShell() {
         </aside>
       </div>
 
-      {isAgentModeOpen ? (
+      {isTemplateDrawerOpen ? (
         <div
-          className={styles.modalBackdrop}
-          onClick={() => setIsAgentModeOpen(false)}
+          className={styles.drawerBackdrop}
+          onClick={() => setIsTemplateDrawerOpen(false)}
         >
-          <div
-            className={`${styles.modalCard} ${styles.agentModalCard}`}
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
             onClick={(event) => event.stopPropagation()}
           >
-            <div className={styles.modalHeader}>
+            <div className={styles.drawerHeader}>
               <div className={styles.modalTitleBlock}>
-                <span className={styles.sectionTitle}>Agent 模式</span>
-                <h2 className={styles.modalTitle}>故事拆解工作台</h2>
-                <p className={styles.hint}>
-                  输入故事，生成角色、镜头、分支和过渡草案，再应用到画布。
-                </p>
+                <span className={styles.sectionTitle}>模板库</span>
+                <h2 className={styles.modalTitle}>保存并复用你的项目模板</h2>
               </div>
               <button
                 type="button"
                 className={styles.modalClose}
-                onClick={() => setIsAgentModeOpen(false)}
-                aria-label="关闭 Agent 模式"
+                onClick={() => setIsTemplateDrawerOpen(false)}
+                aria-label="关闭模板库"
               >
                 关闭
               </button>
             </div>
 
-            <div className={styles.agentWorkbench}>
-              <section className={styles.agentComposer}>
-                <div className={styles.field}>
-                  <label className={styles.label}>故事模板</label>
-                  <textarea
-                    className={`${styles.textArea} ${styles.agentStoryInput}`}
-                    value={agentStoryText}
-                    onChange={(event) => setAgentStoryText(event.target.value)}
-                    placeholder="输入完整故事、关键选择点、主要结局方向。"
-                  />
+            <div className={styles.drawerBody}>
+              <section className={styles.drawerSection}>
+                <div className={styles.inlineHeader}>
+                  <h3 className={styles.sectionTitle}>保存当前为模板</h3>
+                  {activeTemplateSummary ? (
+                    <span className={styles.hint}>当前来自模板：{activeTemplateSummary.name}</span>
+                  ) : null}
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>参考图片（可选）</label>
+                  <label className={styles.label}>模板名称</label>
                   <input
-                    type="text"
                     className={styles.textInput}
-                    value={agentImageUrl}
-                    onChange={(event) => setAgentImageUrl(event.target.value)}
-                    placeholder="输入图片 URL，Agent 将根据图片内容生成故事"
+                    value={templateSaveName}
+                    onChange={(event) => setTemplateSaveName(event.target.value)}
+                    placeholder="例如 港口悬疑互动短剧模板"
                   />
-                  {agentImageUrl && (
-                    <div className={styles.agentImagePreview}>
-                      <img
-                        src={agentImageUrl}
-                        alt="预览"
-                        className={styles.agentImagePreviewImg}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = "none";
-                        }}
-                      />
-                    </div>
-                  )}
                 </div>
 
                 <div className={styles.field}>
-                  <label className={styles.label}>给 Agent 的意见</label>
+                  <label className={styles.label}>一句话说明</label>
                   <textarea
-                    className={`${styles.compactTextArea} ${styles.agentFeedbackInput}`}
-                    value={agentFeedbackText}
-                    onChange={(event) => setAgentFeedbackText(event.target.value)}
-                    placeholder="例如：把女主塑造成更冷静；增加一个失败分支。"
+                    className={styles.compactTextArea}
+                    value={templateSaveDescription}
+                    onChange={(event) => setTemplateSaveDescription(event.target.value)}
+                    placeholder="描述这个模板适合什么故事或风格。"
                   />
                 </div>
 
-                <div className={styles.agentActionRow}>
+                <div className={styles.templateActionRow}>
+                  {activeTemplateSummary ? (
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => void persistTemplate("update")}
+                      disabled={isSavingTemplate}
+                    >
+                      {isSavingTemplate ? "保存中..." : "更新当前模板"}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
-                    className={styles.primaryButton}
-                    onClick={() => void handleGenerateRandomAgentStory()}
-                    disabled={
-                      isGeneratingRandomAgentStory ||
-                      isGeneratingAgentDraft ||
-                      isGeneratingAgentScreenplay
-                    }
+                    className={activeTemplateSummary ? styles.secondaryButton : styles.primaryButton}
+                    onClick={() => void persistTemplate("create")}
+                    disabled={isSavingTemplate}
                   >
-                    {isGeneratingRandomAgentStory ? "随机生成中..." : "随机剧本"}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.primaryButton}
-                    onClick={() => void handleGenerateAgentDraft()}
-                    disabled={isGeneratingAgentDraft || isGeneratingRandomAgentStory}
-                  >
-                    {isGeneratingAgentDraft ? "生成中..." : "生成草案"}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => void handleGenerateAgentDraft()}
-                    disabled={
-                      isGeneratingAgentDraft ||
-                      isGeneratingRandomAgentStory ||
-                      (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
-                    }
-                  >
-                    根据意见重算
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() => void handleGenerateAgentScreenplay()}
-                    disabled={
-                      isGeneratingAgentScreenplay ||
-                      isGeneratingRandomAgentStory ||
-                      (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
-                    }
-                  >
-                    {isGeneratingAgentScreenplay ? "剧本生成中..." : "生成剧本"}
-                  </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={handleApplyAgentDraft}
-                    disabled={!agentDraft}
-                  >
-                    应用到画布
+                    {isSavingTemplate
+                      ? "保存中..."
+                      : activeTemplateSummary
+                        ? "另存为新模板"
+                        : "保存当前为模板"}
                   </button>
                 </div>
               </section>
 
-              <section className={styles.agentPreviewPane}>
-                {agentDraft || agentScreenplay ? (
-                  <>
-                    {agentDraft ? (
-                      <>
-                        <article className={styles.agentSummaryCard}>
-                          <div className={styles.inlineHeader}>
-                            <strong>{agentDraft.storyTitle}</strong>
-                            <span className={styles.priorityPill}>
-                              {agentDraft.scenes.length} 镜头
+              <section className={styles.drawerSection}>
+                <div className={styles.inlineHeader}>
+                  <h3 className={styles.sectionTitle}>我的模板</h3>
+                  <span className={styles.hint}>{templateRecords.length} 个</span>
+                </div>
+
+                {isLoadingTemplates ? (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>正在读取模板库</p>
+                  </div>
+                ) : templateRecords.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>还没有模板</p>
+                    <p className={styles.hint}>
+                      先把当前项目保存成模板，后面就可以一键套用了。
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.templateList}>
+                    {templateRecords.map((templateRecord) => (
+                      <article
+                        key={templateRecord.id}
+                        className={`${styles.templateCard} ${
+                          activeTemplateId === templateRecord.id ? styles.templateCardActive : ""
+                        }`}
+                      >
+                        {templateRecord.previewImageUrl ? (
+                          <Image
+                            className={styles.templatePreview}
+                            src={templateRecord.previewImageUrl}
+                            alt={templateRecord.name}
+                            width={480}
+                            height={270}
+                            unoptimized
+                          />
+                        ) : (
+                          <div className={styles.templatePreviewPlaceholder}>
+                            <span>模板封面</span>
+                          </div>
+                        )}
+
+                        <div className={styles.templateCardBody}>
+                          <div className={styles.templateCardHeader}>
+                            <strong>{templateRecord.name}</strong>
+                            <span className={styles.hint}>
+                              {formatTemplateUpdatedAt(templateRecord.updatedAt)}
                             </span>
                           </div>
-                          <p className={styles.hint}>{agentDraft.summary}</p>
-                          <div className={styles.agentStatGrid}>
-                            <div className={styles.agentStatItem}>
-                              <strong>{agentDraft.characters.length}</strong>
-                              <span>角色</span>
-                            </div>
-                            <div className={styles.agentStatItem}>
-                              <strong>{agentDraft.scenePresets.length}</strong>
-                              <span>场景</span>
-                            </div>
-                            <div className={styles.agentStatItem}>
-                              <strong>{agentDraft.branches.length}</strong>
-                              <span>分支</span>
-                            </div>
-                            <div className={styles.agentStatItem}>
-                              <strong>{agentRootSceneCount}</strong>
-                              <span>Root</span>
-                            </div>
-                            <div className={styles.agentStatItem}>
-                              <strong>{agentDraft.transitions.length}</strong>
-                              <span>连接</span>
-                            </div>
-                          </div>
-                        </article>
-
-                        <div className={styles.agentPreviewGrid}>
-                          <div className={styles.agentPreviewColumn}>
-                            <article className={styles.agentCard}>
-                              <div className={styles.inlineHeader}>
-                                <strong>角色</strong>
-                                <span className={styles.priorityPill}>
-                                  {agentDraft.characters.length}
-                                </span>
-                              </div>
-                              <div className={styles.agentCardList}>
-                                {agentDraft.characters.map((character) => (
-                                  <div key={character.id} className={styles.agentListItem}>
-                                    <div className={styles.agentListHead}>
-                                      <strong>{character.name}</strong>
-                                      <span className={styles.characterIdBadge}>
-                                        @{character.id}
-                                      </span>
-                                    </div>
-                                    <p className={styles.hint}>{character.bio}</p>
-                                    <p className={styles.agentPrompt}>
-                                      {character.appearancePrompt}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </article>
-
-                            <article className={styles.agentCard}>
-                              <div className={styles.inlineHeader}>
-                                <strong>分支</strong>
-                                <span className={styles.priorityPill}>
-                                  {agentDraft.branches.length}
-                                </span>
-                              </div>
-                              <div className={styles.agentBranchGrid}>
-                                {agentDraft.branches.map((branch) => (
-                                  <div key={branch.id} className={styles.agentListItem}>
-                                    <div className={styles.agentListHead}>
-                                      <strong>{branch.name}</strong>
-                                      <span className={styles.providerBadge}>
-                                        {branch.tone}
-                                      </span>
-                                    </div>
-                                    <p className={styles.hint}>
-                                      {branch.predictedOutcome}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </article>
-
-                            <article className={styles.agentCard}>
-                              <div className={styles.inlineHeader}>
-                                <strong>场景预设</strong>
-                                <span className={styles.priorityPill}>
-                                  {agentDraft.scenePresets.length}
-                                </span>
-                              </div>
-                              <div className={styles.agentCardList}>
-                                {agentDraft.scenePresets.map((scenePreset) => (
-                                  <div key={scenePreset.id} className={styles.agentListItem}>
-                                    <div className={styles.agentListHead}>
-                                      <strong>{scenePreset.name}</strong>
-                                      <span className={styles.characterIdBadge}>
-                                        #{scenePreset.id}
-                                      </span>
-                                    </div>
-                                    <p className={styles.hint}>{scenePreset.description}</p>
-                                    <p className={styles.agentPrompt}>
-                                      {scenePreset.appearancePrompt}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
-                            </article>
-                          </div>
-
-                          <div className={styles.agentPreviewColumn}>
-                            <article className={styles.agentCard}>
-                              <div className={styles.inlineHeader}>
-                                <strong>镜头</strong>
-                                <span className={styles.priorityPill}>
-                                  {agentDraft.scenes.length}
-                                </span>
-                              </div>
-                              <div className={styles.agentSceneGrid}>
-                                {agentSceneGroups.map((group) => (
-                                  <section
-                                    key={group.id}
-                                    className={styles.agentSceneGroup}
-                                  >
-                                    <div className={styles.agentSceneGroupHead}>
-                                      <strong>{group.name}</strong>
-                                      <span className={styles.providerBadge}>
-                                        {group.scenes.length} 镜头
-                                      </span>
-                                    </div>
-                                    <p className={styles.hint}>
-                                      {group.predictedOutcome}
-                                    </p>
-                                    <div className={styles.agentSceneGroupList}>
-                                      {group.scenes.map((scene) => (
-                                        <div
-                                          key={scene.id}
-                                          className={styles.agentListItem}
-                                        >
-                                          <div className={styles.agentListHead}>
-                                            <strong>{scene.title}</strong>
-                                            <span className={styles.characterIdBadge}>
-                                              {group.tone}
-                                            </span>
-                                          </div>
-                                          <p className={styles.hint}>
-                                            {scene.summary}
-                                          </p>
-                                          <p className={styles.agentPrompt}>
-                                            {scene.videoPrompt}
-                                          </p>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </section>
-                                ))}
-                              </div>
-                            </article>
-
-                            <article className={styles.agentCard}>
-                              <div className={styles.inlineHeader}>
-                                <strong>连接</strong>
-                                <span className={styles.priorityPill}>
-                                  {agentDraft.transitions.length}
-                                </span>
-                              </div>
-                              <div className={styles.agentCardList}>
-                                {agentDraft.transitions.map((transition) => {
-                                  const source = agentDraft.scenes.find(
-                                    (scene) => scene.id === transition.sourceSceneId,
-                                  );
-                                  const target = agentDraft.scenes.find(
-                                    (scene) => scene.id === transition.targetSceneId,
-                                  );
-
-                                  return (
-                                    <div key={transition.id} className={styles.agentListItem}>
-                                      <div className={styles.agentListHead}>
-                                        <strong>{transition.choiceLabel}</strong>
-                                        <span className={styles.characterIdBadge}>
-                                          {transition.conditionVariable}
-                                        </span>
-                                      </div>
-                                      <p className={styles.hint}>
-                                        {source?.title ?? transition.sourceSceneId} →{" "}
-                                        {target?.title ?? transition.targetSceneId}
-                                      </p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </article>
-                          </div>
-                        </div>
-                      </>
-                    ) : null}
-
-                    <article className={styles.agentScriptCard}>
-                      <div className={styles.inlineHeader}>
-                        <strong>剧本</strong>
-                        <div className={styles.agentScriptActions}>
-                          {agentScreenplay ? (
-                            <button
-                              type="button"
-                              className={styles.ghostButton}
-                              onClick={() => void handleCopyAgentScreenplay()}
-                            >
-                              复制
-                            </button>
-                          ) : null}
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            onClick={() => void handleGenerateAgentScreenplay()}
-                            disabled={
-                              isGeneratingAgentScreenplay ||
-                              agentStoryText.trim().length === 0
-                            }
-                          >
-                            {isGeneratingAgentScreenplay ? "生成中..." : "生成剧本"}
-                          </button>
-                        </div>
-                      </div>
-                      {agentScreenplay ? (
-                        <div className={styles.agentScriptBody}>
-                          <div className={styles.agentScriptMeta}>
-                            <strong>{agentScreenplay.title}</strong>
-                            <p className={styles.hint}>{agentScreenplay.logline}</p>
-                          </div>
-                          <pre className={styles.agentScriptText}>
-                            {agentScreenplay.script}
-                          </pre>
-                        </div>
-                      ) : (
-                        <div className={styles.emptyState}>
-                          <p className={styles.emptyStateTitle}>还没有生成剧本</p>
                           <p className={styles.hint}>
-                            先生成草案，或者直接基于故事模板生成一版剧本。
+                            {templateRecord.description || "暂无说明"}
                           </p>
+                          <div className={styles.templateStatsGrid}>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.characterCount} 角色
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.sceneCount} 场景
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.nodeCount} 节点
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.branchCount} 分支点
+                            </span>
+                          </div>
+
+                          {renamingTemplateId === templateRecord.id ? (
+                            <div className={styles.templateRenamePanel}>
+                              <input
+                                className={styles.textInput}
+                                value={renamingTemplateName}
+                                onChange={(event) =>
+                                  setRenamingTemplateName(event.target.value)
+                                }
+                                placeholder="模板名称"
+                              />
+                              <textarea
+                                className={styles.compactTextArea}
+                                value={renamingTemplateDescription}
+                                onChange={(event) =>
+                                  setRenamingTemplateDescription(event.target.value)
+                                }
+                                placeholder="一句话说明"
+                              />
+                              <div className={styles.templateActionRow}>
+                                <button
+                                  type="button"
+                                  className={styles.primaryButton}
+                                  onClick={() => void submitTemplateRename(templateRecord.id)}
+                                >
+                                  保存名称
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() => {
+                                    setRenamingTemplateId(null);
+                                    setRenamingTemplateName("");
+                                    setRenamingTemplateDescription("");
+                                  }}
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className={styles.templateActionRow}>
+                              <button
+                                type="button"
+                                className={styles.primaryButton}
+                                onClick={() =>
+                                  setTemplateDialogState({
+                                    mode: "apply",
+                                    template: templateRecord,
+                                  })
+                                }
+                              >
+                                应用模板
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => startRenamingTemplate(templateRecord)}
+                              >
+                                重命名
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.dangerButton}
+                                onClick={() =>
+                                  setTemplateDialogState({
+                                    mode: "delete",
+                                    template: templateRecord,
+                                  })
+                                }
+                              >
+                                删除
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </article>
-                  </>
-                ) : (
-                  <div className={styles.emptyState}>
-                    <p className={styles.emptyStateTitle}>输入故事后生成</p>
+                      </article>
+                    ))}
                   </div>
                 )}
               </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isResourceDrawerOpen ? (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsResourceDrawerOpen(false)}
+        >
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.drawerHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>资源库</span>
+                <h2 className={styles.modalTitle}>角色 / 场景 / 资产</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsResourceDrawerOpen(false)}
+                aria-label="关闭资源库"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerTabs}>
+              {(
+                [
+                  ["characters", "角色"],
+                  ["scenes", "场景"],
+                  ["assets", "图片 / 视频"],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={`${styles.drawerTab} ${
+                    leftDrawerTab === tab ? styles.drawerTabActive : ""
+                  }`}
+                  onClick={() => setLeftDrawerTab(tab)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.drawerBody}>
+              {leftDrawerTab === "characters" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>角色</h3>
+                    <button
+                      type="button"
+                      className={styles.ghostButton}
+                      onClick={handleAddCharacter}
+                    >
+                      新增角色
+                    </button>
+                  </div>
+                  <div className={styles.resourceList}>
+                    {characters.length === 0 ? (
+                      <div className={styles.emptyState}>
+                        <p className={styles.emptyStateTitle}>暂无角色</p>
+                      </div>
+                    ) : (
+                      characters.map((character) => (
+                        <article key={character.id} className={styles.resourceCard}>
+                          <Image
+                            className={styles.resourcePreview}
+                            src={getCharacterPreviewUrl(character, assetRuntimeMap)}
+                            alt={character.name || character.id}
+                            width={180}
+                            height={180}
+                            unoptimized
+                          />
+                          <div className={styles.resourceInfo}>
+                            <strong>{character.name || character.id}</strong>
+                            <span className={styles.characterIdBadge}>@{character.id}</span>
+                            <p className={styles.assetLibraryMeta}>
+                              {character.referenceImageAssetRefs.length} 张参考图
+                            </p>
+                          </div>
+                          <div className={styles.resourceActions}>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => {
+                                setSelectedCharacterId(character.id);
+                                setSelectedNodeId(null);
+                                setSelectedSceneId(null);
+                                setSelectedEdgeId(null);
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleCharacterCanvasPinned(character.id)}
+                            >
+                              {character.canvasPinned ? "取消钉住" : "钉到画布"}
+                            </button>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "scenes" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>场景</h3>
+                    <button
+                      type="button"
+                      className={styles.ghostButton}
+                      onClick={handleAddScenePreset}
+                    >
+                      新增场景
+                    </button>
+                  </div>
+                  <div className={styles.resourceList}>
+                    {scenes.length === 0 ? (
+                      <div className={styles.emptyState}>
+                        <p className={styles.emptyStateTitle}>暂无场景</p>
+                      </div>
+                    ) : (
+                      scenes.map((scene) => (
+                        <article key={scene.id} className={styles.resourceCard}>
+                          <Image
+                            className={styles.resourcePreviewWide}
+                            src={getScenePreviewUrl(scene, assetRuntimeMap)}
+                            alt={scene.name || scene.id}
+                            width={240}
+                            height={150}
+                            unoptimized
+                          />
+                          <div className={styles.resourceInfo}>
+                            <strong>{scene.name || scene.id}</strong>
+                            <span className={styles.characterIdBadge}>#{scene.id}</span>
+                            <p className={styles.assetLibraryMeta}>
+                              {scene.referenceImageAssetRefs.length} 张参考图
+                            </p>
+                          </div>
+                          <div className={styles.resourceActions}>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => {
+                                setSelectedSceneId(scene.id);
+                                setSelectedCharacterId(null);
+                                setSelectedNodeId(null);
+                                setSelectedEdgeId(null);
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleSceneCanvasPinned(scene.id)}
+                            >
+                              {scene.canvasPinned ? "取消钉住" : "钉到画布"}
+                            </button>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "assets" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>资产</h3>
+                    <span className={styles.hint}>{assetLibraryItems.length} 项</span>
+                  </div>
+                  {assetLibraryItems.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>暂无资产</p>
+                    </div>
+                  ) : (
+                    <div className={styles.assetLibraryGrid}>
+                      {assetLibraryItems.map((asset) => (
+                        <article key={asset.assetId} className={styles.assetLibraryCard}>
+                          <div className={styles.assetLibraryMedia}>
+                            {asset.kind === "image" ? (
+                              <Image
+                                className={styles.assetLibraryImage}
+                                src={asset.objectUrl}
+                                alt={asset.fileName}
+                                width={480}
+                                height={480}
+                                unoptimized
+                              />
+                            ) : (
+                              <video
+                                className={styles.assetLibraryVideo}
+                                src={asset.objectUrl}
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            )}
+                          </div>
+                          <div className={styles.assetLibraryBody}>
+                            <strong className={styles.assetLibraryName}>{asset.fileName}</strong>
+                            <p className={styles.assetLibraryMeta}>
+                              {asset.kind === "image" ? "图片" : "视频"}
+                            </p>
+                            <div className={styles.actionGrid}>
+                              {asset.kind === "image" && selectedCharacter ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingImageToCharacter(
+                                      selectedCharacter.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  复用到当前角色
+                                </button>
+                              ) : null}
+                              {asset.kind === "image" && selectedScene ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingImageToScene(
+                                      selectedScene.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  复用到当前场景
+                                </button>
+                              ) : null}
+                              {asset.kind === "video" && selectedNode ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingVideoToNode(
+                                      selectedNode.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  绑定到当前节点
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isSettingsDrawerOpen ? (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsSettingsDrawerOpen(false)}
+        >
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.drawerHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>设置</span>
+                <h2 className={styles.modalTitle}>模型与项目</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsSettingsDrawerOpen(false)}
+                aria-label="关闭设置"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerBody}>
+              <div className={styles.providerSummaryCard}>
+                <div className={styles.priorityRow}>
+                  {settings.providerPriority.map((providerId, index) => (
+                    <span key={providerId} className={styles.priorityPill}>
+                      {index + 1}. {PROVIDER_DEFINITIONS[providerId].label}
+                    </span>
+                  ))}
+                </div>
+                <div className={styles.providerStatusRow}>
+                  {settings.providerPriority.map((providerId) => (
+                    <span
+                      key={providerId}
+                      className={`${styles.providerBadge} ${
+                        isCredentialConfigured(providerId, providerCredentials)
+                          ? styles.providerReady
+                          : styles.providerMissing
+                      }`}
+                    >
+                      {PROVIDER_DEFINITIONS[providerId].label}
+                      {" · "}
+                      {isCredentialConfigured(providerId, providerCredentials)
+                        ? "已配置"
+                        : "未配置"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.drawerSection}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => setIsProviderModalOpen(true)}
+                >
+                  打开视频 API 设置
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={handleLoadDemoCase}
+                >
+                  加载 Demo Case
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {templateDialogState ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setTemplateDialogState(null)}
+        >
+          <div
+            className={`${styles.modalCard} ${styles.templateConfirmCard}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>
+                  {templateDialogState.mode === "apply" ? "应用模板" : "删除模板"}
+                </span>
+                <h2 className={styles.modalTitle}>
+                  {templateDialogState.template.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setTemplateDialogState(null)}
+                aria-label="关闭模板确认"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerSection}>
+              <p className={styles.hint}>
+                {templateDialogState.mode === "apply"
+                  ? "应用模板会替换当前画布里的节点、角色、场景和本地媒体预览。"
+                  : "删除模板后，本地模板库中的模板和关联媒体都会被移除。"}
+              </p>
+              <div className={styles.templateActionRow}>
+                <button
+                  type="button"
+                  className={
+                    templateDialogState.mode === "apply"
+                      ? styles.primaryButton
+                      : styles.dangerButton
+                  }
+                  onClick={() =>
+                    templateDialogState.mode === "apply"
+                      ? void handleApplyTemplate(templateDialogState.template.id)
+                      : void handleDeleteTemplate(templateDialogState.template.id)
+                  }
+                >
+                  {templateDialogState.mode === "apply" ? "继续替换" : "确认删除"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setTemplateDialogState(null)}
+                >
+                  取消
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -5012,10 +6306,17 @@ export function EditorShell() {
                 <div className={styles.exportCardActions}>
                   <button
                     type="button"
-                    className={styles.primaryButton}
-                    onClick={handleExportInteractivePackage}
+                    className={styles.secondaryButton}
+                    onClick={() => void handleExportInteractivePackage("linked")}
                   >
-                    导出互动版
+                    远程兼容
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleExportInteractivePackage("inline")}
+                  >
+                    本地单文件
                   </button>
                 </div>
               </article>
@@ -5031,10 +6332,17 @@ export function EditorShell() {
                 <div className={styles.exportCardActions}>
                   <button
                     type="button"
-                    className={styles.primaryButton}
-                    onClick={handleExportTraversalPackage}
+                    className={styles.secondaryButton}
+                    onClick={() => void handleExportTraversalPackage("linked")}
                   >
-                    导出全分支
+                    远程兼容
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleExportTraversalPackage("inline")}
+                  >
+                    本地单文件
                   </button>
                 </div>
               </article>
@@ -5259,129 +6567,6 @@ export function EditorShell() {
         </div>
       ) : null}
 
-      {isAssetLibraryOpen ? (
-        <div
-          className={styles.modalBackdrop}
-          onClick={() => setIsAssetLibraryOpen(false)}
-        >
-          <div
-            className={styles.modalCard}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <div className={styles.modalHeader}>
-              <div className={styles.modalTitleBlock}>
-                <span className={styles.sectionTitle}>资产库</span>
-                <h2 className={styles.modalTitle}>图片与视频资产</h2>
-              </div>
-              <button
-                type="button"
-                className={styles.modalClose}
-                onClick={() => setIsAssetLibraryOpen(false)}
-                aria-label="关闭资产库"
-              >
-                关闭
-              </button>
-            </div>
-
-            <div className={styles.modalBody}>
-              {assetLibraryItems.length === 0 ? (
-                <div className={styles.emptyState}>
-                  <p className={styles.emptyStateTitle}>暂无资产</p>
-                </div>
-              ) : (
-                <div className={styles.assetLibraryGrid}>
-                  {assetLibraryItems.map((asset) => (
-                    <article key={asset.assetId} className={styles.assetLibraryCard}>
-                      <div className={styles.assetLibraryMedia}>
-                        {asset.kind === "image" ? (
-                          <Image
-                            className={styles.assetLibraryImage}
-                            src={asset.objectUrl}
-                            alt={asset.fileName}
-                            width={480}
-                            height={480}
-                            unoptimized
-                          />
-                        ) : (
-                          <video
-                            className={styles.assetLibraryVideo}
-                            src={asset.objectUrl}
-                            muted
-                            playsInline
-                            preload="metadata"
-                          />
-                        )}
-                      </div>
-                      <div className={styles.assetLibraryBody}>
-                        <strong className={styles.assetLibraryName}>{asset.fileName}</strong>
-                        <p className={styles.assetLibraryMeta}>
-                          {asset.kind === "image" ? "图片" : "视频"}
-                        </p>
-                        {asset.linkedCharacters.length > 0 ? (
-                          <p className={styles.assetLibraryMeta}>
-                            角色：{asset.linkedCharacters.map((item) => item.name).join("、")}
-                          </p>
-                        ) : null}
-                        {asset.linkedScenes.length > 0 ? (
-                          <p className={styles.assetLibraryMeta}>
-                            场景：{asset.linkedScenes.map((item) => item.name).join("、")}
-                          </p>
-                        ) : null}
-                        {asset.linkedNode ? (
-                          <p className={styles.assetLibraryMeta}>
-                            节点：{asset.linkedNode.data.title}
-                          </p>
-                        ) : null}
-                        <div className={styles.actionGrid}>
-                          {asset.kind === "image" && selectedCharacter ? (
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() =>
-                                attachExistingImageToCharacter(
-                                  selectedCharacter.id,
-                                  asset.assetId,
-                                )
-                              }
-                            >
-                              用于当前角色
-                            </button>
-                          ) : null}
-                          {asset.kind === "image" && selectedScene ? (
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() =>
-                                attachExistingImageToScene(
-                                  selectedScene.id,
-                                  asset.assetId,
-                                )
-                              }
-                            >
-                              用于当前场景
-                            </button>
-                          ) : null}
-                          {asset.kind === "video" && selectedNode ? (
-                            <button
-                              type="button"
-                              className={styles.secondaryButton}
-                              onClick={() =>
-                                attachExistingVideoToNode(selectedNode.id, asset.assetId)
-                              }
-                            >
-                              用于当前节点
-                            </button>
-                          ) : null}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }

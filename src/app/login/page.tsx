@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import styles from "./auth.module.css";
+
+const LAST_ACCOUNT_STORAGE_KEY = "pencil-studio:last-account";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -12,6 +14,23 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      const rawValue = window.localStorage.getItem(LAST_ACCOUNT_STORAGE_KEY);
+
+      if (!rawValue) {
+        return;
+      }
+
+      const parsed = JSON.parse(rawValue) as { email?: string };
+      if (typeof parsed.email === "string") {
+        setEmail(parsed.email);
+      }
+    } catch {
+      window.localStorage.removeItem(LAST_ACCOUNT_STORAGE_KEY);
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,6 +49,13 @@ export default function LoginPage() {
       setError("Invalid email or password");
       return;
     }
+
+    window.localStorage.setItem(
+      LAST_ACCOUNT_STORAGE_KEY,
+      JSON.stringify({
+        email: email.trim().toLowerCase(),
+      }),
+    );
 
     router.push("/pencil-studio-vid");
   }
