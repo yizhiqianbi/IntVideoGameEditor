@@ -16,6 +16,9 @@ export type RuntimeAsset = {
 };
 
 export type EditorSessionSnapshot = {
+  currentProjectId: string | null;
+  currentProjectName: string;
+  currentProjectDescription: string;
   nodes: EditorFlowNode[];
   edges: EditorFlowEdge[];
   characters: CharacterDefinition[];

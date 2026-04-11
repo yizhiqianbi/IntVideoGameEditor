@@ -56,6 +56,10 @@ import {
   buildTraversalExportBundles,
 } from "../../lib/export-packages";
 import {
+  buildProjectPackageBundle,
+  importProjectPackage,
+} from "../../lib/project-package";
+import {
   collectProjectReferencedAssetIds,
   deleteProjectTemplate,
   getTemplatePreviewFallback,
@@ -66,6 +70,21 @@ import {
   type ProjectTemplateSummary,
   type TemplateMediaInput,
 } from "../../lib/project-templates";
+import {
+  buildProjectSaveInput,
+  deleteGlobalAsset,
+  listGlobalAssets,
+  loadProject,
+  loadRecoveryDraft,
+  resolveProjectSnapshotForEditing,
+  saveGlobalAsset,
+  saveProject,
+  saveRecoveryDraft,
+  updateProjectLastOpenedAt,
+  type GlobalAssetRecord,
+  type ProjectMediaInput,
+} from "../../lib/projects";
+import { setStoredActiveProjectId } from "../../lib/project-session";
 import {
   applyDemoVisuals,
   DEMO_AGENT_DRAFT,
@@ -102,7 +121,6 @@ import {
   hydrateProjectEdges,
   hydrateProjectNodes,
   parseProject,
-  PROJECT_VERSION,
   serializeProject,
   validateTreeConnection,
   VIDEO_SCENE_SOURCE_HANDLE_ID,
@@ -803,13 +821,24 @@ function downloadBlobFile(blob: Blob, fileName: string) {
 
 export function EditorShell({
   workspace = "editor",
+  projectId = null,
 }: {
   workspace?: "editor" | "agent";
+  projectId?: string | null;
 }) {
   const router = useRouter();
   const [initialSession] = useState(() => {
     return consumePendingEditorSession() ?? getCachedEditorSession();
   });
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(
+    () => projectId ?? initialSession?.currentProjectId ?? null,
+  );
+  const [currentProjectName, setCurrentProjectName] = useState(
+    () => initialSession?.currentProjectName ?? "未命名项目",
+  );
+  const [currentProjectDescription, setCurrentProjectDescription] = useState(
+    () => initialSession?.currentProjectDescription ?? "",
+  );
   const [nodes, setNodes] = useState<EditorFlowNode[]>(
     () =>
       initialSession?.nodes ?? [
@@ -843,9 +872,9 @@ export function EditorShell({
   const [isResourceDrawerOpen, setIsResourceDrawerOpen] = useState(false);
   const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
   const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
-  const [leftDrawerTab, setLeftDrawerTab] = useState<"characters" | "scenes" | "assets">(
-    "characters",
-  );
+  const [leftDrawerTab, setLeftDrawerTab] = useState<
+    "characters" | "scenes" | "project-assets" | "global-assets"
+  >("characters");
   const [isAdvancedInspectorOpen, setIsAdvancedInspectorOpen] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
@@ -860,6 +889,11 @@ export function EditorShell({
   >(() => initialSession?.assetRuntimeMap ?? {});
   const [notice, setNotice] = useState<Notice | null>(null);
   const [templateRecords, setTemplateRecords] = useState<ProjectTemplateSummary[]>([]);
+  const [globalAssets, setGlobalAssets] = useState<GlobalAssetRecord[]>([]);
+  const [globalAssetPreviewMap, setGlobalAssetPreviewMap] = useState<Record<string, string>>(
+    {},
+  );
+  const [isLoadingGlobalAssets, setIsLoadingGlobalAssets] = useState(false);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
@@ -899,10 +933,18 @@ export function EditorShell({
   const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(
     () => initialSession?.agentScreenplay ?? null,
   );
+  const [agentPreviewTab, setAgentPreviewTab] = useState<
+    "overview" | "references" | "storyboard" | "script"
+  >("overview");
   const [isGeneratingAgentDraft, setIsGeneratingAgentDraft] = useState(false);
   const [isGeneratingAgentScreenplay, setIsGeneratingAgentScreenplay] = useState(false);
   const [isGeneratingRandomAgentStory, setIsGeneratingRandomAgentStory] =
     useState(false);
+  const [isHydratingProject, setIsHydratingProject] = useState(Boolean(projectId));
+  const [projectSaveState, setProjectSaveState] = useState<
+    "idle" | "dirty" | "saving" | "saved" | "error"
+  >("idle");
+  const [lastProjectSavedAt, setLastProjectSavedAt] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{
     x: number;
     y: number;
@@ -918,6 +960,8 @@ export function EditorShell({
   const pollingVideoTaskIdsRef = useRef(new Set<string>());
   const reactFlowRef =
     useRef<ReactFlowInstance<CanvasFlowNode, EditorFlowEdge> | null>(null);
+  const projectHydratedRef = useRef(false);
+  const autosaveTimerRef = useRef<number | null>(null);
 
   const sidebarResizer = useResizer(280, 220, 420, 'right');
   const detailsResizer = useResizer(360, 240, 600, 'left');
@@ -1019,7 +1063,7 @@ export function EditorShell({
   );
 
   const openResourceDrawer = useCallback(
-    (tab: "characters" | "scenes" | "assets") => {
+    (tab: "characters" | "scenes" | "project-assets" | "global-assets") => {
       setLeftDrawerTab(tab);
       setIsSettingsDrawerOpen(false);
       setIsTemplateDrawerOpen(false);
@@ -1204,7 +1248,7 @@ export function EditorShell({
     });
   }
 
-  function cleanupAllAssets() {
+  const cleanupAllAssets = useCallback(() => {
     setAssetRuntimeMap((currentMap) => {
       for (const runtimeAsset of Object.values(currentMap)) {
         URL.revokeObjectURL(runtimeAsset.objectUrl);
@@ -1212,7 +1256,7 @@ export function EditorShell({
 
       return {};
     });
-  }
+  }, []);
 
   function appendCharacterReferenceFiles(characterId: string, files: File[]) {
     if (files.length === 0) {
@@ -1429,6 +1473,146 @@ export function EditorShell({
     }));
   }
 
+  async function saveAssetToGlobalLibrary(assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset) {
+      return;
+    }
+
+    try {
+      await saveGlobalAsset({
+        name: runtimeAsset.file.name,
+        kind: runtimeAsset.kind,
+        fileName: runtimeAsset.file.name,
+        mimeType: runtimeAsset.file.type || undefined,
+        blob: runtimeAsset.file,
+        sourceProjectId: currentProjectId ?? undefined,
+        sourceAssetId: assetId,
+      });
+      await refreshGlobalAssets();
+      setNotice({
+        tone: "success",
+        message: `已将「${runtimeAsset.file.name}」收藏到全局素材库。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "收藏到全局素材库失败。",
+      });
+    }
+  }
+
+  async function cloneGlobalAssetIntoProject(globalAssetId: string) {
+    const globalAsset = globalAssets.find((asset) => asset.id === globalAssetId);
+
+    if (!globalAsset) {
+      return null;
+    }
+
+    const file = new File([globalAsset.blob], globalAsset.fileName, {
+      type: globalAsset.mimeType || globalAsset.blob.type || undefined,
+    });
+    const assetId = crypto.randomUUID();
+    const runtimeAsset: RuntimeAsset = {
+      file,
+      objectUrl: URL.createObjectURL(file),
+      kind: globalAsset.kind,
+    };
+
+    setAssetRuntimeMap((currentMap) => ({
+      ...currentMap,
+      [assetId]: runtimeAsset,
+    }));
+
+    return {
+      assetId,
+      fileName: file.name,
+      mimeType: file.type || undefined,
+      kind: globalAsset.kind,
+    } satisfies AssetRef;
+  }
+
+  async function handleDeleteGlobalAsset(globalAssetId: string) {
+    try {
+      await deleteGlobalAsset(globalAssetId);
+      await refreshGlobalAssets();
+      setNotice({
+        tone: "success",
+        message: "全局素材已删除。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "删除全局素材失败。",
+      });
+    }
+  }
+
+  async function attachGlobalImageToCharacter(characterId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "image") {
+      return;
+    }
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              referenceImageAssetRefs: [
+                assetRef,
+                ...character.referenceImageAssetRefs,
+              ],
+            }
+          : character,
+      ),
+    );
+  }
+
+  async function attachGlobalImageToScene(sceneId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "image") {
+      return;
+    }
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: [
+                assetRef,
+                ...scene.referenceImageAssetRefs,
+              ],
+            }
+          : scene,
+      ),
+    );
+  }
+
+  async function attachGlobalVideoToNode(nodeId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "video") {
+      return;
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef,
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "ready",
+      },
+    }));
+  }
+
   useEffect(() => {
     assetRuntimeMapRef.current = assetRuntimeMap;
   }, [assetRuntimeMap]);
@@ -1465,6 +1649,9 @@ export function EditorShell({
 
   useEffect(() => {
     setCachedEditorSession({
+      currentProjectId,
+      currentProjectName,
+      currentProjectDescription,
       nodes,
       edges,
       characters,
@@ -1490,6 +1677,9 @@ export function EditorShell({
     agentStoryText,
     assetRuntimeMap,
     characters,
+    currentProjectDescription,
+    currentProjectId,
+    currentProjectName,
     edges,
     nodes,
     providerCredentials,
@@ -2044,14 +2234,11 @@ export function EditorShell({
     setNotice({ tone: "success", message: "已在画布位置新增视频节点。" });
   }
 
-  function handleAddCharacterAtPosition(_position: { x: number; y: number }) {
+  function handleAddCharacterAtPosition(position: { x: number; y: number }) {
     const nextIndex = characters.length + 1;
     const newChar = createCharacterDefinition(nextIndex, {
       canvasPinned: true,
-      canvasPosition: buildReferenceLanePosition(
-        "character",
-        characters.filter((character) => character.canvasPinned).length,
-      ),
+      canvasPosition: position,
     });
     setCharacters((prev) => [...prev, newChar]);
     setSelectedCharacterId(newChar.id);
@@ -2061,14 +2248,11 @@ export function EditorShell({
     setNotice({ tone: "success", message: "已在参考层新增角色卡。" });
   }
 
-  function handleAddSceneAtPosition(_position: { x: number; y: number }) {
+  function handleAddSceneAtPosition(position: { x: number; y: number }) {
     const nextIndex = scenes.length + 1;
     const newScene = createSceneDefinition(nextIndex, {
       canvasPinned: true,
-      canvasPosition: buildReferenceLanePosition(
-        "scene",
-        scenes.filter((scene) => scene.canvasPinned).length,
-      ),
+      canvasPosition: position,
     });
     setScenes((prev) => [...prev, newScene]);
     setSelectedSceneId(newScene.id);
@@ -2117,25 +2301,71 @@ export function EditorShell({
     }
 
     try {
-      const rawText = await file.text();
-      const project = parseProject(JSON.parse(rawText));
+      const imported =
+        file.name.endsWith(".zip") || file.type === "application/zip"
+          ? await importProjectPackage(file)
+          : {
+              name: file.name.replace(/\.json$/i, ""),
+              description: "从工程 JSON 导入",
+              snapshot: parseProject(JSON.parse(await file.text())),
+              media: [],
+            };
+      const project = imported.snapshot;
       const hydratedEdges = hydrateProjectEdges(project);
-      applyProjectSnapshot(project, {}, {
+      const nextAssetRuntimeMap = buildRuntimeMapFromProjectMedia(imported.media);
+      applyProjectSnapshot(project, nextAssetRuntimeMap, {
         activeTemplateId: null,
         templateName: "",
         templateDescription: "",
         noticeMessage:
           hydratedEdges.skippedCount > 0 || hydratedEdges.normalizedConditionCount > 0
-            ? `工程已导入。已跳过 ${hydratedEdges.skippedCount} 条不符合树结构的连线，补全 ${hydratedEdges.normalizedConditionCount} 个缺失的条件变量；所有本地图片和视频引用都需要重新绑定。`
-            : "工程已导入。节点、角色和供应商顺序已恢复，所有本地图片和视频引用都需要重新绑定。",
+            ? `内容已导入当前项目。已跳过 ${hydratedEdges.skippedCount} 条不符合树结构的连线，补全 ${hydratedEdges.normalizedConditionCount} 个缺失的条件变量。`
+            : "内容已导入当前项目。",
       });
+      if (imported.name?.trim()) {
+        setCurrentProjectName(imported.name.trim());
+      }
+      if (imported.description !== undefined) {
+        setCurrentProjectDescription(imported.description);
+      }
     } catch (error) {
       setNotice({
         tone: "error",
         message:
           error instanceof Error
             ? error.message
-            : "导入工程失败，请检查 JSON 文件格式。",
+            : "导入项目失败，请检查文件格式。",
+      });
+    }
+  }
+
+  async function handleExportProjectPackage() {
+    if (!currentProjectId) {
+      setNotice({
+        tone: "error",
+        message: "当前还没有可导出的项目。",
+      });
+      return;
+    }
+
+    try {
+      const payload = buildCurrentProjectSavePayload();
+      const savedRecord = await saveProject(payload);
+      const loadedProject = await loadProject(savedRecord.id);
+      const bundle = await buildProjectPackageBundle(loadedProject);
+
+      downloadBlobFile(bundle.blob, bundle.fileName);
+      setLastProjectSavedAt(savedRecord.updatedAt);
+      setProjectSaveState("saved");
+      setNotice({
+        tone: "success",
+        message: "项目包已导出，可以重新导入继续编辑。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "导出项目包失败。",
       });
     }
   }
@@ -2145,11 +2375,11 @@ export function EditorShell({
     const blob = new Blob([JSON.stringify(project, null, 2)], {
       type: "application/json",
     });
-    downloadBlobFile(blob, `interactive-project-v${PROJECT_VERSION}.json`);
+    downloadBlobFile(blob, `${currentProjectName || "project"}-compat.json`);
 
     setNotice({
       tone: "success",
-      message: "工程 JSON 已导出。",
+      message: "兼容 JSON 已导出。",
     });
   }
 
@@ -2303,6 +2533,7 @@ export function EditorShell({
 
       setAgentDraft(result);
       setAgentScreenplay(null);
+      setAgentPreviewTab("overview");
       setNotice({
         tone: "success",
         message: `Agent 已生成「${result.storyTitle}」草案。`,
@@ -2365,6 +2596,7 @@ export function EditorShell({
       const result = await requestAgentScreenplay(storyText, feedback, agentDraft);
 
       setAgentScreenplay(result);
+      setAgentPreviewTab("script");
       setNotice({
         tone: "success",
         message: `Agent 已生成「${result.title}」剧本。`,
@@ -2401,6 +2633,7 @@ export function EditorShell({
       setIsGeneratingAgentScreenplay(true);
       const nextScreenplay = await requestAgentScreenplay(storyText, "", nextDraft);
       setAgentScreenplay(nextScreenplay);
+      setAgentPreviewTab("script");
       setNotice({
         tone: "success",
         message: `已随机生成「${nextScreenplay.title}」。`,
@@ -2436,13 +2669,16 @@ export function EditorShell({
     }
   }
 
-  function handleApplyAgentDraft() {
+  async function handleApplyAgentDraft() {
     if (!agentDraft) {
       return;
     }
 
     const nextGraph = applyAgentDraftToEditorGraph(agentDraft);
     const nextSessionSnapshot = {
+      currentProjectId,
+      currentProjectName,
+      currentProjectDescription,
       nodes: nextGraph.nodes,
       edges: nextGraph.edges,
       characters: nextGraph.characters,
@@ -2479,6 +2715,45 @@ export function EditorShell({
       setTemplateSaveDescription(nextSessionSnapshot.templateSaveDescription);
     });
 
+    if (currentProjectId) {
+      try {
+        const snapshot = serializeProject(
+          nextSessionSnapshot.nodes,
+          nextSessionSnapshot.edges,
+          nextSessionSnapshot.characters,
+          nextSessionSnapshot.scenes,
+          nextSessionSnapshot.settings,
+        );
+        const savedRecord = await saveProject(
+          buildProjectSaveInput({
+            projectId: currentProjectId,
+            name: currentProjectName,
+            description: currentProjectDescription,
+            snapshot,
+            media: [],
+          }),
+        );
+        await saveRecoveryDraft({
+          projectId: savedRecord.id,
+          updatedAt: savedRecord.updatedAt,
+          snapshot: savedRecord.snapshot,
+        });
+        setLastProjectSavedAt(savedRecord.updatedAt);
+        setProjectSaveState("saved");
+        setStoredActiveProjectId(savedRecord.id);
+      } catch (error) {
+        setProjectSaveState("error");
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Agent 内容写入当前项目失败。",
+        });
+        return;
+      }
+    }
+
     setNotice({
       tone: "success",
       message: `已将 Agent 草案「${agentDraft.storyTitle}」应用到画布。`,
@@ -2492,7 +2767,11 @@ export function EditorShell({
     });
 
     if (workspace === "agent") {
-      router.push("/pencil-studio-vid");
+      router.push(
+        currentProjectId
+          ? `/pencil-studio-vid?project=${currentProjectId}`
+          : "/pencil-studio-vid",
+      );
     }
   }
 
@@ -3457,6 +3736,12 @@ export function EditorShell({
         );
         const linkedNode = nodes.find((node) => node.data.assetRef?.assetId === assetId);
 
+        const isInGlobalLibrary = globalAssets.some(
+          (globalAsset) =>
+            globalAsset.sourceProjectId === currentProjectId &&
+            globalAsset.sourceAssetId === assetId,
+        );
+
         return {
           assetId,
           kind: runtimeAsset.kind,
@@ -3465,9 +3750,10 @@ export function EditorShell({
           linkedCharacters,
           linkedScenes,
           linkedNode,
+          isInGlobalLibrary,
         };
       }),
-    [assetRuntimeMap, characters, nodes, scenes],
+    [assetRuntimeMap, characters, currentProjectId, globalAssets, nodes, scenes],
   );
   const selectedNodePreviewUrl = selectedNode
     ? getNodePreviewUrl(selectedNode, assetRuntimeMap)
@@ -3478,6 +3764,22 @@ export function EditorShell({
   const selectedScenePreviewUrl = selectedScene
     ? getScenePreviewUrl(selectedScene, assetRuntimeMap)
     : SCENE_PLACEHOLDER_SVG;
+  const currentProjectStatusLabel =
+    projectSaveState === "saving"
+      ? "正在保存"
+      : projectSaveState === "dirty"
+        ? "有未同步更改"
+        : projectSaveState === "error"
+          ? "保存失败"
+          : isHydratingProject
+            ? "正在加载"
+            : "已保存";
+  const currentProjectStatusTone =
+    projectSaveState === "error"
+      ? styles.noticeError
+      : projectSaveState === "dirty"
+        ? styles.noticeInfo
+        : styles.noticeSuccess;
 
   const activeTemplateSummary =
     templateRecords.find((templateRecord) => templateRecord.id === activeTemplateId) ?? null;
@@ -3563,6 +3865,137 @@ export function EditorShell({
   useEffect(() => {
     void refreshTemplates();
   }, [refreshTemplates]);
+
+  const refreshGlobalAssets = useCallback(async () => {
+    setIsLoadingGlobalAssets(true);
+
+    try {
+      const nextAssets = await listGlobalAssets();
+      setGlobalAssets(nextAssets);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "读取全局素材库失败。",
+      });
+    } finally {
+      setIsLoadingGlobalAssets(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshGlobalAssets();
+  }, [refreshGlobalAssets]);
+
+  useEffect(() => {
+    const previewEntries = globalAssets.map((asset) => [
+      asset.id,
+      URL.createObjectURL(asset.blob),
+    ] as const);
+    const nextPreviewMap = Object.fromEntries(previewEntries);
+
+    setGlobalAssetPreviewMap(nextPreviewMap);
+
+    return () => {
+      previewEntries.forEach(([, objectUrl]) => {
+        URL.revokeObjectURL(objectUrl);
+      });
+    };
+  }, [globalAssets]);
+
+  function buildRuntimeMapFromProjectMedia(
+    mediaEntries: Array<{
+      assetId: string;
+      kind: AssetKind;
+      fileName: string;
+      mimeType?: string;
+      blob: Blob;
+    }>,
+  ) {
+    const nextAssetRuntimeMap: Record<string, RuntimeAsset> = {};
+
+    for (const mediaEntry of mediaEntries) {
+      const file = new File([mediaEntry.blob], mediaEntry.fileName, {
+        type: mediaEntry.mimeType || mediaEntry.blob.type || undefined,
+      });
+
+      nextAssetRuntimeMap[mediaEntry.assetId] = {
+        file,
+        objectUrl: URL.createObjectURL(file),
+        kind: mediaEntry.kind,
+      };
+    }
+
+    return nextAssetRuntimeMap;
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateProjectFromLibrary() {
+      if (!projectId) {
+        return;
+      }
+
+      projectHydratedRef.current = false;
+      setIsHydratingProject(true);
+
+      try {
+        const [loadedProject, recoveryDraft] = await Promise.all([
+          loadProject(projectId),
+          loadRecoveryDraft(projectId),
+        ]);
+        const resolved = resolveProjectSnapshotForEditing(
+          loadedProject.record,
+          recoveryDraft,
+        );
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextAssetRuntimeMap = buildRuntimeMapFromProjectMedia(loadedProject.media);
+        applyProjectSnapshot(resolved.snapshot, nextAssetRuntimeMap, {
+          activeTemplateId: null,
+          templateName: "",
+          templateDescription: "",
+          noticeMessage:
+            resolved.source === "recovery"
+              ? `已恢复项目「${loadedProject.record.name}」的最近自动保存。`
+              : undefined,
+        });
+        setCurrentProjectId(loadedProject.record.id);
+        setCurrentProjectName(loadedProject.record.name);
+        setCurrentProjectDescription(loadedProject.record.description);
+        setLastProjectSavedAt(loadedProject.record.updatedAt);
+        setProjectSaveState("saved");
+        projectHydratedRef.current = true;
+        setStoredActiveProjectId(loadedProject.record.id);
+        await updateProjectLastOpenedAt(loadedProject.record.id);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error ? error.message : "读取项目失败。",
+        });
+        router.replace("/projects");
+      } finally {
+        if (!cancelled) {
+          setIsHydratingProject(false);
+        }
+      }
+    }
+
+    void hydrateProjectFromLibrary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyProjectSnapshot, projectId, router]);
 
   async function buildTemplatePreviewImage(
     project: EditorProject,
@@ -3667,6 +4100,107 @@ export function EditorShell({
       previewImageUrl,
     };
   }
+
+  const buildCurrentProjectMediaInputs = useCallback(
+    (project: EditorProject): ProjectMediaInput[] => {
+      const referencedAssetIds = collectProjectReferencedAssetIds(project);
+      const mediaInputs: ProjectMediaInput[] = [];
+
+      for (const assetId of referencedAssetIds) {
+        const runtimeAsset = assetRuntimeMap[assetId];
+
+        if (!runtimeAsset) {
+          continue;
+        }
+
+        mediaInputs.push({
+          assetId,
+          kind: runtimeAsset.kind,
+          fileName: runtimeAsset.file.name,
+          mimeType: runtimeAsset.file.type || undefined,
+          blob: runtimeAsset.file,
+        });
+      }
+
+      return mediaInputs;
+    },
+    [assetRuntimeMap],
+  );
+
+  const buildCurrentProjectSavePayload = useCallback<
+    () => ReturnType<typeof buildProjectSaveInput>
+  >(() => {
+    const snapshot = serializeProject(nodes, edges, characters, scenes, settings);
+    const media = buildCurrentProjectMediaInputs(snapshot);
+
+    return buildProjectSaveInput({
+      projectId: currentProjectId ?? undefined,
+      name: currentProjectName,
+      description: currentProjectDescription,
+      snapshot,
+      media,
+    });
+  }, [
+    buildCurrentProjectMediaInputs,
+    currentProjectDescription,
+    currentProjectId,
+    currentProjectName,
+    edges,
+    nodes,
+    characters,
+    scenes,
+    settings,
+  ]);
+
+  useEffect(() => {
+    if (!currentProjectId || isHydratingProject || !projectHydratedRef.current) {
+      return;
+    }
+
+    setProjectSaveState("dirty");
+
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setProjectSaveState("saving");
+          const payload = buildCurrentProjectSavePayload();
+          const savedRecord = await saveProject(payload);
+          await saveRecoveryDraft({
+            projectId: savedRecord.id,
+            updatedAt: savedRecord.updatedAt,
+            snapshot: savedRecord.snapshot,
+          });
+          setStoredActiveProjectId(savedRecord.id);
+          setCurrentProjectId(savedRecord.id);
+          setCurrentProjectName(savedRecord.name);
+          setCurrentProjectDescription(savedRecord.description);
+          setLastProjectSavedAt(savedRecord.updatedAt);
+          setProjectSaveState("saved");
+        } catch (error) {
+          setProjectSaveState("error");
+          setNotice({
+            tone: "error",
+            message:
+              error instanceof Error ? error.message : "自动保存项目失败。",
+          });
+        }
+      })();
+    }, 720);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [
+    buildCurrentProjectSavePayload,
+    isHydratingProject,
+    currentProjectId,
+  ]);
 
   async function persistTemplate(mode: "create" | "update" | "rename") {
     const trimmedName = templateSaveName.trim();
@@ -3914,7 +4448,13 @@ export function EditorShell({
             <button
               type="button"
               className={styles.secondaryButton}
-              onClick={() => router.push("/pencil-studio-vid")}
+              onClick={() =>
+                router.push(
+                  currentProjectId
+                    ? `/pencil-studio-vid?project=${currentProjectId}`
+                    : "/pencil-studio-vid",
+                )
+              }
             >
               返回编辑器
             </button>
@@ -3945,6 +4485,23 @@ export function EditorShell({
 
         <div className={styles.agentWorkbenchStandalone}>
           <section className={styles.agentComposer}>
+            <div className={styles.agentComposerIntro}>
+              <div className={styles.agentComposerIntroText}>
+                <span className={styles.sectionTitle}>当前项目</span>
+                <strong className={styles.agentComposerProject}>
+                  {currentProjectName}
+                </strong>
+                <p className={styles.hint}>
+                  先喂故事，再看角色和场景预设，确认后一次性落到当前项目。
+                </p>
+              </div>
+              <div className={styles.agentFlowList}>
+                <span className={styles.agentFlowPill}>1. 输入故事</span>
+                <span className={styles.agentFlowPill}>2. 检查草案</span>
+                <span className={styles.agentFlowPill}>3. 应用到画布</span>
+              </div>
+            </div>
+
             <div className={styles.field}>
               <label className={styles.label}>故事模板</label>
               <textarea
@@ -3966,10 +4523,13 @@ export function EditorShell({
               />
               {agentImageUrl ? (
                 <div className={styles.agentImagePreview}>
-                  <img
+                  <Image
                     src={agentImageUrl}
                     alt="预览"
                     className={styles.agentImagePreviewImg}
+                    width={960}
+                    height={540}
+                    unoptimized
                     onError={(event) => {
                       (event.target as HTMLImageElement).style.display = "none";
                     }}
@@ -4066,30 +4626,44 @@ export function EditorShell({
                   </div>
                 ) : null}
 
-                <div className={styles.agentPreviewGrid}>
-                  <div className={styles.agentPreviewColumn}>
+                <div className={styles.agentPreviewTabs}>
+                  {(
+                    [
+                      ["overview", "总览"],
+                      ["references", "角色 / 场景"],
+                      ["storyboard", "分支 / 镜头"],
+                      ["script", "剧本"],
+                    ] as const
+                  ).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={`${styles.agentPreviewTab} ${
+                        agentPreviewTab === tab ? styles.agentPreviewTabActive : ""
+                      }`}
+                      onClick={() => setAgentPreviewTab(tab)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {agentPreviewTab === "overview" ? (
+                  <div className={styles.agentOverviewGrid}>
                     {agentDraft ? (
                       <>
                         <article className={styles.agentCard}>
                           <div className={styles.inlineHeader}>
-                            <h3 className={styles.sectionTitle}>角色预设</h3>
+                            <h3 className={styles.sectionTitle}>角色快照</h3>
                             <span className={styles.hint}>
                               {agentDraft.characters.length} 个
                             </span>
                           </div>
-                          <div className={styles.agentCardList}>
+                          <div className={styles.agentCompactList}>
                             {agentDraft.characters.map((character) => (
-                              <div key={character.id} className={styles.agentListItem}>
-                                <div className={styles.agentListHead}>
-                                  <strong>{character.name}</strong>
-                                  <span className={styles.characterIdBadge}>
-                                    @{character.id}
-                                  </span>
-                                </div>
-                                <p className={styles.hint}>{character.bio}</p>
-                                <pre className={styles.agentPrompt}>
-                                  {character.appearancePrompt}
-                                </pre>
+                              <div key={character.id} className={styles.agentCompactItem}>
+                                <strong>{character.name}</strong>
+                                <span className={styles.hint}>{character.bio}</span>
                               </div>
                             ))}
                           </div>
@@ -4097,38 +4671,26 @@ export function EditorShell({
 
                         <article className={styles.agentCard}>
                           <div className={styles.inlineHeader}>
-                            <h3 className={styles.sectionTitle}>场景预设</h3>
+                            <h3 className={styles.sectionTitle}>场景快照</h3>
                             <span className={styles.hint}>
                               {agentDraft.scenePresets.length} 个
                             </span>
                           </div>
-                          <div className={styles.agentCardList}>
+                          <div className={styles.agentCompactList}>
                             {agentDraft.scenePresets.map((scenePreset) => (
-                              <div key={scenePreset.id} className={styles.agentListItem}>
-                                <div className={styles.agentListHead}>
-                                  <strong>{scenePreset.name}</strong>
-                                  <span className={styles.characterIdBadge}>
-                                    #{scenePreset.id}
-                                  </span>
-                                </div>
-                                <p className={styles.hint}>{scenePreset.description}</p>
-                                <pre className={styles.agentPrompt}>
-                                  {scenePreset.appearancePrompt}
-                                </pre>
+                              <div key={scenePreset.id} className={styles.agentCompactItem}>
+                                <strong>{scenePreset.name}</strong>
+                                <span className={styles.hint}>
+                                  {scenePreset.description}
+                                </span>
                               </div>
                             ))}
                           </div>
                         </article>
-                      </>
-                    ) : null}
-                  </div>
 
-                  <div className={styles.agentPreviewColumn}>
-                    {agentDraft ? (
-                      <>
                         <article className={styles.agentCard}>
                           <div className={styles.inlineHeader}>
-                            <h3 className={styles.sectionTitle}>分支与结果</h3>
+                            <h3 className={styles.sectionTitle}>分支走向</h3>
                             <span className={styles.hint}>
                               Root {agentRootSceneCount}
                             </span>
@@ -4138,9 +4700,7 @@ export function EditorShell({
                               <div key={branch.id} className={styles.agentListItem}>
                                 <div className={styles.agentListHead}>
                                   <strong>{branch.name}</strong>
-                                  <span className={styles.providerBadge}>
-                                    {branch.tone}
-                                  </span>
+                                  <span className={styles.providerBadge}>{branch.tone}</span>
                                 </div>
                                 <p className={styles.hint}>{branch.predictedOutcome}</p>
                               </div>
@@ -4150,65 +4710,171 @@ export function EditorShell({
 
                         <article className={styles.agentCard}>
                           <div className={styles.inlineHeader}>
-                            <h3 className={styles.sectionTitle}>镜头草案</h3>
+                            <h3 className={styles.sectionTitle}>下一步</h3>
                             <span className={styles.hint}>
-                              {agentDraft.transitions.length} 条连接
+                              {agentScreenplay ? "剧本已就绪" : "继续补足剧本"}
                             </span>
                           </div>
-                          <div className={styles.agentSceneGrid}>
-                            {agentSceneGroups.map((group) => (
-                              <div key={group.id} className={styles.agentSceneGroup}>
-                                <div className={styles.agentSceneGroupHead}>
-                                  <strong>{group.name}</strong>
-                                  <span className={styles.hint}>{group.tone}</span>
-                                </div>
-                                <p className={styles.hint}>{group.predictedOutcome}</p>
-                                <div className={styles.agentSceneGroupList}>
-                                  {group.scenes.map((scene) => (
-                                    <div key={scene.id} className={styles.agentListItem}>
-                                      <div className={styles.agentListHead}>
-                                        <strong>{scene.title}</strong>
-                                        <span className={styles.hint}>
-                                          {scene.durationSec} 秒
-                                        </span>
-                                      </div>
-                                      <p className={styles.hint}>{scene.summary}</p>
-                                      <pre className={styles.agentPrompt}>
-                                        {scene.videoPrompt}
-                                      </pre>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
+                          <div className={styles.agentCompactList}>
+                            <div className={styles.agentCompactItem}>
+                              <strong>先检查角色与场景</strong>
+                              <span className={styles.hint}>
+                                重点确认人物辨识度、场景氛围和分支结果是否够清楚。
+                              </span>
+                            </div>
+                            <div className={styles.agentCompactItem}>
+                              <strong>再决定是否直接落图</strong>
+                              <span className={styles.hint}>
+                                “应用到画布”会把草案写进当前项目，并触发后续自动保存。
+                              </span>
+                            </div>
                           </div>
                         </article>
                       </>
                     ) : null}
-
-                    {agentScreenplay ? (
-                      <article className={styles.agentScriptCard}>
-                        <div className={styles.agentScriptMeta}>
-                          <h3 className={styles.sectionTitle}>剧本</h3>
-                          <strong>{agentScreenplay.title}</strong>
-                          <p className={styles.hint}>{agentScreenplay.logline}</p>
-                        </div>
-                        <div className={styles.agentScriptActions}>
-                          <button
-                            type="button"
-                            className={styles.secondaryButton}
-                            onClick={() => void handleCopyAgentScreenplay()}
-                          >
-                            复制剧本
-                          </button>
-                        </div>
-                        <pre className={styles.agentScriptText}>
-                          {agentScreenplay.script}
-                        </pre>
-                      </article>
-                    ) : null}
                   </div>
-                </div>
+                ) : null}
+
+                {agentPreviewTab === "references" && agentDraft ? (
+                  <div className={styles.agentReferenceGrid}>
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>角色预设</h3>
+                        <span className={styles.hint}>{agentDraft.characters.length} 个</span>
+                      </div>
+                      <div className={styles.agentCardList}>
+                        {agentDraft.characters.map((character) => (
+                          <div key={character.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{character.name}</strong>
+                              <span className={styles.characterIdBadge}>
+                                @{character.id}
+                              </span>
+                            </div>
+                            <p className={styles.hint}>{character.bio}</p>
+                            <pre className={styles.agentPrompt}>
+                              {character.appearancePrompt}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>场景预设</h3>
+                        <span className={styles.hint}>
+                          {agentDraft.scenePresets.length} 个
+                        </span>
+                      </div>
+                      <div className={styles.agentCardList}>
+                        {agentDraft.scenePresets.map((scenePreset) => (
+                          <div key={scenePreset.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{scenePreset.name}</strong>
+                              <span className={styles.characterIdBadge}>
+                                #{scenePreset.id}
+                              </span>
+                            </div>
+                            <p className={styles.hint}>{scenePreset.description}</p>
+                            <pre className={styles.agentPrompt}>
+                              {scenePreset.appearancePrompt}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {agentPreviewTab === "storyboard" && agentDraft ? (
+                  <div className={styles.agentStoryboardGrid}>
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>分支与结果</h3>
+                        <span className={styles.hint}>Root {agentRootSceneCount}</span>
+                      </div>
+                      <div className={styles.agentBranchGrid}>
+                        {agentDraft.branches.map((branch) => (
+                          <div key={branch.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{branch.name}</strong>
+                              <span className={styles.providerBadge}>{branch.tone}</span>
+                            </div>
+                            <p className={styles.hint}>{branch.predictedOutcome}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>镜头草案</h3>
+                        <span className={styles.hint}>
+                          {agentDraft.transitions.length} 条连接
+                        </span>
+                      </div>
+                      <div className={styles.agentSceneGrid}>
+                        {agentSceneGroups.map((group) => (
+                          <div key={group.id} className={styles.agentSceneGroup}>
+                            <div className={styles.agentSceneGroupHead}>
+                              <strong>{group.name}</strong>
+                              <span className={styles.hint}>{group.tone}</span>
+                            </div>
+                            <p className={styles.hint}>{group.predictedOutcome}</p>
+                            <div className={styles.agentSceneGroupList}>
+                              {group.scenes.map((scene) => (
+                                <div key={scene.id} className={styles.agentListItem}>
+                                  <div className={styles.agentListHead}>
+                                    <strong>{scene.title}</strong>
+                                    <span className={styles.hint}>
+                                      {scene.durationSec} 秒
+                                    </span>
+                                  </div>
+                                  <p className={styles.hint}>{scene.summary}</p>
+                                  <pre className={styles.agentPrompt}>
+                                    {scene.videoPrompt}
+                                  </pre>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {agentPreviewTab === "script" ? (
+                  agentScreenplay ? (
+                    <article className={styles.agentScriptCard}>
+                      <div className={styles.agentScriptMeta}>
+                        <h3 className={styles.sectionTitle}>剧本</h3>
+                        <strong>{agentScreenplay.title}</strong>
+                        <p className={styles.hint}>{agentScreenplay.logline}</p>
+                      </div>
+                      <div className={styles.agentScriptActions}>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => void handleCopyAgentScreenplay()}
+                        >
+                          复制剧本
+                        </button>
+                      </div>
+                      <pre className={styles.agentScriptText}>
+                        {agentScreenplay.script}
+                      </pre>
+                    </article>
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>还没有剧本</p>
+                      <p className={styles.hint}>
+                        先生成草案，再点“生成剧本”，这里会显示完整可复制的长文本。
+                      </p>
+                    </div>
+                  )
+                ) : null}
               </>
             ) : (
               <div className={styles.emptyState}>
@@ -4242,9 +4908,50 @@ export function EditorShell({
             </p>
           </section>
 
+          <section className={styles.sidebarProjectCard}>
+            <div className={styles.sidebarProjectHead}>
+              <div className={styles.sidebarProjectText}>
+                <span className={styles.sectionTitle}>当前项目</span>
+                <strong className={styles.sidebarProjectName}>{currentProjectName}</strong>
+              </div>
+              <span className={`${styles.sidebarStatusPill} ${currentProjectStatusTone}`}>
+                {currentProjectStatusLabel}
+              </span>
+            </div>
+            <p className={styles.heroBody}>
+              最近自动保存：
+              {lastProjectSavedAt ? ` ${formatTemplateUpdatedAt(lastProjectSavedAt)}` : " 暂无"}
+            </p>
+            <div className={styles.sidebarButtonRow}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => router.push("/projects")}
+              >
+                回到项目库
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() =>
+                  router.push(
+                    currentProjectId
+                      ? `/pencil-studio-vid/agent?project=${currentProjectId}`
+                      : "/pencil-studio-vid/agent",
+                  )
+                }
+              >
+                Agent 工作台
+              </button>
+            </div>
+          </section>
+
           <section className={styles.section}>
-            <h2 className={styles.sectionTitle}>操作</h2>
-            <div className={styles.actionGrid}>
+            <div className={styles.inlineHeader}>
+              <h2 className={styles.sectionTitle}>创作入口</h2>
+              <span className={styles.hint}>主流程</span>
+            </div>
+            <div className={styles.sidebarPrimaryAction}>
               <button
                 type="button"
                 className={styles.primaryButton}
@@ -4252,6 +4959,8 @@ export function EditorShell({
               >
                 添加视频节点
               </button>
+            </div>
+            <div className={styles.sidebarActionGrid}>
               <button
                 type="button"
                 className={styles.secondaryButton}
@@ -4290,7 +4999,13 @@ export function EditorShell({
               <button
                 type="button"
                 className={styles.secondaryButton}
-                onClick={() => router.push("/pencil-studio-vid/agent")}
+                onClick={() =>
+                  router.push(
+                    currentProjectId
+                      ? `/pencil-studio-vid/agent?project=${currentProjectId}`
+                      : "/pencil-studio-vid/agent",
+                  )
+                }
               >
                 Agent 工作台
               </button>
@@ -4298,7 +5013,7 @@ export function EditorShell({
                 ref={importInputRef}
                 className={styles.hiddenInput}
                 type="file"
-                accept="application/json"
+                accept=".zip,application/zip,application/json,.json"
                 onChange={handleImportChange}
               />
             </div>
@@ -4325,10 +5040,10 @@ export function EditorShell({
               <button
                 type="button"
                 className={styles.summaryCard}
-                onClick={() => openResourceDrawer("assets")}
+                onClick={() => openResourceDrawer("project-assets")}
               >
                 <strong>{assetLibraryItems.length}</strong>
-                <span>图片 / 视频</span>
+                <span>项目素材</span>
               </button>
               <button
                 type="button"
@@ -4453,6 +5168,16 @@ export function EditorShell({
               <strong>主叙事层</strong>
               <p>剧情节点和分支只在中轴区域自上而下生长。</p>
             </div>
+          </div>
+          <div className={styles.canvasProjectCard}>
+            <span className={styles.layerLegendEyebrow}>Current Project</span>
+            <strong>{currentProjectName}</strong>
+            <p>
+              {currentProjectStatusLabel}
+              {lastProjectSavedAt
+                ? ` · ${formatTemplateUpdatedAt(lastProjectSavedAt)}`
+                : ""}
+            </p>
           </div>
 
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
@@ -4722,8 +5447,17 @@ export function EditorShell({
                     生成结果：
                     {selectedNode.data.generatedVideoUrl ? "已生成，可预览" : "暂无"}
                   </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
                   <p className={styles.assetMeta}>
                     本地素材：{selectedNode.data.assetRef?.fileName ?? "未绑定"}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    素材范围：
+                    {selectedNode.data.generatedVideoUrl
+                      ? " 生成结果优先"
+                      : selectedNode.data.assetRef
+                        ? " 当前项目素材"
+                        : " 暂无本地素材"}
                   </p>
                   <div className={styles.secondaryActions}>
                     <label className={styles.secondaryButton}>
@@ -5167,6 +5901,7 @@ export function EditorShell({
                   <p className={styles.assetStatus}>
                     {selectedCharacter.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
                   </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
                   <div className={styles.referenceStage}>
                     <div className={styles.referenceHero}>
                       <Image
@@ -5370,6 +6105,7 @@ export function EditorShell({
                   <p className={styles.assetStatus}>
                     {selectedScene.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
                   </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
                   <div className={styles.referenceStage}>
                     <div className={styles.referenceHero}>
                       <Image
@@ -5869,7 +6605,8 @@ export function EditorShell({
                 [
                   ["characters", "角色"],
                   ["scenes", "场景"],
-                  ["assets", "图片 / 视频"],
+                  ["project-assets", "项目素材"],
+                  ["global-assets", "全局素材"],
                 ] as const
               ).map(([tab, label]) => (
                 <button
@@ -6012,10 +6749,10 @@ export function EditorShell({
                 </div>
               ) : null}
 
-              {leftDrawerTab === "assets" ? (
+              {leftDrawerTab === "project-assets" ? (
                 <div className={styles.drawerSection}>
                   <div className={styles.inlineHeader}>
-                    <h3 className={styles.sectionTitle}>资产</h3>
+                    <h3 className={styles.sectionTitle}>项目素材</h3>
                     <span className={styles.hint}>{assetLibraryItems.length} 项</span>
                   </div>
                   {assetLibraryItems.length === 0 ? (
@@ -6050,8 +6787,17 @@ export function EditorShell({
                             <strong className={styles.assetLibraryName}>{asset.fileName}</strong>
                             <p className={styles.assetLibraryMeta}>
                               {asset.kind === "image" ? "图片" : "视频"}
+                              {asset.isInGlobalLibrary ? " · 已收藏到全局库" : ""}
                             </p>
                             <div className={styles.actionGrid}>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => void saveAssetToGlobalLibrary(asset.assetId)}
+                                disabled={asset.isInGlobalLibrary}
+                              >
+                                {asset.isInGlobalLibrary ? "已收藏" : "收藏到全局库"}
+                              </button>
                               {asset.kind === "image" && selectedCharacter ? (
                                 <button
                                   type="button"
@@ -6094,6 +6840,107 @@ export function EditorShell({
                                   绑定到当前节点
                                 </button>
                               ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "global-assets" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>全局素材</h3>
+                    <span className={styles.hint}>
+                      {isLoadingGlobalAssets ? "读取中..." : `${globalAssets.length} 项`}
+                    </span>
+                  </div>
+                  {isLoadingGlobalAssets ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>正在读取全局素材库</p>
+                    </div>
+                  ) : globalAssets.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>还没有全局素材</p>
+                      <p className={styles.hint}>
+                        在“项目素材”里把常用图像或视频收藏进来，后面就能跨项目复用了。
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={styles.assetLibraryGrid}>
+                      {globalAssets.map((asset) => (
+                        <article key={asset.id} className={styles.assetLibraryCard}>
+                          <div className={styles.assetLibraryMedia}>
+                            {asset.kind === "image" ? (
+                              <Image
+                                className={styles.assetLibraryImage}
+                                src={globalAssetPreviewMap[asset.id] ?? REFERENCE_PLACEHOLDER_SVG}
+                                alt={asset.fileName}
+                                width={480}
+                                height={480}
+                                unoptimized
+                              />
+                            ) : (
+                              <video
+                                className={styles.assetLibraryVideo}
+                                src={globalAssetPreviewMap[asset.id]}
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            )}
+                          </div>
+                          <div className={styles.assetLibraryBody}>
+                            <strong className={styles.assetLibraryName}>{asset.name}</strong>
+                            <p className={styles.assetLibraryMeta}>
+                              {asset.kind === "image" ? "图片" : "视频"}
+                            </p>
+                            <div className={styles.actionGrid}>
+                              {asset.kind === "image" && selectedCharacter ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalImageToCharacter(
+                                      selectedCharacter.id,
+                                      asset.id,
+                                    )
+                                  }
+                                >
+                                  复用到角色
+                                </button>
+                              ) : null}
+                              {asset.kind === "image" && selectedScene ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalImageToScene(selectedScene.id, asset.id)
+                                  }
+                                >
+                                  复用到场景
+                                </button>
+                              ) : null}
+                              {asset.kind === "video" && selectedNode ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalVideoToNode(selectedNode.id, asset.id)
+                                  }
+                                >
+                                  绑定到节点
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className={styles.dangerButton}
+                                onClick={() => void handleDeleteGlobalAsset(asset.id)}
+                              >
+                                删除收藏
+                              </button>
                             </div>
                           </div>
                         </article>
@@ -6255,8 +7102,8 @@ export function EditorShell({
           >
             <div className={styles.exportModalHeader}>
               <div>
-                <h2 className={styles.exportModalTitle}>导入 & 导出</h2>
-                <p className={styles.exportModalSubtitle}>管理工程文件和成片导出</p>
+                <h2 className={styles.exportModalTitle}>导出与继续编辑</h2>
+                <p className={styles.exportModalSubtitle}>把当前项目导出成继续编辑的工程包，或者导出成可交付的互动内容</p>
               </div>
               <button
                 type="button"
@@ -6270,11 +7117,11 @@ export function EditorShell({
 
             <div className={styles.exportGrid}>
               <article className={styles.exportCard}>
-                <div className={styles.exportCardIcon}>📄</div>
+                <div className={styles.exportCardIcon}>📦</div>
                 <div className={styles.exportCardBody}>
-                  <h3 className={styles.exportCardTitle}>工程 JSON</h3>
+                  <h3 className={styles.exportCardTitle}>项目包</h3>
                   <p className={styles.exportCardDesc}>
-                    导入或导出节点、过渡、角色和场景卡结构
+                    带着项目结构和本地素材一起打包，后面可重新导入继续编辑
                   </p>
                 </div>
                 <div className={styles.exportCardActions}>
@@ -6283,14 +7130,21 @@ export function EditorShell({
                     className={styles.secondaryButton}
                     onClick={() => importInputRef.current?.click()}
                   >
-                    导入
+                    导入项目
                   </button>
                   <button
                     type="button"
                     className={styles.primaryButton}
+                    onClick={() => void handleExportProjectPackage()}
+                  >
+                    导出项目包
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
                     onClick={handleExportProjectJson}
                   >
-                    导出
+                    兼容 JSON
                   </button>
                 </div>
               </article>
@@ -6300,7 +7154,7 @@ export function EditorShell({
                 <div className={styles.exportCardBody}>
                   <h3 className={styles.exportCardTitle}>互动版 HTML</h3>
                   <p className={styles.exportCardDesc}>
-                    播完片段后出现选项分支，可直接在浏览器打开体验
+                    面向交付的可玩版本，视频播完后出现选项分支
                   </p>
                 </div>
                 <div className={styles.exportCardActions}>
@@ -6326,7 +7180,7 @@ export function EditorShell({
                 <div className={styles.exportCardBody}>
                   <h3 className={styles.exportCardTitle}>全分支遍历版</h3>
                   <p className={styles.exportCardDesc}>
-                    每条路径单独导出为独立的纯视频播放页
+                    面向审片和复查的线性观看版本，每条路径各导出一份
                   </p>
                 </div>
                 <div className={styles.exportCardActions}>
