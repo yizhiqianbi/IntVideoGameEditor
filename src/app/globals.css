@@ -32,6 +32,9 @@
   --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.4);
   --shadow-card-hover: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(124, 77, 255, 0.2);
 
+  /* Nav height */
+  --nav-height: 60px;
+
   /* Radius tokens */
   --radius-sm: 6px;
   --radius-md: 10px;

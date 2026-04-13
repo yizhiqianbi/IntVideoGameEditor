@@ -1,0 +1,122 @@
+.topNav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  width: 100%;
+  height: var(--nav-height);
+  background: rgba(14, 14, 18, 0.88);
+  backdrop-filter: blur(20px) saturate(1.4);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 1px 0 rgba(124, 77, 255, 0.12), 0 4px 24px rgba(0, 0, 0, 0.32);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  width: min(1280px, calc(100vw - 48px));
+  margin: 0 auto;
+  height: 100%;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  text-decoration: none;
+  color: inherit;
+}
+
+.logoMark {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  background: var(--gradient-accent);
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  box-shadow: var(--glow-accent);
+  flex-shrink: 0;
+}
+
+.logoText {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.navLinks {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+}
+
+.navLink {
+  padding: 6px 14px;
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-muted);
+  text-decoration: none;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+
+.navLink:hover {
+  color: var(--color-text);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.navLinkActive {
+  color: var(--color-text);
+  background: rgba(124, 77, 255, 0.12);
+}
+
+.navLinkActive:hover {
+  background: rgba(124, 77, 255, 0.18);
+}
+
+.ctaButton {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 14px rgba(124, 77, 255, 0.35);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  white-space: nowrap;
+}
+
+.ctaButton:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(124, 77, 255, 0.45);
+}
+
+@media (max-width: 640px) {
+  .inner {
+    gap: 16px;
+    width: calc(100vw - 24px);
+  }
+
+  .logoText {
+    display: none;
+  }
+
+  .navLink {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+}

@@ -90,7 +90,7 @@ export default function RegisterPage() {
   return (
     <main className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Pencil Studio</h1>
+        <h1 className={styles.title}>Fun-X-Studio</h1>
         <p className={styles.subtitle}>Create your account</p>
         <p className={styles.bonus}>200 free credits to start</p>
 

@@ -63,7 +63,7 @@ export default function LoginPage() {
   return (
     <main className={styles.page}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Pencil Studio</h1>
+        <h1 className={styles.title}>Fun-X-Studio</h1>
         <p className={styles.subtitle}>Sign in to your account</p>
 
         <form onSubmit={handleSubmit} className={styles.form}>

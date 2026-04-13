@@ -389,7 +389,7 @@ function buildBaseHtml({
         </div>
       </div>
       <div id="sceneIndicator" class="sceneIndicator" hidden></div>
-      <div class="watermark">PencilStudio</div>
+      <div class="watermark">Fun-X-Studio</div>
     </main>
     <script id="payload" type="application/json">${serializeForHtml(payload)}</script>
     <script>

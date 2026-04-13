@@ -9,30 +9,12 @@ import {
 } from "./project";
 
 function getStatusLabel(node: EditorFlowNode) {
-  if (node.data.assetStatus === "generating") {
-    return "生成中";
-  }
-
-  if (node.data.assetStatus === "generated") {
-    return "已生成";
-  }
-
-  if (node.data.assetStatus === "failed") {
-    return "生成失败";
-  }
-
-  if (node.data.assetStatus === "ready") {
-    return "本地预览";
-  }
-
-  if (node.data.assetStatus === "missing") {
-    return "待重绑";
-  }
-
-  if (node.data.assetStatus === "unsupported") {
-    return "不可预览";
-  }
-
+  if (node.data.assetStatus === "generating") return "生成中";
+  if (node.data.assetStatus === "generated") return "已生成";
+  if (node.data.assetStatus === "failed") return "失败";
+  if (node.data.assetStatus === "ready") return "本地";
+  if (node.data.assetStatus === "missing") return "待重绑";
+  if (node.data.assetStatus === "unsupported") return "不可预览";
   return "未绑定";
 }
 
@@ -60,7 +42,6 @@ function getPlaceholderCopy(node: EditorFlowNode) {
         body: "任务已经完成，编辑器正在拉取最终的视频播放地址。",
       };
     }
-
     return {
       title: "正在生成视频",
       body:
@@ -84,17 +65,30 @@ function getPlaceholderCopy(node: EditorFlowNode) {
   };
 }
 
+const STATUS_CLASS: Record<string, string> = {
+  ready: styles.ready,
+  generated: styles.generated,
+  generating: styles.generating,
+  missing: styles.missing,
+  unsupported: styles.unsupported,
+  failed: styles.failed,
+  empty: styles.empty,
+};
+
 export function VideoSceneNode({
   id,
   data,
   selected,
 }: NodeProps<EditorFlowNode>) {
-  const placeholderCopy = getPlaceholderCopy({
+  const node = {
     id,
     type: "videoScene",
     position: { x: 0, y: 0 },
     data,
-  } as EditorFlowNode);
+  } as EditorFlowNode;
+
+  const placeholderCopy = getPlaceholderCopy(node);
+  const statusClass = STATUS_CLASS[data.assetStatus] ?? styles.empty;
 
   return (
     <article
@@ -115,39 +109,7 @@ export function VideoSceneNode({
         className={styles.handle}
       />
 
-      <header className={styles.header}>
-        <div className={styles.titleBlock}>
-          <span className={styles.eyebrow}>Video Scene</span>
-          <h3 className={styles.title}>{data.title || "未命名节点"}</h3>
-        </div>
-        <span
-          className={[
-            styles.status,
-            data.assetStatus === "ready" ? styles.ready : "",
-            data.assetStatus === "generated" ? styles.generated : "",
-            data.assetStatus === "generating" ? styles.generating : "",
-            data.assetStatus === "missing" ? styles.missing : "",
-            data.assetStatus === "unsupported" ? styles.unsupported : "",
-            data.assetStatus === "failed" ? styles.failed : "",
-            data.assetStatus === "empty" ? styles.empty : "",
-          ]
-            .filter(Boolean)
-            .join(" ")}
-        >
-          {getStatusLabel({
-            id,
-            type: "videoScene",
-            position: { x: 0, y: 0 },
-            data,
-          } as EditorFlowNode)}
-        </span>
-      </header>
-
-      <div className={styles.metaStrip}>
-        <span>{data.actions.length} 个动作</span>
-        <span>{data.generation.providerId === "auto" ? "按优先级" : data.generation.providerId}</span>
-      </div>
-
+      {/* ── Video / image area — full bleed, 16:9 ── */}
       <div className={styles.videoFrame}>
         {data.previewUrl ? (
           <video
@@ -168,6 +130,27 @@ export function VideoSceneNode({
             </div>
           </div>
         )}
+
+        {/* Status badge — overlaid on frame */}
+        <span className={`${styles.status} ${statusClass}`}>
+          {getStatusLabel(node)}
+        </span>
+      </div>
+
+      {/* ── Info bar below frame ── */}
+      <header className={styles.header}>
+        <div className={styles.titleBlock}>
+          <h3 className={styles.title}>{data.title || "未命名节点"}</h3>
+        </div>
+      </header>
+
+      <div className={styles.metaStrip}>
+        <span>{data.actions.length} 个动作</span>
+        <span>
+          {data.generation.providerId === "auto"
+            ? "按优先级"
+            : data.generation.providerId}
+        </span>
       </div>
     </article>
   );

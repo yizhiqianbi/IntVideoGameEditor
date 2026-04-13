@@ -16,8 +16,8 @@ const monoFont = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "PencilStudio-VideoGame",
-  description: "PencilStudio-VideoGame 互动影视编辑工作台。",
+  title: "Fun-X-Studio",
+  description: "Fun-X-Studio 互动影游创作工作台。",
 };
 
 export default function RootLayout({

@@ -1,385 +1,616 @@
+/* ─── Page Shell ─────────────────────────────────────────────────── */
 .page {
-  min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(118, 74, 255, 0.18), transparent 32%),
-    linear-gradient(180deg, #0b0b11 0%, #0f1018 100%);
-  color: #f5f7fb;
+  min-height: calc(100vh - var(--nav-height));
 }
 
 .shell {
   width: min(1280px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 40px 0 64px;
-  display: grid;
-  gap: 24px;
-}
-
-.hero {
-  display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
-  gap: 24px;
-  align-items: stretch;
-}
-
-.heroCard,
-.sideCard,
-.projectCard {
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(18, 19, 28, 0.84);
-  border-radius: 24px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
-}
-
-.heroCard {
-  padding: 32px;
-  display: grid;
-  gap: 22px;
-  overflow: hidden;
-  position: relative;
-}
-
-.heroCard::after {
-  content: "";
-  position: absolute;
-  inset: auto -80px -140px auto;
-  width: 320px;
-  height: 320px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(113, 57, 255, 0.22), transparent 68%);
-  pointer-events: none;
-}
-
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.56);
-}
-
-.title {
-  font-size: clamp(40px, 6vw, 72px);
-  line-height: 0.94;
-  margin: 0;
-}
-
-.heroActions,
-.projectActions,
-.renameActions {
+  padding: 28px 0 80px;
   display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.heroTitleRow {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 20px;
 }
 
-.heroTitleBlock {
-  display: grid;
-  gap: 12px;
-}
-
-.heroMetaChips {
+/* ─── Page Header ────────────────────────────────────────────────── */
+.pageHeader {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 10px;
-  max-width: 280px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 
-.heroMetaChip {
+.pageTitle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pageTitle h1 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
+}
+
+.countBadge {
   display: inline-flex;
   align-items: center;
-  min-height: 34px;
-  padding: 0 14px;
+  justify-content: center;
+  min-width: 26px;
+  height: 22px;
+  padding: 0 8px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.72);
+  background: rgba(124, 77, 255, 0.16);
+  border: 1px solid rgba(124, 77, 255, 0.22);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
+  color: rgba(163, 128, 255, 0.9);
+  font-family: var(--font-mono);
 }
 
-.primaryButton,
-.secondaryButton,
-.dangerButton {
-  height: 48px;
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────── */
+.primaryButton {
+  height: 36px;
   padding: 0 18px;
-  border-radius: 16px;
-  border: 1px solid transparent;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
   font: inherit;
+  font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+  box-shadow: 0 4px 14px rgba(124, 77, 255, 0.3);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
 }
 
-.primaryButton:hover,
-.secondaryButton:hover,
-.dangerButton:hover {
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.88;
   transform: translateY(-1px);
 }
 
-.primaryButton {
-  color: #fff;
-  background: linear-gradient(135deg, #6a35ff 0%, #0bb6ff 100%);
-  box-shadow: 0 18px 32px rgba(57, 90, 255, 0.28);
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .secondaryButton {
-  color: #f5f7fb;
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
   background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.12);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  white-space: nowrap;
 }
 
+.secondaryButton:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+/* Inline save/cancel buttons (same size as above, used in rename panel) */
+.saveButton {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+.cancelButton {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cancelButton:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-text);
+}
+
+/* Danger text link */
 .dangerButton {
-  color: #ffb6b4;
-  background: rgba(122, 24, 24, 0.18);
-  border-color: rgba(255, 120, 120, 0.2);
+  height: auto;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
 }
 
-.sideCard {
-  padding: 28px;
-  display: grid;
-  gap: 18px;
+.dangerButton:hover {
+  opacity: 1;
 }
 
-.sideCover,
-.sideCoverPlaceholder {
-  width: 100%;
-  border-radius: 18px;
-  overflow: hidden;
-}
-
-.sideCover {
-  height: 180px;
-  object-fit: cover;
-}
-
-.sideCoverPlaceholder {
-  display: grid;
-  place-items: center;
-  height: 180px;
-  color: rgba(255, 255, 255, 0.42);
-  background:
-    radial-gradient(circle at 26% 28%, rgba(104, 60, 255, 0.44), transparent 28%),
-    linear-gradient(135deg, rgba(24, 26, 40, 0.96), rgba(10, 10, 18, 0.98));
-}
-
-.featuredProject {
+/* ─── Stats Bar ──────────────────────────────────────────────────── */
+.statsBar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(85, 48, 255, 0.18), rgba(20, 183, 255, 0.08)),
-    rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 14px 24px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
 }
 
-.featuredProjectName {
-  display: block;
-  margin-top: 4px;
-  font-size: 18px;
-}
-
-.statsGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.stat {
-  padding: 16px;
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  display: grid;
-  gap: 4px;
-}
-
-.stat strong {
-  font-size: 28px;
-}
-
-.section {
-  display: grid;
-  gap: 16px;
-}
-
-.sectionHeader {
+.statItem {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
+  gap: 8px;
+  padding: 0 20px;
 }
 
-.sectionHeader h2 {
-  margin: 0;
-  font-size: 24px;
+.statItem:first-child {
+  padding-left: 0;
 }
 
-.hint {
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 14px;
+.statValue {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-family: var(--font-mono);
+  color: var(--color-text);
 }
 
+.statLabel {
+  font-size: 13px;
+  color: var(--color-muted);
+}
+
+.statDivider {
+  width: 1px;
+  height: 28px;
+  background: var(--color-line);
+  flex-shrink: 0;
+}
+
+/* ─── Notice ─────────────────────────────────────────────────────── */
 .notice {
-  padding: 14px 16px;
-  border-radius: 16px;
-  font-size: 14px;
-  color: #eff7ff;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-text);
 }
 
 .noticeInfo {
-  background: rgba(53, 106, 255, 0.16);
-  border: 1px solid rgba(73, 143, 255, 0.22);
+  background: rgba(53, 106, 255, 0.12);
+  border: 1px solid rgba(73, 143, 255, 0.2);
 }
 
 .noticeError {
-  background: rgba(123, 27, 27, 0.24);
-  border: 1px solid rgba(255, 120, 120, 0.24);
+  background: rgba(123, 27, 27, 0.2);
+  border: 1px solid rgba(255, 120, 120, 0.22);
 }
 
+/* ─── Section Label ──────────────────────────────────────────────── */
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+/* ─── Featured Card (最近使用, horizontal layout) ─────────────────── */
+.projectCardFeatured {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  transition:
+    border-color var(--transition-med),
+    box-shadow var(--transition-med),
+    transform var(--transition-med);
+}
+
+.projectCardFeatured:hover {
+  border-color: rgba(124, 77, 255, 0.22);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+.projectCardFeatured .coverWrap {
+  width: 340px;
+  height: 192px;
+  flex-shrink: 0;
+}
+
+/* ─── Project Grid ───────────────────────────────────────────────── */
 .projectGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
 }
 
+/* ─── Project Card ───────────────────────────────────────────────── */
 .projectCard {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-line);
+  background: var(--color-surface);
   overflow: hidden;
-  display: grid;
-  grid-template-rows: 180px auto;
+  display: flex;
+  flex-direction: column;
+  transition:
+    border-color var(--transition-med),
+    box-shadow var(--transition-med),
+    transform var(--transition-med);
 }
 
-.cover,
-.coverPlaceholder {
+.projectCard:hover {
+  border-color: rgba(124, 77, 255, 0.22);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-2px);
+}
+
+/* ─── Cover Wrap ─────────────────────────────────────────────────── */
+.coverWrap {
+  position: relative;
   width: 100%;
-  height: 100%;
+  height: 170px;
+  overflow: hidden;
+  background: rgba(14, 14, 20, 0.8);
+  flex-shrink: 0;
 }
 
 .cover {
+  width: 100%;
+  height: 100%;
   object-fit: cover;
+  display: block;
+  transition: transform var(--transition-med);
+}
+
+.projectCard:hover .cover,
+.projectCardFeatured:hover .cover {
+  transform: scale(1.04);
 }
 
 .coverPlaceholder {
+  width: 100%;
+  height: 100%;
   display: grid;
   place-items: center;
-  color: rgba(255, 255, 255, 0.42);
   background:
-    radial-gradient(circle at 24% 28%, rgba(104, 60, 255, 0.44), transparent 30%),
-    linear-gradient(135deg, rgba(24, 26, 40, 0.96), rgba(10, 10, 18, 0.98));
+    radial-gradient(circle at 30% 30%, rgba(104, 60, 255, 0.32), transparent 42%),
+    linear-gradient(135deg, rgba(24, 26, 40, 0.97), rgba(10, 10, 18, 0.99));
 }
 
+.coverPlaceholderIcon {
+  font-size: 32px;
+  opacity: 0.4;
+}
+
+/* Hover overlay — dark scrim with quick-action buttons */
+.coverOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: rgba(8, 8, 14, 0.72);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--transition-med);
+}
+
+.projectCard:hover .coverOverlay,
+.projectCardFeatured:hover .coverOverlay {
+  opacity: 1;
+}
+
+.overlayBtn {
+  height: 34px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(124, 77, 255, 0.4);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.overlayBtn:hover {
+  opacity: 0.88;
+  transform: scale(1.04);
+}
+
+.overlayBtnSecondary {
+  height: 34px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  backdrop-filter: blur(4px);
+  transition: background var(--transition-fast);
+}
+
+.overlayBtnSecondary:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* ─── Card Body ──────────────────────────────────────────────────── */
 .projectBody {
-  padding: 18px 18px 20px;
-  display: grid;
-  gap: 14px;
+  padding: 14px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
 }
 
-.projectTitleBlock {
-  display: grid;
+.projectMeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
   gap: 8px;
 }
 
-.projectPill {
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.64);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.projectTitleRow {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.projectTitleRow h3 {
+.projectName {
   margin: 0;
-  font-size: 22px;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
-.metaGrid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+.projectDate {
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.projectDesc {
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ─── Meta Chips ─────────────────────────────────────────────────── */
+.metaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
 }
 
 .metaChip {
-  padding: 10px 12px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.04);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--color-line);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
 }
 
+/* ─── Card footer action row ─────────────────────────────────────── */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-line);
+  margin-top: auto;
+}
+
+.confirmLabel {
+  font-size: 12px;
+  color: var(--color-danger);
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Solid danger button — only shown in confirm state */
+.dangerButtonSolid {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 77, 106, 0.18);
+  border: 1px solid rgba(255, 77, 106, 0.35);
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dangerButtonSolid:hover {
+  background: rgba(255, 77, 106, 0.28);
+}
+
+/* ─── Rename Panel ───────────────────────────────────────────────── */
 .renamePanel {
-  display: grid;
-  gap: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--color-line);
 }
 
 .input,
 .textarea {
   width: 100%;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line-strong);
   background: rgba(9, 10, 16, 0.74);
-  color: #fff;
+  color: var(--color-text);
   font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: rgba(124, 77, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
 }
 
 .input {
-  height: 46px;
-  padding: 0 14px;
+  height: 38px;
+  padding: 0 12px;
 }
 
 .textarea {
-  min-height: 110px;
-  padding: 14px;
+  min-height: 72px;
+  padding: 10px 12px;
   resize: vertical;
 }
 
-.empty {
-  padding: 28px;
-  border-radius: 24px;
-  border: 1px dashed rgba(255, 255, 255, 0.14);
-  color: rgba(255, 255, 255, 0.62);
+.renameActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Empty State ────────────────────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed var(--color-line-strong);
+  background: rgba(255, 255, 255, 0.01);
+  gap: 10px;
   text-align: center;
+}
+
+.emptyIcon {
+  font-size: 44px;
+  margin-bottom: 4px;
+  opacity: 0.35;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.emptySubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.emptyState .primaryButton {
+  margin-top: 8px;
 }
 
 .hiddenInput {
   display: none;
 }
 
-@media (max-width: 960px) {
-  .hero {
-    grid-template-columns: 1fr;
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .projectGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .shell {
-    width: min(100vw - 28px, 1280px);
-    padding-top: 24px;
-  }
-
-  .heroTitleRow {
+  .projectCardFeatured {
     flex-direction: column;
   }
 
-  .heroMetaChips {
-    justify-content: flex-start;
-    max-width: none;
+  .projectCardFeatured .coverWrap {
+    width: 100%;
+    height: 200px;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 20px 0 60px;
+    gap: 16px;
+  }
+
+  .pageHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .statsBar {
+    flex-wrap: wrap;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+
+  .statDivider {
+    display: none;
+  }
+
+  .statItem {
+    padding: 0;
+  }
+
+  .projectGrid {
+    grid-template-columns: 1fr;
   }
 }

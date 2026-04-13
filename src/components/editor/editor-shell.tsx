@@ -55,6 +55,7 @@ import {
   buildInteractiveExportBundle,
   buildTraversalExportBundles,
 } from "../../lib/export-packages";
+import { agentApi, imageApi, videoApi, fetchRemoteMedia } from "../../lib/api";
 import {
   buildProjectPackageBundle,
   importProjectPackage,
@@ -779,30 +780,7 @@ async function dataUrlToFile(dataUrl: string, fileName: string) {
 }
 
 async function fetchExportMediaBlob(sourceUrl: string) {
-  const response = await fetch("/api/export/media", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      url: sourceUrl,
-    }),
-  });
-
-  if (!response.ok) {
-    let message = "导出时读取远程媒体失败。";
-
-    try {
-      const result = (await response.json()) as { message?: string };
-      message = result.message ?? message;
-    } catch {
-      // Ignore JSON parse errors and keep the fallback message.
-    }
-
-    throw new Error(message);
-  }
-
-  return response.blob();
+  return fetchRemoteMedia(sourceUrl);
 }
 
 function downloadBlobFile(blob: Blob, fileName: string) {
@@ -1360,26 +1338,14 @@ export function EditorShell({
     );
 
     try {
-      const response = await fetch("/api/image/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          apiKey: providerCredentials.doubao.apiKey,
-          prompt,
-          model: character.imageModel,
-        }),
+      const { data: result, error } = await imageApi.generateImage({
+        apiKey: providerCredentials.doubao.apiKey,
+        prompt,
+        model: character.imageModel,
       });
 
-      const result = (await response.json()) as {
-        b64Json?: string;
-        mimeType?: string;
-        message?: string;
-      };
-
-      if (!response.ok || !result.b64Json) {
-        throw new Error(result.message ?? "角色生图失败。");
+      if (!result?.b64Json) {
+        throw new Error(error ?? "角色生图失败。");
       }
 
       const file = await dataUrlToFile(
@@ -1834,23 +1800,14 @@ export function EditorShell({
           pollingVideoTaskIdsRef.current.add(pollingKey);
 
           try {
-            const response = await fetch("/api/video/status", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                providerId: generationTask.providerId,
-                taskId: generationTask.taskId,
-                credentials: providerCredentialsRef.current,
-              }),
+            const { data: result, error } = await videoApi.pollVideoStatus({
+              providerId: generationTask.providerId,
+              taskId: generationTask.taskId,
+              credentials: providerCredentialsRef.current,
             });
-            const result = (await response.json()) as UnifiedVideoCreateResponse & {
-              message?: string;
-            };
 
-            if (!response.ok) {
-              throw new Error(result.message ?? "查询任务状态失败。");
+            if (!result) {
+              throw new Error(error ?? "查询任务状态失败。");
             }
 
             const hasGeneratedVideo =
@@ -2492,25 +2449,18 @@ export function EditorShell({
     feedback: string,
     imageUrl?: string,
   ) {
-    const response = await fetch("/api/agent/draft", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        storyText,
-        feedback,
-        imageUrl,
-        apiKey: agentApiKey,
-      }),
+    const { data, error } = await agentApi.generateDraft({
+      storyText,
+      feedback,
+      imageUrl,
+      apiKey: agentApiKey,
     });
-    const result = (await response.json()) as AgentDraft & { message?: string };
 
-    if (!response.ok) {
-      throw new Error(result.message ?? "Agent 草案生成失败。");
+    if (!data) {
+      throw new Error(error ?? "Agent 草案生成失败。");
     }
 
-    return result;
+    return data;
   }
 
   async function handleGenerateAgentDraft() {
@@ -2553,25 +2503,18 @@ export function EditorShell({
     feedback: string,
     draft: AgentDraft | null,
   ) {
-    const response = await fetch("/api/agent/script", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        storyText,
-        feedback,
-        draft,
-        apiKey: agentApiKey,
-      }),
+    const { data, error } = await agentApi.generateScript({
+      storyText,
+      feedback,
+      draft: draft ?? undefined,
+      apiKey: agentApiKey,
     });
-    const result = (await response.json()) as AgentScreenplay & { message?: string };
 
-    if (!response.ok) {
-      throw new Error(result.message ?? "Agent 剧本生成失败。");
+    if (!data) {
+      throw new Error(error ?? "Agent 剧本生成失败。");
     }
 
-    return result;
+    return data;
   }
 
   async function handleGenerateAgentScreenplay() {
@@ -3160,25 +3103,14 @@ export function EditorShell({
     });
 
     try {
-      const response = await fetch("/api/image/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          apiKey: providerCredentials.doubao.apiKey,
-          prompt,
-          model: scene.imageModel,
-        }),
+      const { data: result, error } = await imageApi.generateImage({
+        apiKey: providerCredentials.doubao.apiKey,
+        prompt,
+        model: scene.imageModel,
       });
-      const result = (await response.json()) as {
-        b64Json?: string;
-        mimeType?: string;
-        message?: string;
-      };
 
-      if (!response.ok || !result.b64Json) {
-        throw new Error(result.message ?? "场景生图失败。");
+      if (!result?.b64Json) {
+        throw new Error(error ?? "场景生图失败。");
       }
 
       const file = await dataUrlToFile(
@@ -3622,24 +3554,15 @@ export function EditorShell({
     }));
 
     try {
-      const response = await fetch("/api/video/generate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          providerId: node.data.generation.providerId,
-          providerPriority: settings.providerPriority,
-          credentials: providerCredentials,
-          request: requestBody,
-        }),
+      const { data: result, error } = await videoApi.createVideoTask({
+        providerId: node.data.generation.providerId,
+        providerPriority: settings.providerPriority,
+        credentials: providerCredentials,
+        request: requestBody as Record<string, unknown>,
       });
-      const result = (await response.json()) as UnifiedVideoCreateResponse & {
-        message?: string;
-      };
 
-      if (!response.ok) {
-        throw new Error(result.message ?? "创建生成任务失败。");
+      if (!result) {
+        throw new Error(error ?? "创建生成任务失败。");
       }
 
       const hasGeneratedVideo =
@@ -4892,6 +4815,40 @@ export function EditorShell({
 
   return (
     <div className={styles.page}>
+      {/* ── Editor Top Bar (LibTV-style) ── */}
+      <div className={styles.editorTopBar}>
+        <div className={styles.editorTopLeft}>
+          <span className={styles.editorLogoBadge}>P</span>
+          <span className={styles.editorTopDivider} />
+          <span className={styles.editorProjectName}>{currentProjectName}</span>
+          <span className={`${styles.editorSavePill} ${currentProjectStatusTone}`}>
+            {currentProjectStatusLabel}
+          </span>
+        </div>
+        <div className={styles.editorTopRight}>
+          <button
+            type="button"
+            className={styles.editorTopBtn}
+            onClick={() => router.push("/projects")}
+          >
+            项目库
+          </button>
+          <button
+            type="button"
+            className={`${styles.editorTopBtn} ${styles.editorTopBtnAccent}`}
+            onClick={() =>
+              router.push(
+                currentProjectId
+                  ? `/pencil-studio-vid/agent?project=${currentProjectId}`
+                  : "/pencil-studio-vid/agent",
+              )
+            }
+          >
+            Agent 工作台
+          </button>
+        </div>
+      </div>
+
       <div
         className={styles.layout}
         style={{
@@ -4900,51 +4857,6 @@ export function EditorShell({
         } as React.CSSProperties}
       >
         <aside className={`${styles.panel} ${styles.sidebar} ${sidebarResizer.collapsed ? styles.panelCollapsed : ''}`}>
-          <section className={styles.hero}>
-            <span className={styles.sectionTitle}>PencilStudio</span>
-            <h1 className={styles.heroTitle}>PencilStudio-VideoGame</h1>
-            <p className={styles.heroBody}>
-              让创作变简单，先搭剧情树，再逐节点生成视频。
-            </p>
-          </section>
-
-          <section className={styles.sidebarProjectCard}>
-            <div className={styles.sidebarProjectHead}>
-              <div className={styles.sidebarProjectText}>
-                <span className={styles.sectionTitle}>当前项目</span>
-                <strong className={styles.sidebarProjectName}>{currentProjectName}</strong>
-              </div>
-              <span className={`${styles.sidebarStatusPill} ${currentProjectStatusTone}`}>
-                {currentProjectStatusLabel}
-              </span>
-            </div>
-            <p className={styles.heroBody}>
-              最近自动保存：
-              {lastProjectSavedAt ? ` ${formatTemplateUpdatedAt(lastProjectSavedAt)}` : " 暂无"}
-            </p>
-            <div className={styles.sidebarButtonRow}>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() => router.push("/projects")}
-              >
-                回到项目库
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() =>
-                  router.push(
-                    currentProjectId
-                      ? `/pencil-studio-vid/agent?project=${currentProjectId}`
-                      : "/pencil-studio-vid/agent",
-                  )
-                }
-              >
-                Agent 工作台
-              </button>
-            </div>
-          </section>
 
           <section className={styles.section}>
             <div className={styles.inlineHeader}>
@@ -5169,17 +5081,6 @@ export function EditorShell({
               <p>剧情节点和分支只在中轴区域自上而下生长。</p>
             </div>
           </div>
-          <div className={styles.canvasProjectCard}>
-            <span className={styles.layerLegendEyebrow}>Current Project</span>
-            <strong>{currentProjectName}</strong>
-            <p>
-              {currentProjectStatusLabel}
-              {lastProjectSavedAt
-                ? ` · ${formatTemplateUpdatedAt(lastProjectSavedAt)}`
-                : ""}
-            </p>
-          </div>
-
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
             className={styles.flow}
             nodes={flowNodes}
@@ -7375,17 +7276,9 @@ export function EditorShell({
                       });
 
                       try {
-                        const response = await fetch("/api/agent/test", {
-                          method: "POST",
-                          headers: {
-                            "Content-Type": "application/json",
-                          },
-                          body: JSON.stringify({ apiKey: agentApiKey }),
-                        });
+                        const { data: result, error } = await agentApi.testApiKey(agentApiKey);
 
-                        const result = await response.json();
-
-                        if (result.success) {
+                        if (result?.success) {
                           setNotice({
                             tone: "success",
                             message: "✅ API Key 配置正确！可以开始使用 Agent 功能了。",
@@ -7393,7 +7286,7 @@ export function EditorShell({
                         } else {
                           setNotice({
                             tone: "error",
-                            message: `❌ API Key 测试失败：${result.message}`,
+                            message: `❌ API Key 测试失败：${result?.message ?? error ?? "未知错误"}`,
                           });
                         }
                       } catch (error) {
