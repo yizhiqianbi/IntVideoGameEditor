@@ -54,6 +54,25 @@ export const PUBLIC_SECTIONS: PublicSectionMeta[] = [
 
 export const PUBLIC_CONTENT: PublicContentEntry[] = [
   {
+    id: "billionaire-path",
+    slug: "billionaire-path",
+    type: "play",
+    title: "首富人生模拟器",
+    subtitle: "从 5 岁到命运副本的改编人生局",
+    summary:
+      "从童年、异乡打工、职业抉择到中年商战档案，每一关都决定你最后会拿到哪条命运线和哪份终局揭示。",
+    tags: ["人生模拟", "章节抉择", "商战档案"],
+    featured: true,
+    status: "published",
+    updatedAt: "2026-04-14",
+    durationLabel: "7 抉择",
+    coverTone: "amber",
+    coverImageUrl: "/covers/play/billionaire-path.svg",
+    thumbnailImageUrl: "/covers/play/billionaire-path.svg",
+    primaryActionLabel: "开始游玩",
+    rankScore: 99,
+  },
+  {
     id: "click-chase",
     slug: "click-chase",
     type: "play",

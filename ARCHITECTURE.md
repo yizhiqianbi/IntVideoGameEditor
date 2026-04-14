@@ -56,7 +56,8 @@ Detail page responsibilities:
 
 1. go directly into the runtime surface when the content is playable
 2. keep metadata secondary and lightweight
-3. leave room for future related-content and recommendation modules
+3. support fullscreen runtime play/viewing from the unified stage shell
+4. leave room for future related-content and recommendation modules
 
 ## 3. Core Content Model
 
@@ -106,6 +107,7 @@ The `Play` lane is implemented as a shared mini-game platform, not as one-off de
 
 Each mini-game is registered by slug and rendered inside the same runtime shell.
 This keeps interaction, restart behavior, scoring summary, and future analytics hooks consistent while allowing many independent games to coexist.
+The same shell can host both arcade rounds and chapter-based narrative simulators, as long as they remain single-session, cover-first public entries.
 
 Implementation rule:
 
@@ -114,6 +116,7 @@ Implementation rule:
 - public catalog entries in the `play` lane must map cleanly to registry slugs
 - public game discovery should prioritize cover density over descriptive copy
 - home and `/play` should keep titles short and avoid explanatory paragraphs
+- runtime stage interactions such as fullscreen should be implemented once in the shared public runtime shell, not per lane
 - the `Play` lane should expose:
   - leaderboard
   - recent play

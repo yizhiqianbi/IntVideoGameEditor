@@ -1,0 +1,21 @@
+<svg width="720" height="960" viewBox="0 0 720 960" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="960" rx="48" fill="#12151B"/>
+  <rect x="44" y="44" width="632" height="872" rx="36" fill="#181C24"/>
+  <rect x="88" y="104" width="544" height="584" rx="30" fill="#F4EBDD"/>
+  <circle cx="360" cy="232" r="76" fill="#18202B"/>
+  <path d="M247 424C247 363.249 296.249 314 357 314H363C423.751 314 473 363.249 473 424V596H247V424Z" fill="#18202B"/>
+  <rect x="124" y="144" width="96" height="14" rx="7" fill="#D0A364"/>
+  <rect x="124" y="170" width="132" height="14" rx="7" fill="#D8C5A4"/>
+  <rect x="499" y="146" width="96" height="42" rx="21" fill="#1E2430"/>
+  <text x="547" y="173" fill="#F4EBDD" font-size="24" font-family="Arial, sans-serif" text-anchor="middle" font-weight="700">Play</text>
+  <path d="M156 714H564" stroke="#A98959" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="184" cy="714" r="18" fill="#D0A364"/>
+  <circle cx="360" cy="714" r="18" fill="#D0A364"/>
+  <circle cx="536" cy="714" r="18" fill="#D0A364"/>
+  <text x="184" y="756" fill="#D8C5A4" font-size="30" font-family="Arial, sans-serif" text-anchor="middle" font-weight="700">5岁</text>
+  <text x="360" y="756" fill="#D8C5A4" font-size="30" font-family="Arial, sans-serif" text-anchor="middle" font-weight="700">异乡</text>
+  <text x="536" y="756" fill="#D8C5A4" font-size="30" font-family="Arial, sans-serif" text-anchor="middle" font-weight="700">40岁</text>
+  <text x="92" y="820" fill="#FFFFFF" font-size="56" font-family="Arial, sans-serif" font-weight="800">首富人生</text>
+  <text x="92" y="884" fill="#D8C5A4" font-size="56" font-family="Arial, sans-serif" font-weight="800">模拟器</text>
+  <text x="92" y="924" fill="#8E949E" font-size="24" font-family="Arial, sans-serif">从童年到命运副本的七次抉择</text>
+</svg>

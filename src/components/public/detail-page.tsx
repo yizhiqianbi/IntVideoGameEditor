@@ -8,19 +8,13 @@ import {
 } from "@/lib/public-catalog";
 import { ContentCard } from "./content-card";
 import { getMiniGameBySlug } from "./minigames/registry";
-import { PlayRuntimeStage } from "./play-runtime-stage";
+import { RuntimeStageShell } from "./runtime-stage-shell";
 import styles from "./detail-page.module.css";
 
 type DetailPageProps = {
   type: PublicContentType;
   slug: string;
 };
-
-function getRuntimeLabel(type: PublicContentType) {
-  if (type === "video") return "视频播放区域";
-  if (type === "film") return "互动影游运行区";
-  return "小游戏运行区";
-}
 
 export function DetailPage({ type, slug }: DetailPageProps) {
   const entry = getPublicEntryBySlug(type, slug);
@@ -38,38 +32,18 @@ export function DetailPage({ type, slug }: DetailPageProps) {
     <main className={styles.page}>
       <TopNav />
       <div className={styles.shell}>
-        <section className={styles.runtimeShell}>
-          <div className={styles.runtimeTopBar}>
-            <div className={styles.runtimeMeta}>
-              <span className={styles.runtimePill}>{type === "film" ? "互动影游" : type === "play" ? "Play" : "纯视频"}</span>
-              {entry.durationLabel ? (
-                <span className={styles.runtimePill}>{entry.durationLabel}</span>
-              ) : null}
-            </div>
-            <div className={styles.runtimeActions}>
-              <Link href={`/${type}`} className={styles.ghostButton}>
-                返回列表
-              </Link>
-            </div>
-          </div>
+        <div className={styles.runtimeActions}>
+          <Link href={`/${type}`} className={styles.ghostButton}>
+            返回列表
+          </Link>
+        </div>
 
-          <div
-            className={`${styles.runtimeStage} ${
-              miniGame
-                ? styles.runtimeStagePlay
-                : styles[`tone${entry.coverTone[0].toUpperCase()}${entry.coverTone.slice(1)}`]
-            }`}
-          >
-            {miniGame ? (
-              <PlayRuntimeStage slug={slug} />
-            ) : (
-              <div className={styles.runtimeCenter}>
-                <span className={styles.runtimeTitle}>{entry.title}</span>
-                <span className={styles.runtimeLabel}>{getRuntimeLabel(type)}</span>
-              </div>
-            )}
-          </div>
-        </section>
+        <RuntimeStageShell
+          entry={entry}
+          type={type}
+          slug={slug}
+          isMiniGame={Boolean(miniGame)}
+        />
 
         <section className={styles.relatedSection}>
           <div className={styles.relatedHeader}>

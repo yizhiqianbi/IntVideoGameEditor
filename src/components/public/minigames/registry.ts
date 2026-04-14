@@ -1,3 +1,4 @@
+import { BillionairePathGame } from "./games/billionaire-path";
 import { ClickChaseGame } from "./games/click-chase";
 import { CodeBreakerGame } from "./games/code-breaker";
 import { CrateSortGame } from "./games/crate-sort";
@@ -17,6 +18,14 @@ import { TruthJudgeGame } from "./games/truth-judge";
 import type { MiniGameDefinition } from "./types";
 
 export const MINI_GAMES: MiniGameDefinition[] = [
+  {
+    slug: "billionaire-path",
+    title: "首富人生模拟器",
+    subtitle: "从 5 岁到命运副本的改编人生局",
+    durationLabel: "7 抉择",
+    instructions: "每一关做一个关键决定，积累命运分和档案碎片，通关后解锁终局揭示。",
+    component: BillionairePathGame,
+  },
   {
     slug: "click-chase",
     title: "点击追踪",
