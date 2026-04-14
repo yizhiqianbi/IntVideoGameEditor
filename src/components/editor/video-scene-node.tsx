@@ -140,6 +140,7 @@ export function VideoSceneNode({
       {/* ── Info bar below frame ── */}
       <header className={styles.header}>
         <div className={styles.titleBlock}>
+          <span className={styles.eyebrow}>Video Scene</span>
           <h3 className={styles.title}>{data.title || "未命名节点"}</h3>
         </div>
       </header>

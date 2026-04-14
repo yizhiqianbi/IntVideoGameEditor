@@ -1,10 +1,9 @@
-/* ── Video Scene Node — LibTV canvas card style ─────────────────── */
 .node {
   width: 280px;
   border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 10px;
-  background: rgba(22, 22, 28, 0.96);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  border-radius: 18px;
+  background: rgba(19, 21, 28, 0.96);
+  box-shadow: 0 14px 26px rgba(0, 0, 0, 0.24);
   overflow: hidden;
   transition:
     border-color 140ms ease,
@@ -13,14 +12,14 @@
 
 .node:hover {
   border-color: rgba(255, 255, 255, 0.14);
-  box-shadow: 0 6px 28px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 18px 34px rgba(0, 0, 0, 0.28);
 }
 
 .selected {
-  border-color: rgba(124, 77, 255, 0.55) !important;
+  border-color: rgba(124, 77, 255, 0.44) !important;
   box-shadow:
-    0 0 0 2px rgba(124, 77, 255, 0.18),
-    0 6px 28px rgba(0, 0, 0, 0.5) !important;
+    0 0 0 1px rgba(124, 77, 255, 0.16),
+    0 18px 34px rgba(0, 0, 0, 0.28) !important;
 }
 
 /* ── Connection handles ─────────────────────────────────────────── */
@@ -37,8 +36,9 @@
   aspect-ratio: 16 / 9;
   width: 100%;
   background:
-    radial-gradient(circle at 25% 30%, rgba(124, 77, 255, 0.18), transparent 40%),
-    linear-gradient(180deg, #111118 0%, #0a0a10 100%);
+    radial-gradient(circle at 24% 24%, rgba(124, 77, 255, 0.16), transparent 34%),
+    radial-gradient(circle at 78% 74%, rgba(9, 196, 217, 0.08), transparent 28%),
+    linear-gradient(180deg, #12131a 0%, #0a0b11 100%);
   overflow: hidden;
 }
 
@@ -54,12 +54,13 @@
   position: absolute;
   top: 8px;
   right: 8px;
-  padding: 3px 8px;
+  padding: 4px 8px;
   border-radius: 999px;
   font-size: 10px;
   font-weight: 700;
-  letter-spacing: 0.04em;
-  backdrop-filter: blur(8px);
+  letter-spacing: 0.08em;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
   z-index: 1;
 }
 
@@ -79,7 +80,7 @@
   background: rgba(9, 196, 217, 0.18);
   color: rgba(100, 230, 245, 0.95);
   border: 1px solid rgba(9, 196, 217, 0.28);
-  animation: statusPulse 1.6s ease-in-out infinite;
+  animation: statusPulse 1.9s ease-in-out infinite;
 }
 
 @keyframes statusPulse {
@@ -140,7 +141,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 8px 12px 4px;
+  padding: 12px 14px 4px;
 }
 
 .titleBlock {
@@ -149,18 +150,26 @@
 }
 
 .eyebrow {
-  display: none; /* hidden — scene label shown in status badge */
+  display: block;
+  color: rgba(244, 246, 251, 0.38);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  margin-bottom: 4px;
 }
 
 .title {
   margin: 0;
   color: var(--color-text);
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.3;
-  white-space: nowrap;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
   overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .metaStrip {
@@ -168,7 +177,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 2px 12px 10px;
-  color: var(--color-muted);
-  font-size: 11px;
+  padding: 2px 14px 14px;
+  color: rgba(244, 246, 251, 0.48);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
 }

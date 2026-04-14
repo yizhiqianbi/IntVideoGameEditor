@@ -1,0 +1,13 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#101318"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#181D24"/>
+  <rect x="132" y="154" width="636" height="760" rx="40" fill="#DDE6D7"/>
+  <circle cx="220" cy="344" r="44" fill="#4E7C5A"/>
+  <circle cx="450" cy="532" r="44" fill="#4E7C5A"/>
+  <circle cx="680" cy="720" r="44" fill="#4E7C5A"/>
+  <rect x="360" y="286" width="180" height="38" rx="19" fill="#394B63"/>
+  <rect x="360" y="650" width="180" height="38" rx="19" fill="#394B63"/>
+  <path d="M220 344L450 532L680 720" stroke="#E69B4A" stroke-width="18" stroke-linecap="round"/>
+  <rect x="126" y="970" width="220" height="30" rx="15" fill="#7B9B83"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">机关锁</text>
+</svg>

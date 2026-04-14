@@ -1,0 +1,13 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#101419"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#181E25"/>
+  <rect x="132" y="154" width="636" height="760" rx="40" fill="#F0E6D9"/>
+  <rect x="180" y="228" width="160" height="160" rx="24" fill="#E38A62"/>
+  <rect x="360" y="228" width="160" height="160" rx="24" fill="#6C8F75"/>
+  <rect x="540" y="228" width="160" height="160" rx="24" fill="#D2A356"/>
+  <rect x="234" y="424" width="160" height="160" rx="24" fill="#6C8F75"/>
+  <rect x="414" y="424" width="160" height="160" rx="24" fill="#E38A62"/>
+  <rect x="324" y="620" width="160" height="160" rx="24" fill="#D2A356"/>
+  <rect x="126" y="970" width="248" height="30" rx="15" fill="#C9AE84"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">极速叠层</text>
+</svg>

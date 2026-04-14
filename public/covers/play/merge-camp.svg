@@ -1,0 +1,17 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#101418"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#171D24"/>
+  <rect x="126" y="162" width="648" height="728" rx="42" fill="#E7E0D1"/>
+  <g stroke="#A8B48F" stroke-width="8">
+    <line x1="126" y1="405" x2="774" y2="405"/>
+    <line x1="126" y1="648" x2="774" y2="648"/>
+    <line x1="342" y1="162" x2="342" y2="890"/>
+    <line x1="558" y1="162" x2="558" y2="890"/>
+  </g>
+  <rect x="188" y="222" width="96" height="96" rx="24" fill="#7E9F6B"/>
+  <rect x="404" y="222" width="96" height="96" rx="24" fill="#A67342"/>
+  <rect x="620" y="222" width="96" height="96" rx="24" fill="#E5B46A"/>
+  <path d="M450 576C494 626 514 670 514 716C514 766 485 804 450 804C415 804 386 766 386 716C386 670 406 626 450 576Z" fill="#FF7C48"/>
+  <rect x="126" y="970" width="220" height="30" rx="15" fill="#9BB07C"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">营地合成</text>
+</svg>

@@ -1,249 +1,98 @@
 .page {
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(118, 74, 255, 0.24), transparent 28%),
-    linear-gradient(180deg, #0b0b11 0%, #0f1018 100%);
-  color: #f5f7fb;
+  background: #0b0d12;
 }
 
-.hero {
-  min-height: calc(100vh - var(--nav-height));
-  display: flex;
-  align-items: center;
-}
-
-.heroInner {
-  width: min(1280px, calc(100vw - 48px));
+.shell {
+  width: min(1360px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 56px 0 40px;
+  padding: 16px 0 88px;
   display: grid;
-  gap: 40px;
+  gap: 20px;
 }
 
-.heroCopy {
+.sectionStack {
   display: grid;
-  gap: 14px;
-  max-width: 720px;
+  gap: 20px;
 }
 
-.eyebrow {
-  font-size: 12px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: rgba(255, 255, 255, 0.52);
-}
-
-.title {
-  font-size: clamp(56px, 9vw, 108px);
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  line-height: 0.92;
-  background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.subtitle {
-  font-size: 18px;
-  color: rgba(255, 255, 255, 0.54);
-  letter-spacing: 0.02em;
-  margin: 0;
-}
-
-.productGrid {
+.topStrip {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
 }
 
-.productCard {
-  position: relative;
+.rankColumn {
+  min-width: 0;
+}
+
+.hotRail {
   display: grid;
-  gap: 18px;
-  min-height: 260px;
-  padding: 28px;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02)),
-    rgba(255, 255, 255, 0.02);
-  backdrop-filter: blur(14px);
-  color: inherit;
-  text-decoration: none;
-  transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
 }
 
-.productCard:hover {
-  transform: translateY(-4px);
-  border-color: rgba(124, 77, 255, 0.3);
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-}
-
-.productCardPrimary {
-  border-color: rgba(124, 77, 255, 0.24);
-  background:
-    radial-gradient(circle at top right, rgba(124, 77, 255, 0.22), transparent 34%),
-    linear-gradient(180deg, rgba(24, 20, 40, 0.98), rgba(15, 16, 24, 0.98));
-  box-shadow: 0 24px 56px rgba(43, 22, 94, 0.28);
-}
-
-.productMeta {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.productStatus {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.productArrow {
-  font-size: 20px;
-  color: rgba(255, 255, 255, 0.32);
-}
-
-.productTitle {
-  margin: 0;
-  font-size: 28px;
-  line-height: 1.1;
-}
-
-.productSubtitle {
-  margin: 0;
-  font-size: 15px;
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.52);
-  max-width: 280px;
-}
-
-.productAction {
-  margin-top: auto;
-  display: inline-flex;
-  align-items: center;
-  width: fit-content;
-  min-height: 38px;
-  padding: 0 14px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #6a35ff 0%, #0bb6ff 100%);
-  color: #ffffff;
-  font-size: 13px;
-  font-weight: 700;
-  box-shadow: 0 8px 20px rgba(57, 90, 255, 0.22);
-}
-
-.featuredSection {
-  width: min(1280px, calc(100vw - 48px));
-  margin: 0 auto;
-  padding: 0 0 72px;
-  display: grid;
-  gap: 22px;
-}
-
-.featuredHeader {
+.contentSection {
   display: grid;
   gap: 8px;
 }
 
-.featuredTitle {
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionTitle {
   margin: 0;
-  font-size: 28px;
+  font-size: clamp(15px, 1.8vw, 18px);
+  line-height: 1;
+  letter-spacing: -0.03em;
 }
 
-.featuredGrid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
-}
-
-.featuredCard {
-  display: grid;
-  gap: 0;
-  overflow: hidden;
-  border-radius: 24px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.03);
-}
-
-.featuredVisual {
-  position: relative;
-  min-height: 220px;
-  background:
-    radial-gradient(circle at 22% 24%, rgba(124, 77, 255, 0.36), transparent 26%),
-    linear-gradient(135deg, rgba(24, 26, 40, 0.96), rgba(10, 10, 18, 0.98));
-}
-
-.featuredGlow {
-  position: absolute;
-  inset: auto -40px -64px auto;
-  width: 200px;
-  height: 200px;
-  border-radius: 999px;
-  background: radial-gradient(circle, rgba(11, 182, 255, 0.18), transparent 68%);
-}
-
-.featuredBody {
-  display: grid;
-  gap: 10px;
-  padding: 20px;
-}
-
-.featuredTag {
+.sectionLink {
   display: inline-flex;
   align-items: center;
-  width: fit-content;
   min-height: 28px;
   padding: 0 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  color: rgba(255, 255, 255, 0.72);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
   font-size: 11px;
   font-weight: 700;
+  white-space: nowrap;
 }
 
-.featuredCaseTitle {
-  margin: 0;
-  font-size: 20px;
+.shelfRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(146px, 168px);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
 }
 
-.featuredStatus {
-  margin: 0;
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.48);
-}
-
-@media (max-width: 960px) {
-  .heroInner,
-  .featuredSection {
-    width: min(100vw - 28px, 1280px);
-  }
-
-  .productGrid,
-  .featuredGrid {
+@media (max-width: 1080px) {
+  .topStrip {
     grid-template-columns: 1fr;
   }
 
-  .hero {
-    min-height: auto;
+  .hotRail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 16px 0 56px;
+    gap: 18px;
   }
 
-  .heroInner {
-    padding: 40px 0 28px;
-  }
-
-  .title {
-    font-size: clamp(42px, 16vw, 80px);
+  .hotRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

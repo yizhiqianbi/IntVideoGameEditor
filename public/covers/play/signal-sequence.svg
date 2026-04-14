@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <title>Signal Sequence</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#081726"/>
+      <stop offset="100%" stop-color="#123E4D"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="18" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <circle cx="220" cy="246" r="116" fill="#1BD2C0" opacity="0.2"/>
+  <circle cx="700" cy="920" r="148" fill="#FF7A59" opacity="0.15"/>
+  <g filter="url(#shadow)">
+    <rect x="150" y="292" width="120" height="520" rx="28" fill="#15384A" stroke="#32E3D1" stroke-width="4"/>
+    <rect x="295" y="220" width="120" height="592" rx="28" fill="#15384A" stroke="#FF7A59" stroke-width="4"/>
+    <rect x="440" y="328" width="120" height="484" rx="28" fill="#15384A" stroke="#FFE08A" stroke-width="4"/>
+    <rect x="585" y="258" width="120" height="554" rx="28" fill="#15384A" stroke="#8BE7FF" stroke-width="4"/>
+  </g>
+  <path d="M210 456C255 423 286 410 355 390C450 360 530 353 645 376" stroke="#E5F6FF" stroke-width="8" stroke-linecap="round" stroke-dasharray="1 24" opacity="0.55"/>
+  <g>
+    <circle cx="210" cy="456" r="18" fill="#32E3D1"/>
+    <circle cx="355" cy="390" r="18" fill="#FF7A59"/>
+    <circle cx="490" cy="370" r="18" fill="#FFE08A"/>
+    <circle cx="645" cy="376" r="18" fill="#8BE7FF"/>
+  </g>
+  <text x="84" y="104" fill="#EAF7FF" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" letter-spacing="5">SIGNAL</text>
+  <text x="84" y="164" fill="#EAF7FF" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="900" letter-spacing="2">SEQUENCE</text>
+  <text x="84" y="218" fill="#EAF7FF" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" opacity="0.72" letter-spacing="3">MEMORIZE THE PATTERN</text>
+  <rect x="56" y="72" width="788" height="1056" rx="44" stroke="#D7F1FF" stroke-width="10" opacity="0.1"/>
+</svg>

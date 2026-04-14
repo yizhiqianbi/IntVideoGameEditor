@@ -82,6 +82,7 @@ export default function ProjectsPage() {
     [projects],
   );
   const featuredProject = projects[0] ?? null;
+  const queuedProjects = useMemo(() => projects.slice(1, 4), [projects]);
 
   function showNotice(next: Notice) {
     if (noticeDismissRef.current) clearTimeout(noticeDismissRef.current);
@@ -262,52 +263,135 @@ export default function ProjectsPage() {
       <TopNav />
 
       <div className={styles.shell}>
-        {/* ── Page Header ── */}
-        <div className={styles.pageHeader}>
-          <div className={styles.pageTitle}>
-            <h1>我的项目</h1>
-            {!isLoading && (
-              <span className={styles.countBadge}>{projects.length}</span>
-            )}
+        <section className={styles.libraryHero}>
+          <div className={styles.libraryIntro}>
+            <span className={styles.libraryEyebrow}>Project Library</span>
+            <div className={styles.pageTitle}>
+              <h1>我的项目</h1>
+              {!isLoading && (
+                <span className={styles.countBadge}>{projects.length}</span>
+              )}
+            </div>
+            <p className={styles.librarySubtitle}>
+              继续最近作品，或者直接开始一个新的互动影游项目。
+            </p>
+            <div className={styles.heroActions}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleCreateProject()}
+                disabled={isCreating}
+              >
+                {isCreating ? "创建中..." : "新建项目"}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => importRef.current?.click()}
+              >
+                导入项目包
+              </button>
+            </div>
+            <div className={styles.heroFacts}>
+              <span>{projects.length} 个项目</span>
+              <span>{totalNodeCount} 个节点</span>
+              <span>{totalCharacterCount} 个角色</span>
+            </div>
           </div>
-          <div className={styles.headerActions}>
-            <button
-              type="button"
-              className={styles.secondaryButton}
-              onClick={() => importRef.current?.click()}
-            >
-              导入项目包
-            </button>
-            <button
-              type="button"
-              className={styles.primaryButton}
-              onClick={() => void handleCreateProject()}
-              disabled={isCreating}
-            >
-              {isCreating ? "创建中..." : "+ 新建项目"}
-            </button>
-          </div>
-        </div>
 
-        {/* ── Stats Bar ── */}
-        {!isLoading && projects.length > 0 && (
-          <div className={styles.statsBar}>
-            <div className={styles.statItem}>
-              <strong className={styles.statValue}>{projects.length}</strong>
-              <span className={styles.statLabel}>项目数</span>
+          {featuredProject ? (
+            <article className={styles.recentProjectCard}>
+              <div className={styles.recentProjectVisual}>
+                {featuredProject.previewImageUrl ? (
+                  <Image
+                    className={styles.cover}
+                    src={featuredProject.previewImageUrl}
+                    alt={featuredProject.name}
+                    width={960}
+                    height={540}
+                    unoptimized
+                  />
+                ) : (
+                  <div className={styles.coverPlaceholder}>
+                    <span className={styles.coverPlaceholderIcon}>▶</span>
+                  </div>
+                )}
+              </div>
+              <div className={styles.recentProjectBody}>
+                <div className={styles.recentProjectMeta}>
+                  <span className={styles.recentProjectKicker}>最近编辑</span>
+                  <span className={styles.projectDate}>
+                    {formatRelativeTime(featuredProject.lastOpenedAt)}
+                  </span>
+                </div>
+                <h2 className={styles.recentProjectTitle}>{featuredProject.name}</h2>
+                <p className={styles.recentProjectDesc}>
+                  {featuredProject.description || "继续从这里推进你的互动影游。"}
+                </p>
+                <div className={styles.metaChips}>
+                  <span className={styles.metaChip}>
+                    {featuredProject.stats.nodeCount} 节点
+                  </span>
+                  <span className={styles.metaChip}>
+                    {featuredProject.stats.sceneCount} 场景
+                  </span>
+                  <span className={styles.metaChip}>
+                    {featuredProject.stats.characterCount} 角色
+                  </span>
+                  <span className={styles.metaChip}>
+                    {featuredProject.stats.branchCount} 分支
+                  </span>
+                </div>
+                {queuedProjects.length > 0 ? (
+                  <div className={styles.recentProjectQueue}>
+                    <span className={styles.queueLabel}>继续其他项目</span>
+                    <div className={styles.queueList}>
+                      {queuedProjects.map((project) => (
+                        <button
+                          key={project.id}
+                          type="button"
+                          className={styles.queueItem}
+                          onClick={() => handleOpenProject(project.id)}
+                        >
+                          <span className={styles.queueItemName}>{project.name}</span>
+                          <span className={styles.queueItemMeta}>
+                            {project.stats.nodeCount} 节点
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+                <div className={styles.recentProjectFooter}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => handleOpenProject(featuredProject.id)}
+                  >
+                    继续创作
+                  </button>
+                  {renamingProjectId !== featuredProject.id ? (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => startRenamingProject(featuredProject)}
+                    >
+                      重命名
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+            </article>
+          ) : (
+            <div className={styles.recentProjectCardEmpty}>
+              <span className={styles.recentProjectKicker}>准备开始</span>
+              <h2 className={styles.recentProjectTitle}>从一个新项目开始</h2>
+              <p className={styles.recentProjectDesc}>
+                创建项目后，你的角色、场景、节点和素材都会持续保存在当前浏览器。
+              </p>
             </div>
-            <div className={styles.statDivider} />
-            <div className={styles.statItem}>
-              <strong className={styles.statValue}>{totalNodeCount}</strong>
-              <span className={styles.statLabel}>剧情节点</span>
-            </div>
-            <div className={styles.statDivider} />
-            <div className={styles.statItem}>
-              <strong className={styles.statValue}>{totalCharacterCount}</strong>
-              <span className={styles.statLabel}>角色</span>
-            </div>
-          </div>
-        )}
+          )}
+        </section>
 
         {/* ── Notice ── */}
         {notice ? (
@@ -344,124 +428,44 @@ export default function ProjectsPage() {
           </div>
         ) : (
           <>
-            {/* ── Featured (最近使用) ── */}
-            <div className={styles.sectionLabel}>最近使用</div>
-            <article className={styles.projectCardFeatured}>
-              <div className={styles.coverWrap}>
-                {featuredProject.previewImageUrl ? (
-                  <Image
-                    className={styles.cover}
-                    src={featuredProject.previewImageUrl}
-                    alt={featuredProject.name}
-                    width={960}
-                    height={540}
-                    unoptimized
+            {renamingProjectId === featuredProject?.id ? (
+              <section className={styles.renameCard}>
+                <div className={styles.inlineHeader}>
+                  <h2 className={styles.sectionTitle}>编辑最近项目</h2>
+                  <span className={styles.hint}>更新项目名与说明</span>
+                </div>
+                <div className={styles.renamePanel}>
+                  <input
+                    className={styles.input}
+                    value={renamingName}
+                    onChange={(e) => setRenamingName(e.target.value)}
+                    placeholder="项目名称"
                   />
-                ) : (
-                  <div className={styles.coverPlaceholder}>
-                    <span className={styles.coverPlaceholderIcon}>🎮</span>
-                  </div>
-                )}
-                <div className={styles.coverOverlay}>
-                  <button
-                    type="button"
-                    className={styles.overlayBtn}
-                    onClick={() => handleOpenProject(featuredProject.id)}
-                  >
-                    继续创作
-                  </button>
-                  {renamingProjectId !== featuredProject.id && (
+                  <textarea
+                    className={styles.textarea}
+                    value={renamingDescription}
+                    onChange={(e) => setRenamingDescription(e.target.value)}
+                    placeholder="一句话说明"
+                  />
+                  <div className={styles.renameActions}>
                     <button
                       type="button"
-                      className={styles.overlayBtnSecondary}
-                      onClick={() => startRenamingProject(featuredProject)}
+                      className={styles.saveButton}
+                      onClick={() => void submitProjectRename(featuredProject.id)}
                     >
-                      重命名
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className={styles.projectBody}>
-                <div className={styles.projectMeta}>
-                  <h3 className={styles.projectName}>{featuredProject.name}</h3>
-                  <span className={styles.projectDate}>
-                    {formatRelativeTime(featuredProject.lastOpenedAt)}
-                  </span>
-                </div>
-                <p className={styles.projectDesc}>
-                  {featuredProject.description || "暂无说明"}
-                </p>
-                <div className={styles.metaChips}>
-                  <span className={styles.metaChip}>
-                    {featuredProject.stats.nodeCount} 节点
-                  </span>
-                  <span className={styles.metaChip}>
-                    {featuredProject.stats.sceneCount} 场景
-                  </span>
-                  <span className={styles.metaChip}>
-                    {featuredProject.stats.characterCount} 角色
-                  </span>
-                  <span className={styles.metaChip}>
-                    {featuredProject.stats.branchCount} 分支
-                  </span>
-                </div>
-
-                {renamingProjectId === featuredProject.id ? (
-                  <div className={styles.renamePanel}>
-                    <input
-                      className={styles.input}
-                      value={renamingName}
-                      onChange={(e) => setRenamingName(e.target.value)}
-                      placeholder="项目名称"
-                    />
-                    <textarea
-                      className={styles.textarea}
-                      value={renamingDescription}
-                      onChange={(e) => setRenamingDescription(e.target.value)}
-                      placeholder="一句话说明"
-                    />
-                    <div className={styles.renameActions}>
-                      <button
-                        type="button"
-                        className={styles.saveButton}
-                        onClick={() => void submitProjectRename(featuredProject.id)}
-                      >
-                        保存
-                      </button>
-                      <button
-                        type="button"
-                        className={styles.cancelButton}
-                        onClick={() => {
-                          setRenamingProjectId(null);
-                          setRenamingName("");
-                          setRenamingDescription("");
-                        }}
-                      >
-                        取消
-                      </button>
-                    </div>
-                  </div>
-                ) : confirmDeleteId === featuredProject.id ? (
-                  <div className={styles.cardFooter}>
-                    <span className={styles.confirmLabel}>确认删除？</span>
-                    <button
-                      type="button"
-                      className={styles.dangerButtonSolid}
-                      onClick={() => void handleDeleteProject(featuredProject.id)}
-                    >
-                      确认
+                      保存
                     </button>
                     <button
                       type="button"
                       className={styles.cancelButton}
-                      onClick={() => setConfirmDeleteId(null)}
+                      onClick={() => {
+                        setRenamingProjectId(null);
+                        setRenamingName("");
+                        setRenamingDescription("");
+                      }}
                     >
                       取消
                     </button>
-                  </div>
-                ) : (
-                  <div className={styles.cardFooter}>
                     <button
                       type="button"
                       className={styles.dangerButton}
@@ -470,145 +474,181 @@ export default function ProjectsPage() {
                       删除项目
                     </button>
                   </div>
-                )}
-              </div>
-            </article>
+                </div>
+              </section>
+            ) : confirmDeleteId === featuredProject?.id ? (
+              <section className={styles.renameCard}>
+                <div className={styles.inlineHeader}>
+                  <h2 className={styles.sectionTitle}>删除最近项目</h2>
+                </div>
+                <div className={styles.cardFooter}>
+                  <span className={styles.confirmLabel}>确认删除当前最近项目？</span>
+                  <button
+                    type="button"
+                    className={styles.dangerButtonSolid}
+                    onClick={() => void handleDeleteProject(featuredProject.id)}
+                  >
+                    确认
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.cancelButton}
+                    onClick={() => setConfirmDeleteId(null)}
+                  >
+                    取消
+                  </button>
+                </div>
+              </section>
+            ) : null}
 
-            {/* ── All Projects ── */}
-            {projects.length > 1 && (
-              <>
-                <div className={styles.sectionLabel}>全部项目</div>
-                <div className={styles.projectGrid}>
-                  {projects.slice(1).map((project) => (
-                    <article key={project.id} className={styles.projectCard}>
-                      <div className={styles.coverWrap}>
-                        {project.previewImageUrl ? (
-                          <Image
-                            className={styles.cover}
-                            src={project.previewImageUrl}
-                            alt={project.name}
-                            width={960}
-                            height={540}
-                            unoptimized
-                          />
-                        ) : (
-                          <div className={styles.coverPlaceholder}>
-                            <span className={styles.coverPlaceholderIcon}>🎮</span>
-                          </div>
-                        )}
-                        <div className={styles.coverOverlay}>
+            <div className={styles.projectGridHeader}>
+              <div className={styles.pageTitle}>
+                <h2>全部项目</h2>
+              </div>
+              <span className={styles.hint}>
+                {projects.length === 1 ? "1 个项目" : `${projects.length} 个项目`}
+              </span>
+            </div>
+
+            <div className={styles.projectGrid}>
+              {projects
+                .filter((project) => project.id !== featuredProject?.id)
+                .map((project) => (
+                  <article key={project.id} className={styles.projectCard}>
+                    <div className={styles.coverWrap}>
+                      {project.previewImageUrl ? (
+                        <Image
+                          className={styles.cover}
+                          src={project.previewImageUrl}
+                          alt={project.name}
+                          width={960}
+                          height={540}
+                          unoptimized
+                        />
+                      ) : (
+                        <div className={styles.coverPlaceholder}>
+                          <span className={styles.coverPlaceholderIcon}>◼</span>
+                        </div>
+                      )}
+                      <div className={styles.coverOverlay}>
+                        <button
+                          type="button"
+                          className={styles.overlayBtn}
+                          onClick={() => handleOpenProject(project.id)}
+                        >
+                          打开
+                        </button>
+                        {renamingProjectId !== project.id && (
                           <button
                             type="button"
-                            className={styles.overlayBtn}
-                            onClick={() => handleOpenProject(project.id)}
+                            className={styles.overlayBtnSecondary}
+                            onClick={() => startRenamingProject(project)}
                           >
-                            打开
+                            重命名
                           </button>
-                          {renamingProjectId !== project.id && (
-                            <button
-                              type="button"
-                              className={styles.overlayBtnSecondary}
-                              onClick={() => startRenamingProject(project)}
-                            >
-                              重命名
-                            </button>
-                          )}
-                        </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className={styles.projectBody}>
+                      <div className={styles.projectMeta}>
+                        <h3 className={styles.projectName}>{project.name}</h3>
+                        <span className={styles.projectDate}>
+                          {formatRelativeTime(project.lastOpenedAt)}
+                        </span>
+                      </div>
+                      <p className={styles.projectDesc}>
+                        {project.description || "继续补完这条创作线。"}
+                      </p>
+                      <div className={styles.metaChips}>
+                        <span className={styles.metaChip}>
+                          {project.stats.nodeCount} 节点
+                        </span>
+                        <span className={styles.metaChip}>
+                          {project.stats.sceneCount} 场景
+                        </span>
+                        <span className={styles.metaChip}>
+                          {project.stats.characterCount} 角色
+                        </span>
                       </div>
 
-                      <div className={styles.projectBody}>
-                        <div className={styles.projectMeta}>
-                          <h3 className={styles.projectName}>{project.name}</h3>
-                          <span className={styles.projectDate}>
-                            {formatRelativeTime(project.lastOpenedAt)}
-                          </span>
-                        </div>
-                        <p className={styles.projectDesc}>
-                          {project.description || "暂无说明"}
-                        </p>
-                        <div className={styles.metaChips}>
-                          <span className={styles.metaChip}>
-                            {project.stats.nodeCount} 节点
-                          </span>
-                          <span className={styles.metaChip}>
-                            {project.stats.sceneCount} 场景
-                          </span>
-                          <span className={styles.metaChip}>
-                            {project.stats.characterCount} 角色
-                          </span>
-                        </div>
-
-                        {renamingProjectId === project.id ? (
-                          <div className={styles.renamePanel}>
-                            <input
-                              className={styles.input}
-                              value={renamingName}
-                              onChange={(e) => setRenamingName(e.target.value)}
-                              placeholder="项目名称"
-                            />
-                            <textarea
-                              className={styles.textarea}
-                              value={renamingDescription}
-                              onChange={(e) =>
-                                setRenamingDescription(e.target.value)
-                              }
-                              placeholder="一句话说明"
-                            />
-                            <div className={styles.renameActions}>
-                              <button
-                                type="button"
-                                className={styles.saveButton}
-                                onClick={() =>
-                                  void submitProjectRename(project.id)
-                                }
-                              >
-                                保存
-                              </button>
-                              <button
-                                type="button"
-                                className={styles.cancelButton}
-                                onClick={() => {
-                                  setRenamingProjectId(null);
-                                  setRenamingName("");
-                                  setRenamingDescription("");
-                                }}
-                              >
-                                取消
-                              </button>
-                            </div>
-                          </div>
-                        ) : confirmDeleteId === project.id ? (
-                          <div className={styles.cardFooter}>
-                            <span className={styles.confirmLabel}>确认删除？</span>
+                      {renamingProjectId === project.id ? (
+                        <div className={styles.renamePanel}>
+                          <input
+                            className={styles.input}
+                            value={renamingName}
+                            onChange={(e) => setRenamingName(e.target.value)}
+                            placeholder="项目名称"
+                          />
+                          <textarea
+                            className={styles.textarea}
+                            value={renamingDescription}
+                            onChange={(e) =>
+                              setRenamingDescription(e.target.value)
+                            }
+                            placeholder="一句话说明"
+                          />
+                          <div className={styles.renameActions}>
                             <button
                               type="button"
-                              className={styles.dangerButtonSolid}
-                              onClick={() => void handleDeleteProject(project.id)}
+                              className={styles.saveButton}
+                              onClick={() =>
+                                void submitProjectRename(project.id)
+                              }
                             >
-                              确认
+                              保存
                             </button>
                             <button
                               type="button"
                               className={styles.cancelButton}
-                              onClick={() => setConfirmDeleteId(null)}
+                              onClick={() => {
+                                setRenamingProjectId(null);
+                                setRenamingName("");
+                                setRenamingDescription("");
+                              }}
                             >
                               取消
                             </button>
                           </div>
-                        ) : (
-                          <div className={styles.cardFooter}>
-                            <button
-                              type="button"
-                              className={styles.dangerButton}
-                              onClick={() => setConfirmDeleteId(project.id)}
-                            >
-                              删除
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </article>
-                  ))}
+                        </div>
+                      ) : confirmDeleteId === project.id ? (
+                        <div className={styles.cardFooter}>
+                          <span className={styles.confirmLabel}>确认删除？</span>
+                          <button
+                            type="button"
+                            className={styles.dangerButtonSolid}
+                            onClick={() => void handleDeleteProject(project.id)}
+                          >
+                            确认
+                          </button>
+                          <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={() => setConfirmDeleteId(null)}
+                          >
+                            取消
+                          </button>
+                        </div>
+                      ) : (
+                        <div className={styles.cardFooter}>
+                          <button
+                            type="button"
+                            className={styles.dangerButton}
+                            onClick={() => setConfirmDeleteId(project.id)}
+                          >
+                            删除
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </article>
+                ))}
+            </div>
+
+            {projects.length === 1 && (
+              <>
+                <div className={styles.emptyMinorState}>
+                  <p className={styles.hint}>当前只有最近项目这一条创作线。</p>
                 </div>
               </>
             )}

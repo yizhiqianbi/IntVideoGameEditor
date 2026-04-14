@@ -4818,34 +4818,12 @@ export function EditorShell({
       {/* ── Editor Top Bar (LibTV-style) ── */}
       <div className={styles.editorTopBar}>
         <div className={styles.editorTopLeft}>
-          <span className={styles.editorLogoBadge}>P</span>
+          <span className={styles.editorLogoBadge}>F</span>
           <span className={styles.editorTopDivider} />
           <span className={styles.editorProjectName}>{currentProjectName}</span>
           <span className={`${styles.editorSavePill} ${currentProjectStatusTone}`}>
             {currentProjectStatusLabel}
           </span>
-        </div>
-        <div className={styles.editorTopRight}>
-          <button
-            type="button"
-            className={styles.editorTopBtn}
-            onClick={() => router.push("/projects")}
-          >
-            项目库
-          </button>
-          <button
-            type="button"
-            className={`${styles.editorTopBtn} ${styles.editorTopBtnAccent}`}
-            onClick={() =>
-              router.push(
-                currentProjectId
-                  ? `/pencil-studio-vid/agent?project=${currentProjectId}`
-                  : "/pencil-studio-vid/agent",
-              )
-            }
-          >
-            Agent 工作台
-          </button>
         </div>
       </div>
 
@@ -4857,11 +4835,48 @@ export function EditorShell({
         } as React.CSSProperties}
       >
         <aside className={`${styles.panel} ${styles.sidebar} ${sidebarResizer.collapsed ? styles.panelCollapsed : ''}`}>
+          <section className={styles.hero}>
+            <div className={styles.sidebarProjectCard}>
+              <div className={styles.sidebarProjectHead}>
+                <div className={styles.sidebarProjectText}>
+                  <span className={styles.sectionTitle}>当前项目</span>
+                  <strong className={styles.sidebarProjectName}>{currentProjectName}</strong>
+                  <p className={styles.heroBody}>
+                    {currentProjectDescription || "继续编辑当前作品。"}
+                  </p>
+                </div>
+                <span className={`${styles.sidebarStatusPill} ${currentProjectStatusTone}`}>
+                  {currentProjectStatusLabel}
+                </span>
+              </div>
+              <div className={styles.sidebarButtonRow}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => router.push("/projects")}
+                >
+                  项目库
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() =>
+                    router.push(
+                      currentProjectId
+                        ? `/pencil-studio-vid/agent?project=${currentProjectId}`
+                        : "/pencil-studio-vid/agent",
+                    )
+                  }
+                >
+                  Agent 工作台
+                </button>
+              </div>
+            </div>
+          </section>
 
           <section className={styles.section}>
             <div className={styles.inlineHeader}>
               <h2 className={styles.sectionTitle}>创作入口</h2>
-              <span className={styles.hint}>主流程</span>
             </div>
             <div className={styles.sidebarPrimaryAction}>
               <button
@@ -4907,19 +4922,6 @@ export function EditorShell({
                 }}
               >
                 模板
-              </button>
-              <button
-                type="button"
-                className={styles.secondaryButton}
-                onClick={() =>
-                  router.push(
-                    currentProjectId
-                      ? `/pencil-studio-vid/agent?project=${currentProjectId}`
-                      : "/pencil-studio-vid/agent",
-                  )
-                }
-              >
-                Agent 工作台
               </button>
               <input
                 ref={importInputRef}
@@ -5034,22 +5036,6 @@ export function EditorShell({
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </button>
-            <button
-              type="button"
-              className={styles.toolbarBtn}
-              title="添加角色"
-              onClick={handleAddCharacter}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" strokeWidth="1.5"/><path d="M3 16.5c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
-            </button>
-            <button
-              type="button"
-              className={styles.toolbarBtn}
-              title="添加场景"
-              onClick={handleAddScenePreset}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="10" rx="2" stroke="currentColor" strokeWidth="1.5"/><circle cx="6" cy="7" r="1.5" stroke="currentColor" strokeWidth="1"/><path d="M2 11l4-3 3 2 3-2.5L16 11" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
             <div className={styles.toolbarDivider} />
             <button
               type="button"
@@ -5059,27 +5045,13 @@ export function EditorShell({
             >
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 6V3a1 1 0 011-1h3M12 2h3a1 1 0 011 1v3M16 12v3a1 1 0 01-1 1h-3M6 16H3a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
             </button>
-            <button
-              type="button"
-              className={styles.toolbarBtn}
-              title="加载 Demo"
-              onClick={() => handleLoadDemoCase()}
-            >
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 9.5l4 4 8-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
-            </button>
           </div>
 
           <div className={styles.canvasLayerLegend}>
-            <div className={styles.layerLegendCard}>
-              <span className={styles.layerLegendEyebrow}>Reference Lane</span>
-              <strong>参考层</strong>
-              <p>只显示已钉住的角色卡和场景卡，固定贴在左侧。</p>
-            </div>
-            <div className={`${styles.layerLegendCard} ${styles.layerLegendCardAccent}`}>
-              <span className={styles.layerLegendEyebrow}>Story Graph</span>
-              <strong>主叙事层</strong>
-              <p>剧情节点和分支只在中轴区域自上而下生长。</p>
-            </div>
+            <span className={styles.layerLegendPill}>参考层 · 已钉住角色与场景</span>
+            <span className={`${styles.layerLegendPill} ${styles.layerLegendPillAccent}`}>
+              主叙事层 · 节点与分支
+            </span>
           </div>
           <ReactFlow<CanvasFlowNode, EditorFlowEdge>
             className={styles.flow}

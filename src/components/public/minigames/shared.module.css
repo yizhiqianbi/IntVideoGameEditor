@@ -1,0 +1,156 @@
+.gameRoot {
+  min-height: 100%;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  gap: 16px;
+  color: #f5f7fb;
+}
+
+.hud {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.board {
+  min-height: 420px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top, rgba(255, 255, 255, 0.08), transparent 44%),
+    rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 18px;
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.panel {
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 16px;
+}
+
+.grid2,
+.grid3,
+.grid4 {
+  display: grid;
+  gap: 12px;
+}
+
+.grid2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.grid3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.grid4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.button,
+.secondaryButton {
+  min-height: 40px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 140ms ease,
+    background 140ms ease,
+    border-color 140ms ease;
+}
+
+.button {
+  color: #081018;
+  background: #f5f7fb;
+}
+
+.secondaryButton {
+  color: rgba(255, 255, 255, 0.88);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.button:hover,
+.secondaryButton:hover {
+  transform: translateY(-1px);
+}
+
+.button:disabled,
+.secondaryButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.helper {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.headline {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.subheadline {
+  color: rgba(255, 255, 255, 0.62);
+  font-size: 13px;
+}
+
+.result {
+  color: rgba(255, 255, 255, 0.76);
+  font-size: 13px;
+}
+
+@media (max-width: 900px) {
+  .grid4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .grid3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .board {
+    min-height: 360px;
+    padding: 14px;
+  }
+
+  .grid2,
+  .grid3,
+  .grid4 {
+    grid-template-columns: 1fr;
+  }
+}

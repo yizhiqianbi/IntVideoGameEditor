@@ -4,17 +4,17 @@
   z-index: 100;
   width: 100%;
   height: var(--nav-height);
-  background: rgba(14, 14, 18, 0.88);
-  backdrop-filter: blur(20px) saturate(1.4);
+  background: rgba(12, 13, 18, 0.94);
+  backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 1px 0 rgba(124, 77, 255, 0.12), 0 4px 24px rgba(0, 0, 0, 0.32);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .inner {
   display: flex;
   align-items: center;
-  gap: 32px;
-  width: min(1280px, calc(100vw - 48px));
+  gap: 24px;
+  width: min(1360px, calc(100vw - 48px));
   margin: 0 auto;
   height: 100%;
 }
@@ -34,12 +34,12 @@
   width: 30px;
   height: 30px;
   border-radius: var(--radius-sm);
-  background: var(--gradient-accent);
+  background: #171a21;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   font-size: 14px;
   font-weight: 800;
   color: #fff;
   letter-spacing: -0.02em;
-  box-shadow: var(--glow-accent);
   flex-shrink: 0;
 }
 
@@ -55,6 +55,13 @@
   align-items: center;
   gap: 4px;
   flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navLinks::-webkit-scrollbar {
+  display: none;
 }
 
 .navLink {
@@ -74,11 +81,11 @@
 
 .navLinkActive {
   color: var(--color-text);
-  background: rgba(124, 77, 255, 0.12);
+  background: rgba(255, 255, 255, 0.06);
 }
 
 .navLinkActive:hover {
-  background: rgba(124, 77, 255, 0.18);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .ctaButton {
@@ -88,21 +95,19 @@
   height: 34px;
   padding: 0 18px;
   border-radius: 999px;
-  background: var(--gradient-accent);
-  color: #fff;
+  background: #f2f4f7;
+  color: #0f1117;
   font-size: 13px;
   font-weight: 600;
   text-decoration: none;
   letter-spacing: 0.01em;
-  box-shadow: 0 4px 14px rgba(124, 77, 255, 0.35);
-  transition: opacity var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  transition: opacity var(--transition-fast), transform var(--transition-fast), background var(--transition-fast);
   white-space: nowrap;
 }
 
 .ctaButton:hover {
-  opacity: 0.88;
+  background: #ffffff;
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(124, 77, 255, 0.45);
 }
 
 @media (max-width: 640px) {
@@ -118,5 +123,9 @@
   .navLink {
     padding: 6px 10px;
     font-size: 13px;
+  }
+
+  .ctaButton {
+    padding: 0 14px;
   }
 }

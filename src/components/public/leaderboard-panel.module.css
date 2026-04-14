@@ -1,0 +1,56 @@
+.panel {
+  display: grid;
+  gap: 8px;
+  border-radius: 16px;
+  background: rgba(18, 20, 26, 0.96);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 10px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.list {
+  display: grid;
+  gap: 6px;
+}
+
+.item {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 9px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-decoration: none;
+}
+
+.rank {
+  font-family: var(--font-mono);
+  color: rgba(255, 255, 255, 0.54);
+  font-size: 11px;
+}
+
+.copy {
+  min-width: 0;
+}
+
+.itemTitle {
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

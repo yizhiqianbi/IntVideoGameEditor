@@ -1,0 +1,12 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#0E1218"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#151C24"/>
+  <rect x="110" y="144" width="680" height="760" rx="40" fill="#1C2731"/>
+  <rect x="162" y="212" width="300" height="520" rx="30" fill="#0F151B"/>
+  <rect x="482" y="212" width="256" height="520" rx="30" fill="#202B35"/>
+  <circle cx="310" cy="470" r="108" fill="#ECDFC8"/>
+  <rect x="264" y="584" width="96" height="168" rx="44" fill="#E8DBC3"/>
+  <path d="M564 310C620 310 664 354 664 410V520C664 576 620 620 564 620H530V480H600V446H530V310H564Z" fill="#F2E6D0"/>
+  <rect x="126" y="972" width="236" height="32" rx="16" fill="#A2C0D9"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">午夜来电</text>
+</svg>

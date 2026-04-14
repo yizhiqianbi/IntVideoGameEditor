@@ -1,0 +1,12 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#0F1217"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#171D24"/>
+  <rect x="120" y="156" width="660" height="740" rx="40" fill="#D8E4F2"/>
+  <circle cx="450" cy="496" r="190" stroke="#1B2C44" stroke-width="30"/>
+  <circle cx="450" cy="496" r="118" stroke="#1B2C44" stroke-width="22"/>
+  <circle cx="450" cy="496" r="52" fill="#FF6B57"/>
+  <rect x="435" y="212" width="30" height="110" rx="15" fill="#1B2C44"/>
+  <rect x="435" y="672" width="30" height="110" rx="15" fill="#1B2C44"/>
+  <rect x="166" y="970" width="240" height="30" rx="15" fill="#9CB8D3"/>
+  <text x="166" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">反应开枪</text>
+</svg>

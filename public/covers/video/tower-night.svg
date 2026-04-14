@@ -1,0 +1,12 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#0A0D11"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#11161C"/>
+  <rect x="112" y="164" width="676" height="706" rx="42" fill="#102030"/>
+  <circle cx="666" cy="258" r="78" fill="#F0E6C7"/>
+  <path d="M462 252L584 764H340L462 252Z" fill="#E5C29B"/>
+  <rect x="414" y="374" width="96" height="266" rx="18" fill="#BA7D5F"/>
+  <rect x="438" y="304" width="50" height="82" rx="16" fill="#F6E8B5"/>
+  <rect x="0" y="796" width="900" height="220" fill="#0C141B"/>
+  <rect x="126" y="972" width="220" height="32" rx="16" fill="#E4C69C"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">灯塔协定</text>
+</svg>

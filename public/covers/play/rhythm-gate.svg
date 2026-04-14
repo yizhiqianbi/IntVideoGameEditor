@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <title>Rhythm Gate</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#FFF0E7"/>
+      <stop offset="100%" stop-color="#FFD1B5"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="18" stdDeviation="18" flood-color="#B05E35" flood-opacity="0.2"/>
+    </filter>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <path d="M170 820C276 702 340 676 450 676C560 676 624 702 730 820" stroke="#7C3F22" stroke-width="24" stroke-linecap="round" opacity="0.6"/>
+  <g filter="url(#shadow)">
+    <path d="M240 820V404C240 318 310 248 396 248H504C590 248 660 318 660 404V820" stroke="#7C3F22" stroke-width="26" stroke-linecap="round"/>
+    <path d="M294 820V430C294 371 341 324 400 324H500C559 324 606 371 606 430V820" stroke="#FF9A60" stroke-width="16" stroke-linecap="round"/>
+  </g>
+  <g filter="url(#shadow)">
+    <circle cx="450" cy="508" r="48" fill="#2E6F6D"/>
+    <circle cx="450" cy="508" r="18" fill="#F8E5C8"/>
+    <circle cx="450" cy="620" r="34" fill="#E0673B"/>
+    <circle cx="450" cy="708" r="22" fill="#F3C34A"/>
+  </g>
+  <path d="M450 210V160M450 850V900" stroke="#7C3F22" stroke-width="14" stroke-linecap="round" opacity="0.5"/>
+  <text x="84" y="104" fill="#7C3F22" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" letter-spacing="5">RHYTHM</text>
+  <text x="84" y="164" fill="#7C3F22" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="900" letter-spacing="2">GATE</text>
+  <text x="84" y="218" fill="#7C3F22" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" opacity="0.72" letter-spacing="3">PASS ON THE BEAT</text>
+  <rect x="56" y="72" width="788" height="1056" rx="44" stroke="#7C3F22" stroke-width="10" opacity="0.1"/>
+</svg>

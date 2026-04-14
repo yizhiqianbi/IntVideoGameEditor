@@ -1,0 +1,31 @@
+.section {
+  display: grid;
+  gap: 8px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(146px, 168px);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+.compactGrid {
+  display: grid;
+  gap: 8px;
+}

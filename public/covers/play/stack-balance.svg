@@ -1,0 +1,12 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#0F1318"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#171C24"/>
+  <rect x="140" y="150" width="620" height="760" rx="36" fill="#E9E6D7"/>
+  <rect x="370" y="760" width="160" height="34" rx="17" fill="#4A5F7A"/>
+  <rect x="320" y="660" width="260" height="54" rx="18" fill="#6F86A3"/>
+  <rect x="342" y="578" width="216" height="48" rx="16" fill="#D48D53"/>
+  <rect x="392" y="512" width="120" height="40" rx="14" fill="#8AA48B"/>
+  <circle cx="586" cy="468" r="34" fill="#F5C76F"/>
+  <rect x="132" y="970" width="280" height="30" rx="15" fill="#7D93AE"/>
+  <text x="132" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">高塔平衡</text>
+</svg>

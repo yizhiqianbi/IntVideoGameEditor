@@ -1,0 +1,155 @@
+.page {
+  min-height: 100vh;
+  background: #0b0d12;
+}
+
+.shell {
+  width: min(1360px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 20px 0 72px;
+  display: grid;
+  gap: 26px;
+}
+
+.runtimeShell {
+  display: grid;
+  gap: 14px;
+}
+
+.runtimeTopBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.runtimeMeta,
+.runtimeActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.runtimePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.ghostButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.runtimeStage {
+  min-height: calc(100vh - 170px);
+  border-radius: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.runtimeStagePlay {
+  place-items: stretch;
+  background: #10141b;
+}
+
+.toneSlate {
+  background: #1a1f27;
+}
+
+.toneViolet {
+  background: #1a1822;
+}
+
+.toneCyan {
+  background: #151d22;
+}
+
+.toneAmber {
+  background: #201a15;
+}
+
+.runtimeCenter {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.runtimeTitle {
+  font-size: clamp(36px, 5vw, 72px);
+  line-height: 0.96;
+  letter-spacing: -0.05em;
+  font-weight: 800;
+}
+
+.runtimeLabel {
+  color: rgba(255, 255, 255, 0.56);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+}
+
+.relatedSection {
+  display: grid;
+  gap: 16px;
+}
+
+.relatedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.relatedTitle {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+@media (max-width: 960px) {
+  .relatedGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 16px 0 56px;
+  }
+
+  .runtimeStage {
+    min-height: calc(100vh - 220px);
+  }
+}

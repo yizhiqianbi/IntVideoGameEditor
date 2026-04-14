@@ -1,0 +1,11 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#101318"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#181D24"/>
+  <rect x="132" y="154" width="636" height="760" rx="40" fill="#F2E6D8"/>
+  <rect x="220" y="298" width="460" height="360" rx="34" fill="#F4CF84"/>
+  <path d="M250 622L646 334" stroke="#1D2A37" stroke-width="18" stroke-linecap="round"/>
+  <circle cx="468" cy="478" r="54" fill="#FF7646"/>
+  <circle cx="468" cy="478" r="18" fill="#FFF4E0"/>
+  <rect x="126" y="970" width="220" height="30" rx="15" fill="#D6AF75"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">完美切割</text>
+</svg>

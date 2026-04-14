@@ -1,0 +1,93 @@
+.page {
+  min-height: 100vh;
+  background: #0b0d12;
+}
+
+.shell {
+  width: min(1360px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 18px 0 88px;
+  display: grid;
+  gap: 22px;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 34px);
+  line-height: 0.98;
+  letter-spacing: -0.05em;
+}
+
+.secondaryButton {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.portalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.portalCopy {
+  display: grid;
+  gap: 2px;
+}
+
+.portalGrid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 14px;
+}
+
+.mainShelf {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.sidebar {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+}
+
+@media (max-width: 1080px) {
+  .portalGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .mainShelf {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 18px 0 56px;
+  }
+
+  .portalHeader {
+    display: grid;
+  }
+
+  .mainShelf {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .mainShelf {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

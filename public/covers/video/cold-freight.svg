@@ -1,0 +1,13 @@
+<svg width="900" height="1200" viewBox="0 0 900 1200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="900" height="1200" fill="#0D1115"/>
+  <rect x="48" y="48" width="804" height="1104" rx="56" fill="#151A20"/>
+  <rect x="112" y="174" width="676" height="690" rx="42" fill="#B8D2E8"/>
+  <rect x="166" y="232" width="568" height="320" rx="24" fill="#E8F2FA"/>
+  <rect x="166" y="584" width="568" height="224" rx="24" fill="#1E2933"/>
+  <rect x="220" y="630" width="104" height="104" rx="18" fill="#C5D9EA"/>
+  <rect x="352" y="630" width="104" height="104" rx="18" fill="#A8C4DA"/>
+  <rect x="484" y="630" width="104" height="104" rx="18" fill="#8DB2D1"/>
+  <path d="M612 286H700V504H612V286Z" fill="#89B6D7"/>
+  <rect x="126" y="972" width="240" height="32" rx="16" fill="#9BC3E2"/>
+  <text x="126" y="1088" fill="#F5F7FB" font-size="84" font-weight="700" font-family="Arial, sans-serif">冷库追证</text>
+</svg>

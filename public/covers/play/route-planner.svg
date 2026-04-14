@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200" fill="none">
+  <title>Route Planner</title>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#EAF4E6"/>
+      <stop offset="100%" stop-color="#BDD8BF"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="16" stdDeviation="18" flood-color="#4C6C4E" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+  <rect width="900" height="1200" fill="url(#bg)"/>
+  <g opacity="0.4">
+    <path d="M120 236H780M120 360H780M120 484H780M120 608H780M120 732H780M120 856H780M120 980H780" stroke="#6E8C71" stroke-width="4"/>
+    <path d="M160 170V1030M300 170V1030M440 170V1030M580 170V1030M720 170V1030" stroke="#6E8C71" stroke-width="4"/>
+  </g>
+  <path d="M200 840C296 810 340 760 350 700C360 630 382 582 448 532C528 472 620 418 706 304" stroke="#EB6B3C" stroke-width="18" fill="none" stroke-linecap="round"/>
+  <path d="M200 840C296 810 340 760 350 700C360 630 382 582 448 532C528 472 620 418 706 304" stroke="#FFFFFF" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="16 22" opacity="0.8"/>
+  <g filter="url(#shadow)">
+    <circle cx="200" cy="840" r="28" fill="#2F5A36"/>
+    <circle cx="706" cy="304" r="28" fill="#2F5A36"/>
+    <circle cx="448" cy="532" r="24" fill="#F3C34A"/>
+  </g>
+  <text x="84" y="104" fill="#28422A" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="800" letter-spacing="5">ROUTE</text>
+  <text x="84" y="164" fill="#28422A" font-family="Arial, Helvetica, sans-serif" font-size="72" font-weight="900" letter-spacing="2">PLANNER</text>
+  <text x="84" y="218" fill="#28422A" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="700" opacity="0.72" letter-spacing="3">DRAW THE BEST PATH</text>
+  <rect x="56" y="72" width="788" height="1056" rx="44" stroke="#28422A" stroke-width="10" opacity="0.1"/>
+</svg>
