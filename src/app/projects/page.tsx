@@ -370,6 +370,15 @@ export default function ProjectsPage() {
                   >
                     继续创作
                   </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() =>
+                      router.push(`/pencil-studio-vid/play-agent?project=${featuredProject.id}`)
+                    }
+                  >
+                    Play 创作
+                  </button>
                   {renamingProjectId !== featuredProject.id ? (
                     <button
                       type="button"
@@ -631,6 +640,15 @@ export default function ProjectsPage() {
                         </div>
                       ) : (
                         <div className={styles.cardFooter}>
+                          <button
+                            type="button"
+                            className={styles.cancelButton}
+                            onClick={() =>
+                              router.push(`/pencil-studio-vid/play-agent?project=${project.id}`)
+                            }
+                          >
+                            Play 创作
+                          </button>
                           <button
                             type="button"
                             className={styles.dangerButton}

@@ -4863,6 +4863,19 @@ export function EditorShell({
                   onClick={() =>
                     router.push(
                       currentProjectId
+                        ? `/pencil-studio-vid/play-agent?project=${currentProjectId}`
+                        : "/projects",
+                    )
+                  }
+                >
+                  Play 创作
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() =>
+                    router.push(
+                      currentProjectId
                         ? `/pencil-studio-vid/agent?project=${currentProjectId}`
                         : "/pencil-studio-vid/agent",
                     )

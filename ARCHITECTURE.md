@@ -20,6 +20,7 @@ Fun-X-Studio is split into two product surfaces inside one repository.
     - `/projects`
     - `/pencil-studio-vid`
     - `/pencil-studio-vid/agent`
+    - `/pencil-studio-vid/play-agent`
 
 The public platform is not a marketing homepage. It is a content surface. The homepage should always prioritize playable or watchable content over product explanation.
 The homepage should behave like a content portal, with cover-first shelves and minimal metadata.
@@ -236,3 +237,45 @@ This file must be updated whenever one of these changes:
 - separation of public platform vs creator studio
 
 Architectural decisions that materially change system direction should also get an ADR in `docs/adr/`.
+
+## 9. Play Agent Harness
+
+The repository now includes a creator-side `Play Agent Harness` v1 for browser-native H5 game creation.
+
+This system is split into four layers:
+
+- `play-agent-core`
+  - pure TypeScript domain layer
+  - templates, skills, plans, artifact bundles, provider contracts
+- `play-agent-server`
+  - Next.js API routes for session creation, planning, run execution, event fetch, artifact fetch, and apply payload generation
+- `play-agent-web-shell`
+  - reserved future browser coding shell
+  - preferred long-term direction: `xterm.js` + `WebContainers`
+- `play-agent-studio`
+  - creator-facing route and UI
+  - template selection, skill selection, prompt authoring, plan review, run status, preview, apply
+
+Implemented v1 pieces:
+
+- route: `/pencil-studio-vid/play-agent?project=<id>`
+- client studio shell under `src/components/studio/play-agent/`
+- in-memory server session store under `src/lib/play-agent/sessions.ts`
+- stub provider adapter under `src/lib/play-agent/mock-adapter.ts`
+- project-local Play draft persistence in browser `localStorage` under `src/lib/play-agent/project-drafts.ts`
+- server API surface:
+  - `POST /api/play-agent/sessions`
+  - `GET /api/play-agent/sessions/[id]`
+  - `POST /api/play-agent/sessions/[id]/plan`
+  - `POST /api/play-agent/sessions/[id]/run`
+  - `GET /api/play-agent/sessions/[id]/events`
+  - `GET /api/play-agent/sessions/[id]/artifacts`
+  - `POST /api/play-agent/sessions/[id]/apply`
+
+Rules:
+
+- the Play Agent Harness belongs to the creator studio, not the public platform
+- it must remain provider-decoupled
+- it should accept future external APIs and code plans through adapter interfaces, not direct SDK coupling
+- v1 apply writes into project-local Play draft storage instead of mutating the interactive-film editor graph
+- it should formalize `template + skill + prompt` as the creation contract for Play generation
