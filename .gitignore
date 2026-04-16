@@ -61,5 +61,6 @@ next-env.d.ts
 *.synctex.gz
 
 # Claude worktrees & Codex merge branches
+.worktrees/
 .claude/worktrees/
 .codex-merge-*/
