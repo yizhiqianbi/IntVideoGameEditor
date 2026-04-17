@@ -1,7 +1,7 @@
 import {
-  MOCK_PLAY_AGENT_ADAPTER,
   buildPlayAgentPlanInput,
 } from "./index";
+import providerModule from "./provider";
 import type {
   PlayAgentApplyPayload,
   PlayAgentArtifactBundle,
@@ -30,6 +30,9 @@ type UpdateSessionPlanInput = {
   skillIds: string[];
   prompt: string;
 };
+
+const { resolvePlayAgentProviderAdapter } =
+  providerModule as typeof import("./provider");
 
 const globalStore = globalThis as typeof globalThis & {
   __funxPlayAgentSessions?: Map<string, SessionStoreRecord>;
@@ -121,7 +124,8 @@ export async function generatePlanForPlayAgentSession(
     templateId: input.templateId,
     skillIds: input.skillIds,
   });
-  const plan = await MOCK_PLAY_AGENT_ADAPTER.plan(planInput);
+  const adapter = resolvePlayAgentProviderAdapter();
+  const plan = await adapter.plan(planInput);
 
   record.plan = plan;
   record.events.push({
@@ -160,7 +164,8 @@ export async function runPlayAgentSession(sessionId: string) {
     status: "running",
   });
 
-  const result = await MOCK_PLAY_AGENT_ADAPTER.run({
+  const adapter = resolvePlayAgentProviderAdapter();
+  const result = await adapter.run({
     sessionId,
     projectId: record.session.projectId,
     templateId: record.session.templateId,

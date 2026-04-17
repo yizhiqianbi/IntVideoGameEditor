@@ -261,7 +261,10 @@ Implemented v1 pieces:
 - route: `/pencil-studio-vid/play-agent?project=<id>`
 - client studio shell under `src/components/studio/play-agent/`
 - in-memory server session store under `src/lib/play-agent/sessions.ts`
+- provider resolver under `src/lib/play-agent/provider.ts`
 - stub provider adapter under `src/lib/play-agent/mock-adapter.ts`
+- GLM Coding Plan adapter under `src/lib/play-agent/glm-adapter.ts`
+- OpenRouter adapter under `src/lib/play-agent/openrouter-adapter.ts`
 - project-local Play draft persistence in browser `localStorage` under `src/lib/play-agent/project-drafts.ts`
 - server API surface:
   - `POST /api/play-agent/sessions`
@@ -276,6 +279,7 @@ Rules:
 
 - the Play Agent Harness belongs to the creator studio, not the public platform
 - it must remain provider-decoupled
+- v1 supports `mock`, `GLM Coding Plan`, and `OpenRouter` provider paths behind the same adapter contract
 - it should accept future external APIs and code plans through adapter interfaces, not direct SDK coupling
 - v1 apply writes into project-local Play draft storage instead of mutating the interactive-film editor graph
 - it should formalize `template + skill + prompt` as the creation contract for Play generation
