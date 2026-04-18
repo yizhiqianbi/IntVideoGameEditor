@@ -1,0 +1,222 @@
+.page {
+  min-height: 100vh;
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.shell {
+  width: min(1440px, calc(100vw - 56px));
+  margin: 0 auto;
+  padding: 32px 0 80px;
+  display: grid;
+  gap: 56px;
+}
+
+/* ── Header ──────────────────────────────── */
+.header {
+  display: grid;
+  gap: 20px;
+}
+
+.backButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: rgba(245, 243, 236, 0.04);
+  border: 1px solid rgba(245, 243, 236, 0.12);
+  color: rgba(245, 243, 236, 0.82);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all var(--transition-fast);
+}
+
+.backButton:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+.title {
+  margin: 0;
+  font-size: clamp(36px, 5vw, 64px);
+  font-weight: 800;
+  line-height: 0.96;
+  letter-spacing: -0.045em;
+}
+
+.subtitle {
+  margin: 8px 0 0;
+  max-width: 560px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-muted);
+}
+
+/* ── Template grid ───────────────────────── */
+.templateGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.templateCard {
+  position: relative;
+  border-radius: 20px;
+  padding: 28px 24px;
+  background: linear-gradient(135deg, rgba(255, 61, 0, 0.08) 0%, rgba(20, 83, 255, 0.05) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: inherit;
+  text-decoration: none;
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 12px;
+  transition: all 0.28s var(--ease-out);
+  overflow: hidden;
+}
+
+.templateCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(255, 61, 0, 0.15), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.28s ease;
+  pointer-events: none;
+}
+
+.templateCard:hover {
+  background: linear-gradient(135deg, rgba(255, 61, 0, 0.14) 0%, rgba(20, 83, 255, 0.1) 100%);
+  border-color: var(--color-accent);
+  transform: translateY(-4px);
+  box-shadow: 0 20px 60px -20px var(--color-accent);
+}
+
+.templateCard:hover::before {
+  opacity: 1;
+}
+
+.templateIcon {
+  display: inline-grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 61, 0, 0.12);
+  font-size: 28px;
+  position: relative;
+  z-index: 1;
+}
+
+.templateName {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  position: relative;
+  z-index: 1;
+}
+
+.templateDesc {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-muted);
+  position: relative;
+  z-index: 1;
+}
+
+.templateArrow {
+  justify-self: start;
+  font-size: 16px;
+  color: var(--color-accent);
+  opacity: 0;
+  transition: opacity 0.28s ease, transform 0.28s ease;
+  position: relative;
+  z-index: 1;
+}
+
+.templateCard:hover .templateArrow {
+  opacity: 1;
+  transform: translateX(4px);
+}
+
+/* ── Guide section ───────────────────────── */
+.guide {
+  border-radius: 20px;
+  padding: 40px;
+  background: linear-gradient(180deg, rgba(255, 61, 0, 0.05) 0%, rgba(255, 61, 0, 0.01) 100%);
+  border: 1px solid rgba(255, 122, 61, 0.2);
+}
+
+.guideTitle {
+  margin: 0 0 28px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.guideList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+
+.guideList li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+.stepNum {
+  display: inline-grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+  background: var(--color-accent);
+  color: #fff;
+  font-family: var(--font-serif), serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.stepText {
+  padding-top: 4px;
+  display: grid;
+  gap: 4px;
+}
+
+.stepText strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.stepText {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-muted);
+}
+
+/* ── Responsive ─────────────────────────── */
+@media (max-width: 1080px) {
+  .shell { width: calc(100vw - 28px); }
+  .templateGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 720px) {
+  .shell { padding: 20px 0 56px; gap: 40px; }
+  .templateGrid { grid-template-columns: 1fr; }
+  .guide { padding: 24px; }
+}
