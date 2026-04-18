@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { GameResultScreen } from "../game-result-screen";
 import shared from "../shared.module.css";
 import type { MiniGameRenderProps } from "../types";
 
@@ -236,6 +237,9 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
   const [clues, setClues] = useState<string[]>([]);
   const [lastChoice, setLastChoice] = useState<string>("从 5 岁开始，先决定你怎么面对世界。");
   const [ending, setEnding] = useState<Ending | null>(null);
+  const [showResultScreen, setShowResultScreen] = useState(false);
+  const [finalScore, setFinalScore] = useState(0);
+  const [finalSummary, setFinalSummary] = useState("");
   const finishGuardRef = useRef(false);
   const onFinishRef = useRef(onFinish);
 
@@ -261,12 +265,16 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
 
     if (chapterIndex === CHAPTERS.length - 1) {
       const nextEnding = buildEnding(nextStats, nextClues);
-      const finalScore = computeScore(nextStats, nextClues.length);
+      const calcScore = computeScore(nextStats, nextClues.length);
+      const summary = buildSummary(calcScore, nextEnding, nextClues);
       setEnding(nextEnding);
+      setFinalScore(calcScore);
+      setFinalSummary(summary);
+      setShowResultScreen(true);
 
       if (!finishGuardRef.current) {
         finishGuardRef.current = true;
-        onFinishRef.current(finalScore, buildSummary(finalScore, nextEnding, nextClues));
+        onFinishRef.current(calcScore, summary);
       }
 
       return;
@@ -277,12 +285,31 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
 
   const handleRestart = () => {
     finishGuardRef.current = false;
+    finishNotifiedRef.current = false;
     setChapterIndex(0);
     setStats(INITIAL_STATS);
     setClues([]);
     setLastChoice("从 5 岁开始，先决定你怎么面对世界。");
     setEnding(null);
+    setShowResultScreen(false);
   };
+
+  if (showResultScreen) {
+    return (
+      <>
+        <section className={shared.gameRoot} aria-label="首富人生模拟器" style={{ pointerEvents: "none", opacity: 0.3 }}>
+          {/* Hidden backdrop */}
+        </section>
+        <GameResultScreen
+          score={finalScore}
+          summary={finalSummary}
+          onRetry={handleRestart}
+          rank={finalScore >= 150 ? "S" : finalScore >= 100 ? "A" : finalScore >= 50 ? "B" : "C"}
+          showConfetti
+        />
+      </>
+    );
+  }
 
   return (
     <section className={shared.gameRoot} aria-label="首富人生模拟器">
