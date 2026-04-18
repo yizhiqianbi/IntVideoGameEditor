@@ -1,0 +1,72 @@
+.root {
+  overflow: hidden;
+  border-top: 1px solid var(--color-line);
+  border-bottom: 1px solid var(--color-line);
+  width: 100%;
+  position: relative;
+}
+
+.tone-dark {
+  background: var(--color-background);
+  color: var(--color-text);
+}
+
+.tone-paper {
+  background: var(--color-paper);
+  color: var(--color-paper-ink);
+  border-color: rgba(10, 10, 12, 0.12);
+}
+
+.tone-accent {
+  background: var(--color-accent);
+  color: var(--color-paper);
+  border-color: transparent;
+}
+
+.track {
+  display: flex;
+  align-items: center;
+  gap: 44px;
+  padding: 14px 0;
+  width: max-content;
+  animation: scroll 42s linear infinite;
+  will-change: transform;
+}
+
+@keyframes scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-25%);
+  }
+}
+
+.item {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  font-family: var(--font-mono), monospace;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.dot {
+  display: inline-block;
+  font-size: 8px;
+  transform: translateY(-1px);
+  color: currentColor;
+  opacity: 0.7;
+}
+
+.tone-accent .item {
+  letter-spacing: 0.22em;
+  font-weight: 700;
+}
+
+.tone-accent .dot {
+  opacity: 1;
+}

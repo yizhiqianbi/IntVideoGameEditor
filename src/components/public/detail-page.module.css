@@ -1,79 +1,98 @@
 .page {
   min-height: 100vh;
-  background: #0b0d12;
+  background: var(--color-background);
+  color: var(--color-text);
 }
 
 .shell {
   width: min(1360px, calc(100vw - 48px));
   margin: 0 auto;
-  padding: 20px 0 72px;
+  padding: 18px 0 72px;
   display: grid;
-  gap: 26px;
+  gap: 24px;
 }
 
-.runtimeShell {
-  display: grid;
-  gap: 14px;
-}
-
-.runtimeTopBar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  flex-wrap: wrap;
-}
-
-.runtimeMeta,
+/* ── Floating back bar (minimal chrome) ───── */
 .runtimeActions {
   display: flex;
   align-items: center;
   gap: 10px;
-  flex-wrap: wrap;
-}
-
-.runtimePill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 0 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 11px;
-  font-family: var(--font-mono);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
 }
 
 .ghostButton {
   display: inline-flex;
   align-items: center;
-  min-height: 38px;
+  gap: 8px;
+  min-height: 36px;
   padding: 0 14px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: rgba(255, 255, 255, 0.82);
+  background: rgba(245, 243, 236, 0.04);
+  border: 1px solid rgba(245, 243, 236, 0.12);
+  color: rgba(245, 243, 236, 0.82);
   font-size: 13px;
   font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.ghostButton::before {
+  content: "←";
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.ghostButton:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
+}
+
+/* ── Runtime shell — cinematic stage ─────── */
+.runtimeShell {
+  display: grid;
+  gap: 0;
+}
+
+.runtimeTopBar {
+  display: none;
+}
+
+.runtimePill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(255, 61, 0, 0.18);
+  border: 1px solid rgba(255, 122, 61, 0.4);
+  color: rgba(255, 220, 200, 0.95);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
 }
 
 .runtimeStage {
-  min-height: calc(100vh - 170px);
+  position: relative;
+  min-height: calc(100vh - 160px);
   border-radius: 28px;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
   display: grid;
-  place-items: center;
-  padding: 18px;
-  position: relative;
+  place-items: stretch;
+  padding: 22px;
+  background:
+    radial-gradient(circle at 0% 0%, rgba(255, 61, 0, 0.1), transparent 40%),
+    radial-gradient(circle at 100% 100%, rgba(20, 83, 255, 0.07), transparent 45%),
+    linear-gradient(180deg, #11121A 0%, #08090F 100%);
+  box-shadow:
+    0 30px 80px -40px rgba(0, 0, 0, 0.9),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .runtimeStagePlay {
   place-items: stretch;
-  background: #10141b;
 }
 
 .runtimeStageFullscreen {
@@ -82,27 +101,36 @@
   min-height: 100vh;
   border-radius: 0;
   border: 0;
-  padding: 12px;
-  background: #0b0d12;
+  padding: 16px;
 }
 
 .fullscreenButton {
   position: absolute;
-  top: 14px;
-  right: 14px;
-  z-index: 2;
+  top: 16px;
+  right: 16px;
+  z-index: 5;
   display: inline-flex;
   align-items: center;
+  gap: 6px;
   min-height: 34px;
-  padding: 0 12px;
+  padding: 0 14px;
   border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background: rgba(12, 13, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(7, 8, 15, 0.76);
   color: rgba(255, 255, 255, 0.9);
-  font-size: 12px;
+  font-size: 11px;
+  font-family: var(--font-mono);
   font-weight: 700;
+  letter-spacing: 0.14em;
   backdrop-filter: blur(14px);
   cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.fullscreenButton:hover {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: #fff;
 }
 
 .fullscreenButtonHidden {
@@ -110,81 +138,99 @@
   pointer-events: none;
 }
 
-.toneSlate {
-  background: #1a1f27;
-}
-
-.toneViolet {
-  background: #1a1822;
-}
-
-.toneCyan {
-  background: #151d22;
-}
-
+.toneSlate,
+.toneViolet,
+.toneCyan,
 .toneAmber {
-  background: #201a15;
+  /* tones no longer re-color stage — game board owns its palette */
 }
 
 .runtimeCenter {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   justify-items: center;
-  padding: 24px;
+  padding: 32px;
   text-align: center;
 }
 
 .runtimeTitle {
-  font-size: clamp(36px, 5vw, 72px);
-  line-height: 0.96;
+  font-size: clamp(40px, 5.5vw, 80px);
+  line-height: 0.94;
   letter-spacing: -0.05em;
   font-weight: 800;
 }
 
 .runtimeLabel {
-  color: rgba(255, 255, 255, 0.56);
-  font-size: 14px;
-  letter-spacing: 0.08em;
+  color: rgba(236, 238, 246, 0.5);
+  font-size: 12px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
   font-family: var(--font-mono);
 }
 
+/* ── Related — editorial rail ─────────────── */
 .relatedSection {
   display: grid;
-  gap: 16px;
+  gap: 18px;
+  padding-top: 8px;
 }
 
 .relatedHeader {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--color-line);
 }
 
 .relatedTitle {
   margin: 0;
-  font-size: 22px;
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
   line-height: 1;
+  font-size: clamp(22px, 2.5vw, 32px);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--color-text);
+}
+
+.relatedTitleAlt {
+  font-family: var(--font-serif), serif;
+  font-style: italic;
+  font-weight: 400;
+  font-size: clamp(18px, 2vw, 24px);
+  color: var(--color-muted);
+  letter-spacing: -0.02em;
 }
 
 .relatedGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: 16px;
 }
 
 @media (max-width: 960px) {
   .relatedGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 720px) {
   .shell {
     width: calc(100vw - 24px);
-    padding: 16px 0 56px;
+    padding: 14px 0 56px;
+    gap: 18px;
   }
 
   .runtimeStage {
-    min-height: calc(100vh - 220px);
+    min-height: calc(100vh - 200px);
+    padding: 14px;
+    border-radius: 20px;
+  }
+
+  .relatedGrid {
+    grid-template-columns: 1fr;
   }
 }

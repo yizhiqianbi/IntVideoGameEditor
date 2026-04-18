@@ -1,42 +1,65 @@
 :root {
-  --color-background: #0b0b11;
-  --color-surface: rgba(21, 22, 29, 0.96);
-  --color-surface-strong: #1a1c24;
-  --color-surface-elevated: rgba(28, 31, 40, 0.98);
-  --color-line: rgba(255, 255, 255, 0.08);
-  --color-line-strong: rgba(255, 255, 255, 0.14);
-  --color-text: #f4f6fb;
-  --color-muted: rgba(244, 246, 251, 0.52);
+  /* Surfaces — bolder contrast */
+  --color-background: #0A0A0C;
+  --color-surface: #111114;
+  --color-surface-strong: #16161A;
+  --color-surface-elevated: #1C1C21;
+  --color-paper: #F5F3EC;
+  --color-paper-ink: #0A0A0C;
+  --color-paper-muted: rgba(10, 10, 12, 0.6);
+  --color-line: rgba(245, 243, 236, 0.1);
+  --color-line-strong: rgba(245, 243, 236, 0.18);
+  --color-text: #F5F3EC;
+  --color-muted: rgba(245, 243, 236, 0.52);
+  --color-subtle: rgba(245, 243, 236, 0.32);
 
-  --color-accent: #7c4dff;
-  --color-accent-soft: rgba(124, 77, 255, 0.12);
-  --color-accent2: #09c4d9;
-  --color-accent2-soft: rgba(9, 196, 217, 0.08);
+  /* Accents — vivid, editorial */
+  --color-accent: #FF3D00;
+  --color-accent-ink: #FF7A3D;
+  --color-accent-soft: rgba(255, 61, 0, 0.14);
+  --color-accent2: #1453FF;
+  --color-accent2-soft: rgba(20, 83, 255, 0.12);
+  --color-gold: #D4B572;
 
-  --gradient-accent: linear-gradient(135deg, #6b3cff 0%, #7c4dff 40%, #09c4d9 100%);
-  --gradient-accent-subtle: linear-gradient(135deg, rgba(124, 77, 255, 0.14), rgba(9, 196, 217, 0.08));
-  --gradient-surface: linear-gradient(180deg, rgba(21, 22, 29, 0.98), rgba(13, 14, 19, 0.99));
+  /* Gradients */
+  --gradient-accent: linear-gradient(135deg, #FF2A00 0%, #FF3D00 45%, #FF7A3D 100%);
+  --gradient-cool: linear-gradient(135deg, #0E2FB8 0%, #1453FF 52%, #5B8AFF 100%);
+  --gradient-surface: linear-gradient(180deg, #0A0A0C 0%, #0D0D10 100%);
+  --gradient-paper: linear-gradient(180deg, #F5F3EC 0%, #EDEAE0 100%);
 
-  --color-success: #10c96b;
-  --color-warning: #f4c247;
-  --color-danger: #ff5a78;
+  /* Status */
+  --color-success: #00D68F;
+  --color-warning: #FFB347;
+  --color-danger: #FF3D5B;
 
-  --glow-accent: 0 0 0 1px rgba(124, 77, 255, 0.16);
-  --glow-accent2: 0 0 0 1px rgba(9, 196, 217, 0.14);
-  --shadow-panel: 0 18px 44px rgba(0, 0, 0, 0.34);
-  --shadow-card: 0 12px 28px rgba(0, 0, 0, 0.24);
-  --shadow-card-hover: 0 20px 40px rgba(0, 0, 0, 0.28);
+  /* Shadows */
+  --shadow-panel: 0 24px 64px rgba(0, 0, 0, 0.48);
+  --shadow-card: 0 14px 36px rgba(0, 0, 0, 0.32);
+  --shadow-card-hover: 0 28px 64px rgba(0, 0, 0, 0.48), 0 0 0 1px rgba(255, 61, 0, 0.22);
+  --shadow-paper: 0 24px 64px rgba(0, 0, 0, 0.12);
 
-  --nav-height: 60px;
+  --nav-height: 68px;
 
+  /* Radii — reduced, more editorial/architectural */
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-xl: 24px;
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --transition-fast: 140ms var(--ease-out);
-  --transition-med: 240ms var(--ease-out);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --transition-fast: 150ms var(--ease-out);
+  --transition-med: 280ms var(--ease-out);
+  --transition-slow: 500ms var(--ease-out);
+
+  /* Type scale */
+  --type-hero: clamp(64px, 10vw, 168px);
+  --type-display: clamp(48px, 7vw, 112px);
+  --type-h1: clamp(36px, 5vw, 72px);
+  --type-h2: clamp(24px, 3vw, 40px);
+  --type-h3: clamp(18px, 2vw, 24px);
+  --type-eyebrow: 11px;
 }
 
 * {
@@ -53,13 +76,11 @@ body {
 
 body {
   color: var(--color-text);
-  background:
-    radial-gradient(ellipse 72% 56% at 18% 8%, rgba(124, 77, 255, 0.05), transparent),
-    radial-gradient(ellipse 54% 40% at 82% 76%, rgba(9, 196, 217, 0.03), transparent),
-    linear-gradient(180deg, #0b0b11 0%, #0e1017 100%);
-  font-family: var(--font-display), sans-serif;
+  background: var(--color-background);
+  font-family: var(--font-display), -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 button,
@@ -78,6 +99,7 @@ a {
 button {
   background: none;
   border: 0;
+  cursor: pointer;
 }
 
 input,
@@ -87,9 +109,22 @@ textarea {
 }
 
 ::selection {
-  background: rgba(124, 77, 255, 0.28);
+  background: var(--color-accent);
+  color: var(--color-text);
 }
 
+/* Paper blocks — inverted sections for dramatic contrast */
+.paperBlock {
+  background: var(--gradient-paper);
+  color: var(--color-paper-ink);
+}
+
+.paperBlock ::selection {
+  background: var(--color-paper-ink);
+  color: var(--color-paper);
+}
+
+/* React Flow accent overrides */
 .react-flow__panel {
   margin: 16px;
 }
@@ -99,18 +134,18 @@ textarea {
 }
 
 .react-flow__edge-path {
-  stroke: rgba(244, 246, 251, 0.14);
+  stroke: rgba(245, 243, 236, 0.14);
   stroke-width: 1.6;
   transition: stroke var(--transition-fast), stroke-width var(--transition-fast);
 }
 
 .react-flow__edge:hover .react-flow__edge-path {
-  stroke: rgba(244, 246, 251, 0.32);
+  stroke: rgba(245, 243, 236, 0.32);
   stroke-width: 1.8;
 }
 
 .react-flow__edge.selected .react-flow__edge-path {
-  stroke: rgba(124, 77, 255, 0.56);
+  stroke: rgba(255, 61, 0, 0.6);
   stroke-width: 2;
 }
 
@@ -141,7 +176,7 @@ textarea {
 }
 
 .react-flow__controls {
-  background: rgba(18, 19, 25, 0.96);
+  background: var(--color-surface-strong);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
@@ -161,14 +196,14 @@ textarea {
 }
 
 .react-flow__minimap {
-  background: rgba(16, 17, 23, 0.96);
+  background: var(--color-surface);
   border: 1px solid var(--color-line);
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-panel);
 }
 
 .react-flow__minimap-mask {
-  fill: rgba(9, 196, 217, 0.12);
+  fill: rgba(20, 83, 255, 0.14);
   stroke: var(--color-accent2);
 }
 
@@ -177,7 +212,7 @@ textarea {
 }
 
 .react-flow__selection {
-  background: rgba(124, 77, 255, 0.06);
-  border: 1px solid rgba(124, 77, 255, 0.18);
+  background: rgba(255, 61, 0, 0.06);
+  border: 1px solid rgba(255, 61, 0, 0.2);
   border-radius: var(--radius-sm);
 }

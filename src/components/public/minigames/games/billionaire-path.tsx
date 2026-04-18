@@ -290,13 +290,15 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
         <div>
           <h2 className={shared.headline}>首富人生模拟器</h2>
           <p className={shared.subheadline}>
-            改编式人生闯关。从 5 岁童年、异乡打工、职业抉择到 40 岁命运副本，每一关都决定你最后拿到哪份档案。
+            从 5 岁到 40 岁，每一个抉择改写你拿到的命运档案。
           </p>
         </div>
         <div className={shared.stats}>
-          <span className={shared.pill}>章节 {Math.min(chapterIndex + 1, CHAPTERS.length)}/{CHAPTERS.length}</span>
-          <span className={shared.pill}>档案碎片 {clues.length}</span>
-          <span className={shared.pill}>命运分 {score}</span>
+          <span className={shared.pillAccent}>
+            CHAPTER {Math.min(chapterIndex + 1, CHAPTERS.length)} / {CHAPTERS.length}
+          </span>
+          <span className={shared.pill}>📁 {clues.length} 线索</span>
+          <span className={shared.pill}>⭐ {score} 分</span>
         </div>
       </header>
 
@@ -304,32 +306,49 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
         {ending ? (
           <>
             <div className={shared.panel}>
-              <div style={{ display: "grid", gap: 8 }}>
-                <strong style={{ fontSize: 14, color: "rgba(255,255,255,0.6)" }}>你的结局</strong>
-                <h3 style={{ margin: 0, fontSize: 30, lineHeight: 1 }}>{ending.title}</h3>
-                <p className={shared.helper} style={{ margin: 0 }}>{ending.descriptor}</p>
-              </div>
+              <span className={shared.sceneBadge}>★ ENDING · 结局</span>
+              <h3 className={shared.sceneTitle}>
+                <em>{ending.title}</em>
+              </h3>
+              <p className={shared.sceneText}>{ending.descriptor}</p>
             </div>
 
             <div className={shared.grid2}>
               <div className={shared.panel}>
-                <strong style={{ display: "block", marginBottom: 8 }}>终局揭示</strong>
-                <p className={shared.helper} style={{ margin: 0 }}>{ending.reveal}</p>
+                <span className={shared.statLabel}>终局揭示</span>
+                <p className={shared.helper} style={{ marginTop: 8 }}>
+                  {ending.reveal}
+                </p>
               </div>
               <div className={shared.panel}>
-                <strong style={{ display: "block", marginBottom: 8 }}>你拼出的档案</strong>
-                <div style={{ display: "grid", gap: 8 }}>
+                <span className={shared.statLabel}>你拼出的档案 · {clues.length}</span>
+                <div style={{ display: "grid", gap: 8, marginTop: 10 }}>
                   {clues.length > 0 ? (
-                    clues.map((clue) => (
+                    clues.map((clue, i) => (
                       <div
                         key={clue}
                         style={{
-                          borderRadius: 14,
-                          padding: "10px 12px",
-                          border: "1px solid rgba(255,255,255,0.08)",
-                          background: "rgba(255,255,255,0.03)",
+                          display: "grid",
+                          gridTemplateColumns: "auto 1fr",
+                          gap: 12,
+                          alignItems: "baseline",
+                          borderRadius: 12,
+                          padding: "10px 14px",
+                          border: "1px solid rgba(255,122,61,0.2)",
+                          background: "rgba(255,61,0,0.05)",
                         }}
                       >
+                        <span
+                          style={{
+                            fontFamily: "var(--font-serif), serif",
+                            fontStyle: "italic",
+                            fontSize: 22,
+                            color: "var(--color-accent)",
+                            lineHeight: 1,
+                          }}
+                        >
+                          №{String(i + 1).padStart(2, "0")}
+                        </span>
                         <span className={shared.helper}>{clue}</span>
                       </div>
                     ))
@@ -343,50 +362,66 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
         ) : currentChapter ? (
           <>
             <div className={shared.panel}>
-              <div style={{ display: "grid", gap: 8 }}>
-                <span className={shared.pill} style={{ width: "fit-content" }}>
-                  {currentChapter.age}
-                </span>
-                <h3 style={{ margin: 0, fontSize: 28, lineHeight: 1.05 }}>{currentChapter.title}</h3>
-                <p className={shared.helper} style={{ margin: 0 }}>{currentChapter.scene}</p>
-              </div>
+              <span className={shared.sceneBadge}>● {currentChapter.age}</span>
+              <h3 className={shared.sceneTitle}>{currentChapter.title}</h3>
+              <p className={shared.sceneText}>{currentChapter.scene}</p>
             </div>
 
             <div className={shared.grid2}>
               <div className={shared.panel}>
-                <strong style={{ display: "block", marginBottom: 10 }}>本关抉择</strong>
-                <p className={shared.helper} style={{ margin: 0 }}>{currentChapter.prompt}</p>
+                <span className={shared.statLabel}>本关抉择</span>
+                <p
+                  style={{
+                    margin: "10px 0 0",
+                    fontSize: 18,
+                    lineHeight: 1.5,
+                    letterSpacing: "-0.015em",
+                    fontWeight: 600,
+                    color: "#fff",
+                  }}
+                >
+                  {currentChapter.prompt}
+                </p>
               </div>
               <div className={shared.panel}>
-                <strong style={{ display: "block", marginBottom: 10 }}>当前成长</strong>
-                <div className={shared.grid2}>
-                  <span className={shared.pill}>好奇 {stats.curiosity}</span>
-                  <span className={shared.pill}>韧性 {stats.grit}</span>
-                  <span className={shared.pill}>杠杆 {stats.leverage}</span>
-                  <span className={shared.pill}>追真 {stats.truth}</span>
+                <span className={shared.statLabel}>当前成长</span>
+                <div
+                  className={shared.grid4}
+                  style={{ marginTop: 10, gap: 10 }}
+                >
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span className={shared.statLabel}>好奇</span>
+                    <span className={shared.statValue}>{stats.curiosity}</span>
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span className={shared.statLabel}>韧性</span>
+                    <span className={shared.statValue}>{stats.grit}</span>
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span className={shared.statLabel}>杠杆</span>
+                    <span className={shared.statValue}>{stats.leverage}</span>
+                  </div>
+                  <div style={{ display: "grid", gap: 4 }}>
+                    <span className={shared.statLabel}>追真</span>
+                    <span className={shared.statValue}>{stats.truth}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className={shared.grid2}>
-              {currentChapter.choices.map((choice) => (
+              {currentChapter.choices.map((choice, i) => (
                 <button
                   key={choice.label}
                   type="button"
                   className={shared.secondaryButton}
                   onClick={() => handleChoice(choice)}
-                  style={{
-                    minHeight: 120,
-                    alignItems: "flex-start",
-                    justifyContent: "flex-start",
-                    padding: 16,
-                    display: "grid",
-                    gap: 8,
-                    textAlign: "left",
-                  }}
                 >
-                  <strong style={{ fontSize: 16 }}>{choice.label}</strong>
-                  <span className={shared.helper}>{choice.consequence}</span>
+                  <span className={shared.statLabel}>
+                    选项 {String.fromCharCode(65 + i)}
+                  </span>
+                  <span className={shared.choiceLabel}>{choice.label}</span>
+                  <span className={shared.choiceHint}>{choice.consequence}</span>
                 </button>
               ))}
             </div>
@@ -394,24 +429,22 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
         ) : null}
       </div>
 
-      <footer className={shared.panel} style={{ display: "grid", gap: 10 }}>
-        <div className={shared.grid2}>
+      <footer
+        className={shared.panel}
+        style={{ display: "grid", gap: 12, padding: "16px 20px" }}
+      >
+        <div className={shared.grid2} style={{ gap: 18 }}>
           <div>
-            <strong style={{ display: "block", marginBottom: 6 }}>上一层命运反馈</strong>
-            <span className={shared.helper}>{lastChoice}</span>
+            <span className={shared.statLabel}>上一层反馈</span>
+            <p className={shared.helper} style={{ margin: "6px 0 0" }}>
+              {lastChoice}
+            </p>
           </div>
-          <div>
-            <strong style={{ display: "block", marginBottom: 6 }}>传播钩子</strong>
-            <span className={shared.helper}>
-              通关后会给你一个可截图的命运结局，适合直接丢给朋友比谁更像“首富版本的自己”。
-            </span>
+          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "flex-end" }}>
+            <button type="button" className={shared.button} onClick={handleRestart}>
+              {ending ? "↻ 重新走一遍" : "↻ 重开人生"}
+            </button>
           </div>
-        </div>
-
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <button type="button" className={shared.button} onClick={handleRestart}>
-            {ending ? "重新走一遍" : "重开人生"}
-          </button>
         </div>
       </footer>
     </section>
