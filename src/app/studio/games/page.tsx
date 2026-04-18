@@ -18,9 +18,14 @@ export default function GamesStudioPage() {
               在这里，你可以从零开始设计任何一款快乐机器。
             </p>
           </div>
-          <Link href="/studio/games/create" className={styles.ctaButton}>
-            ✨ 开始创作
-          </Link>
+          <div className={styles.ctaRow}>
+            <Link href="/studio/games/agent" className={styles.ctaButton}>
+              ✨ AI 一句话生成
+            </Link>
+            <Link href="/studio/games/create" className={styles.ctaButtonGhost}>
+              从模板开始 →
+            </Link>
+          </div>
         </section>
 
         <section className={styles.section}>

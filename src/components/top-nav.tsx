@@ -6,13 +6,13 @@ import styles from "./top-nav.module.css";
 
 export function TopNav() {
   const pathname = usePathname();
-  const isProjectsSurface = pathname.startsWith("/projects");
+  const isStudioSurface = pathname.startsWith("/studio");
 
   const navItems = [
     { href: "/play", label: "PLAY", cn: "游戏" },
     { href: "/film", label: "FILM", cn: "影游" },
     { href: "/video", label: "VIDEO", cn: "视频" },
-    { href: "/projects", label: "STUDIO", cn: "后台" },
+    { href: "/studio/games", label: "STUDIO", cn: "创作" },
   ];
 
   return (
@@ -46,13 +46,13 @@ export function TopNav() {
         </nav>
 
         <Link
-          href={isProjectsSurface ? "/projects?new=1" : "/projects"}
+          href={isStudioSurface ? "/studio/games/agent" : "/studio/games"}
           className={styles.ctaButton}
         >
           <span className={styles.ctaIcon} aria-hidden>
-            {isProjectsSurface ? "+" : "→"}
+            {isStudioSurface ? "✨" : "→"}
           </span>
-          <span>{isProjectsSurface ? "新建项目" : "进入创作后台"}</span>
+          <span>{isStudioSurface ? "AI 生成游戏" : "创作游戏"}</span>
         </Link>
       </div>
     </header>

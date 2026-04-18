@@ -285,7 +285,6 @@ export function BillionairePathGame({ onFinish }: MiniGameRenderProps) {
 
   const handleRestart = () => {
     finishGuardRef.current = false;
-    finishNotifiedRef.current = false;
     setChapterIndex(0);
     setStats(INITIAL_STATS);
     setClues([]);
