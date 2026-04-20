@@ -1,0 +1,241 @@
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 61, 0, 0.08) 0%, transparent 55%),
+    #0a0a0c;
+  color: var(--color-text);
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+
+.shell {
+  width: min(1200px, calc(100vw - 40px));
+  margin: 0 auto;
+  padding: 32px 0 60px;
+  display: grid;
+  gap: 24px;
+}
+
+.loading,
+.notFound {
+  margin-top: 80px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+.notFound h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #fff;
+}
+
+.notFound p {
+  margin: 0 0 24px;
+  font-size: 14px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(245, 243, 236, 0.05);
+  border: 1px solid rgba(245, 243, 236, 0.1);
+  color: rgba(245, 243, 236, 0.7);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.back:hover {
+  background: var(--color-accent);
+  color: #fff;
+  border-color: var(--color-accent);
+}
+
+.head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.title {
+  margin: 0 0 4px;
+  font-size: clamp(24px, 3vw, 36px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: #fff;
+}
+
+.meta {
+  margin: 0;
+  font-family: var(--font-mono), monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.headActions {
+  display: inline-flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(300px, 380px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+.editorCol {
+  display: grid;
+  gap: 10px;
+  padding: 20px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  position: sticky;
+  top: 24px;
+}
+
+.previewCol {
+  min-height: 560px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.label {
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+.textarea {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(10, 10, 12, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.textarea:focus {
+  border-color: rgba(255, 61, 0, 0.5);
+}
+
+.divider {
+  height: 1px;
+  background: rgba(255, 255, 255, 0.06);
+  margin: 6px 0;
+}
+
+.regenBtn,
+.primaryBtn,
+.ghostBtn,
+.dangerBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+  text-decoration: none;
+}
+
+.primaryBtn {
+  background: var(--color-accent);
+  color: #fff;
+  box-shadow: 3px 3px 0 rgba(10, 10, 12, 0.5);
+}
+
+.primaryBtn:hover:not(:disabled) {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 rgba(10, 10, 12, 0.6);
+}
+
+.primaryBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.regenBtn {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #fff;
+}
+
+.regenBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.regenBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ghostBtn {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.ghostBtn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.dangerBtn {
+  background: transparent;
+  border-color: rgba(255, 70, 70, 0.3);
+  color: #ff9999;
+  font-weight: 600;
+}
+
+.dangerBtn:hover {
+  background: rgba(255, 70, 70, 0.08);
+  border-color: rgba(255, 70, 70, 0.5);
+}
+
+.errorBox {
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 70, 70, 0.08);
+  border: 1px solid rgba(255, 70, 70, 0.35);
+  color: #ffb3b3;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+@media (max-width: 880px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+  .editorCol {
+    position: static;
+  }
+}
