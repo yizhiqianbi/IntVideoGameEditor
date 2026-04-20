@@ -12,7 +12,7 @@ export function TopNav() {
     { href: "/play", label: "PLAY", cn: "游戏" },
     { href: "/film", label: "FILM", cn: "影游" },
     { href: "/video", label: "VIDEO", cn: "视频" },
-    { href: "/studio/games", label: "STUDIO", cn: "创作" },
+    { href: "/studio", label: "STUDIO", cn: "创作" },
   ];
 
   return (
@@ -46,7 +46,7 @@ export function TopNav() {
         </nav>
 
         <Link
-          href={isStudioSurface ? "/studio/games/agent" : "/studio/games"}
+          href={isStudioSurface ? "/studio/games/agent" : "/studio"}
           className={styles.ctaButton}
         >
           <span className={styles.ctaIcon} aria-hidden>
