@@ -528,8 +528,11 @@ export default function TavernApp() {
   const conversationCharacters = useMemo(() => mergeDzmmConversationCharacters(characters), [characters]);
   const visibleConversations = useMemo(() => filterDzmmConversations(state.conversations, conversationCharacters, conversationQuery),
     [state.conversations, conversationCharacters, conversationQuery]);
+  const chatConversations = useMemo(() => visibleConversations.filter((conversation) => conversation.phase === "chat"), [visibleConversations]);
+  const adventureConversations = useMemo(() => visibleConversations.filter((conversation) => conversation.phase !== "chat"), [visibleConversations]);
   const active = state.conversations.find((c) => c.id === activeId);
   const activeCharacter = conversationCharacters.find((c) => c.id === active?.characterId);
+  const adventureReady = Boolean(active?.phase === "adventure" && active.messages.some((message) => message.role === "user"));
   useEffect(() => {
     if (!activeId || activeCharacter) return;
     setChatSettingsOpen(false);
@@ -749,6 +752,19 @@ export default function TavernApp() {
     if (requestActive.current) { setNotice("请先停止当前回复，再切换分类。"); return; }
     if (!navigate("chat", CHAT_SECTION_ROUTES[section])) return;
     setActiveId(null); setGameRequest(null); setConversationQuery(""); setError("");
+  }
+  function finishAdventure() {
+    if (!active || busy || !active.messages.some((message) => message.role === "user")) return;
+    setState(previous => ({
+      ...previous,
+      conversations: previous.conversations.map(conversation => conversation.id === active.id
+        ? { ...conversation, phase: "chat", updatedAt: Date.now() }
+        : conversation),
+    }));
+    setConversationType("chats");
+    setError("");
+    navigate("chat", "chat/chats");
+    setNotice("探险记录已保留，可以继续聊天。");
   }
   function openCompanion(variant: "classic" | "intimate" | "qwen" = "classic") {
     if (!loaded || cloud.authBusy || !cloud.user) { setNotice("正在加载账户，请稍候再打开聊天。"); return; }
@@ -1089,6 +1105,7 @@ export default function TavernApp() {
         title: character.name,
         opening,
         messages: openingMessages,
+        phase: "adventure",
         worldClockMode: state.preferences.worldClockMode ?? "story",
         updatedAt: Date.now(),
       };
@@ -1108,7 +1125,7 @@ export default function TavernApp() {
       setNotice("请先停止当前回复，再切换会话。");
       return;
     }
-    setConversationType("stories"); setCompanionOpen(false); setGameRequest(null); window.history.replaceState(null, "", "#chat");
+    setConversationType(c.phase === "chat" ? "chats" : "stories"); setCompanionOpen(false); setGameRequest(null); window.history.replaceState(null, "", c.phase === "chat" ? "#chat/chats" : "#chat");
     setActiveId(c.id);
     setError("");
   }
@@ -1540,8 +1557,8 @@ export default function TavernApp() {
             </div>}
             <div className={s.sidebarTitle}>
               <span>
-                {conversationType === "stories" ? "我的故事" : conversationType === "chats" ? "我的聊天" : "我的游戏"}
-                <small>{conversationType === "stories" ? state.conversations.length : conversationType === "chats" ? chatEntryCount : gameLibrary.games.length}</small>
+                {conversationType === "stories" ? "探险记录" : conversationType === "chats" ? "主角聊天" : "我的游戏"}
+                <small>{conversationType === "stories" ? state.conversations.filter(c => c.phase !== "chat").length : conversationType === "chats" ? chatEntryCount + chatConversations.length : gameLibrary.games.length}</small>
               </span>
               {conversationType !== "chats" && <button
                 className={s.iconButton}
@@ -1553,13 +1570,13 @@ export default function TavernApp() {
             </div>
             <label className={s.conversationSearch}>
               <Icon name="search" size={16} />
-              <input aria-label={conversationType === "stories" ? "搜索故事" : conversationType === "chats" ? "搜索聊天对象" : "搜索游戏"} placeholder={conversationType === "stories" ? "搜索故事、角色或剧情" : conversationType === "chats" ? "搜索聊天对象" : "搜索游戏作品"} maxLength={120}
+              <input aria-label={conversationType === "stories" ? "搜索探险" : conversationType === "chats" ? "搜索主角聊天" : "搜索游戏"} placeholder={conversationType === "stories" ? "搜索探险" : conversationType === "chats" ? "搜索主角" : "搜索游戏作品"} maxLength={120}
                 value={conversationQuery} onChange={event => setConversationQuery(event.target.value)}
                 onKeyDown={event => { if (event.key === "Escape") setConversationQuery(""); }} />
               {conversationQuery && <button type="button" aria-label="清除会话搜索" onClick={() => setConversationQuery("")}><Icon name="close" size={14} /></button>}
             </label>
             <div className={gameNavigation.filters} role="group" aria-label="互动分类">
-              {([ ["stories", "故事"], ["chats", "聊天"], ["games", "游戏"] ] as const).map(([type,label]) => <button key={type} aria-pressed={conversationType === type} onClick={() => selectChatSection(type)}>{label}</button>)}
+              {([ ["stories", "探险"], ["chats", "聊天"], ["games", "游戏"] ] as const).map(([type,label]) => <button key={type} aria-pressed={conversationType === type} onClick={() => selectChatSection(type)}>{label}</button>)}
             </div>
             {conversationType === "games" && gameLibrary.recentError && <p className={gameNavigation.cacheWarning} role="status">{gameLibrary.recentError}</p>}
             <div className={s.conversationList} aria-label={conversationType === "stories" ? "故事列表" : conversationType === "chats" ? "聊天列表" : "游戏列表"}>
@@ -1585,8 +1602,15 @@ export default function TavernApp() {
                 <span><strong>季临川</strong><small>旅行摄影师 · 明朗坦率</small></span>
                 <Icon name="chevron" size={15}/>
               </button>}
-              {conversationType === "chats" && !companionMatchesSearch && !intimateMatchesSearch && !qwenMatchesSearch && <p className={s.sidebarEmpty} role="status">没有找到匹配的聊天对象</p>}
-              {conversationType === "stories" && visibleConversations.map((c) => {
+              {conversationType === "chats" && chatConversations.map((c) => {
+                const ch = conversationCharacters.find((x) => x.id === c.characterId);
+                if (!ch) return null;
+                return <button key={`story-chat:${c.id}`} className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""}`} onClick={() => selectConversation(c)}>
+                  <Cover character={ch} /><span><strong>{ch.name}</strong><time className={s.conversationTime}>{new Date(c.updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</time><small>{c.messages.at(-1)?.content || "继续聊天"}</small></span>
+                </button>;
+              })}
+              {conversationType === "chats" && !chatConversations.length && !companionMatchesSearch && !intimateMatchesSearch && !qwenMatchesSearch && <p className={s.sidebarEmpty} role="status">还没有主角聊天</p>}
+              {conversationType === "stories" && visibleConversations.filter((conversation) => conversation.phase !== "chat").map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
                 return (
                   <button
@@ -1604,13 +1628,13 @@ export default function TavernApp() {
                         })}
                       </time>
                       <small>
-                        {!ch && "角色暂不可用 · "}{c.messages.at(-1)?.content || "开始新的故事"}
+                        {!ch && "角色暂不可用 · "}{c.messages.at(-1)?.content || "开始探险"}
                       </small>
                     </span>
                   </button>
                 );
               })}
-              {conversationType === "stories" && !visibleConversations.length && (
+              {conversationType === "stories" && !adventureConversations.length && (
                 <p className={s.sidebarEmpty} role="status">{state.conversations.length ? "没有找到匹配的故事" : "还没有故事记录"}</p>
               )}
             </div>
@@ -1652,7 +1676,7 @@ export default function TavernApp() {
                     <Cover character={activeCharacter} />
                     <span>
                       <strong>{activeCharacter.name}</strong>
-                      <small>{busy ? "正在输入…" : "单人对话"}</small>
+                      <small>{busy ? "正在输入…" : active.phase === "adventure" ? "探险中" : "保留探险记录"}</small>
                     </span>
                   </button>
                   <div className={s.modelPicker}>
@@ -1752,6 +1776,10 @@ export default function TavernApp() {
                     onRequireAccount={() => openAccount("login")}
                     onVip={() => navigate("vip")}>
                   <div className={s.messageList}>
+                    {adventureReady && !busy && <div className={s.adventureBridge} role="status">
+                      <span><Icon name="book" size={15} />这一段探险会留在聊天历史</span>
+                      <button type="button" onClick={finishAdventure}>结束探险，继续聊天</button>
+                    </div>}
                     {active.messages.map((m, index) => (
                       <div
                         key={m.id}
@@ -1931,10 +1959,7 @@ export default function TavernApp() {
                       </button>
                     )}
                   </form>
-                  <p className={s.composerNote}>
-                    AI 生成内容 · {activeCharacter.publication ? "基于作者角色设定" : activeCharacter.sourceKind === "original" ? "基于你的角色设定" : activeCharacter.catalogReadiness === "metadata-only" ? "沿用已保存的剧情" : "基于角色背景"} ·
-                    聊天记录自动保存
-                  </p>
+                  <p className={s.composerNote}>{active.phase === "adventure" ? "探险记录会保留到聊天" : "聊天记录自动保存"}</p>
                   {billingConfig?.enabled && <p className={s.composerNote}>
                     {billingConfig.memoryBilled ? "聊天和剧情记忆会按服务器实际用量扣除 Credit" : "聊天会按服务器实际用量扣除 Credit"}，发送前会暂时预留，完成后返还未使用部分 · <a href="#recharge" onClick={event => { event.preventDefault(); navigate("recharge"); }}>余额与消费明细</a>
                   </p>}

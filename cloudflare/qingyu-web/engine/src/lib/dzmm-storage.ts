@@ -22,6 +22,8 @@ export type DzmmSavedConversation = {
   title: string;
   messages: DzmmSavedMessage[];
   updatedAt: number;
+  /** New stories begin as an adventure; finishing it keeps the same history in chat. */
+  phase?: "adventure" | "chat";
   opening?: DzmmConversationOpeningSnapshot;
   storyMemory?: DzmmStoryMemory;
   worldState?: DzmmWorldJournal;
@@ -398,7 +400,8 @@ export function hydrateDzmmState(raw: string): {
       if (record.worldClockMode !== undefined && worldClockMode === undefined) {
         warnings.push(`第 ${index + 1} 个对话的世界时间模式无效，已忽略该设置。`);
       }
-      conversations.push({ id, characterId, title, messages, updatedAt, ...(opening ? { opening } : {}), ...(storyMemory ? { storyMemory } : {}),
+      const phase = record.phase === "adventure" || record.phase === "chat" ? record.phase : undefined;
+      conversations.push({ id, characterId, title, messages, updatedAt, ...(phase ? { phase } : {}), ...(opening ? { opening } : {}), ...(storyMemory ? { storyMemory } : {}),
         ...(worldState ? { worldState } : {}), ...(worldClockMode ? { worldClockMode } : {}) });
     } catch {
       warnings.push(`第 ${index + 1} 个本地对话无效，已跳过该对话。`);

@@ -922,6 +922,29 @@
 .messageList {
   margin: 0;
 }
+.adventureBridge {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 auto 18px;
+  padding: 9px 12px;
+  max-width: 760px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 11px;
+}
+.adventureBridge span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.adventureBridge button {
+  color: var(--pink) !important;
+  font-size: 11px;
+  white-space: nowrap;
+}
 .messageRow {
   display: flex;
   align-items: flex-start;
@@ -2179,6 +2202,13 @@
   }
   .messageScroll {
     padding: 42px 12px 14px;
+  }
+  .adventureBridge {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+    font-size: 10px;
   }
   .messageRow {
     margin-bottom: 20px;

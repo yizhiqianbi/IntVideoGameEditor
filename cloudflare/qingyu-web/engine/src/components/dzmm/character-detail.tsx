@@ -271,7 +271,7 @@ export default function CharacterDetail({
           <div className={s.primaryActions}>
             <button className={s.start} type="button" onClick={contextMissing ? onEdit : onStart}>
               <Icon name="chat" size={18} />
-              {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始对话"}
+              {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始探险"}
             </button>
             <button
               className={`${s.outline} ${s.customize}`}
@@ -290,17 +290,15 @@ export default function CharacterDetail({
         className={s.introduction}
         aria-labelledby="character-intro-title"
       >
-        <h2 id="character-intro-title">角色介绍</h2>
+        <h2 id="character-intro-title">一句话</h2>
         <CharacterIntroduction text={character.introduction || character.description || ""}
           additionalNotes={getDzmmCharacterCreatorNotes(character)} bodyClassName={s.description}
           characterName={character.name} userName={userName}
           fallback={contextMissing ? "这个角色的故事设定尚未补齐。你可以导入完整角色卡，或通过定制补充人物背景和开场。" : "还没有填写角色介绍。可以定制这个角色，补充它的故事。"} />
-        {character.firstMessage && (
-          <div className={s.opening}>
-            <h3>开场白</h3>
-            <CharacterIntroduction text={character.firstMessage} characterName={character.name} userName={userName} />
-          </div>
-        )}
+        {character.firstMessage && <details className={s.promptDetails}>
+          <summary>查看开场 <Icon name="chevron" size={14} /></summary>
+          <div className={s.promptContent}><CharacterIntroduction text={character.firstMessage} characterName={character.name} userName={userName} /></div>
+        </details>}
         {(character.personality || character.scenario) && (
           <details className={s.promptDetails}>
             <summary>
