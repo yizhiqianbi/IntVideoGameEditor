@@ -85,6 +85,17 @@ test("valid saved state roundtrips without changing content, IDs, dates, or pref
   assert.notEqual(state.preferences, original.preferences);
 });
 
+test("adventure phase persists and keeps the same conversation history when chat begins", () => {
+  const original = { ...savedState(), conversations: [{ ...conversation(), phase: "adventure" as const }] };
+  const restored = hydrateDzmmState(JSON.stringify(original));
+  assert.equal(restored.warnings.length, 0);
+  assert.equal(restored.state.conversations[0].phase, "adventure");
+  const chatState = { ...restored.state, conversations: restored.state.conversations.map(item => ({ ...item, phase: "chat" as const })) };
+  const chatRestored = hydrateDzmmState(JSON.stringify(chatState));
+  assert.equal(chatRestored.state.conversations[0].phase, "chat");
+  assert.deepEqual(chatRestored.state.conversations[0].messages, original.conversations[0].messages);
+});
+
 test("primary and alternate opening snapshots roundtrip even after the private card has changed", () => {
   const originalCharacter = { ...localCharacter(), alternateGreetings: ["另一次灯塔相遇。"] };
   const cards = { ...originalCharacter, firstMessage: "修改后的医院开场。", alternateGreetings: ["修改后的车站开场。"] };
