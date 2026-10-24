@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-24-gentle-confidence-v1",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "createdAt": "2026-10-24T03:29:06.651Z",
+  "scope": "Synthetic live provider samples using the production tavern assembler and companion turn wrapper. Companion core runtime and historical memory were not exercised.",
+  "results": [
+    {
+      "name": "companion-comfort",
+      "status": 200,
+      "input": "今天的汇报被否了，我有点委屈。不想听大道理，想被认真哄一会儿。",
+      "output": "我听见你声音里有点沉，刚才是不是在会议室里把稿子推了？  \n等会儿，我让助理把旧音乐厅的备用琴房留出来，你来弹十分钟，不想说话就只听雨打窗——我陪你。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "companion-declined-plan",
+      "status": 200,
+      "input": "今天不想去看展了，我只想一个人待着。你先别替我安排，好吗？",
+      "output": "我明白，你想要一个人待一会儿。那我先不打扰了，书桌上的那本《海风记》留着，等你想看的时候，我随时在。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-gentle-lead",
+      "status": 200,
+      "input": "这些旧纸页我有点不敢碰，怕把事情搞砸。你可以带我做第一步吗？别笑我。",
+      "output": "*沈聿轻轻将一对手套推到你面前，指尖在金属边框上停了一瞬。*\n\n“手套是防酸的，不会让你觉得碰了就弄坏。我先帮你戴上，你只负责看，我来处理纸张的边缘。”\n\n*他俯身时，袖口露出一截细瘦的腕骨，动作却很稳。*\n\n“你刚才说怕搞砸——可这封信，连我都不敢说它原本该在哪儿。所以，我们不是在修复什么，是在一起找线索。”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-new-scene-and-tone",
+      "status": 200,
+      "input": "两周后，我们已经离开车站。今天我在花店做采访整理，想和你认真聊聊影集的工作，先不要暧昧。",
+      "output": "*季临川把相机背带从肩头滑下，轻轻放在木桌上。他从背包里取出一叠打印好的采访手记，页边用铅笔做了些标记，纸角微微卷起，像是翻过很多遍。*\n\n“你刚才说想认真聊影集的事——我正好整理完花店那部分的记录。”\n\n*他把资料推到你面前，指尖轻轻点在其中一页，上面写着“林阿婆·花语与慢车”几个字。*\n\n“她说她每年春天都会在站台边放一束蓝鸢尾，因为‘慢车是唯一记得她名字的车’。我拍了那束花，但没拍她。我想，也许该补上。”\n\n*他抬头看你，眼神平静，带着一点想听你意见的认真。*\n\n“如果你觉得这段可以放进影集，我打算用她的话做题记。但我不确定是不是太重了——毕竟，这本不是为回忆而做的，是为‘还在走的路’留下的。”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    }
+  ]
+}

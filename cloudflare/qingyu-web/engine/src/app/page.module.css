@@ -1,0 +1,98 @@
+.page {
+  min-height: 100vh;
+  background: #0b0d12;
+}
+
+.shell {
+  width: min(1360px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 16px 0 88px;
+  display: grid;
+  gap: 20px;
+}
+
+.sectionStack {
+  display: grid;
+  gap: 20px;
+}
+
+.topStrip {
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.rankColumn {
+  min-width: 0;
+}
+
+.hotRail {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.contentSection {
+  display: grid;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sectionTitle {
+  margin: 0;
+  font-size: clamp(15px, 1.8vw, 18px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.sectionLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.shelfRow {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(146px, 168px);
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+}
+
+@media (max-width: 1080px) {
+  .topStrip {
+    grid-template-columns: 1fr;
+  }
+
+  .hotRail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 16px 0 56px;
+    gap: 18px;
+  }
+
+  .hotRail {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

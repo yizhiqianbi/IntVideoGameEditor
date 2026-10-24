@@ -1,0 +1,54 @@
+{
+  "name": "qingyu-companion",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-23",
+  "workers_dev": false,
+  "preview_urls": false,
+  "observability": {
+    "enabled": false
+  },
+  "containers": [
+    {
+      "name": "qingyu-companion-native",
+      "class_name": "CompanionAccount",
+      "scheduling_policy": "default",
+      "max_instances": 5,
+      "instance_type": "standard-1",
+      "image": "../../companion-native/Dockerfile",
+      "image_build_context": "../../companion-native"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "COMPANIONS",
+        "class_name": "CompanionAccount"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "qingyu-native-v1",
+      "new_sqlite_classes": [
+        "CompanionAccount"
+      ]
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEMORY",
+      "bucket_name": "qingyu-companion-memory"
+    }
+  ],
+  "services": [
+    {
+      "binding": "BILLING",
+      "service": "qingyu-stories",
+      "entrypoint": "BillingService"
+    }
+  ],
+  "vars": {
+    "COMPANION_BILLING_ENABLED": "false"
+  },
+  "account_id": "274d62c1f24b885b3dfe562cda5d60c1"
+}

@@ -1,0 +1,31 @@
+{
+  "name": "qingyu-backend-tests",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "vars": {
+    "APP_ORIGINS": "http://127.0.0.1:3010,http://localhost:3010",
+    "PAYMENTS_ACCEPTING_ENABLED": "false",
+    "SUBSCRIPTION_ENABLED": "false",
+    "EMAIL_AUTH_ENABLED": "false",
+    "STRIPE_PAYMENT_MODE": "test",
+    "NOWPAYMENTS_ENABLED": "false",
+    "SUBSCRIPTION_PLANS_JSON": "[{\"id\": \"vip_monthly\", \"label\": \"晴屿 VIP\", \"revision\": 2, \"amountMinor\": 2800, \"currency\": \"cny\", \"durationDays\": 30, \"dailyCredits\": 500, \"maxClaims\": 30, \"timezone\": \"Asia/Shanghai\"}]"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qingyu-test-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "qingyu-test-media"
+    }
+  ]
+}

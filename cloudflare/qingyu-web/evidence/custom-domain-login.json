@@ -1,0 +1,24 @@
+{
+  "url": "https://qingyu.xumengchat.top",
+  "login": {
+    "status": 200,
+    "formalAccount": true,
+    "nickname": "晴屿上线验收",
+    "cookieReceived": true,
+    "secureCookie": true,
+    "httpOnlyCookie": true
+  },
+  "state": {
+    "status": 200,
+    "favorites": [
+      "qy-shiyu"
+    ],
+    "conversations": [
+      {
+        "title": "陆时予",
+        "messages": 3,
+        "lastRole": "assistant"
+      }
+    ]
+  }
+}

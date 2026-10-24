@@ -1,0 +1,43 @@
+{
+  "scope": "real independent local Worker with two separate browser accounts and actual provider",
+  "scenario": {
+    "id": "1ead952d-4778-483f-b3e7-598135aba4bd",
+    "roomId": "a4ca843f-400c-4157-9dce-7cbe9fb0ed2e",
+    "code": "154c0dd28ffc3ec9c458ba60ef41207e",
+    "title": "晴屿 · 归航之前",
+    "participants": 2,
+    "participantRole": "修图师",
+    "stageIndex": 1,
+    "stageTitle": "调查灯塔",
+    "events": 5,
+    "verified": [
+      "script creation, room creation and invitation",
+      "separate account join and role selection",
+      "participant speech persisted",
+      "actual Qwen DM draft inspected and published",
+      "host stage advancement, participant refresh",
+      "participant payload excludes privateNotes and host-only snapshot notes"
+    ],
+    "mobile": {
+      "viewport": 390,
+      "document": 390,
+      "overflow": false
+    }
+  },
+  "forum": {
+    "postId": "779ad821-3771-4041-a77e-c78c3549851a",
+    "author": "海岸同行者",
+    "responder": "晴屿体验员",
+    "verified": [
+      "author topic creation",
+      "independent account sees public post and posts reply",
+      "author sees reply and edits own post",
+      "revision saved and reloaded"
+    ]
+  },
+  "limitations": [
+    "No live external multiplayer load test",
+    "AI DM narrative quality is not a general quality score",
+    "Votes/reports covered by backend regressions, not this browser flow"
+  ]
+}

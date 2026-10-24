@@ -1,0 +1,29 @@
+.panel {
+  margin: 0 18px 14px;
+  padding: 12px 14px 13px;
+  border: 1px solid color-mix(in srgb, var(--line, #303038) 74%, transparent);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--panel, #17171c) 88%, transparent);
+  color: var(--text, #f4f1ed);
+}
+.panel > summary { cursor: pointer; list-style: none; }
+.panel > summary::-webkit-details-marker { display: none; }
+.panel > summary:focus-visible { outline: 2px solid var(--accent, #e7a8a9); outline-offset: 3px; border-radius: 8px; }
+.header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.header > div { min-width: 0; display: grid; gap: 2px; }
+.eyebrow, .privateTitle { color: var(--muted, #a6a0a0); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+.header strong { font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mode { flex: none; color: var(--accent, #e7a8a9); font-size: 11px; }
+.grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px 16px; margin: 0; }
+.grid > div { min-width: 0; }
+.grid dt { margin-bottom: 2px; color: var(--muted, #a6a0a0); font-size: 10px; }
+.grid dd { margin: 0; overflow: hidden; color: var(--text, #f4f1ed); font-size: 12px; line-height: 1.45; text-overflow: ellipsis; white-space: nowrap; }
+.grid dd small { display: inline-block; margin-left: 5px; color: var(--muted, #a6a0a0); font-size: 10px; }
+.basis { margin: 10px 0 0; color: var(--muted, #a6a0a0); font-size: 10px; }
+.private { margin-top: 11px; padding-top: 10px; border-top: 1px solid color-mix(in srgb, var(--line, #303038) 60%, transparent); }
+.privateGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 6px; }
+.privateGrid span { display: grid; gap: 2px; min-width: 0; }
+.privateGrid small { color: var(--muted, #a6a0a0); font-size: 10px; }
+.privateGrid b { overflow: hidden; color: var(--accent, #e7a8a9); font-size: 11px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.private p { margin: 8px 0 0; color: var(--muted, #a6a0a0); font-size: 10px; line-height: 1.4; }
+@media (max-width: 700px) { .panel { margin: 0 12px 10px; } .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; } }

@@ -1,0 +1,22 @@
+{
+  "pid": 53317,
+  "namespace": "media-directory-c340af74-1baf-4fe7-bbb3-0f44656a4ee4",
+  "storagePath": "/Users/pencil/Documents/IntVideoGameEditor/cloudflare/qingyu-web/engine/output/xumeng/iteration/heartbeat-20261014-state-write-ack/diagnostics/media-directory-own-BcaaoP",
+  "cleanup": {
+    "counts": {
+      "users": 0,
+      "conversations": 0,
+      "messages": 0,
+      "chat_media_assets": 0,
+      "chat_media_usage": 0
+    },
+    "r2Objects": 0
+  },
+  "disposed": true,
+  "ownStorageRemoved": true,
+  "resourcePersistencePath": "/Users/pencil/Documents/IntVideoGameEditor/cloudflare/qingyu-web/engine/output/xumeng/iteration/heartbeat-20261014-state-write-ack/diagnostics/media-directory-own-BcaaoP/persist",
+  "resourceTmpPath": "/Users/pencil/Documents/IntVideoGameEditor/cloudflare/qingyu-web/engine/output/xumeng/iteration/heartbeat-20261014-state-write-ack/diagnostics/media-directory-own-BcaaoP/plugin-temp",
+  "modelCalls": 0,
+  "providerCalls": 0,
+  "productionOperations": 0
+}

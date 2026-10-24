@@ -1,0 +1,61 @@
+{
+  "version": "2026-10-24-cast-v2",
+  "method": "Manual review of synthetic single-turn samples; no score assigned",
+  "earlierModel": "qwen/qwen3-30b-a3b-instruct-2507",
+  "currentModel": "qwen/qwen3.6-plus",
+  "earlierIssues": [
+    "invented user preferences and prior events",
+    "comfort redirected to invitation",
+    "unrequested user actions"
+  ],
+  "improved": [
+    "requested short comfort stays on topic",
+    "request to be alone respected",
+    "evidence distinguished from inference",
+    "current scene can move beyond opening"
+  ],
+  "remainingObservedIssues": [
+    "withdrawal response added unsupported procedural detail",
+    "half-year time jump reused the opening season"
+  ],
+  "limits": [
+    "No complete native-runtime re-test in this authoring update",
+    "No long-history stability claim",
+    "Public moderation allowance is not a writing-quality score"
+  ],
+  "evidence": [
+    "character-cards-live-round1-samples.json",
+    "character-cards-live-round2-samples.json",
+    "character-cards-live-stronger.json",
+    "character-cards-live-samples.json"
+  ],
+  "production": {
+    "downloads": [
+      {
+        "id": "qy-shiyu",
+        "status": 200,
+        "shaMatches": true
+      },
+      {
+        "id": "qy-shen",
+        "status": 200,
+        "shaMatches": true
+      },
+      {
+        "id": "qy-linchuan",
+        "status": 200,
+        "shaMatches": true
+      },
+      {
+        "id": "qy-xingcheng",
+        "status": 200,
+        "shaMatches": true
+      }
+    ],
+    "login": 200,
+    "chatStatus": 200,
+    "answerPresent": true,
+    "screenshot": "character-cards-page.jpg",
+    "scope": "One authenticated production chat using the actual request preparation and streamed world-response parser; no account story history was overwritten."
+  }
+}

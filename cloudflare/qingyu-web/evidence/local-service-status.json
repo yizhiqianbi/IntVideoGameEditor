@@ -1,0 +1,75 @@
+{
+  "checkedAt": "2026-10-23T11:54:28.069Z",
+  "checks": [
+    {
+      "path": "/api/status",
+      "status": 200,
+      "data": {
+        "brand": "晴屿",
+        "edition": "otome-full",
+        "policy": "all-ages",
+        "configured": true
+      }
+    },
+    {
+      "path": "/api/backend/v1/health",
+      "status": 200,
+      "data": {
+        "ok": true,
+        "service": "dzmm",
+        "storage": "d1"
+      }
+    },
+    {
+      "path": "/api/chat",
+      "status": 200,
+      "data": {
+        "configured": true,
+        "model": "qwen/qwen3-30b-a3b-instruct-2507",
+        "models": {
+          "grok": "x-ai/grok-4.7",
+          "grok46": "x-ai/grok-4.6",
+          "gemini31": "google/gemini-3.1-flash-lite",
+          "gemini": "google/gemini-3.8-flash",
+          "claude": "anthropic/claude-sonnet-5.5",
+          "gpt": "openai/gpt-6.1-sol",
+          "deepseek": "deepseek/deepseek-v4.1-flash",
+          "qwen": "qwen/qwen3-30b-a3b-instruct-2507",
+          "gemma26": "google/gemma-4-26b-a4b-it",
+          "gemma31": "google/gemma-4-31b-it",
+          "fast": "qwen/qwen3-30b-a3b-instruct-2507",
+          "balanced": "qwen/qwen3-30b-a3b-instruct-2507",
+          "story": "qwen/qwen3-30b-a3b-instruct-2507"
+        }
+      }
+    },
+    {
+      "path": "/api/backend/v1/auth/email/config",
+      "status": 200,
+      "data": {
+        "enabled": false,
+        "expiresIn": 600,
+        "resendAfter": 60,
+        "note": "邮箱验证码登录尚未开通，正在等待发信服务配置完成。"
+      }
+    },
+    {
+      "path": "/api/backend/v1/billing/config",
+      "status": 200,
+      "data": {
+        "enabled": false,
+        "priceRevision": null,
+        "inputCreditsPer1000": null,
+        "outputCreditsPer1000": null,
+        "memoryBilled": false,
+        "tokenUnit": 1000,
+        "rounding": "ceil_combined",
+        "outputIncludesReasoning": true,
+        "failureRule": "no_valid_output_refund",
+        "cancellationRule": "valid_output_bill_usage",
+        "missingUsageRule": "pending_then_refund",
+        "reservationTtlMs": 600000
+      }
+    }
+  ]
+}

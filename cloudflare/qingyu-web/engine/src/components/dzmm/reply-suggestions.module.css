@@ -1,0 +1,18 @@
+.root { margin: 8px 0 4px; }
+.trigger { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 18px; padding: 6px 11px; color: var(--muted); background: var(--soft); font-size: 11px; }
+.trigger:hover { color: var(--pink); border-color: var(--pink); }
+.root button:disabled { opacity: .5; cursor: wait; }
+.panel { margin-top: 9px; max-width: 760px; padding: 15px; border: 1px solid var(--line); border-radius: 15px; background: var(--soft); animation: appear 160ms ease; }
+.panel header { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; margin-bottom: 11px; }
+.panel header button, .error button { color: var(--pink); font-size: 11px; white-space: nowrap; }
+.options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; }
+.option { display: flex; flex-direction: column; gap: 7px; padding: 13px; border: 1px solid var(--line); border-radius: 11px; text-align: left; background: var(--bg); color: var(--text); }
+.option:hover { border-color: var(--pink); }
+.direction { color: var(--pink); font-size: 10px; }
+.option strong { font-size: 12px; line-height: 1.6; }
+.reply { font-size: 11px; line-height: 1.8; color: var(--muted); overflow-wrap: anywhere; }
+.note { color: var(--muted); font-size: 10px; line-height: 1.7; margin: 11px 0 0; }
+.error { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--pink); font-size: 11px; line-height: 1.7; margin: 8px 0; }
+@keyframes appear { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
+@media (max-width: 660px) { .options { grid-template-columns: 1fr; } .panel { padding: 12px; } .option { padding: 11px; } }
+@media (prefers-reduced-motion: reduce) { .panel { animation: none; } }

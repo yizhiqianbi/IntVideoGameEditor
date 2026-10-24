@@ -1,0 +1,454 @@
+{
+  "layer": "Actual authenticated original app/data with disposable 38-migration D1/R2; mutation interleaves happen only after a real native batch completes.",
+  "cases": [
+    {
+      "name": "after a real A commit B appends before ACK; A keeps its own snapshot and the next old-branch edit conflicts",
+      "passed": true
+    },
+    {
+      "name": "after A commit B deletes the conversation before ACK; the A snapshot cannot adopt B deletion revision",
+      "passed": true
+    },
+    {
+      "name": "resource PATCH acknowledgement has coherent own preference nickname and actual user fields before a later writer",
+      "passed": true
+    },
+    {
+      "name": "real failed CAS is token-gated and its same-batch conflict snapshot stays coherent despite a subsequent writer",
+      "passed": true
+    },
+    {
+      "name": "initialized no-op does not mutate or adopt a newer version; a later real edit still conflicts",
+      "passed": true
+    },
+    {
+      "name": "empty first initialization returns its own version one even when an independent writer immediately advances it",
+      "passed": true
+    },
+    {
+      "name": "cross-account state identity is rejected before mutation and a foreign owner cannot gain acknowledgement contents",
+      "passed": true
+    },
+    {
+      "name": "an actual D1 message constraint failure rolls CAS token preferences and entity deltas back without a saved ACK",
+      "passed": true
+    },
+    {
+      "name": "shared hydration retains old-client draft metadata and safely ignores damaged optional stored metadata",
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 409,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 409,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/preferences",
+      "method": "PATCH",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 409,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 409,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 0
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 401,
+      "submittedVersion": 1,
+      "responseVersion": null
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 500,
+      "submittedVersion": 1,
+      "responseVersion": null
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 0,
+      "responseVersion": 1
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 1,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 2
+    },
+    {
+      "path": "/v1/state",
+      "method": "PUT",
+      "status": 200,
+      "submittedVersion": 2,
+      "responseVersion": 3
+    },
+    {
+      "path": "/v1/state",
+      "method": "GET",
+      "status": 200,
+      "submittedVersion": null,
+      "responseVersion": 3
+    }
+  ],
+  "migrations": [
+    "0001_initial.sql",
+    "0002_preferences_extras.sql",
+    "0003_forum.sql",
+    "0004_super_accounts.sql",
+    "0005_character_context.sql",
+    "0006_character_publishing.sql",
+    "0007_task_claims.sql",
+    "0008_payments.sql",
+    "0009_payment_modes.sql",
+    "0010_email_auth.sql",
+    "0011_zpay_payments.sql",
+    "0012_zpay_recharge_tiers.sql",
+    "0013_subscriptions.sql",
+    "0014_conversation_story_memory.sql",
+    "0015_credit_usage.sql",
+    "0016_conversation_world_state.sql",
+    "0017_chat_media.sql",
+    "0018_chat_media_wav.sql",
+    "0019_conversation_opening.sql",
+    "0020_credit_cost_pricing.sql",
+    "0021_private_novels.sql",
+    "0022_admin_super.sql",
+    "0023_trusted_credit_grants.sql",
+    "0024_generation_jobs.sql",
+    "0025_preferences_models.sql",
+    "0026_task_market.sql",
+    "0027_task_market_instructions.sql",
+    "0028_telegram_feedback.sql",
+    "0029_forum_demo_seed.sql",
+    "0030_generation_references.sql",
+    "0031_novel_characters.sql",
+    "0032_character_voice.sql",
+    "0033_character_voice_style.sql",
+    "0034_creator_games.sql",
+    "0035_creator_scenarios.sql",
+    "0036_forum_create_requests.sql",
+    "0037_nowpayments_membership.sql",
+    "0038_nowpayments_quarterly_membership.sql",
+    "0039_preferences_cydonia.sql",
+    "0040_preferences_model_choices.sql",
+    "0041_referrals.sql",
+    "0042_community_credit_wallet.sql",
+    "0043_referral_reward_amount.sql",
+    "0043_waffo_cny_membership.sql",
+    "0044_chat_media_credit.sql",
+    "0045_password_reset.sql",
+    "0046_character_likes.sql",
+    "0047_guagua_payments.sql",
+    "0048_guagua_wxpay.sql",
+    "0049_guagua_vip.sql",
+    "0050_dream_coin.sql",
+    "0051_companion_turn_billing.sql",
+    "0052_creator_game_media.sql",
+    "0053_studio_still_billing.sql",
+    "0054_studio_still_price.sql",
+    "0055_qingyu_safe_model_choices.sql"
+  ],
+  "cleanup": {
+    "counts": {
+      "users": 0,
+      "sessions": 0,
+      "characters": 0,
+      "conversations": 0,
+      "messages": 0,
+      "favorites": 0,
+      "preferences": 0
+    },
+    "r2Objects": 0
+  },
+  "disposed": true,
+  "externalCalls": 0,
+  "modelCalls": 0,
+  "providerCalls": 0,
+  "productionOperations": 0
+}

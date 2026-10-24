@@ -1,0 +1,24 @@
+{
+  "ok": false,
+  "mode": "local-read-only",
+  "import": {
+    "valid": false,
+    "fileBytes": 16430,
+    "maxFileBytes": 262144
+  },
+  "authoring": {
+    "ready": false
+  },
+  "promptAssembly": {
+    "valid": false,
+    "samples": []
+  },
+  "warnings": [],
+  "limitations": [
+    "只验证文件导入及主、备选开场下的本地提示词组装；没有调用模型，不证明实际故事质量。",
+    "样本使用中性用户输入及剧情时间。未在样本中触发的世界书组合仍可能在未来造成上下文超限。",
+    "不检查远程图片可访问性、图片权属或公开投稿资格，也不会保存草稿或提交审核。"
+  ],
+  "stage": "repository",
+  "error": "项目目录不是可用的叙梦源码目录，缺少 package.json 或角色卡/上下文实现。"
+}

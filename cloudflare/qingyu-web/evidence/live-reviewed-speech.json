@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-23T13:24:27.343Z",
+  "scope": "Qingyu media adapter + actual provider + Python source proof + native-byte transport contract + public verification; full native bot/container not started",
+  "provider": "OpenRouter",
+  "model": "x-ai/grok-voice-tts-1.0",
+  "voice": "rex",
+  "reviewModel": "qwen/qwen3.6-plus",
+  "sourceText": "海边的风小了。今天的小事，也可以慢慢说给我听。",
+  "bytes": 72576,
+  "sha256": "4cab56b042c89d7b0311044f1a0c864d7bfc28f0fc76c1ac97eccb6f1e026695",
+  "durationSeconds": 4.536,
+  "durationMs": 4434,
+  "passed": true
+}

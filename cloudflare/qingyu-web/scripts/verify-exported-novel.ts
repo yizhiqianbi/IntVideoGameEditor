@@ -1,0 +1,15 @@
+import { readFile, writeFile } from 'node:fs/promises';
+import { createHash } from 'node:crypto';
+import assert from 'node:assert/strict';
+import { parseDzmmNovelImport } from '../engine/src/lib/dzmm-novels';
+const exported = await readFile(new URL('../../../output/playwright/qingyu/novel-roundtrip.json', import.meta.url), 'utf8');
+const original = JSON.parse(exported).work;
+const imported = parseDzmmNovelImport(exported, {format:'json'});
+assert.equal(imported.title, original.title);
+assert.equal(imported.outline, original.outline);
+assert.deepEqual(imported.chapters.map(({title,content})=>({title,content})), original.chapters.map(({title,content}:any)=>({title,content})));
+assert.notEqual(imported.id, original.id);
+assert.ok(imported.chapters.length && imported.outline.length && imported.chapters[0].content.length);
+const evidence = { checkedAt:new Date().toISOString(), exportedBy:'actual browser download after D1 save', parser:'production full novel import parser', title:original.title, chapters:imported.chapters.length, bodyChars:imported.chapters.reduce((n,c)=>n+c.content.length,0), outlineChars:imported.outline.length, clonedIdentity:true, sha256:createHash('sha256').update(exported).digest('hex') };
+await writeFile(new URL('../evidence/novel-browser-roundtrip.json', import.meta.url), JSON.stringify(evidence,null,2)+'\n');
+console.log(JSON.stringify(evidence));

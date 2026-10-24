@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {readFile,writeFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {parseCharacterImport,exportCharacterJson} from '../engine/src/lib/dzmm-characters';
+import {getDzmmOpeningMessages} from '../engine/src/lib/dzmm-character-context';
+const directory=resolve('../../output/playwright/qingyu');
+const expected=parseCharacterImport(await readFile(resolve(directory,'character-full-v2.json'),'utf8'),'roundtrip');
+const actual=parseCharacterImport(await readFile(resolve(directory,'character-full-roundtrip.json'),'utf8'),'roundtrip');
+const canonical=(card:typeof expected)=>({...JSON.parse(exportCharacterJson(card)),openingMessages:getDzmmOpeningMessages(card)});
+assert.deepEqual(canonical(actual),canonical(expected));
+assert.equal(actual.characterBook?.entries.length,2);
+assert.equal(actual.alternateGreetings?.length,1);
+assert.equal(actual.gallery?.length,2);
+const evidence={scope:'actual browser import of full v2 card, private save, browser download; normalized using production importer/exporter',passed:true,name:actual.name,worldbookEntries:2,alternateGreetings:1,galleryImages:2,preserved:['character background/personality/scenario','primary and alternate openings','system and post-history instructions','dialogue examples','worldbook keywords,secondary keys,flags,ordering,positions and scan depth','gallery,author notes and suggested replies'],files:['character-full-v2.json','character-full-roundtrip.json']};
+await writeFile('evidence/character-browser-roundtrip.json',JSON.stringify(evidence,null,2)+'\n');
+console.log(JSON.stringify(evidence));

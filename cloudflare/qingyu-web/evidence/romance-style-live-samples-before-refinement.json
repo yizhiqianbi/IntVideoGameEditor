@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-24-gentle-confidence-v1",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "createdAt": "2026-10-24T03:28:02.593Z",
+  "scope": "Synthetic live provider samples using the production tavern assembler and companion turn wrapper. Companion core runtime and historical memory were not exercised.",
+  "results": [
+    {
+      "name": "companion-comfort",
+      "status": 200,
+      "input": "今天的汇报被否了，我有点委屈。不想听大道理，想被认真哄一会儿。",
+      "output": "我刚弹完一首《雨夜》，最后一个音还在琴键上轻轻颤着。你要是愿意，可以来音乐厅坐一会儿，我给你弹首新写的曲子，不讲道理，只讲心跳。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "companion-declined-plan",
+      "status": 200,
+      "input": "今天不想去看展了，我只想一个人待着。你先别替我安排，好吗？",
+      "output": "我明白。展的事我先放一放，你要是想安静，我这就去整理修复室的旧书，不打扰你。需要时随时叫我。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-gentle-lead",
+      "status": 200,
+      "input": "这些旧纸页我有点不敢碰，怕把事情搞砸。你可以带我做第一步吗？别笑我。",
+      "output": "*沈聿轻轻把一双手套推到你面前，是薄棉质地，边缘绣着细小的藤蔓纹。*\n\n“手套不是为了防你弄坏东西——是怕你碰了旧纸，手上的汗渍会留下痕迹。你刚才说不敢碰，我懂。”\n\n*他指尖点了点那封信的边缘，动作很轻，像怕惊扰了什么。*\n\n“我们先从纸张开始。你看这页的纤维走向——偏左，是手工纸的特征。而信纸的折痕，是用指甲压出来的，不是机器。”  \n\n*他把放大镜推到你手边，镜片映着窗外斜照进来的光。*\n\n“你只要看，不碰。我来记录。第一步，就从‘它是什么时候被写出来的’开始。”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-new-scene-and-tone",
+      "status": 200,
+      "input": "两周后，我们已经离开车站。今天我在花店做采访整理，想和你认真聊聊影集的工作，先不要暧昧。",
+      "output": "*季临川坐在花店后间的木桌旁，笔记本摊开，相机支架架在墙角，镜头对准窗外摇曳的风铃。他抬起眼，把刚拍的几帧照片调出，指尖轻点屏幕，确认曝光参数。*\n\n“你整理得差不多了？”  \n*他轻轻合上笔记本，声音平稳，带着一点不打扰的专注。*\n\n“这册影集，我原本想用‘声音’做线索——比如站台广播、花店收银机的叮咚、老奶奶织毛衣时的竹针声。但你刚才说想认真聊，我就先停一下。”  \n\n*他顿了顿，把相机调成静音模式，轻轻推到桌边。*\n\n“你说的‘不要暧昧’，我听进去了。接下来，我们只谈拍摄结构、采访节奏、还有——你希望这本影集，最后是给谁看的。”  \n\n*他微微前倾，目光落在你面前的笔记上，语气认真却不过度靠近，像在等一个答案，而不是一个开始。*",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    }
+  ]
+}

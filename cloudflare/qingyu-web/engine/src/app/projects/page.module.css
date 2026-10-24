@@ -1,0 +1,731 @@
+/* ─── Page Shell ─────────────────────────────────────────────────── */
+.page {
+  min-height: calc(100vh - var(--nav-height));
+  background:
+    radial-gradient(circle at top center, rgba(124, 77, 255, 0.1), transparent 28%),
+    linear-gradient(180deg, #0b0b11 0%, #0e1017 100%);
+}
+
+.shell {
+  width: min(1380px, calc(100vw - 48px));
+  margin: 0 auto;
+  padding: 26px 0 96px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.libraryHero {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.88fr) minmax(0, 1.12fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
+.libraryIntro,
+.recentProjectCard,
+.recentProjectCardEmpty,
+.renameCard {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 24px;
+  background: rgba(20, 22, 30, 0.88);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+}
+
+.libraryIntro {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  padding: 24px 26px;
+  min-height: 260px;
+  background:
+    radial-gradient(circle at top right, rgba(124, 77, 255, 0.12), transparent 26%),
+    rgba(20, 22, 30, 0.92);
+}
+
+.libraryEyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 251, 0.44);
+  font-family: var(--font-mono);
+}
+
+.pageTitle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.pageTitle h1,
+.projectGridHeader h2 {
+  margin: 0;
+  font-size: clamp(34px, 4vw, 52px);
+  line-height: 0.96;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  color: var(--color-text);
+}
+
+.projectGridHeader h2 {
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.countBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  font-weight: 600;
+  color: rgba(244, 246, 251, 0.72);
+  font-family: var(--font-mono);
+}
+
+.librarySubtitle {
+  margin: 0;
+  max-width: 420px;
+  color: rgba(244, 246, 251, 0.56);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.heroActions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────── */
+.primaryButton {
+  height: 40px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(74, 53, 160, 0.28);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+  white-space: nowrap;
+}
+
+.primaryButton:hover:not(:disabled) {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.secondaryButton {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  white-space: nowrap;
+}
+
+.secondaryButton:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+/* Inline save/cancel buttons (same size as above, used in rename panel) */
+.saveButton {
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+
+.saveButton:hover {
+  opacity: 0.85;
+}
+
+.cancelButton {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: transparent;
+  color: var(--color-muted);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast);
+}
+
+.cancelButton:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--color-text);
+}
+
+/* Danger text link */
+.dangerButton {
+  height: auto;
+  padding: 4px 0;
+  border: none;
+  background: none;
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity var(--transition-fast);
+}
+
+.dangerButton:hover {
+  opacity: 1;
+}
+
+.heroFacts {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.heroFacts span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(244, 246, 251, 0.68);
+  font-size: 12px;
+  font-family: var(--font-mono);
+}
+
+/* ─── Notice ─────────────────────────────────────────────────────── */
+.notice {
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.noticeInfo {
+  background: rgba(53, 106, 255, 0.12);
+  border: 1px solid rgba(73, 143, 255, 0.2);
+}
+
+.noticeError {
+  background: rgba(123, 27, 27, 0.2);
+  border: 1px solid rgba(255, 120, 120, 0.22);
+}
+
+.recentProjectCard,
+.recentProjectCardEmpty {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.92fr) minmax(0, 1.08fr);
+  overflow: hidden;
+}
+
+.recentProjectCardEmpty {
+  grid-template-columns: none;
+  align-content: end;
+  padding: 28px;
+  background:
+    radial-gradient(circle at top left, rgba(124, 77, 255, 0.18), transparent 36%),
+    linear-gradient(180deg, rgba(20, 22, 30, 0.92), rgba(14, 15, 21, 0.96));
+}
+
+.recentProjectVisual {
+  position: relative;
+  overflow: hidden;
+  background: rgba(10, 11, 16, 0.9);
+  min-height: 100%;
+}
+
+.recentProjectBody {
+  display: grid;
+  gap: 14px;
+  padding: 24px 24px 22px;
+}
+
+.recentProjectMeta,
+.projectGridHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.recentProjectKicker {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(244, 246, 251, 0.48);
+  font-family: var(--font-mono);
+}
+
+.recentProjectTitle {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+}
+
+.recentProjectDesc {
+  margin: 0;
+  color: rgba(244, 246, 251, 0.58);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.recentProjectQueue {
+  display: grid;
+  gap: 10px;
+}
+
+.queueLabel {
+  color: rgba(244, 246, 251, 0.44);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.queueList {
+  display: grid;
+  gap: 8px;
+}
+
+.queueItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+}
+
+.queueItem:hover {
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.queueItemName {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.queueItemMeta {
+  color: rgba(244, 246, 251, 0.48);
+  font-size: 11px;
+  font-family: var(--font-mono);
+}
+
+.recentProjectFooter {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.renameCard {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+.projectGridHeader {
+  margin-top: 6px;
+}
+
+/* ─── Project Grid ───────────────────────────────────────────────── */
+.projectGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+/* ─── Project Card ───────────────────────────────────────────────── */
+.projectCard {
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(20, 22, 30, 0.88);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    border-color var(--transition-med),
+    box-shadow var(--transition-med),
+    transform var(--transition-med);
+}
+
+.projectCard:hover {
+  border-color: rgba(255, 255, 255, 0.16);
+  box-shadow: 0 20px 38px rgba(0, 0, 0, 0.24);
+  transform: translateY(-3px);
+}
+
+/* ─── Cover Wrap ─────────────────────────────────────────────────── */
+.coverWrap {
+  position: relative;
+  width: 100%;
+  height: 220px;
+  overflow: hidden;
+  background: rgba(10, 11, 16, 0.82);
+  flex-shrink: 0;
+}
+
+.cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform var(--transition-med);
+}
+
+.projectCard:hover .cover,
+.projectCardFeatured:hover .cover {
+  transform: scale(1.04);
+}
+
+.coverPlaceholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 24% 24%, rgba(124, 77, 255, 0.28), transparent 32%),
+    radial-gradient(circle at 78% 74%, rgba(9, 196, 217, 0.12), transparent 28%),
+    linear-gradient(135deg, rgba(18, 20, 30, 0.98), rgba(10, 10, 16, 0.99));
+}
+
+.coverPlaceholderIcon {
+  font-size: 32px;
+  opacity: 0.62;
+}
+
+/* Hover overlay — dark scrim with quick-action buttons */
+.coverOverlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  background: linear-gradient(180deg, rgba(10, 11, 16, 0.08), rgba(10, 11, 16, 0.82));
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  transition: opacity var(--transition-med);
+}
+
+.projectCard:hover .coverOverlay,
+.projectCardFeatured:hover .coverOverlay {
+  opacity: 1;
+}
+
+.overlayBtn {
+  height: 36px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: none;
+  background: var(--gradient-accent);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(74, 53, 160, 0.28);
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.overlayBtn:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+.overlayBtnSecondary {
+  height: 36px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.overlayBtnSecondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ─── Card Body ──────────────────────────────────────────────────── */
+.projectBody {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.projectMeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.projectName {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.projectDate {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.projectDesc {
+  font-size: 13px;
+  color: rgba(244, 246, 251, 0.52);
+  line-height: 1.6;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+}
+
+/* ─── Meta Chips ─────────────────────────────────────────────────── */
+.metaChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.metaChip {
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--color-muted);
+}
+
+/* ─── Card footer action row ─────────────────────────────────────── */
+.cardFooter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: auto;
+}
+
+.confirmLabel {
+  font-size: 12px;
+  color: var(--color-danger);
+  font-weight: 500;
+  flex: 1;
+}
+
+/* Solid danger button — only shown in confirm state */
+.dangerButtonSolid {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(255, 77, 106, 0.18);
+  border: 1px solid rgba(255, 77, 106, 0.35);
+  color: var(--color-danger);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dangerButtonSolid:hover {
+  background: rgba(255, 77, 106, 0.28);
+}
+
+/* ─── Rename Panel ───────────────────────────────────────────────── */
+.renamePanel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.input,
+.textarea {
+  width: 100%;
+  border-radius: var(--radius-md);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(10, 11, 16, 0.92);
+  color: var(--color-text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color var(--transition-fast);
+  box-sizing: border-box;
+}
+
+.input:focus,
+.textarea:focus {
+  border-color: rgba(124, 77, 255, 0.4);
+  box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
+}
+
+.input {
+  height: 38px;
+  padding: 0 12px;
+}
+
+.textarea {
+  min-height: 72px;
+  padding: 10px 12px;
+  resize: vertical;
+}
+
+.renameActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Empty State ────────────────────────────────────────────────── */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 32px;
+  border-radius: var(--radius-lg);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.02);
+  gap: 10px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 44px;
+  margin-bottom: 4px;
+  opacity: 0.35;
+}
+
+.emptyTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.emptySubtitle {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-muted);
+  max-width: 300px;
+  line-height: 1.5;
+}
+
+.emptyState .primaryButton {
+  margin-top: 8px;
+}
+
+.hiddenInput {
+  display: none;
+}
+
+.emptyMinorState {
+  display: flex;
+  justify-content: flex-start;
+}
+
+/* ─── Responsive ─────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .libraryHero {
+    grid-template-columns: 1fr;
+  }
+
+  .projectGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .recentProjectCard,
+  .recentProjectCardEmpty {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .shell {
+    width: calc(100vw - 24px);
+    padding: 20px 0 60px;
+    gap: 16px;
+  }
+
+  .projectGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .pageTitle h1 {
+    font-size: 38px;
+  }
+
+  .heroActions,
+  .recentProjectFooter,
+  .projectGridHeader {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

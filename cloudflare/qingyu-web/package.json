@@ -1,0 +1,40 @@
+{
+  "name": "qingyu",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5186 --strictPort",
+    "check": "npm run check:ui && npm run check:server",
+    "build": "npm run cards:export && npm run check && vite build",
+    "test": "tsx --test test/full-*.test.mts",
+    "preview": "vite preview --host 127.0.0.1 --port 4186 --strictPort",
+    "dev:worker": "wrangler dev --local --ip 127.0.0.1 --port 8796 --show-interactive-dev-session=false",
+    "deploy": "npm run build && wrangler deploy --config wrangler.production.jsonc",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "check:ui": "tsc --noEmit -p tsconfig.client.json",
+    "check:server": "tsc --noEmit -p tsconfig.worker.json",
+    "test:backend": "node engine/cloudflare/dzmm/scripts/test.mjs",
+    "test:companion": "tsx --test engine/cloudflare/qingyu-companion/test/*.test.mts",
+    "test:native:python": "node scripts/test-native-python.mjs",
+    "dev:native": "tsx scripts/dev-native-host.ts",
+    "check:native-local": "tsc --noEmit -p tsconfig.native-local.json",
+    "deploy:native": "node scripts/prepare-native-deploy.mjs && wrangler deploy --config .runtime/deploy/companion.wrangler.json",
+    "cards:export": "tsx scripts/export-qingyu-cards.ts"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "8.3.2",
+    "tsx": "^4.23.15",
+    "wrangler": "^4.146.0",
+    "@cloudflare/workers-types": "^5.20261002.1"
+  }
+}

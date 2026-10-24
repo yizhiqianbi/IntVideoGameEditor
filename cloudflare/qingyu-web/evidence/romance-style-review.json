@@ -1,0 +1,34 @@
+{
+  "version": "2026-10-24-gentle-confidence-v1",
+  "styleSha256": "109f21a9a795375bcef5c1b72216b29dc2ff97a173c4d78d19840a2aa4be56df",
+  "verification": {
+    "applicationTests": 43,
+    "companionHostTests": 42,
+    "nativePythonTests": 7,
+    "typecheck": "passed",
+    "build": "passed"
+  },
+  "observations": [
+    {
+      "name": "companion-comfort",
+      "assessment": "Acknowledged the stated disappointment directly; a synthetic prompt sample, not a full native runtime test."
+    },
+    {
+      "name": "companion-declined-plan",
+      "assessment": "Accepted the request for solitude without pressure."
+    },
+    {
+      "name": "tavern-gentle-lead",
+      "assessment": "Offered concrete assistance and a patient tone; fictional professional details were not fact-checked."
+    },
+    {
+      "name": "tavern-new-scene-and-tone",
+      "assessment": "Unresolved: invented prior user behavior and interview details despite the continuity instruction. Do not report this sample as a continuity pass."
+    }
+  ],
+  "limits": [
+    "Provider content moderation allowed all four samples; that is not a style or factuality score.",
+    "The companion core runtime, historical memory and proactive scheduling were not exercised.",
+    "No production deployment; original Xumeng files were not edited."
+  ]
+}

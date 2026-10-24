@@ -1,0 +1,55 @@
+{
+  "status": "real-local-native-running",
+  "engine": "MaiBot1.3.9 with A_Memorix, native plugin runner and private proactive extension",
+  "isolation": "task-owned venv, per-account/profile directories, private localhost bridge, own data and durable snapshots",
+  "tests": {
+    "host": {
+      "passed": 41,
+      "failed": 0
+    },
+    "gateway": {
+      "passed": 17,
+      "failed": 0
+    },
+    "nativePythonBoundary": {
+      "passed": 7,
+      "failed": 0
+    },
+    "root": {
+      "passed": 33,
+      "failed": 0
+    }
+  },
+  "agreements": "Reused existing explicit acceptance only after exact EULA/privacy MD5 comparison; no new acceptance invented",
+  "verified": [
+    "real native framework startup",
+    "actual model reply in browser",
+    "stop before snapshot; SHA256 verified durable archive",
+    "real restore to task-owned runtime and recovered original chat history",
+    "A_Memorix enabled with independent vector metadata and actual4096-dimension embeddings",
+    "actual native media plugin loaded;0 failures",
+    "actual supplier TTS and signed speech proof accepted by TypeScript verifier",
+    "full native model → media plugin → actual supplier TTS → signed audio proof → public content review → browser audio playback2.928seconds",
+    "three genuine native profile health200; all ready; three distinct client scopes",
+    "actual native proactive task queued once for latest real user message; one additional assistant reply; message count stayed42 over several minutes",
+    "actual native long-term memory summary and person facts written by A_Memorix",
+    "all three profiles checkpointed cleanly: stopped, dirty false, snapshot exists, no checkpoint error",
+    "live restore after media reconciliation fix: one reviewed voice, zero duplicate placeholders, audio still playable2.928seconds"
+  ],
+  "fixes": [
+    "proactive routing through real native planner, no fabricated user messages",
+    "native reply ends continuation via original stop-after-execution contract",
+    "private media proofs bind owner/profile/source text and audio bytes",
+    "Node streaming restore uses duplex half",
+    "portable memory path and colon-free runtime directory",
+    "shipped plugin program refreshed only after restored identity/agreement validation",
+    "exclusive service lock and graceful checkpoint shutdown"
+  ],
+  "remaining": [
+    "optional Docker image build and production binding"
+  ],
+  "sourceManifest": "engine/companion-native/build-manifest.json",
+  "deferredByUser": [
+    "Live video and telephone API configuration; user will provide later"
+  ]
+}

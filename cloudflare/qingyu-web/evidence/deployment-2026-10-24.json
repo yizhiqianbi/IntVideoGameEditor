@@ -1,0 +1,72 @@
+{
+  "date": "2026-10-24",
+  "platform": "Cloudflare",
+  "publicUrl": "https://qingyu.xumengchat.top",
+  "localUrl": "http://127.0.0.1:5186",
+  "webVersion": "40f9193b-7917-4f6f-868d-fc51324972b3",
+  "nativeVersion": "7c6686a8-b5f6-4963-bcac-7a0d116c75aa",
+  "nativeImage": "sha256:26182575e43964fa00f989c8109971abcb290b7c8c5ddc2b2858ddb2ed460ce0",
+  "resources": {
+    "database": "qingyu-db",
+    "media": "qingyu-media",
+    "memory": "qingyu-companion-memory",
+    "nativeService": "qingyu-companion (private)"
+  },
+  "accepted": [
+    "registered and logged in a formal account",
+    "real story reply saved to isolated D1 and loaded after refresh",
+    "private image upload/read/unauthenticated denial/delete",
+    "genuine native MaiBot classic-profile reply and server history after refresh",
+    "native memory enabled; mobile width390 and composer within844",
+    "commerce and calls unavailable"
+  ],
+  "checks": {
+    "webTests": "44/44",
+    "nativeHostTests": "42/42",
+    "nativePythonTests": "7/7",
+    "webBuild": "passed",
+    "nativeTypecheck": "passed"
+  },
+  "limits": [
+    "email verification, phone and video await external services",
+    "full feature parity remains a separate incomplete goal",
+    "a prior QA runtime interrupted during image rollout remains under recovery protection; newer audited records retained; rollback refused"
+  ],
+  "cleanup": [
+    "temporary diagnostic Worker deleted",
+    "generated secret upload files deleted",
+    "isolated Docker build VM stopped; Docker default context restored"
+  ],
+  "originalXumeng": "No original application source or user data modified by this deployment",
+  "domainRepair": {
+    "previousUrl": "https://qingyu-stories.850587960.workers.dev",
+    "reason": "TLS connection termination on the current network",
+    "customDomain": "qingyu.xumengchat.top",
+    "browser": "Codex in-app browser: actual homepage rendered",
+    "login": 200,
+    "existingAccountState": 200,
+    "originalDomain": "xumengchat.top still bound to dzmm-web and responds200",
+    "evidence": [
+      "custom-domain-http.json",
+      "custom-domain-login.json",
+      "deploy-custom-domain.log"
+    ]
+  },
+  "characterCards": {
+    "version": "2026-10-24-cast-v2",
+    "characters": 4,
+    "openingsPerCharacter": 3,
+    "worldbookEntriesPerCharacter": 10,
+    "applicationTests": {
+      "passed": 44,
+      "failed": 0
+    },
+    "build": "passed",
+    "webVersion": "40f9193b-7917-4f6f-868d-fc51324972b3",
+    "skillSource": "authoring/skill-source.json",
+    "validation": "card-validation-qy-*.json",
+    "liveReview": "character-cards-review.json",
+    "production": "character-cards-production.json",
+    "scope": "Updated independent Qingyu catalog, three native default presets and importable V2 exports; existing histories/custom styles and native container retained."
+  }
+}

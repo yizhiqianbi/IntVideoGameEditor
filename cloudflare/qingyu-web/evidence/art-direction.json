@@ -1,0 +1,27 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "mode": "generate",
+  "transparent_background": false,
+  "assets": [
+    {
+      "path": "public/art/island.webp",
+      "prompt": "Use case: illustration-story. Asset type: wide background illustration for an elegant cute all-ages character story web app called Qingyu. Create one beautiful hand-painted watercolor and gouache illustration, landscape 3:2 ratio, no text or letters, no UI. A tiny coastal bookshop and greenhouse on a grassy floating island overlooking a pale mint blue sea, a winding cream path and wildflowers, a small white fluffy cat with a green scarf resting beside a stack of books, soft fluffy ivory clouds, far away smaller island, whimsical Japanese picture-book atmosphere, sophisticated restrained palette of sage green, cream, dusty peach and pale blue, delicate paper texture and pencil outlines, soft morning sunlight. Composition: main island, bookshop and cat on right two thirds, left third mostly quiet pale cream sky for dark text overlay. Enough details to feel like a lovingly illustrated story world, not childish clip art. Wholesome, cozy, calm, no human characters, no logos, no watermarks, no panels, no frames. High-quality editorial storybook illustration."
+    },
+    {
+      "path": "public/art/lin.webp",
+      "prompt": "Use case: illustration-story. Asset: portrait cover for a wholesome all-ages interactive story app. One original character, waist-up portrait, vertical 3:4 composition. Beautiful refined watercolor and colored-pencil storybook illustration, cozy anime-inspired editorial art, sage and cream palette with delicate paper texture, soft daylight, expressive gentle face. Fully clothed, modest everyday clothing. No lettering, no text, no frame, no UI, no watermark. Adult woman age 24 with warm short brown bob hair, round glasses resting on head, moss green apron over ivory loose linen shirt, holding a small potted daisy inside a sunlit flower shop with peach flowers and leafy plants. Friendly curious expression."
+    },
+    {
+      "path": "public/art/yu.webp",
+      "prompt": "Use case: illustration-story. Asset: portrait cover for a wholesome all-ages interactive story app. One original character, waist-up portrait, vertical 3:4 composition. Beautiful refined watercolor and colored-pencil storybook illustration, cozy anime-inspired editorial art, sage and cream palette with delicate paper texture, soft daylight, expressive gentle face. Fully clothed, modest everyday clothing. No lettering, no text, no frame, no UI, no watermark. Adult man age 25 with tousled dark slate hair, cream cable-knit sweater and sage green jacket, holding a closed blue sketchbook, sitting at the window of a coastal bookshop, pale sea and curtains behind, calm friendly expression."
+    },
+    {
+      "path": "public/art/mori.webp",
+      "prompt": "Use case: illustration-story. Asset: portrait cover for a wholesome all-ages interactive story app. One original character, waist-up portrait, vertical 3:4 composition. Beautiful refined watercolor and colored-pencil storybook illustration, cozy anime-inspired editorial art, sage and cream palette with delicate paper texture, soft daylight, expressive gentle face. Fully clothed, modest everyday clothing. No lettering, no text, no frame, no UI, no watermark. A small adorable white forest spirit fox with sage green scarf and a tiny leather messenger satchel, carrying a star-shaped brass key, standing in a lush magical mossy forest with giant ferns and golden soft sunbeams. A charming animal adventure character, expressive eyes, fluffy fur."
+    },
+    {
+      "path": "public/art/wan.webp",
+      "prompt": "Use case: illustration-story. Asset: portrait cover for a wholesome all-ages interactive story app. One original character, waist-up portrait, vertical 3:4 composition. Beautiful refined watercolor and colored-pencil storybook illustration, cozy anime-inspired editorial art, sage and cream palette with delicate paper texture, soft daylight, expressive gentle face. Fully clothed, modest everyday clothing. No lettering, no text, no frame, no UI, no watermark. Adult woman age 26, long dark brown braided hair, cream blouse with little sage embroidered collar and a straw hat with green ribbon, holding a vintage camera, at a seaside railway station with white hydrangeas and pale blue sky, quietly happy expression."
+    }
+  ]
+}

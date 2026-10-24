@@ -1,0 +1,382 @@
+{
+  "objective": "Full functional parity with original Xumeng, independent non-NSFW edition with otome art direction",
+  "status": "in-progress",
+  "sourceBaseline": "full-engine-baseline.json",
+  "legacyRegression": {
+    "total": 564,
+    "passed": 511,
+    "failed": 53,
+    "log": "full-backend-tests.log",
+    "note": "Real isolated D1/R2 runtime; catalog fixtures and configuration failures remain under investigation. Source integration is not acceptance.",
+    "round2": {
+      "total": 592,
+      "passed": 583,
+      "failed": 9,
+      "log": "full-backend-tests-round2.log"
+    },
+    "round3": {
+      "result": "nonzero-without-complete-summary",
+      "log": "full-backend-tests-round3.log",
+      "note": "Do not interpret as a complete result. Targeted round4 is running."
+    },
+    "round4": {
+      "total": 592,
+      "passed": 590,
+      "failed": 2,
+      "log": "full-backend-targeted-round4.log"
+    },
+    "finalTargeted": {
+      "total": 61,
+      "passed": 61,
+      "failed": 0,
+      "log": "backend-final-targeted.log",
+      "scope": "credit-usage and subscriptions; includes both last failing tests, corrected to current terms and historical migration boundary"
+    },
+    "latestFull": {
+      "total": 592,
+      "passed": 583,
+      "failed": 9,
+      "log": "full-backend-final.log",
+      "failure": "all nine forum-edit-concurrency cases failed in the shared setup hook with one Miniflare internal-error reference; no assertions reached"
+    },
+    "latestTargeted": {
+      "total": 9,
+      "passed": 9,
+      "failed": 0,
+      "log": "backend-forum-concurrency-rerun.log",
+      "scope": "same forum-edit-concurrency file, unchanged product and assertions; isolated re-run completed"
+    }
+  },
+  "requirements": [
+    {
+      "id": "account-auth-profile",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; browser guest upgrade to formal account preserved records"
+    },
+    {
+      "id": "D1-sync-conflicts-recovery",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; browser create/save/reload verified, conflict UI acceptance remains"
+    },
+    {
+      "id": "catalog-search-categories-ranking-authors",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; original all-ages four-character catalog shown in browser"
+    },
+    {
+      "id": "favorites-likes",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; browser favorite persisted after reload"
+    },
+    {
+      "id": "full-character-editor-worldbook-openings",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; browser free-form save, professional editor and worldbook screen"
+    },
+    {
+      "id": "card-conversation-import-export",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; full editor browser import/export still pending"
+    },
+    {
+      "id": "chat-stop-edit-regenerate-branches",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; actual model chat verified; remaining controls need browser acceptance"
+    },
+    {
+      "id": "story-memory-world-time",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; browser two-week time jump with real model reply"
+    },
+    {
+      "id": "reply-suggestions",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "real provider reply suggestions accepted in browser"
+    },
+    {
+      "id": "native-companion-memory-media",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "actual native model reply, long-term memory writes, checkpoint/restore, audio playback, one proactive turn, three live profile scopes; Docker deployment optional"
+    },
+    {
+      "id": "creator-workspace",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "browser saved and reloaded novel/game/scenario projects"
+    },
+    {
+      "id": "novels-outline-chapters",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "browser real outline/continuation, insertion, D1 create201/reload/read/export; production importer preserved downloaded manuscript"
+    },
+    {
+      "id": "scenarios-multiplayer",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "two separate browser accounts joined roles, participant speech, real model DM publication, stage advance, private-note isolation"
+    },
+    {
+      "id": "game-editor-import-play",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "browser D1 create201, both branches, reload/play; import package browser acceptance remains"
+    },
+    {
+      "id": "forum-posts-replies-votes-reports",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "browser author post, second-account reply, author revision and reload; vote/report backend regression"
+    },
+    {
+      "id": "publishing-review-withdraw",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; public workflow browser acceptance remains"
+    },
+    {
+      "id": "tasks-checkin-market-referrals",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; browser end-to-end acceptance remains"
+    },
+    {
+      "id": "credits-billing-reservation-settlement",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression, including61/61 targeted billing and subscriptions; no real charges"
+    },
+    {
+      "id": "membership-payments-orders",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "backend regression; live payments remain disabled, no real payment attempted"
+    },
+    {
+      "id": "voice-cache-quota",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; actual reviewed supplier TTS proof roundtrip; native UI speech acceptance in progress"
+    },
+    {
+      "id": "voice-video-calls",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "source integrated and isolated gateway tests; MiniCPM/Vidu configuration location requested"
+    },
+    {
+      "id": "current-generation-history",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "source integrated; generation paused in independent configuration; external generation acceptance remains"
+    },
+    {
+      "id": "admin-audit",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "backend regression; browser admin acceptance remains"
+    },
+    {
+      "id": "locale-theme-presets-install",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "desktop/mobile/dark home inspected; wider workspace QA in progress"
+    },
+    {
+      "id": "all-ages-content-enforcement",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "partially-verified",
+      "evidenceScope": "33 TS tests;7 native Python boundary tests;8 actual provider review cases passed, actual signed native audio verified; broad arbitrary embedded-game-media audit remains"
+    },
+    {
+      "id": "otome-desktop-mobile-art-direction",
+      "implementationStatus": "source-integrated",
+      "verificationStatus": "verified-with-listed-scope",
+      "evidenceScope": "dark default, four original portraits, desktop/mobile night home, native mobile chat and creator flows; default theme verified in a clean browser"
+    }
+  ],
+  "nativeCompanion": {
+    "source": "engine/companion-native",
+    "check": "passed; native-companion-check-final.log",
+    "isolatedHostTests": {
+      "passed": 41,
+      "failed": 0
+    },
+    "runtime": "genuine local native MaiBot with A_Memorix/plugins; real checkpoint/restore, full voice playback, proactive task and three profile scope isolation verified; Docker image not built",
+    "allAgesOutputGate": "text/image review, actual native signed audio, browser playback and real media-preserving snapshot restore verified",
+    "gatewayTests": {
+      "passed": 17,
+      "failed": 0
+    },
+    "storageRegressionTests": {
+      "passed": 39,
+      "failed": 0,
+      "log": "storage-dark-regression.log"
+    }
+  },
+  "contentPolicyTests": {
+    "passed": 33,
+    "failed": 0,
+    "log": "full-native-review-final.log"
+  },
+  "browserVerified": [
+    "guest bootstrap on independent DB",
+    "favorites PUT and reload",
+    "complete character editor: free-form draft saved via state PUT200",
+    "professional editor and worldbook screen",
+    "390px page width390",
+    "fixed mobile editing actions overlapping shared navigation",
+    "mobile navigation clicked successfully after editor-footer offset fix",
+    "registered account upgrade retains guest role draft/favorites/conversation",
+    "real model chat and generated action suggestions after input/output review",
+    "two-week story time jump updates setting and responds to completed concert",
+    "novel: actual outline generation and chapter continuation200, explicit insertion, D1 create201, reload, reading and downloaded JSON; imported with production parser preserving manuscript",
+    "game: create201, both branch choices played in sandbox; reloaded saved game and played again",
+    "home390px viewport/document both390 after typography adjustment; visible portrait verified at scrollTop0",
+    "dark homepage rendered and inspected; text/shortcut/search/filter colors corrected to theme variables",
+    "two-account multiplayer: role selection, participant speech, actual model DM draft and publication, stage advance and private note isolation",
+    "forum: author post201, separate-account reply, author PATCH revision and reload",
+    "real native MaiBot start, actual model reply, verified stopped snapshot, restore into a new runtime, original conversation recovered",
+    "native media plugin now genuinely loaded after fixing local path separators",
+    "native voice full pipeline and browser playback2.928seconds; actual text matches signed source",
+    "native three profiles real startup: health200, ready true and three distinct client scopes",
+    "native proactive real task queued once with no fabricated user message; one subsequent assistant reply and stable count",
+    "new clean browser defaults dark: rgb21/18/28 and theme-color15121c",
+    "dark desktop/mobile home and mobile native chat: width390=document390, composer within viewport",
+    "real post-fix native restore: one reviewed voice, zero placeholder duplicates; audio playback2.928seconds preserved"
+  ],
+  "pendingServicePreference": "resolved: reuse existing supplier accounts, independent data/deployment; live video/phone API deferred explicitly by user",
+  "knownIncomplete": [
+    "full editor import/export, conflict UX, publishing/admin/task browser workflows",
+    "embedded game media content audit and broader mobile/dark workspace QA",
+    "full backend run583/592; all9 shared-setup failures passed isolated unchanged rerun9/9"
+  ],
+  "liveModel": {
+    "provider": "OpenRouter",
+    "account": "existing provider account reused by explicit user preference; secrets only in ignored .dev.vars",
+    "chat": "qwen/qwen3.6-plus",
+    "review": "qwen/qwen3.6-plus",
+    "reviewCases": {
+      "passed": 8,
+      "failed": 0,
+      "evidence": "live-review.json"
+    },
+    "browserChat": "actual response and suggestions200, D1 save200; two-week time jump accepted",
+    "chatScope": "Main site default/legacy modes and named Qwen choice; native container model unchanged"
+  },
+  "latestBuild": {
+    "typecheck": "passed",
+    "applicationBuild": "character-cards-deploy-final.log"
+  },
+  "updatedAt": "2026-10-24T10:02:45.394Z",
+  "deferredByUser": [
+    "Live video and telephone API configuration; user will provide later"
+  ],
+  "currentProductScope": {
+    "direction": "User requested a simpler edition centered on characters, chat and creation, dark character-led backgrounds.",
+    "commerce": "Closed at UI and public gateway: payments, USDT, subscriptions, dream-coin exchange/withdrawal, referrals, callback handlers, admin balance adjustments.",
+    "externalCalls": "Deferred until user provides phone/video APIs; normal entry points and public session endpoints closed.",
+    "evidence": [
+      "simple-edition-build.log",
+      "simple-edition-tests.log",
+      "simple-edition-live-boundary.json",
+      "simple-edition-browser-routes.log",
+      "simple-edition-browser-journey.log"
+    ],
+    "rootTests": {
+      "passed": 41,
+      "failed": 0
+    },
+    "deployment": "Local only; no production deployment or payment made."
+  },
+  "romancePromptUpdate": {
+    "version": "2026-10-24-gentle-confidence-v1",
+    "scope": [
+      "companion default personalities",
+      "new native instance defaults",
+      "existing companion per-turn style envelope",
+      "tavern system narration"
+    ],
+    "preserved": [
+      "original Xumeng checkout",
+      "character identity and genre",
+      "stored style and history",
+      "4000-character user message limit"
+    ],
+    "verification": {
+      "applicationTests": 43,
+      "companionHostTests": 42,
+      "nativePythonTests": 7,
+      "build": "passed",
+      "samples": "romance-style-live-samples.json"
+    },
+    "limits": "Samples use production prompt assembly and a live provider. The full native runtime and historical memory were not exercised. No production deployment."
+  },
+  "deployment": {
+    "date": "2026-10-24",
+    "platform": "Cloudflare",
+    "url": "https://qingyu.xumengchat.top",
+    "web": "deployed and verified",
+    "nativeCompanion": "deployed and verified on a fresh production account: genuine MaiBot reply, persisted reload, private memory enabled",
+    "independentDatabase": "qingyu-db",
+    "independentMedia": "qingyu-media",
+    "independentMemory": "qingyu-companion-memory",
+    "commerce": "disabled",
+    "phoneAndVideo": "deferred",
+    "verification": [
+      "deploy-cloud-state.log",
+      "deploy-cloud-login.log",
+      "deploy-cloud-media.log",
+      "deploy-cloud-story-browser.log",
+      "deploy-native-cloud-browser.log",
+      "deploy-native-cloud-server-history.log",
+      "deploy-native-final-regression.log",
+      "deploy-native-final-typecheck.log",
+      "deploy-home-final.log",
+      "custom-domain-http.json",
+      "custom-domain-login.json",
+      "deploy-custom-domain.log"
+    ],
+    "webVersion": "40f9193b-7917-4f6f-868d-fc51324972b3",
+    "nativeVersion": "7c6686a8-b5f6-4963-bcac-7a0d116c75aa",
+    "containerImage": "sha256:26182575e43964fa00f989c8109971abcb290b7c8c5ddc2b2858ddb2ed460ce0",
+    "maintenance": "Checkpoint active instances and wait for image rollout before resuming traffic. A QA account interrupted during rollout remains protected; newer audited data was retained and rollback refused.",
+    "nativeVerificationScope": "classic production profile; previous intimate greeting verified; other profile workflows retain their earlier local acceptance scope",
+    "nativePlannerFix": {
+      "optimizedPrompt": true,
+      "unsentReplyRetry": "official bounded retry; intentional silence remains permitted",
+      "pythonTests": "7/7",
+      "hostTests": "42/42",
+      "typecheck": "passed"
+    },
+    "previousWorkersDevUrl": "https://qingyu-stories.850587960.workers.dev",
+    "workersDevReachability": "TLS connection terminated on current network; custom domain verified in the user browser"
+  },
+  "characterCards": {
+    "version": "2026-10-24-cast-v2",
+    "characters": 4,
+    "openingsPerCharacter": 3,
+    "worldbookEntriesPerCharacter": 10,
+    "applicationTests": {
+      "passed": 44,
+      "failed": 0
+    },
+    "build": "passed",
+    "webVersion": "40f9193b-7917-4f6f-868d-fc51324972b3",
+    "skillSource": "authoring/skill-source.json",
+    "validation": "card-validation-qy-*.json",
+    "liveReview": "character-cards-review.json",
+    "production": "character-cards-production.json",
+    "scope": "Updated independent Qingyu catalog, three native default presets and importable V2 exports; existing histories/custom styles and native container retained."
+  }
+}

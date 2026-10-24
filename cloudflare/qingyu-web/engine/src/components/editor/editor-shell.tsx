@@ -1,0 +1,7342 @@
+"use client";
+
+import {
+  applyEdgeChanges,
+  applyNodeChanges,
+  Background,
+  ConnectionMode,
+  Controls,
+  MarkerType,
+  MiniMap,
+  ReactFlow,
+  type Connection,
+  type EdgeChange,
+  type Node,
+  type NodeChange,
+  type ReactFlowInstance,
+} from "@xyflow/react";
+import {
+  startTransition,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ChangeEvent,
+} from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import {
+  DEFAULT_PROVIDER_CREDENTIALS,
+  DEFAULT_PROVIDER_PRIORITY,
+  PROVIDER_DEFINITIONS,
+  getConfiguredProviderPriority,
+  getProviderDefaultModel,
+  isCredentialConfigured,
+  type GenerationProviderSelection,
+  type ProviderCredentialState,
+  type UnifiedVideoCreateResponse,
+  type UnifiedVideoGenerationRequest,
+  type VideoProviderId,
+} from "../../lib/video-generation";
+import {
+  GROK_IMAGE_MODEL,
+  IMAGE_MODEL_OPTIONS,
+  buildCharacterImagePrompt,
+  buildSceneImagePrompt,
+  isLocalFluxModel,
+  type ImageGenerationModel,
+} from "../../lib/image-generation";
+import {
+  applyAgentDraftToEditorGraph,
+  createRandomStoryTemplate,
+  type AgentScreenplay,
+  type AgentDraft,
+} from "../../lib/agent-mode";
+import {
+  buildInteractiveExportBundle,
+  buildTraversalExportBundles,
+} from "../../lib/export-packages";
+import { agentApi, imageApi, videoApi, fetchRemoteMedia } from "../../lib/api";
+import {
+  buildProjectPackageBundle,
+  importProjectPackage,
+} from "../../lib/project-package";
+import {
+  collectProjectReferencedAssetIds,
+  deleteProjectTemplate,
+  getTemplatePreviewFallback,
+  listProjectTemplates,
+  loadProjectTemplate,
+  saveProjectTemplate,
+  updateProjectTemplate,
+  type ProjectTemplateSummary,
+  type TemplateMediaInput,
+} from "../../lib/project-templates";
+import {
+  buildProjectSaveInput,
+  deleteGlobalAsset,
+  listGlobalAssets,
+  loadProject,
+  loadRecoveryDraft,
+  resolveProjectSnapshotForEditing,
+  saveGlobalAsset,
+  saveProject,
+  saveRecoveryDraft,
+  updateProjectLastOpenedAt,
+  type GlobalAssetRecord,
+  type ProjectMediaInput,
+} from "../../lib/projects";
+import { isDramaSnapshot } from "../../lib/drama-archive";
+import { setStoredActiveProjectId } from "../../lib/project-session";
+import {
+  applyDemoVisuals,
+  DEMO_AGENT_DRAFT,
+  DEMO_AGENT_SCREENPLAY,
+  DEMO_STORY_TEXT,
+} from "../../lib/demo-case";
+import { useResizer } from "./use-resizer";
+import {
+  consumePendingEditorSession,
+  getCachedEditorSession,
+  queuePendingEditorSession,
+  setCachedEditorSession,
+  type RuntimeAsset,
+} from "./editor-session";
+import styles from "./editor-shell.module.css";
+import {
+  CharacterReferenceNode,
+  type CharacterReferenceNodeData,
+} from "./character-reference-node";
+import {
+  SceneReferenceNode,
+  type SceneReferenceNodeData,
+} from "./scene-reference-node";
+import {
+  buildTransitionEdge,
+  CHARACTER_REFERENCE_NODE_TYPE,
+  SCENE_REFERENCE_NODE_TYPE,
+  createCharacterDefinition,
+  createSceneDefinition,
+  createConditionLabel,
+  createConditionVariable,
+  createSceneAction,
+  createVideoSceneNode,
+  hydrateProjectEdges,
+  hydrateProjectNodes,
+  parseProject,
+  serializeProject,
+  validateTreeConnection,
+  VIDEO_SCENE_SOURCE_HANDLE_ID,
+  VIDEO_SCENE_TARGET_HANDLE_ID,
+  type AssetKind,
+  type AssetRef,
+  type CharacterDefinition,
+  type EditorFlowEdge,
+  type EditorFlowNode,
+  type EditorProject,
+  type ProjectSettings,
+  type SceneDefinition,
+  type SceneAction,
+  type TrimRange,
+} from "./project";
+import { TrimPreview } from "./trim-preview";
+import { VideoSceneNode } from "./video-scene-node";
+
+type Notice = {
+  tone: "success" | "error" | "info";
+  message: string;
+};
+
+type TemplateDialogState =
+  | {
+      mode: "apply";
+      template: ProjectTemplateSummary;
+    }
+  | {
+      mode: "delete";
+      template: ProjectTemplateSummary;
+    }
+  | null;
+
+type CharacterCanvasNode = Node<
+  CharacterReferenceNodeData,
+  typeof CHARACTER_REFERENCE_NODE_TYPE
+>;
+
+type SceneCanvasNode = Node<
+  SceneReferenceNodeData,
+  typeof SCENE_REFERENCE_NODE_TYPE
+>;
+
+type CanvasFlowNode = EditorFlowNode | CharacterCanvasNode | SceneCanvasNode;
+type HtmlExportMode = "inline" | "linked";
+
+const nodeTypes = {
+  videoScene: VideoSceneNode,
+  characterReference: CharacterReferenceNode,
+  sceneReference: SceneReferenceNode,
+};
+
+const PROVIDER_STORAGE_KEY = "int-video-game-editor.provider-credentials.v1";
+const AGENT_API_KEY_STORAGE_KEY = "int-video-game-editor.agent-api-key.v1";
+const DEFAULT_LOCAL_PROVIDER_CREDENTIALS: ProviderCredentialState = {
+  ...DEFAULT_PROVIDER_CREDENTIALS,
+  doubao: {
+    apiKey: process.env.NEXT_PUBLIC_VOLCENGINE_API_KEY ?? "",
+  },
+};
+
+function normalizeProviderPriority(priority?: unknown): VideoProviderId[] {
+  const nextPriority: VideoProviderId[] = [];
+
+  if (Array.isArray(priority)) {
+    for (const item of priority) {
+      if (
+        (item === "doubao" ||
+          item === "minimax" ||
+          item === "vidu" ||
+          item === "kling") &&
+        !nextPriority.includes(item)
+      ) {
+        nextPriority.push(item);
+      }
+    }
+  }
+
+  for (const providerId of DEFAULT_PROVIDER_PRIORITY) {
+    if (!nextPriority.includes(providerId)) {
+      nextPriority.push(providerId);
+    }
+  }
+
+  return nextPriority;
+}
+const CHARACTER_NODE_ID_PREFIX = "character-card:";
+const SCENE_NODE_ID_PREFIX = "scene-card:";
+const REFERENCE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg width="720" height="720" viewBox="0 0 720 720" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="720" height="720" rx="48" fill="#F2E6D7"/>
+  <rect x="56" y="56" width="608" height="608" rx="36" fill="#FFF8F0" stroke="#D8C4AD" stroke-width="3"/>
+  <circle cx="360" cy="264" r="110" fill="#D6B99B"/>
+  <path d="M176 594C204 477 272 418 360 418C448 418 516 477 544 594" fill="#D6B99B"/>
+  <rect x="108" y="110" width="164" height="38" rx="19" fill="#E7D7C5"/>
+  <rect x="108" y="160" width="264" height="26" rx="13" fill="#EFE3D5"/>
+  <rect x="108" y="196" width="220" height="26" rx="13" fill="#EFE3D5"/>
+  <rect x="456" y="114" width="152" height="152" rx="24" fill="#F4ECE1" stroke="#D8C4AD" stroke-width="3" stroke-dasharray="10 12"/>
+  <path d="M509 188L543 154L579 190" stroke="#C96A43" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M543 154V226" stroke="#C96A43" stroke-width="16" stroke-linecap="round"/>
+  <rect x="458" y="314" width="148" height="40" rx="20" fill="#D96C44"/>
+  <text x="532" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="700" fill="#FFF8F0">参考图</text>
+  <text x="360" y="642" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#7E6853">上传角色参考图</text>
+</svg>
+`)}`;
+const SCENE_PLACEHOLDER_SVG = `data:image/svg+xml;utf8,${encodeURIComponent(`
+<svg width="960" height="600" viewBox="0 0 960 600" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="960" height="600" rx="40" fill="#10202B"/>
+  <rect x="40" y="40" width="880" height="520" rx="28" fill="#173142" stroke="#4E86A4" stroke-width="3"/>
+  <rect x="88" y="96" width="280" height="30" rx="15" fill="#2A526A"/>
+  <rect x="88" y="142" width="360" height="22" rx="11" fill="#21465B"/>
+  <circle cx="760" cy="130" r="48" fill="#F7C77D"/>
+  <path d="M120 430C210 328 322 276 454 276C610 276 732 348 824 502H120V430Z" fill="#27495D"/>
+  <rect x="544" y="320" width="176" height="110" rx="18" fill="#21455B" stroke="#74C4DD" stroke-width="3" stroke-dasharray="10 10"/>
+  <path d="M596 373H668" stroke="#74C4DD" stroke-width="16" stroke-linecap="round"/>
+  <path d="M632 338V408" stroke="#74C4DD" stroke-width="16" stroke-linecap="round"/>
+  <text x="480" y="536" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="700" fill="#D9EEF6">上传场景参考图</text>
+</svg>
+`)}`;
+const REFERENCE_LANE_CHARACTER_X = -520;
+const REFERENCE_LANE_SCENE_X = -180;
+const REFERENCE_LANE_START_Y = 84;
+const REFERENCE_LANE_GAP_Y = 244;
+
+function buildReferenceLanePosition(
+  type: "character" | "scene",
+  index: number,
+) {
+  return {
+    x: type === "character" ? REFERENCE_LANE_CHARACTER_X : REFERENCE_LANE_SCENE_X,
+    y: REFERENCE_LANE_START_Y + Math.max(index, 0) * REFERENCE_LANE_GAP_Y,
+  };
+}
+
+function getVideoErrorMessage(error: MediaError | null) {
+  if (!error) {
+    return "浏览器没有成功加载这个视频文件。";
+  }
+
+  if (error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+    return "当前浏览器不支持这个视频的编码格式，建议换成 H.264 MP4 或 WebM。";
+  }
+
+  if (error.code === MediaError.MEDIA_ERR_DECODE) {
+    return "视频文件已读取，但浏览器解码失败。";
+  }
+
+  if (error.code === MediaError.MEDIA_ERR_NETWORK) {
+    return "浏览器读取这个本地视频时发生了异常。";
+  }
+
+  if (error.code === MediaError.MEDIA_ERR_ABORTED) {
+    return "视频加载被中断。";
+  }
+
+  return "视频加载失败。";
+}
+
+function probeVideoPreview(objectUrl: string) {
+  return new Promise<void>((resolve, reject) => {
+    const video = document.createElement("video");
+    let settled = false;
+
+    const cleanup = () => {
+      video.pause();
+      video.removeAttribute("src");
+      video.load();
+    };
+
+    const finalize = (callback: () => void) => {
+      if (settled) {
+        return;
+      }
+
+      settled = true;
+      window.clearTimeout(timeoutId);
+      cleanup();
+      callback();
+    };
+
+    const timeoutId = window.setTimeout(() => {
+      finalize(() => {
+        reject(new Error("视频预加载超时，浏览器没有成功解码这个文件。"));
+      });
+    }, 6000);
+
+    video.preload = "metadata";
+    video.muted = true;
+    video.playsInline = true;
+    video.onloadeddata = () => {
+      finalize(() => {
+        resolve();
+      });
+    };
+    video.onerror = () => {
+      const message = getVideoErrorMessage(video.error);
+
+      finalize(() => {
+        reject(new Error(message));
+      });
+    };
+    video.src = objectUrl;
+    video.load();
+  });
+}
+
+function formatNodePosition(node: EditorFlowNode) {
+  return `${Math.round(node.position.x)}, ${Math.round(node.position.y)}`;
+}
+
+function formatTemplateUpdatedAt(value: string) {
+  try {
+    return new Intl.DateTimeFormat("zh-CN", {
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(value));
+  } catch {
+    return value;
+  }
+}
+
+function formatStatusLabel(node: EditorFlowNode) {
+  if (node.data.assetStatus === "ready") {
+    return "当前会话已绑定本地视频，可直接预览。";
+  }
+
+  if (node.data.assetStatus === "generated") {
+    return "当前节点已经有生成结果，预览优先显示生成视频。";
+  }
+
+  if (node.data.assetStatus === "generating") {
+    if (node.data.generationTask?.rawStatus === "succeeded") {
+      return "任务已完成，正在同步最终的视频预览地址。";
+    }
+
+    return "生成任务已提交，编辑器会自动轮询最新状态。";
+  }
+
+  if (node.data.assetStatus === "failed") {
+    return (
+      node.data.generationTask?.errorMessage ??
+      "生成任务失败，请检查 API 凭证、模型配额或提示词。"
+    );
+  }
+
+  if (node.data.assetStatus === "missing") {
+    return "工程已恢复素材引用，但需要重新选择本地视频文件。";
+  }
+
+  if (node.data.assetStatus === "unsupported") {
+    return (
+      node.data.assetError ??
+      "当前浏览器无法解码这个视频文件，建议换成 H.264 MP4 或 WebM。"
+    );
+  }
+
+  return "节点还没有本地视频，也没有生成结果。";
+}
+
+function getCharacterNodeId(characterId: string) {
+  return `${CHARACTER_NODE_ID_PREFIX}${characterId}`;
+}
+
+function parseCharacterIdFromNodeId(nodeId: string) {
+  if (!nodeId.startsWith(CHARACTER_NODE_ID_PREFIX)) {
+    return null;
+  }
+
+  return nodeId.slice(CHARACTER_NODE_ID_PREFIX.length);
+}
+
+function getSceneNodeId(sceneId: string) {
+  return `${SCENE_NODE_ID_PREFIX}${sceneId}`;
+}
+
+function parseSceneIdFromNodeId(nodeId: string) {
+  if (!nodeId.startsWith(SCENE_NODE_ID_PREFIX)) {
+    return null;
+  }
+
+  return nodeId.slice(SCENE_NODE_ID_PREFIX.length);
+}
+
+function slugifyCharacterId(value: string) {
+  const nextValue = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return nextValue || "character";
+}
+
+function buildUniqueCharacterId(
+  candidate: string,
+  characters: CharacterDefinition[],
+  currentId?: string,
+) {
+  const normalized = slugifyCharacterId(candidate);
+  const existingIds = new Set(
+    characters
+      .map((character) => character.id)
+      .filter((characterId) => characterId !== currentId),
+  );
+
+  if (!existingIds.has(normalized)) {
+    return normalized;
+  }
+
+  let index = 2;
+
+  while (existingIds.has(`${normalized}_${index}`)) {
+    index += 1;
+  }
+
+  return `${normalized}_${index}`;
+}
+
+function slugifySceneId(value: string) {
+  const nextValue = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9_]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+
+  return nextValue || "scene";
+}
+
+function buildUniqueSceneId(
+  candidate: string,
+  scenes: SceneDefinition[],
+  currentId?: string,
+) {
+  const normalized = slugifySceneId(candidate);
+  const existingIds = new Set(
+    scenes
+      .map((scene) => scene.id)
+      .filter((sceneId) => sceneId !== currentId),
+  );
+
+  if (!existingIds.has(normalized)) {
+    return normalized;
+  }
+
+  let index = 2;
+
+  while (existingIds.has(`${normalized}_${index}`)) {
+    index += 1;
+  }
+
+  return `${normalized}_${index}`;
+}
+
+function buildCharacterCanvasNode(
+  character: CharacterDefinition,
+  previewUrl: string,
+  isActive: boolean,
+): CharacterCanvasNode {
+  return {
+    id: getCharacterNodeId(character.id),
+    type: CHARACTER_REFERENCE_NODE_TYPE,
+    position: character.canvasPosition,
+    data: {
+      characterId: character.id,
+      name: character.name,
+      bio: character.bio,
+      referenceCount: character.referenceImageAssetRefs.length,
+      previewUrl,
+      isActive,
+    },
+    draggable: true,
+    selectable: true,
+    deletable: false,
+    connectable: false,
+  };
+}
+
+function buildSceneCanvasNode(
+  scene: SceneDefinition,
+  previewUrl: string,
+  isActive: boolean,
+): SceneCanvasNode {
+  return {
+    id: getSceneNodeId(scene.id),
+    type: SCENE_REFERENCE_NODE_TYPE,
+    position: scene.canvasPosition,
+    data: {
+      sceneId: scene.id,
+      name: scene.name,
+      description: scene.description,
+      referenceCount: scene.referenceImageAssetRefs.length,
+      previewUrl,
+      isActive,
+    },
+    draggable: true,
+    selectable: true,
+    deletable: false,
+    connectable: false,
+  };
+}
+
+function syncCharacterCanvasNodes(
+  currentNodes: CharacterCanvasNode[],
+  characters: CharacterDefinition[],
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+  selectedCharacterId: string | null,
+) {
+  const currentPositionMap = new Map(
+    currentNodes.map((node) => [node.data.characterId, node.position]),
+  );
+
+  return characters
+    .filter((character) => character.canvasPinned)
+    .map((character) => {
+      const nextNode = buildCharacterCanvasNode(
+        character,
+        getCharacterPreviewUrl(character, assetRuntimeMap),
+        selectedCharacterId === character.id,
+      );
+      const currentPosition = currentPositionMap.get(character.id);
+
+      return currentPosition
+        ? {
+            ...nextNode,
+            position: currentPosition,
+          }
+        : nextNode;
+    });
+}
+
+function syncSceneCanvasNodes(
+  currentNodes: SceneCanvasNode[],
+  scenes: SceneDefinition[],
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+  selectedSceneId: string | null,
+) {
+  const currentPositionMap = new Map(
+    currentNodes.map((node) => [node.data.sceneId, node.position]),
+  );
+
+  return scenes
+    .filter((scene) => scene.canvasPinned)
+    .map((scene) => {
+      const nextNode = buildSceneCanvasNode(
+        scene,
+        getScenePreviewUrl(scene, assetRuntimeMap),
+        selectedSceneId === scene.id,
+      );
+      const currentPosition = currentPositionMap.get(scene.id);
+
+      return currentPosition
+        ? {
+            ...nextNode,
+            position: currentPosition,
+          }
+        : nextNode;
+    });
+}
+
+function buildNodePrompt(
+  node: EditorFlowNode,
+  characters: CharacterDefinition[],
+  scenes: SceneDefinition[],
+) {
+  const characterMap = new Map(characters.map((character) => [character.id, character]));
+  const sceneMap = new Map(scenes.map((scene) => [scene.id, scene]));
+  const lines = [
+    `镜头标题：${node.data.title}`,
+    `镜头时长：${node.data.generation.durationSec} 秒`,
+    `画面比例：${node.data.generation.aspectRatio}`,
+  ];
+
+  if (node.data.actions.length > 0) {
+    lines.push("角色表演：");
+
+    for (const action of node.data.actions) {
+      const character = characterMap.get(action.characterId);
+      const actorLabel = character
+        ? `${character.name}(@${character.id})`
+        : action.characterId
+          ? `@${action.characterId}`
+          : "未指定角色";
+      const segments = [actorLabel];
+
+      if (action.action.trim().length > 0) {
+        segments.push(action.action.trim());
+      }
+
+      if (action.emotion.trim().length > 0) {
+        segments.push(`情绪：${action.emotion.trim()}`);
+      }
+
+      if (action.dialogue.trim().length > 0) {
+        segments.push(`台词：${action.dialogue.trim()}`);
+      }
+
+      lines.push(`- ${segments.join("，")}`);
+    }
+  }
+
+  const referencedScenes = node.data.generation.referenceSceneIds
+    .map((sceneId) => sceneMap.get(sceneId))
+    .filter((scene): scene is SceneDefinition => Boolean(scene));
+
+  if (referencedScenes.length > 0) {
+    lines.push("场景设定：");
+
+    for (const scene of referencedScenes) {
+      const segments = [`${scene.name}(#${scene.id})`];
+
+      if (scene.description.trim().length > 0) {
+        segments.push(scene.description.trim());
+      }
+
+      if (scene.basePrompt.trim().length > 0) {
+        segments.push(`生成偏好：${scene.basePrompt.trim()}`);
+      }
+
+      lines.push(`- ${segments.join("，")}`);
+    }
+  }
+
+  const referencedCharacters = Array.from(
+    new Set(
+      [
+        ...node.data.generation.referenceCharacterIds,
+        ...node.data.actions
+          .map((action) => action.characterId)
+          .filter((characterId) => characterId.trim().length > 0),
+      ].filter(Boolean),
+    ),
+  )
+    .map((characterId) => characterMap.get(characterId))
+    .filter((character): character is CharacterDefinition => Boolean(character));
+
+  if (referencedCharacters.length > 0) {
+    lines.push("角色设定：");
+
+    for (const character of referencedCharacters) {
+      const segments = [`${character.name}(@${character.id})`];
+
+      if (character.bio.trim().length > 0) {
+        segments.push(character.bio.trim());
+      }
+
+      if (character.basePrompt.trim().length > 0) {
+        segments.push(`生成偏好：${character.basePrompt.trim()}`);
+      }
+
+      lines.push(`- ${segments.join("，")}`);
+    }
+  }
+
+  if (node.data.shotNotes.trim().length > 0) {
+    lines.push(`镜头备注：${node.data.shotNotes.trim()}`);
+  }
+
+  lines.push("请输出电影感、角色一致性强、适合互动短剧节点的视频片段。");
+
+  if (node.data.generation.promptOverride.trim().length > 0) {
+    lines.push(`补充要求：${node.data.generation.promptOverride.trim()}`);
+  }
+
+  return lines.join("\n");
+}
+
+function getNodePreviewUrl(
+  node: EditorFlowNode,
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+) {
+  if (node.data.generatedVideoUrl) {
+    return node.data.generatedVideoUrl;
+  }
+
+  if (node.data.assetRef) {
+    return assetRuntimeMap[node.data.assetRef.assetId]?.objectUrl;
+  }
+
+  return undefined;
+}
+
+function getCharacterPreviewUrl(
+  character: CharacterDefinition,
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+) {
+  return (
+    assetRuntimeMap[character.referenceImageAssetRefs[0]?.assetId ?? ""]?.objectUrl ??
+    character.placeholderUrl ??
+    REFERENCE_PLACEHOLDER_SVG
+  );
+}
+
+function getScenePreviewUrl(
+  scene: SceneDefinition,
+  assetRuntimeMap: Record<string, RuntimeAsset>,
+) {
+  return (
+    assetRuntimeMap[scene.referenceImageAssetRefs[0]?.assetId ?? ""]?.objectUrl ??
+    scene.placeholderUrl ??
+    SCENE_PLACEHOLDER_SVG
+  );
+}
+
+function readFileAsDataUrl(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("文件读取失败。"));
+    };
+
+    reader.onerror = () => {
+      reject(new Error("文件读取失败。"));
+    };
+
+    reader.readAsDataURL(file);
+  });
+}
+
+function readBlobAsDataUrl(blob: Blob) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+
+      reject(new Error("Blob 读取失败。"));
+    };
+
+    reader.onerror = () => {
+      reject(new Error("Blob 读取失败。"));
+    };
+
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function dataUrlToFile(dataUrl: string, fileName: string) {
+  const response = await fetch(dataUrl);
+  const blob = await response.blob();
+
+  return new File([blob], fileName, {
+    type: blob.type || "image/png",
+  });
+}
+
+async function fetchExportMediaBlob(sourceUrl: string) {
+  return fetchRemoteMedia(sourceUrl);
+}
+
+function downloadBlobFile(blob: Blob, fileName: string) {
+  const objectUrl = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.append(link);
+  link.click();
+  window.setTimeout(() => {
+    URL.revokeObjectURL(objectUrl);
+    link.remove();
+  }, 1200);
+}
+
+export function EditorShell({
+  workspace = "editor",
+  projectId = null,
+}: {
+  workspace?: "editor" | "agent";
+  projectId?: string | null;
+}) {
+  const router = useRouter();
+  const [initialSession] = useState(() => {
+    return consumePendingEditorSession() ?? getCachedEditorSession();
+  });
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(
+    () => projectId ?? initialSession?.currentProjectId ?? null,
+  );
+  const [currentProjectName, setCurrentProjectName] = useState(
+    () => initialSession?.currentProjectName ?? "未命名项目",
+  );
+  const [currentProjectDescription, setCurrentProjectDescription] = useState(
+    () => initialSession?.currentProjectDescription ?? "",
+  );
+  const [nodes, setNodes] = useState<EditorFlowNode[]>(
+    () =>
+      initialSession?.nodes ?? [
+        createVideoSceneNode(
+          { x: 80, y: 120 },
+          {
+            title: "开场镜头",
+          },
+        ),
+      ],
+  );
+  const [edges, setEdges] = useState<EditorFlowEdge[]>(() => initialSession?.edges ?? []);
+  const [characters, setCharacters] = useState<CharacterDefinition[]>(
+    () => initialSession?.characters ?? [],
+  );
+  const [scenes, setScenes] = useState<SceneDefinition[]>(
+    () => initialSession?.scenes ?? [],
+  );
+  const [settings, setSettings] = useState<ProjectSettings>(
+    () =>
+      initialSession?.settings ?? {
+        providerPriority: normalizeProviderPriority(DEFAULT_PROVIDER_PRIORITY),
+      },
+  );
+  const [providerCredentials, setProviderCredentials] =
+    useState<ProviderCredentialState>(
+      () => initialSession?.providerCredentials ?? DEFAULT_LOCAL_PROVIDER_CREDENTIALS,
+    );
+  const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+  const [isProviderModalOpen, setIsProviderModalOpen] = useState(false);
+  const [isResourceDrawerOpen, setIsResourceDrawerOpen] = useState(false);
+  const [isSettingsDrawerOpen, setIsSettingsDrawerOpen] = useState(false);
+  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false);
+  const [leftDrawerTab, setLeftDrawerTab] = useState<
+    "characters" | "scenes" | "project-assets" | "global-assets"
+  >("characters");
+  const [isAdvancedInspectorOpen, setIsAdvancedInspectorOpen] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
+  const [characterCanvasNodes, setCharacterCanvasNodes] = useState<
+    CharacterCanvasNode[]
+  >([]);
+  const [sceneCanvasNodes, setSceneCanvasNodes] = useState<SceneCanvasNode[]>([]);
+  const [assetRuntimeMap, setAssetRuntimeMap] = useState<
+    Record<string, RuntimeAsset>
+  >(() => initialSession?.assetRuntimeMap ?? {});
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const [templateRecords, setTemplateRecords] = useState<ProjectTemplateSummary[]>([]);
+  const [globalAssets, setGlobalAssets] = useState<GlobalAssetRecord[]>([]);
+  const [globalAssetPreviewMap, setGlobalAssetPreviewMap] = useState<Record<string, string>>(
+    {},
+  );
+  const [isLoadingGlobalAssets, setIsLoadingGlobalAssets] = useState(false);
+  const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
+  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(
+    () => initialSession?.activeTemplateId ?? null,
+  );
+  const [templateSaveName, setTemplateSaveName] = useState(
+    () => initialSession?.templateSaveName ?? "",
+  );
+  const [templateSaveDescription, setTemplateSaveDescription] = useState(
+    () => initialSession?.templateSaveDescription ?? "",
+  );
+  const [templateDialogState, setTemplateDialogState] = useState<TemplateDialogState>(null);
+  const [renamingTemplateId, setRenamingTemplateId] = useState<string | null>(null);
+  const [renamingTemplateName, setRenamingTemplateName] = useState("");
+  const [renamingTemplateDescription, setRenamingTemplateDescription] = useState("");
+  const [generatingCharacterIds, setGeneratingCharacterIds] = useState<string[]>(
+    [],
+  );
+  const [agentStoryText, setAgentStoryText] = useState(
+    () => initialSession?.agentStoryText ?? "",
+  );
+  const [agentFeedbackText, setAgentFeedbackText] = useState(
+    () => initialSession?.agentFeedbackText ?? "",
+  );
+  const [agentImageUrl, setAgentImageUrl] = useState(
+    () => initialSession?.agentImageUrl ?? "",
+  );
+  const [openRouterImageKey, setOpenRouterImageKey] = useState("");
+  const [agentApiKey, setAgentApiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem(AGENT_API_KEY_STORAGE_KEY) ?? "";
+    }
+    return "";
+  });
+  const [agentDraft, setAgentDraft] = useState<AgentDraft | null>(
+    () => initialSession?.agentDraft ?? null,
+  );
+  const [agentScreenplay, setAgentScreenplay] = useState<AgentScreenplay | null>(
+    () => initialSession?.agentScreenplay ?? null,
+  );
+  const [agentPreviewTab, setAgentPreviewTab] = useState<
+    "overview" | "references" | "storyboard" | "script"
+  >("overview");
+  const [isGeneratingAgentDraft, setIsGeneratingAgentDraft] = useState(false);
+  const [isGeneratingAgentScreenplay, setIsGeneratingAgentScreenplay] = useState(false);
+  const [isGeneratingRandomAgentStory, setIsGeneratingRandomAgentStory] =
+    useState(false);
+  const [isHydratingProject, setIsHydratingProject] = useState(Boolean(projectId));
+  const [projectSaveState, setProjectSaveState] = useState<
+    "idle" | "dirty" | "saving" | "saved" | "error"
+  >("idle");
+  const [lastProjectSavedAt, setLastProjectSavedAt] = useState<string | null>(null);
+  const [contextMenu, setContextMenu] = useState<{
+    x: number;
+    y: number;
+    flowPosition: { x: number; y: number };
+  } | null>(null);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const assetRuntimeMapRef = useRef<Record<string, RuntimeAsset>>({});
+  const generatingCharacterIdsRef = useRef(new Set<string>());
+  const nodesRef = useRef<EditorFlowNode[]>([]);
+  const providerCredentialsRef = useRef<ProviderCredentialState>(
+    DEFAULT_LOCAL_PROVIDER_CREDENTIALS,
+  );
+  const pollingVideoTaskIdsRef = useRef(new Set<string>());
+  const reactFlowRef =
+    useRef<ReactFlowInstance<CanvasFlowNode, EditorFlowEdge> | null>(null);
+  const projectHydratedRef = useRef(false);
+  const autosaveTimerRef = useRef<number | null>(null);
+
+  const sidebarResizer = useResizer(280, 220, 420, 'right');
+  const detailsResizer = useResizer(360, 240, 600, 'left');
+
+  const selectedNode =
+    nodes.find((node) => node.id === selectedNodeId) ?? null;
+  const selectedCharacter =
+    characters.find((character) => character.id === selectedCharacterId) ?? null;
+  const selectedScene =
+    scenes.find((scene) => scene.id === selectedSceneId) ?? null;
+  const selectedEdge =
+    edges.find((edge) => edge.id === selectedEdgeId) ?? null;
+
+  const nodeTitleMap = useMemo(
+    () =>
+      Object.fromEntries(nodes.map((node) => [node.id, node.data.title])),
+    [nodes],
+  );
+
+  const characterNameMap = useMemo(
+    () =>
+      Object.fromEntries(
+        characters.map((character) => [character.id, character.name]),
+      ),
+    [characters],
+  );
+
+  const selectedNodePrompt = selectedNode
+    ? buildNodePrompt(selectedNode, characters, scenes)
+    : "";
+  const generatingCharacterIdSet = useMemo(
+    () => new Set(generatingCharacterIds),
+    [generatingCharacterIds],
+  );
+  const selectedNodeIncomingChoices = useMemo(
+    () =>
+      selectedNode
+        ? edges
+            .filter((edge) => edge.target === selectedNode.id)
+            .map((edge) => edge.data?.choiceLabel?.trim())
+            .filter((label): label is string => Boolean(label))
+        : [],
+    [edges, selectedNode],
+  );
+  const agentSceneGroups = useMemo(() => {
+    if (!agentDraft) {
+      return [];
+    }
+
+    const groups = agentDraft.branches.map((branch) => ({
+      id: branch.id,
+      name: branch.name,
+      tone: branch.tone,
+      predictedOutcome: branch.predictedOutcome,
+      scenes: agentDraft.scenes.filter((scene) => scene.branchId === branch.id),
+    }));
+    const orphanScenes = agentDraft.scenes.filter(
+      (scene) => !agentDraft.branches.some((branch) => branch.id === scene.branchId),
+    );
+
+    if (orphanScenes.length > 0) {
+      groups.push({
+        id: "ungrouped",
+        name: "未归类",
+        tone: "草案",
+        predictedOutcome: "这些镜头暂时还没有落到明确分支里。",
+        scenes: orphanScenes,
+      });
+    }
+
+    return groups.filter((group) => group.scenes.length > 0);
+  }, [agentDraft]);
+  const agentRootSceneCount = useMemo(() => {
+    if (!agentDraft) {
+      return 0;
+    }
+
+    const targetSceneIds = new Set(
+      agentDraft.transitions.map((transition) => transition.targetSceneId),
+    );
+
+    return agentDraft.scenes.filter((scene) => !targetSceneIds.has(scene.id)).length;
+  }, [agentDraft]);
+  const hasPollablePendingVideoTask = useMemo(
+    () =>
+      nodes.some(
+        (node) =>
+          (node.data.generationTask?.status === "queued" ||
+            node.data.generationTask?.status === "processing" ||
+            (node.data.generationTask?.status === "succeeded" &&
+              (!node.data.generatedVideoUrl ||
+                node.data.generatedVideoUrl.trim().length === 0))) &&
+          Boolean(
+            node.data.generationTask?.taskId &&
+              node.data.generationTask.taskId !== "pending",
+          ),
+      ),
+    [nodes],
+  );
+
+  const openResourceDrawer = useCallback(
+    (tab: "characters" | "scenes" | "project-assets" | "global-assets") => {
+      setLeftDrawerTab(tab);
+      setIsSettingsDrawerOpen(false);
+      setIsTemplateDrawerOpen(false);
+      setIsResourceDrawerOpen(true);
+    },
+    [],
+  );
+
+  function updateNode(
+    nodeId: string,
+    updater: (node: EditorFlowNode) => EditorFlowNode,
+  ) {
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => (node.id === nodeId ? updater(node) : node)),
+    );
+  }
+
+  function revokeAssetsById(assetIds: string[]) {
+    if (assetIds.length === 0) {
+      return;
+    }
+
+    setAssetRuntimeMap((currentMap) => {
+      const nextMap = { ...currentMap };
+
+      for (const assetId of assetIds) {
+        const runtimeAsset = nextMap[assetId];
+
+        if (!runtimeAsset) {
+          continue;
+        }
+
+        URL.revokeObjectURL(runtimeAsset.objectUrl);
+        delete nextMap[assetId];
+      }
+
+      return nextMap;
+    });
+  }
+
+  async function replaceNodeAsset(nodeId: string, file: File) {
+    if (!file.type.startsWith("video/")) {
+      setNotice({
+        tone: "error",
+        message: "请选择一个可播放的视频文件。",
+      });
+      return;
+    }
+
+    const currentNode = nodes.find((node) => node.id === nodeId);
+
+    if (!currentNode) {
+      return;
+    }
+
+    const nextAssetId = crypto.randomUUID();
+    const nextObjectUrl = URL.createObjectURL(file);
+    const previousAssetId = currentNode.data.assetRef?.assetId;
+    const nextAssetRef: AssetRef = {
+      assetId: nextAssetId,
+      fileName: file.name,
+      mimeType: file.type || undefined,
+      kind: "video",
+    };
+
+    try {
+      await probeVideoPreview(nextObjectUrl);
+    } catch (error) {
+      URL.revokeObjectURL(nextObjectUrl);
+
+      updateNode(nodeId, (node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          assetRef: nextAssetRef,
+          assetError:
+            error instanceof Error
+              ? error.message
+              : "当前视频无法在浏览器中预览。",
+          assetStatus: "unsupported",
+        },
+      }));
+
+      setNotice({
+        tone: "error",
+        message: `「${file.name}」无法预览：${
+          error instanceof Error
+            ? error.message
+            : "当前浏览器无法解码这个视频文件。"
+        }`,
+      });
+
+      if (previousAssetId) {
+        revokeAssetsById([previousAssetId]);
+      }
+
+      return;
+    }
+
+    setAssetRuntimeMap((currentMap) => {
+      const nextMap = { ...currentMap };
+
+      if (previousAssetId && nextMap[previousAssetId]) {
+        URL.revokeObjectURL(nextMap[previousAssetId].objectUrl);
+        delete nextMap[previousAssetId];
+      }
+
+      nextMap[nextAssetId] = {
+        file,
+        objectUrl: nextObjectUrl,
+        kind: "video",
+      };
+
+      return nextMap;
+    });
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef: nextAssetRef,
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "ready",
+      },
+    }));
+
+    setNotice({
+      tone: "success",
+      message: `已为「${currentNode.data.title}」绑定视频 ${file.name}。`,
+    });
+  }
+
+  function clearNodeAsset(nodeId: string) {
+    const currentNode = nodes.find((node) => node.id === nodeId);
+    const assetId = currentNode?.data.assetRef?.assetId;
+
+    if (!currentNode) {
+      return;
+    }
+
+    if (assetId) {
+      revokeAssetsById([assetId]);
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef: undefined,
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "empty",
+      },
+    }));
+
+    setNotice({
+      tone: "success",
+      message: `已清空「${currentNode.data.title}」的本地视频绑定。`,
+    });
+  }
+
+  function clearGeneratedVideo(nodeId: string) {
+    const currentNode = nodes.find((node) => node.id === nodeId);
+
+    if (!currentNode) {
+      return;
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        generatedVideoUrl: undefined,
+        generatedCoverUrl: undefined,
+        generationTask: undefined,
+        assetStatus: node.data.assetRef ? "ready" : "empty",
+      },
+    }));
+
+    setNotice({
+      tone: "success",
+      message: `已清空「${currentNode.data.title}」的生成结果。`,
+    });
+  }
+
+  const cleanupAllAssets = useCallback(() => {
+    setAssetRuntimeMap((currentMap) => {
+      for (const runtimeAsset of Object.values(currentMap)) {
+        URL.revokeObjectURL(runtimeAsset.objectUrl);
+      }
+
+      return {};
+    });
+  }, []);
+
+  function appendCharacterReferenceFiles(characterId: string, files: File[]) {
+    if (files.length === 0) {
+      return;
+    }
+
+    const runtimeEntries = files.map((file) => {
+      const assetId = crypto.randomUUID();
+
+      return {
+        assetRef: {
+          assetId,
+          fileName: file.name,
+          mimeType: file.type || undefined,
+          kind: "image" as const,
+        },
+        runtimeAsset: {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: "image" as const,
+        },
+      };
+    });
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              referenceImageAssetRefs: [
+                ...runtimeEntries.map((entry) => entry.assetRef),
+                ...character.referenceImageAssetRefs,
+              ],
+            }
+          : character,
+      ),
+    );
+
+    setAssetRuntimeMap((currentMap) => {
+      const nextMap = { ...currentMap };
+
+      for (const entry of runtimeEntries) {
+        nextMap[entry.assetRef.assetId] = entry.runtimeAsset;
+      }
+
+      return nextMap;
+    });
+  }
+
+  async function handleCharacterImageChange(
+    characterId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
+
+    if (invalidFile) {
+      setNotice({
+        tone: "error",
+        message: `「${invalidFile.name}」不是图片文件。`,
+      });
+      return;
+    }
+
+    appendCharacterReferenceFiles(characterId, files);
+
+    setNotice({
+      tone: "success",
+      message: `已为角色补充 ${files.length} 张参考图。`,
+    });
+  }
+
+  async function handleGenerateCharacterImage(character: CharacterDefinition) {
+    if (
+      !isLocalFluxModel(character.imageModel) &&
+      character.imageModel !== GROK_IMAGE_MODEL &&
+      !providerCredentials.doubao.apiKey.trim()
+    ) {
+      setNotice({
+        tone: "error",
+        message: "请先配置火山 API Key。",
+      });
+      return;
+    }
+
+    if (generatingCharacterIdsRef.current.has(character.id)) {
+      return;
+    }
+
+    const prompt = buildCharacterImagePrompt({
+      name: character.name,
+      bio: character.bio,
+      basePrompt: character.basePrompt,
+    });
+
+    generatingCharacterIdsRef.current.add(character.id);
+    setGeneratingCharacterIds((currentIds) =>
+      currentIds.includes(character.id) ? currentIds : [...currentIds, character.id],
+    );
+
+    try {
+      const { data: result, error } = await imageApi.generateImage({
+        apiKey: character.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
+        prompt,
+        model: character.imageModel,
+        size: "1K",
+      });
+
+      if (!result?.b64Json) {
+        throw new Error(error ?? "角色生图失败。");
+      }
+
+      const file = await dataUrlToFile(
+        `data:${result.mimeType ?? "image/png"};base64,${result.b64Json}`,
+        `${character.id}-${Date.now()}.png`,
+      );
+
+      appendCharacterReferenceFiles(character.id, [file]);
+      setNotice({
+        tone: "success",
+        message: `已为「${character.name}」生成参考图。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "角色生图失败。",
+      });
+    } finally {
+      generatingCharacterIdsRef.current.delete(character.id);
+      setGeneratingCharacterIds((currentIds) =>
+        currentIds.filter((currentId) => currentId !== character.id),
+      );
+    }
+  }
+
+  function removeCharacterReferenceAsset(characterId: string, assetId: string) {
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              referenceImageAssetRefs: character.referenceImageAssetRefs.filter(
+                (assetRef) => assetRef.assetId !== assetId,
+              ),
+            }
+          : character,
+      ),
+    );
+    revokeAssetsById([assetId]);
+  }
+
+  function attachExistingImageToCharacter(characterId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "image") {
+      return;
+    }
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? character.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId)
+            ? character
+            : {
+                ...character,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: runtimeAsset.file.name,
+                    mimeType: runtimeAsset.file.type || undefined,
+                    kind: "image",
+                  },
+                  ...character.referenceImageAssetRefs,
+                ],
+              }
+          : character,
+      ),
+    );
+  }
+
+  function attachExistingVideoToNode(nodeId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "video") {
+      return;
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef: {
+          assetId,
+          fileName: runtimeAsset.file.name,
+          mimeType: runtimeAsset.file.type || undefined,
+          kind: "video",
+        },
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "ready",
+      },
+    }));
+  }
+
+  async function saveAssetToGlobalLibrary(assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset) {
+      return;
+    }
+
+    try {
+      await saveGlobalAsset({
+        name: runtimeAsset.file.name,
+        kind: runtimeAsset.kind,
+        fileName: runtimeAsset.file.name,
+        mimeType: runtimeAsset.file.type || undefined,
+        blob: runtimeAsset.file,
+        sourceProjectId: currentProjectId ?? undefined,
+        sourceAssetId: assetId,
+      });
+      await refreshGlobalAssets();
+      setNotice({
+        tone: "success",
+        message: `已将「${runtimeAsset.file.name}」收藏到全局素材库。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "收藏到全局素材库失败。",
+      });
+    }
+  }
+
+  async function cloneGlobalAssetIntoProject(globalAssetId: string) {
+    const globalAsset = globalAssets.find((asset) => asset.id === globalAssetId);
+
+    if (!globalAsset) {
+      return null;
+    }
+
+    const file = new File([globalAsset.blob], globalAsset.fileName, {
+      type: globalAsset.mimeType || globalAsset.blob.type || undefined,
+    });
+    const assetId = crypto.randomUUID();
+    const runtimeAsset: RuntimeAsset = {
+      file,
+      objectUrl: URL.createObjectURL(file),
+      kind: globalAsset.kind,
+    };
+
+    setAssetRuntimeMap((currentMap) => ({
+      ...currentMap,
+      [assetId]: runtimeAsset,
+    }));
+
+    return {
+      assetId,
+      fileName: file.name,
+      mimeType: file.type || undefined,
+      kind: globalAsset.kind,
+    } satisfies AssetRef;
+  }
+
+  async function handleDeleteGlobalAsset(globalAssetId: string) {
+    try {
+      await deleteGlobalAsset(globalAssetId);
+      await refreshGlobalAssets();
+      setNotice({
+        tone: "success",
+        message: "全局素材已删除。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "删除全局素材失败。",
+      });
+    }
+  }
+
+  async function attachGlobalImageToCharacter(characterId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "image") {
+      return;
+    }
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              referenceImageAssetRefs: [
+                assetRef,
+                ...character.referenceImageAssetRefs,
+              ],
+            }
+          : character,
+      ),
+    );
+  }
+
+  async function attachGlobalImageToScene(sceneId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "image") {
+      return;
+    }
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: [
+                assetRef,
+                ...scene.referenceImageAssetRefs,
+              ],
+            }
+          : scene,
+      ),
+    );
+  }
+
+  async function attachGlobalVideoToNode(nodeId: string, globalAssetId: string) {
+    const assetRef = await cloneGlobalAssetIntoProject(globalAssetId);
+
+    if (!assetRef || assetRef.kind !== "video") {
+      return;
+    }
+
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        assetRef,
+        assetError: undefined,
+        assetStatus: node.data.generatedVideoUrl ? "generated" : "ready",
+      },
+    }));
+  }
+
+  useEffect(() => {
+    assetRuntimeMapRef.current = assetRuntimeMap;
+  }, [assetRuntimeMap]);
+
+  useEffect(() => {
+    nodesRef.current = nodes;
+  }, [nodes]);
+
+  useEffect(() => {
+    providerCredentialsRef.current = providerCredentials;
+  }, [providerCredentials]);
+
+  useEffect(() => {
+    setCharacterCanvasNodes((currentNodes) =>
+      syncCharacterCanvasNodes(
+        currentNodes,
+        characters,
+        assetRuntimeMap,
+        selectedCharacterId,
+      ),
+    );
+  }, [assetRuntimeMap, characters, selectedCharacterId]);
+
+  useEffect(() => {
+    setSceneCanvasNodes((currentNodes) =>
+      syncSceneCanvasNodes(
+        currentNodes,
+        scenes,
+        assetRuntimeMap,
+        selectedSceneId,
+      ),
+    );
+  }, [assetRuntimeMap, scenes, selectedSceneId]);
+
+  useEffect(() => {
+    setCachedEditorSession({
+      currentProjectId,
+      currentProjectName,
+      currentProjectDescription,
+      nodes,
+      edges,
+      characters,
+      scenes,
+      settings,
+      providerCredentials,
+      assetRuntimeMap,
+      agentStoryText,
+      agentFeedbackText,
+      agentImageUrl,
+      agentDraft,
+      agentScreenplay,
+      activeTemplateId,
+      templateSaveName,
+      templateSaveDescription,
+    });
+  }, [
+    activeTemplateId,
+    agentDraft,
+    agentFeedbackText,
+    agentImageUrl,
+    agentScreenplay,
+    agentStoryText,
+    assetRuntimeMap,
+    characters,
+    currentProjectDescription,
+    currentProjectId,
+    currentProjectName,
+    edges,
+    nodes,
+    providerCredentials,
+    scenes,
+    settings,
+    templateSaveDescription,
+    templateSaveName,
+  ]);
+
+  useEffect(() => {
+    const rawValue = window.localStorage.getItem(PROVIDER_STORAGE_KEY);
+
+    if (!rawValue) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(rawValue) as Partial<ProviderCredentialState>;
+
+      setProviderCredentials({
+        doubao: {
+          apiKey:
+            parsed.doubao?.apiKey ??
+            DEFAULT_LOCAL_PROVIDER_CREDENTIALS.doubao.apiKey,
+        },
+        minimax: {
+          apiKey: parsed.minimax?.apiKey ?? "",
+        },
+        vidu: {
+          apiKey: parsed.vidu?.apiKey ?? "",
+        },
+        kling: {
+          accessKey: parsed.kling?.accessKey ?? "",
+          secretKey: parsed.kling?.secretKey ?? "",
+        },
+      });
+    } catch {
+      window.localStorage.removeItem(PROVIDER_STORAGE_KEY);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      PROVIDER_STORAGE_KEY,
+      JSON.stringify(providerCredentials),
+    );
+  }, [providerCredentials]);
+
+  useEffect(() => {
+    setSettings((currentSettings) => {
+      const normalizedPriority = normalizeProviderPriority(
+        currentSettings.providerPriority,
+      );
+
+      if (
+        normalizedPriority.length === currentSettings.providerPriority.length &&
+        normalizedPriority.every(
+          (providerId, index) => providerId === currentSettings.providerPriority[index],
+        )
+      ) {
+        return currentSettings;
+      }
+
+      return {
+        ...currentSettings,
+        providerPriority: normalizedPriority,
+      };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (
+      !isExportModalOpen &&
+      !isProviderModalOpen &&
+      !isResourceDrawerOpen &&
+      !isSettingsDrawerOpen &&
+      !isTemplateDrawerOpen &&
+      !templateDialogState
+    ) {
+      document.body.style.overflow = "";
+      return;
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsExportModalOpen(false);
+        setIsProviderModalOpen(false);
+        setIsResourceDrawerOpen(false);
+        setIsSettingsDrawerOpen(false);
+        setIsTemplateDrawerOpen(false);
+        setTemplateDialogState(null);
+      }
+    }
+
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    isExportModalOpen,
+    isProviderModalOpen,
+    isResourceDrawerOpen,
+    isSettingsDrawerOpen,
+    isTemplateDrawerOpen,
+    templateDialogState,
+  ]);
+
+  useEffect(() => {
+    setIsAdvancedInspectorOpen(false);
+  }, [selectedCharacterId, selectedEdgeId, selectedNodeId, selectedSceneId]);
+
+  useEffect(() => {
+    if (!hasPollablePendingVideoTask) {
+      return;
+    }
+
+    const pollPendingNodes = () => {
+      const pendingNodes = nodesRef.current.filter(
+        (node) =>
+          (node.data.generationTask?.status === "queued" ||
+            node.data.generationTask?.status === "processing" ||
+            (node.data.generationTask?.status === "succeeded" &&
+              (!node.data.generatedVideoUrl ||
+                node.data.generatedVideoUrl.trim().length === 0))) &&
+          Boolean(
+            node.data.generationTask?.taskId &&
+              node.data.generationTask.taskId !== "pending",
+          ),
+      );
+
+      if (pendingNodes.length === 0) {
+        return;
+      }
+
+      void Promise.all(
+        pendingNodes.map(async (node) => {
+          const generationTask = node.data.generationTask;
+
+          if (!generationTask) {
+            return;
+          }
+
+          const pollingKey = `${generationTask.providerId}:${generationTask.taskId}`;
+
+          if (pollingVideoTaskIdsRef.current.has(pollingKey)) {
+            return;
+          }
+
+          pollingVideoTaskIdsRef.current.add(pollingKey);
+
+          try {
+            const { data: result, error } = await videoApi.pollVideoStatus({
+              providerId: generationTask.providerId,
+              taskId: generationTask.taskId,
+              credentials: providerCredentialsRef.current,
+            });
+
+            if (!result) {
+              throw new Error(error ?? "查询任务状态失败。");
+            }
+
+            const hasGeneratedVideo =
+              result.status === "succeeded" &&
+              typeof result.videoUrl === "string" &&
+              result.videoUrl.trim().length > 0;
+
+            updateNode(node.id, (currentNode) => ({
+              ...currentNode,
+              data: {
+                ...currentNode.data,
+                generatedVideoUrl:
+                  hasGeneratedVideo
+                    ? result.videoUrl ?? currentNode.data.generatedVideoUrl
+                    : currentNode.data.generatedVideoUrl,
+                generatedCoverUrl:
+                  hasGeneratedVideo
+                    ? result.coverUrl ?? currentNode.data.generatedCoverUrl
+                    : currentNode.data.generatedCoverUrl,
+                generationTask: currentNode.data.generationTask
+                  ? {
+                      ...currentNode.data.generationTask,
+                      status:
+                        result.status === "failed"
+                          ? "failed"
+                          : hasGeneratedVideo
+                            ? "succeeded"
+                            : "processing",
+                      rawStatus: result.rawStatus,
+                      errorMessage: result.errorMessage,
+                    }
+                  : undefined,
+                assetStatus:
+                  hasGeneratedVideo
+                    ? "generated"
+                    : result.status === "failed"
+                      ? "failed"
+                      : "generating",
+              },
+            }));
+          } catch {
+            updateNode(node.id, (currentNode) => {
+              if (
+                !currentNode.data.generationTask ||
+                currentNode.data.generationTask.taskId !== generationTask.taskId
+              ) {
+                return currentNode;
+              }
+
+              return {
+                ...currentNode,
+                data: {
+                  ...currentNode.data,
+                  generationTask: {
+                    ...currentNode.data.generationTask,
+                    errorMessage:
+                      currentNode.data.generationTask.status === "failed"
+                        ? currentNode.data.generationTask.errorMessage
+                        : undefined,
+                  },
+                },
+              };
+            });
+          } finally {
+            pollingVideoTaskIdsRef.current.delete(pollingKey);
+          }
+        }),
+      );
+    };
+
+    pollPendingNodes();
+
+    const intervalId = window.setInterval(() => {
+      pollPendingNodes();
+    }, 4500);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [hasPollablePendingVideoTask]);
+
+  function handleAddNode() {
+    setNodes((currentNodes) => [
+      ...currentNodes,
+      createVideoSceneNode(
+        {
+          x: 90 + currentNodes.length * 26,
+          y: 110 + currentNodes.length * 22,
+        },
+        { title: `片段 ${currentNodes.length + 1}` },
+      ),
+    ]);
+
+    setNotice({
+      tone: "success",
+      message: "已新增一个视频节点。",
+    });
+    setSelectedSceneId(null);
+  }
+
+  function handleLoadDemoCase() {
+    const nextGraph = applyAgentDraftToEditorGraph(DEMO_AGENT_DRAFT);
+    const demoVisuals = applyDemoVisuals({
+      characters: nextGraph.characters,
+      scenes: nextGraph.scenes,
+    });
+
+    cleanupAllAssets();
+
+    startTransition(() => {
+      setNodes(nextGraph.nodes);
+      setEdges(nextGraph.edges);
+      setCharacters(demoVisuals.characters);
+      setScenes(demoVisuals.scenes);
+      setSelectedNodeId(null);
+      setSelectedCharacterId(null);
+      setSelectedSceneId(null);
+      setSelectedEdgeId(null);
+      setActiveTemplateId(null);
+      setTemplateSaveName("");
+      setTemplateSaveDescription("");
+      setAgentStoryText(DEMO_STORY_TEXT);
+      setAgentFeedbackText("");
+      setAgentDraft(DEMO_AGENT_DRAFT);
+      setAgentScreenplay(DEMO_AGENT_SCREENPLAY);
+    });
+
+    setNotice({
+      tone: "success",
+      message: "已加载高质量 Demo Case，可直接在角色卡和场景卡上继续上传参考图。",
+    });
+
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 220,
+        padding: 0.24,
+      });
+    });
+  }
+
+  function handleNodesChange(changes: NodeChange<CanvasFlowNode>[]) {
+    const storyNodeChanges: NodeChange<EditorFlowNode>[] = [];
+    const characterChanges: NodeChange<CharacterCanvasNode>[] = [];
+    const sceneReferenceChanges: NodeChange<SceneCanvasNode>[] = [];
+
+    for (const change of changes) {
+      if (change.type === "add") {
+        storyNodeChanges.push(change as NodeChange<EditorFlowNode>);
+        continue;
+      }
+
+      const characterId = parseCharacterIdFromNodeId(change.id);
+
+      if (characterId) {
+        characterChanges.push(change as NodeChange<CharacterCanvasNode>);
+        continue;
+      }
+
+      const sceneId = parseSceneIdFromNodeId(change.id);
+
+      if (sceneId) {
+        sceneReferenceChanges.push(change as NodeChange<SceneCanvasNode>);
+        continue;
+      }
+
+      storyNodeChanges.push(change as NodeChange<EditorFlowNode>);
+    }
+
+    const removedIds = storyNodeChanges
+      .filter((change) => change.type === "remove")
+      .map((change) => change.id);
+
+    if (removedIds.length > 0) {
+      const assetIds = nodes
+        .filter((node) => removedIds.includes(node.id))
+        .map((node) => node.data.assetRef?.assetId)
+        .filter((assetId): assetId is string => Boolean(assetId));
+
+      revokeAssetsById(assetIds);
+
+      if (selectedNodeId && removedIds.includes(selectedNodeId)) {
+        setSelectedNodeId(null);
+      }
+
+      if (selectedEdgeId) {
+        setSelectedEdgeId(null);
+      }
+    }
+
+    if (characterChanges.length > 0) {
+      setCharacterCanvasNodes((currentNodes) =>
+        applyNodeChanges(characterChanges, currentNodes),
+      );
+    }
+
+    if (sceneReferenceChanges.length > 0) {
+      setSceneCanvasNodes((currentNodes) =>
+        applyNodeChanges(sceneReferenceChanges, currentNodes),
+      );
+    }
+
+    if (storyNodeChanges.length > 0) {
+      setNodes((currentNodes) => applyNodeChanges(storyNodeChanges, currentNodes));
+    }
+  }
+
+  function handleCharacterNodeDragStop(nodeId: string, position: { x: number; y: number }) {
+    const characterId = parseCharacterIdFromNodeId(nodeId);
+
+    if (!characterId || !Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      return;
+    }
+
+    const pinnedIndex = characters
+      .filter((character) => character.canvasPinned)
+      .findIndex((character) => character.id === characterId);
+    const lanePosition = buildReferenceLanePosition(
+      "character",
+      pinnedIndex >= 0 ? pinnedIndex : 0,
+    );
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              canvasPosition: {
+                x: lanePosition.x,
+                y: Math.max(REFERENCE_LANE_START_Y, position.y),
+              },
+            }
+          : character,
+      ),
+    );
+  }
+
+  function handleSceneNodeDragStop(nodeId: string, position: { x: number; y: number }) {
+    const sceneId = parseSceneIdFromNodeId(nodeId);
+
+    if (!sceneId || !Number.isFinite(position.x) || !Number.isFinite(position.y)) {
+      return;
+    }
+
+    const pinnedIndex = scenes
+      .filter((scene) => scene.canvasPinned)
+      .findIndex((scene) => scene.id === sceneId);
+    const lanePosition = buildReferenceLanePosition(
+      "scene",
+      pinnedIndex >= 0 ? pinnedIndex : 0,
+    );
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              canvasPosition: {
+                x: lanePosition.x,
+                y: Math.max(REFERENCE_LANE_START_Y, position.y),
+              },
+            }
+          : scene,
+      ),
+    );
+  }
+
+  function handleEdgesChange(changes: EdgeChange<EditorFlowEdge>[]) {
+    const removedIds = changes
+      .filter((change) => change.type === "remove")
+      .map((change) => change.id);
+
+    if (
+      removedIds.length > 0 &&
+      selectedEdgeId &&
+      removedIds.includes(selectedEdgeId)
+    ) {
+      setSelectedEdgeId(null);
+    }
+
+    setEdges((currentEdges) => applyEdgeChanges(changes, currentEdges));
+  }
+
+  function handleConnect(connection: Connection) {
+    if (!connection.source || !connection.target) {
+      return;
+    }
+
+    const validation = validateTreeConnection(
+      edges,
+      connection.source,
+      connection.target,
+    );
+
+    if (!validation.valid) {
+      setNotice({
+        tone: "error",
+        message: validation.reason ?? "当前连线不合法。",
+      });
+      return;
+    }
+
+    const nextEdge = buildTransitionEdge({
+      source: connection.source,
+      target: connection.target,
+      sourceHandle: connection.sourceHandle,
+      targetHandle: connection.targetHandle,
+      conditionVariable: createConditionVariable(edges.length + 1),
+      choiceLabel: "继续",
+    });
+
+    setEdges((currentEdges) => [...currentEdges, nextEdge]);
+    setSelectedNodeId(null);
+    setSelectedCharacterId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(nextEdge.id);
+    setNotice({
+      tone: "success",
+      message: "已创建过渡，并自动分配条件变量。",
+    });
+  }
+
+  function handleConnectEnd(
+    event: MouseEvent | TouchEvent,
+    connectionState: { fromHandle?: { nodeId?: string; type?: string } | null; toNode?: { id?: string } | null; isValid?: boolean | null },
+  ) {
+    // If xyflow already found a valid target handle, it handled via onConnect — skip.
+    if (connectionState.isValid) return;
+
+    const fromNodeId = connectionState.fromHandle?.nodeId;
+    let toNodeId = connectionState.toNode?.id;
+
+    // If xyflow didn't find a toNode (dropped on card body, not handle),
+    // manually find the node under the cursor.
+    if (!toNodeId && reactFlowRef.current) {
+      const clientPos = "changedTouches" in event
+        ? { x: (event as TouchEvent).changedTouches[0].clientX, y: (event as TouchEvent).changedTouches[0].clientY }
+        : { x: (event as MouseEvent).clientX, y: (event as MouseEvent).clientY };
+      const flowPos = reactFlowRef.current.screenToFlowPosition(clientPos);
+      const nearbyNode = nodes.find((n) => {
+        if (n.id === fromNodeId) return false;
+        const w = n.measured?.width ?? n.width ?? 280;
+        const h = n.measured?.height ?? n.height ?? 200;
+        // Generous hit area — 40px padding around the node
+        const pad = 40;
+        return (
+          flowPos.x >= n.position.x - pad &&
+          flowPos.x <= n.position.x + w + pad &&
+          flowPos.y >= n.position.y - pad &&
+          flowPos.y <= n.position.y + h + pad
+        );
+      });
+      if (nearbyNode) toNodeId = nearbyNode.id;
+    }
+
+    if (!fromNodeId || !toNodeId || fromNodeId === toNodeId) return;
+
+    // Determine direction: if we dragged from a source handle (bottom), the
+    // dropped-on node is the target. If we dragged from a target handle (top),
+    // the dropped-on node becomes the source.
+    const draggedFromSource = connectionState.fromHandle?.type === "source";
+    const source = draggedFromSource ? fromNodeId : toNodeId;
+    const target = draggedFromSource ? toNodeId : fromNodeId;
+
+    handleConnect({
+      source,
+      target,
+      sourceHandle: VIDEO_SCENE_SOURCE_HANDLE_ID,
+      targetHandle: VIDEO_SCENE_TARGET_HANDLE_ID,
+    });
+  }
+
+  function handleAddNodeAtPosition(position: { x: number; y: number }) {
+    const newNode = createVideoSceneNode(position, {
+      title: `片段 ${nodes.length + 1}`,
+    });
+    setNodes((currentNodes) => [...currentNodes, newNode]);
+    setSelectedNodeId(newNode.id);
+    setSelectedCharacterId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在画布位置新增视频节点。" });
+  }
+
+  function handleAddCharacterAtPosition(position: { x: number; y: number }) {
+    const nextIndex = characters.length + 1;
+    const newChar = createCharacterDefinition(nextIndex, {
+      canvasPinned: true,
+      canvasPosition: position,
+    });
+    setCharacters((prev) => [...prev, newChar]);
+    setSelectedCharacterId(newChar.id);
+    setSelectedNodeId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在参考层新增角色卡。" });
+  }
+
+  function handleAddSceneAtPosition(position: { x: number; y: number }) {
+    const nextIndex = scenes.length + 1;
+    const newScene = createSceneDefinition(nextIndex, {
+      canvasPinned: true,
+      canvasPosition: position,
+    });
+    setScenes((prev) => [...prev, newScene]);
+    setSelectedSceneId(newScene.id);
+    setSelectedNodeId(null);
+    setSelectedCharacterId(null);
+    setSelectedEdgeId(null);
+    setNotice({ tone: "success", message: "已在参考层新增场景卡。" });
+  }
+
+  function handlePaneContextMenu(event: MouseEvent | React.MouseEvent) {
+    event.preventDefault();
+    if (!reactFlowRef.current) return;
+    const bounds = (event.target as HTMLElement).closest(".react-flow")?.getBoundingClientRect();
+    if (!bounds) return;
+    const flowPosition = reactFlowRef.current.screenToFlowPosition({
+      x: event.clientX,
+      y: event.clientY,
+    });
+    setContextMenu({
+      x: event.clientX - bounds.left,
+      y: event.clientY - bounds.top,
+      flowPosition,
+    });
+  }
+
+  function closeContextMenu() {
+    setContextMenu(null);
+  }
+
+  const handleNodeTitleChange = useCallback((nodeId: string, title: string) => {
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        title,
+      },
+    }));
+  }, []);
+
+  async function handleImportChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const imported =
+        file.name.endsWith(".zip") || file.type === "application/zip"
+          ? await importProjectPackage(file)
+          : {
+              name: file.name.replace(/\.json$/i, ""),
+              description: "从工程 JSON 导入",
+              snapshot: parseProject(JSON.parse(await file.text())),
+              media: [],
+            };
+      const project = imported.snapshot;
+      if (isDramaSnapshot(project)) {
+        setNotice({
+          tone: "error",
+          message: "这是短片项目，请回到项目库打开。",
+        });
+        return;
+      }
+      const hydratedEdges = hydrateProjectEdges(project);
+      const nextAssetRuntimeMap = buildRuntimeMapFromProjectMedia(imported.media);
+      applyProjectSnapshot(project, nextAssetRuntimeMap, {
+        activeTemplateId: null,
+        templateName: "",
+        templateDescription: "",
+        noticeMessage:
+          hydratedEdges.skippedCount > 0 || hydratedEdges.normalizedConditionCount > 0
+            ? `内容已导入当前项目。已跳过 ${hydratedEdges.skippedCount} 条不符合树结构的连线，补全 ${hydratedEdges.normalizedConditionCount} 个缺失的条件变量。`
+            : "内容已导入当前项目。",
+      });
+      if (imported.name?.trim()) {
+        setCurrentProjectName(imported.name.trim());
+      }
+      if (imported.description !== undefined) {
+        setCurrentProjectDescription(imported.description);
+      }
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : "导入项目失败，请检查文件格式。",
+      });
+    }
+  }
+
+  async function handleExportProjectPackage() {
+    if (!currentProjectId) {
+      setNotice({
+        tone: "error",
+        message: "当前还没有可导出的项目。",
+      });
+      return;
+    }
+
+    try {
+      const payload = buildCurrentProjectSavePayload();
+      const savedRecord = await saveProject(payload);
+      const loadedProject = await loadProject(savedRecord.id);
+      const bundle = await buildProjectPackageBundle(loadedProject);
+
+      downloadBlobFile(bundle.blob, bundle.fileName);
+      setLastProjectSavedAt(savedRecord.updatedAt);
+      setProjectSaveState("saved");
+      setNotice({
+        tone: "success",
+        message: "项目包已导出，可以重新导入继续编辑。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "导出项目包失败。",
+      });
+    }
+  }
+
+  function handleExportProjectJson() {
+    const project = serializeProject(nodes, edges, characters, scenes, settings);
+    const blob = new Blob([JSON.stringify(project, null, 2)], {
+      type: "application/json",
+    });
+    downloadBlobFile(blob, `${currentProjectName || "project"}-compat.json`);
+
+    setNotice({
+      tone: "success",
+      message: "兼容 JSON 已导出。",
+    });
+  }
+
+  async function handleExportInteractivePackage(mode: HtmlExportMode = "inline") {
+    try {
+      const exportNodes = await prepareNodesForHtmlExport(mode);
+      const bundle = buildInteractiveExportBundle({
+        nodes: exportNodes,
+        edges,
+        characters,
+      });
+      const blob = new Blob([bundle.content], {
+        type: "text/html;charset=utf-8",
+      });
+
+      downloadBlobFile(
+        blob,
+        bundle.fileName.replace(
+          /\.html$/i,
+          mode === "inline" ? "-local.html" : "-remote.html",
+        ),
+      );
+      setNotice({
+        tone: "success",
+        message:
+          mode === "inline"
+            ? bundle.missingVideoCount > 0
+              ? `本地单文件互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
+              : `本地单文件互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`
+            : bundle.missingVideoCount > 0
+              ? `远程兼容互动版已导出。共 ${bundle.sceneCount} 个片段，其中 ${bundle.playableSceneCount} 个可播放，${bundle.missingVideoCount} 个会在导出包里显示占位卡。`
+              : `远程兼容互动版已导出。共 ${bundle.sceneCount} 个片段，全部可播放。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : mode === "inline"
+              ? "导出本地单文件互动版失败。"
+              : "导出远程兼容互动版失败。",
+      });
+    }
+  }
+
+  async function handleExportTraversalPackage(mode: HtmlExportMode = "inline") {
+    try {
+      const exportNodes = await prepareNodesForHtmlExport(mode);
+      const bundles = buildTraversalExportBundles({
+        nodes: exportNodes,
+        edges,
+        characters,
+      });
+      bundles.forEach((bundle, index) => {
+        const blob = new Blob([bundle.content], {
+          type: "text/html;charset=utf-8",
+        });
+
+        window.setTimeout(() => {
+          downloadBlobFile(
+            blob,
+            bundle.fileName.replace(
+              /\.html$/i,
+              mode === "inline" ? "-local.html" : "-remote.html",
+            ),
+          );
+        }, index * 80);
+      });
+
+      const totalSceneCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.sceneCount,
+        0,
+      );
+      const totalPlayableCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.playableSceneCount,
+        0,
+      );
+      const totalMissingCount = bundles.reduce(
+        (sum, bundle) => sum + bundle.missingVideoCount,
+        0,
+      );
+
+      setNotice({
+        tone: "success",
+        message:
+          mode === "inline"
+            ? totalMissingCount > 0
+              ? `已导出 ${bundles.length} 条本地单文件路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
+              : `已导出 ${bundles.length} 条本地单文件路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`
+            : totalMissingCount > 0
+              ? `已导出 ${bundles.length} 条远程兼容路径 HTML。共 ${totalSceneCount} 个片段，其中 ${totalPlayableCount} 个可播放，缺失片段会自动跳过占位。`
+              : `已导出 ${bundles.length} 条远程兼容路径 HTML。共 ${totalSceneCount} 个片段，全部可播放。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error
+            ? error.message
+            : mode === "inline"
+              ? "导出本地单文件全分支失败。"
+              : "导出远程兼容全分支失败。",
+      });
+    }
+  }
+
+  async function requestAgentDraft(
+    storyText: string,
+    feedback: string,
+    imageUrl?: string,
+  ) {
+    const { data, error } = await agentApi.generateDraft({
+      storyText,
+      feedback,
+      imageUrl,
+      apiKey: agentApiKey,
+    });
+
+    if (!data) {
+      throw new Error(error ?? "Agent 草案生成失败。");
+    }
+
+    return data;
+  }
+
+  async function handleGenerateAgentDraft() {
+    const storyText = agentStoryText.trim();
+    const feedback = agentFeedbackText.trim();
+    const imageUrl = agentImageUrl.trim();
+
+    if (storyText.length === 0 && imageUrl.length === 0) {
+      setNotice({
+        tone: "error",
+        message: "请先输入故事模板或上传图片。",
+      });
+      return;
+    }
+
+    setIsGeneratingAgentDraft(true);
+
+    try {
+      const result = await requestAgentDraft(storyText, feedback, imageUrl);
+
+      setAgentDraft(result);
+      setAgentScreenplay(null);
+      setAgentPreviewTab("overview");
+      setNotice({
+        tone: "success",
+        message: `Agent 已生成「${result.storyTitle}」草案。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Agent 草案生成失败。",
+      });
+    } finally {
+      setIsGeneratingAgentDraft(false);
+    }
+  }
+
+  async function requestAgentScreenplay(
+    storyText: string,
+    feedback: string,
+    draft: AgentDraft | null,
+  ) {
+    const { data, error } = await agentApi.generateScript({
+      storyText,
+      feedback,
+      draft: draft ?? undefined,
+      apiKey: agentApiKey,
+    });
+
+    if (!data) {
+      throw new Error(error ?? "Agent 剧本生成失败。");
+    }
+
+    return data;
+  }
+
+  async function handleGenerateAgentScreenplay() {
+    const storyText = agentStoryText.trim();
+    const feedback = agentFeedbackText.trim();
+
+    if (storyText.length === 0) {
+      setNotice({
+        tone: "error",
+        message: "请先输入故事模板。",
+      });
+      return;
+    }
+
+    setIsGeneratingAgentScreenplay(true);
+    setNotice({
+      tone: "success",
+      message: "正在生成剧本...",
+    });
+
+    try {
+      const result = await requestAgentScreenplay(storyText, feedback, agentDraft);
+
+      setAgentScreenplay(result);
+      setAgentPreviewTab("script");
+      setNotice({
+        tone: "success",
+        message: `Agent 已生成「${result.title}」剧本。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "Agent 剧本生成失败。",
+      });
+    } finally {
+      setIsGeneratingAgentScreenplay(false);
+    }
+  }
+
+  async function handleGenerateRandomAgentStory() {
+    const storyText = createRandomStoryTemplate();
+
+    setAgentStoryText(storyText);
+    setAgentFeedbackText("");
+    setAgentDraft(null);
+    setAgentScreenplay(null);
+    setIsGeneratingRandomAgentStory(true);
+    setNotice({
+      tone: "success",
+      message: "正在随机生成剧本...",
+    });
+
+    try {
+      setIsGeneratingAgentDraft(true);
+      const nextDraft = await requestAgentDraft(storyText, "");
+      setAgentDraft(nextDraft);
+      setIsGeneratingAgentDraft(false);
+
+      setIsGeneratingAgentScreenplay(true);
+      const nextScreenplay = await requestAgentScreenplay(storyText, "", nextDraft);
+      setAgentScreenplay(nextScreenplay);
+      setAgentPreviewTab("script");
+      setNotice({
+        tone: "success",
+        message: `已随机生成「${nextScreenplay.title}」。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "随机剧本生成失败。",
+      });
+    } finally {
+      setIsGeneratingRandomAgentStory(false);
+      setIsGeneratingAgentDraft(false);
+      setIsGeneratingAgentScreenplay(false);
+    }
+  }
+
+  async function handleCopyAgentScreenplay() {
+    if (!agentScreenplay?.script) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(agentScreenplay.script);
+      setNotice({
+        tone: "success",
+        message: "剧本已复制到剪贴板。",
+      });
+    } catch {
+      setNotice({
+        tone: "error",
+        message: "复制剧本失败，请手动选择文本复制。",
+      });
+    }
+  }
+
+  async function handleApplyAgentDraft() {
+    if (!agentDraft) {
+      return;
+    }
+
+    const nextGraph = applyAgentDraftToEditorGraph(agentDraft);
+    const nextSessionSnapshot = {
+      currentProjectId,
+      currentProjectName,
+      currentProjectDescription,
+      nodes: nextGraph.nodes,
+      edges: nextGraph.edges,
+      characters: nextGraph.characters,
+      scenes: nextGraph.scenes,
+      settings,
+      providerCredentials,
+      assetRuntimeMap: {},
+      agentStoryText,
+      agentFeedbackText,
+      agentImageUrl,
+      agentDraft,
+      agentScreenplay,
+      activeTemplateId: null,
+      templateSaveName: "",
+      templateSaveDescription: "",
+    } as const;
+
+    cleanupAllAssets();
+    setCachedEditorSession(nextSessionSnapshot);
+    queuePendingEditorSession(nextSessionSnapshot);
+
+    startTransition(() => {
+      setNodes(nextSessionSnapshot.nodes);
+      setEdges(nextSessionSnapshot.edges);
+      setCharacters(nextSessionSnapshot.characters);
+      setScenes(nextSessionSnapshot.scenes);
+      setAssetRuntimeMap(nextSessionSnapshot.assetRuntimeMap);
+      setSelectedNodeId(null);
+      setSelectedCharacterId(null);
+      setSelectedSceneId(null);
+      setSelectedEdgeId(null);
+      setActiveTemplateId(nextSessionSnapshot.activeTemplateId);
+      setTemplateSaveName(nextSessionSnapshot.templateSaveName);
+      setTemplateSaveDescription(nextSessionSnapshot.templateSaveDescription);
+    });
+
+    if (currentProjectId) {
+      try {
+        const snapshot = serializeProject(
+          nextSessionSnapshot.nodes,
+          nextSessionSnapshot.edges,
+          nextSessionSnapshot.characters,
+          nextSessionSnapshot.scenes,
+          nextSessionSnapshot.settings,
+        );
+        const savedRecord = await saveProject(
+          buildProjectSaveInput({
+            projectId: currentProjectId,
+            name: currentProjectName,
+            description: currentProjectDescription,
+            snapshot,
+            media: [],
+          }),
+        );
+        await saveRecoveryDraft({
+          projectId: savedRecord.id,
+          updatedAt: savedRecord.updatedAt,
+          snapshot: savedRecord.snapshot,
+        });
+        setLastProjectSavedAt(savedRecord.updatedAt);
+        setProjectSaveState("saved");
+        setStoredActiveProjectId(savedRecord.id);
+      } catch (error) {
+        setProjectSaveState("error");
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error
+              ? error.message
+              : "Agent 内容写入当前项目失败。",
+        });
+        return;
+      }
+    }
+
+    setNotice({
+      tone: "success",
+      message: `已将 Agent 草案「${agentDraft.storyTitle}」应用到画布。`,
+    });
+
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 220,
+        padding: 0.24,
+      });
+    });
+
+    if (workspace === "agent") {
+      router.push(
+        currentProjectId
+          ? `/pencil-studio-vid?project=${currentProjectId}`
+          : "/pencil-studio-vid",
+      );
+    }
+  }
+
+  function handleDeleteSelectedNode() {
+    if (!selectedNode) {
+      return;
+    }
+
+    const assetId = selectedNode.data.assetRef?.assetId;
+
+    if (assetId) {
+      revokeAssetsById([assetId]);
+    }
+
+    setNodes((currentNodes) =>
+      currentNodes.filter((node) => node.id !== selectedNode.id),
+    );
+    setEdges((currentEdges) =>
+      currentEdges.filter(
+        (edge) =>
+          edge.source !== selectedNode.id && edge.target !== selectedNode.id,
+      ),
+    );
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    setNotice({
+      tone: "success",
+      message: `已删除节点「${selectedNode.data.title}」。`,
+    });
+  }
+
+  function updateEdgeConditionVariable(edgeId: string, conditionVariable: string) {
+    setEdges((currentEdges) =>
+      currentEdges.map((edge) =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              data: {
+                ...edge.data,
+                conditionVariable,
+              },
+              label: createConditionLabel(
+                conditionVariable || "未设置",
+                edge.data?.choiceLabel,
+              ),
+            }
+          : edge,
+      ),
+    );
+  }
+
+  function updateEdgeChoiceLabel(edgeId: string, choiceLabel: string) {
+    setEdges((currentEdges) =>
+      currentEdges.map((edge) =>
+        edge.id === edgeId
+          ? {
+              ...edge,
+              data: {
+                ...edge.data,
+                conditionVariable: edge.data?.conditionVariable ?? "",
+                choiceLabel,
+              },
+              label: createConditionLabel(
+                edge.data?.conditionVariable ?? "",
+                choiceLabel,
+              ),
+            }
+          : edge,
+      ),
+    );
+  }
+
+  function normalizeSelectedEdgeCondition() {
+    if (!selectedEdge) {
+      return;
+    }
+
+    const currentVariable = selectedEdge.data?.conditionVariable ?? "";
+
+    if (currentVariable.trim().length > 0) {
+      return;
+    }
+
+    const choiceLabelSlug = selectedEdge.data?.choiceLabel
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9\u4e00-\u9fa5]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+    const fallbackVariable = choiceLabelSlug
+      ? `choice_${choiceLabelSlug}`
+      : createConditionVariable(
+          edges.findIndex((edge) => edge.id === selectedEdge.id) + 1 || 1,
+        );
+
+    updateEdgeConditionVariable(selectedEdge.id, fallbackVariable);
+    setNotice({
+      tone: "error",
+      message: "条件变量不能为空，已恢复默认变量名。",
+    });
+  }
+
+  function handleDeleteSelectedEdge() {
+    if (!selectedEdge) {
+      return;
+    }
+
+    setEdges((currentEdges) =>
+      currentEdges.filter((edge) => edge.id !== selectedEdge.id),
+    );
+    setSelectedEdgeId(null);
+    setNotice({
+      tone: "success",
+      message: "已删除当前过渡。",
+    });
+  }
+
+  function toggleCharacterCanvasPinned(characterId: string) {
+    setCharacters((currentCharacters) => {
+      const nextPinnedIndex = currentCharacters.filter(
+        (character) => character.canvasPinned && character.id !== characterId,
+      ).length;
+
+      return currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              canvasPinned: !character.canvasPinned,
+              canvasPosition: !character.canvasPinned
+                ? buildReferenceLanePosition("character", nextPinnedIndex)
+                : character.canvasPosition,
+            }
+          : character,
+      );
+    });
+  }
+
+  function toggleSceneCanvasPinned(sceneId: string) {
+    setScenes((currentScenes) => {
+      const nextPinnedIndex = currentScenes.filter(
+        (scene) => scene.canvasPinned && scene.id !== sceneId,
+      ).length;
+
+      return currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              canvasPinned: !scene.canvasPinned,
+              canvasPosition: !scene.canvasPinned
+                ? buildReferenceLanePosition("scene", nextPinnedIndex)
+                : scene.canvasPosition,
+            }
+          : scene,
+      );
+    });
+  }
+
+  function handleAddCharacter() {
+    const nextCharacter = createCharacterDefinition(characters.length + 1, {
+      id: buildUniqueCharacterId(`character_${characters.length + 1}`, characters),
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition("character", characters.filter((character) => character.canvasPinned).length),
+    });
+
+    setCharacters((currentCharacters) => [...currentCharacters, nextCharacter]);
+    setSelectedCharacterId(nextCharacter.id);
+    setSelectedNodeId(null);
+    setSelectedSceneId(null);
+    setSelectedEdgeId(null);
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 180,
+        padding: 0.24,
+      });
+    });
+
+    setNotice({
+      tone: "success",
+      message: "已新增一个角色。",
+    });
+  }
+
+  function handleCharacterFieldChange(
+    characterId: string,
+    field: keyof Pick<CharacterDefinition, "name" | "bio" | "basePrompt">,
+    value: string,
+  ) {
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              [field]: value,
+            }
+          : character,
+      ),
+    );
+  }
+
+  function handleCharacterImageModelChange(
+    characterId: string,
+    imageModel: ImageGenerationModel,
+  ) {
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              imageModel,
+            }
+          : character,
+      ),
+    );
+  }
+
+  function handleCharacterIdChange(characterId: string, value: string) {
+    const nextId = buildUniqueCharacterId(value, characters, characterId);
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.map((character) =>
+        character.id === characterId
+          ? {
+              ...character,
+              id: nextId,
+            }
+          : character,
+      ),
+    );
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          actions: node.data.actions.map((action) =>
+            action.characterId === characterId
+              ? {
+                  ...action,
+                  characterId: nextId,
+                }
+              : action,
+          ),
+          generation: {
+            ...node.data.generation,
+            referenceCharacterIds: node.data.generation.referenceCharacterIds.map(
+              (referenceCharacterId) =>
+                referenceCharacterId === characterId ? nextId : referenceCharacterId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedCharacterId === characterId) {
+      setSelectedCharacterId(nextId);
+    }
+  }
+
+  function handleDeleteCharacter(characterId: string) {
+    const targetCharacter = characters.find(
+      (character) => character.id === characterId,
+    );
+
+    if (!targetCharacter) {
+      return;
+    }
+
+    revokeAssetsById(
+      targetCharacter.referenceImageAssetRefs.map((assetRef) => assetRef.assetId),
+    );
+
+    setCharacters((currentCharacters) =>
+      currentCharacters.filter((character) => character.id !== characterId),
+    );
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          actions: node.data.actions.map((action) =>
+            action.characterId === characterId
+              ? {
+                  ...action,
+                  characterId: "",
+                }
+              : action,
+          ),
+          generation: {
+            ...node.data.generation,
+            referenceCharacterIds: node.data.generation.referenceCharacterIds.filter(
+              (referenceCharacterId) => referenceCharacterId !== characterId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedCharacterId === characterId) {
+      setSelectedCharacterId(null);
+    }
+
+    setNotice({
+      tone: "success",
+      message: `已删除角色「${targetCharacter.name}」。`,
+    });
+  }
+
+  async function handleSceneImageChange(
+    sceneId: string,
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+
+    if (files.length === 0) {
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith("image/"));
+
+    if (invalidFile) {
+      setNotice({
+        tone: "error",
+        message: `「${invalidFile.name}」不是图片文件。`,
+      });
+      return;
+    }
+
+    const runtimeEntries = files.map((file) => {
+      const assetId = crypto.randomUUID();
+
+      return {
+        assetRef: {
+          assetId,
+          fileName: file.name,
+          mimeType: file.type || undefined,
+          kind: "image" as const,
+        },
+        runtimeAsset: {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: "image" as const,
+        },
+      };
+    });
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: [
+                ...runtimeEntries.map((entry) => entry.assetRef),
+                ...scene.referenceImageAssetRefs,
+              ],
+            }
+          : scene,
+      ),
+    );
+    setAssetRuntimeMap((currentMap) => {
+      const nextMap = { ...currentMap };
+
+      for (const entry of runtimeEntries) {
+        nextMap[entry.assetRef.assetId] = entry.runtimeAsset;
+      }
+
+      return nextMap;
+    });
+    setNotice({
+      tone: "success",
+      message: `已为场景补充 ${files.length} 张参考图。`,
+    });
+  }
+
+  async function handleGenerateSceneImage(scene: SceneDefinition) {
+    if (
+      !isLocalFluxModel(scene.imageModel) &&
+      scene.imageModel !== GROK_IMAGE_MODEL &&
+      !providerCredentials.doubao.apiKey.trim()
+    ) {
+      setNotice({
+        tone: "error",
+        message: "请先配置火山 API Key。",
+      });
+      return;
+    }
+
+    const prompt = buildSceneImagePrompt({
+      name: scene.name,
+      description: scene.description,
+      basePrompt: scene.basePrompt,
+    });
+
+    try {
+      const { data: result, error } = await imageApi.generateImage({
+        apiKey: scene.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
+        prompt,
+        model: scene.imageModel,
+      });
+
+      if (!result?.b64Json) {
+        throw new Error(error ?? "场景生图失败。");
+      }
+
+      const file = await dataUrlToFile(
+        `data:${result.mimeType ?? "image/png"};base64,${result.b64Json}`,
+        `${scene.id}-${Date.now()}.png`,
+      );
+      const assetId = crypto.randomUUID();
+
+      setScenes((currentScenes) =>
+        currentScenes.map((currentScene) =>
+          currentScene.id === scene.id
+            ? {
+                ...currentScene,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: file.name,
+                    mimeType: file.type || undefined,
+                    kind: "image",
+                  },
+                  ...currentScene.referenceImageAssetRefs,
+                ],
+              }
+            : currentScene,
+        ),
+      );
+      setAssetRuntimeMap((currentMap) => ({
+        ...currentMap,
+        [assetId]: {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: "image",
+        },
+      }));
+      setNotice({
+        tone: "success",
+        message: `已为「${scene.name}」生成场景参考图。`,
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "场景生图失败。",
+      });
+    }
+  }
+
+  function removeSceneReferenceAsset(sceneId: string, assetId: string) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              referenceImageAssetRefs: scene.referenceImageAssetRefs.filter(
+                (assetRef) => assetRef.assetId !== assetId,
+              ),
+            }
+          : scene,
+      ),
+    );
+    revokeAssetsById([assetId]);
+  }
+
+  function attachExistingImageToScene(sceneId: string, assetId: string) {
+    const runtimeAsset = assetRuntimeMap[assetId];
+
+    if (!runtimeAsset || runtimeAsset.kind !== "image") {
+      return;
+    }
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? scene.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId)
+            ? scene
+            : {
+                ...scene,
+                referenceImageAssetRefs: [
+                  {
+                    assetId,
+                    fileName: runtimeAsset.file.name,
+                    mimeType: runtimeAsset.file.type || undefined,
+                    kind: "image",
+                  },
+                  ...scene.referenceImageAssetRefs,
+                ],
+              }
+          : scene,
+      ),
+    );
+  }
+
+  function handleAddScenePreset() {
+    const nextScene = createSceneDefinition(scenes.length + 1, {
+      id: buildUniqueSceneId(`scene_ref_${scenes.length + 1}`, scenes),
+      canvasPinned: true,
+      canvasPosition: buildReferenceLanePosition("scene", scenes.filter((scene) => scene.canvasPinned).length),
+    });
+
+    setScenes((currentScenes) => [...currentScenes, nextScene]);
+    setSelectedSceneId(nextScene.id);
+    setSelectedCharacterId(null);
+    setSelectedNodeId(null);
+    setSelectedEdgeId(null);
+    requestAnimationFrame(() => {
+      reactFlowRef.current?.fitView({
+        duration: 180,
+        padding: 0.24,
+      });
+    });
+    setNotice({
+      tone: "success",
+      message: "已新增一个场景卡。",
+    });
+  }
+
+  function handleSceneFieldChange(
+    sceneId: string,
+    field: keyof Pick<SceneDefinition, "name" | "description" | "basePrompt">,
+    value: string,
+  ) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              [field]: value,
+            }
+          : scene,
+      ),
+    );
+  }
+
+  function handleSceneImageModelChange(sceneId: string, imageModel: ImageGenerationModel) {
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              imageModel,
+            }
+          : scene,
+      ),
+    );
+  }
+
+  function handleSceneIdChange(sceneId: string, value: string) {
+    const nextId = buildUniqueSceneId(value, scenes, sceneId);
+
+    setScenes((currentScenes) =>
+      currentScenes.map((scene) =>
+        scene.id === sceneId
+          ? {
+              ...scene,
+              id: nextId,
+            }
+          : scene,
+      ),
+    );
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: node.data.generation.referenceSceneIds.map((referenceSceneId) =>
+              referenceSceneId === sceneId ? nextId : referenceSceneId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedSceneId === sceneId) {
+      setSelectedSceneId(nextId);
+    }
+  }
+
+  function handleDeleteScene(sceneId: string) {
+    const targetScene = scenes.find((scene) => scene.id === sceneId);
+
+    if (!targetScene) {
+      return;
+    }
+
+    revokeAssetsById(targetScene.referenceImageAssetRefs.map((assetRef) => assetRef.assetId));
+    setScenes((currentScenes) => currentScenes.filter((scene) => scene.id !== sceneId));
+    setNodes((currentNodes) =>
+      currentNodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: node.data.generation.referenceSceneIds.filter(
+              (referenceSceneId) => referenceSceneId !== sceneId,
+            ),
+          },
+        },
+      })),
+    );
+
+    if (selectedSceneId === sceneId) {
+      setSelectedSceneId(null);
+    }
+
+    setNotice({
+      tone: "success",
+      message: `已删除场景「${targetScene.name}」。`,
+    });
+  }
+
+  function handleAddAction(nodeId: string) {
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        actions: [
+          ...node.data.actions,
+          createSceneAction({
+            characterId: characters[0]?.id ?? "",
+          }),
+        ],
+      },
+    }));
+  }
+
+  function handleActionChange(
+    nodeId: string,
+    actionId: string,
+    field: keyof Omit<SceneAction, "id">,
+    value: string,
+  ) {
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        actions: node.data.actions.map((action) =>
+          action.id === actionId
+            ? {
+                ...action,
+                [field]: value,
+              }
+            : action,
+        ),
+      },
+    }));
+  }
+
+  function handleRemoveAction(nodeId: string, actionId: string) {
+    updateNode(nodeId, (node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        actions: node.data.actions.filter((action) => action.id !== actionId),
+      },
+    }));
+  }
+
+  function handleGenerationConfigChange(
+    nodeId: string,
+    field: keyof EditorFlowNode["data"]["generation"],
+    value:
+      | string
+      | number
+      | string[]
+      | GenerationProviderSelection,
+  ) {
+    updateNode(nodeId, (node) => {
+      const nextGeneration = {
+        ...node.data.generation,
+        [field]: value,
+      } as EditorFlowNode["data"]["generation"];
+      const currentProviderId =
+        node.data.generation.providerId === "auto"
+          ? "doubao"
+          : node.data.generation.providerId;
+
+      if (
+        field === "providerId" &&
+        value !== "auto" &&
+        (!node.data.generation.model ||
+          node.data.generation.model ===
+            getProviderDefaultModel(
+              currentProviderId,
+              node.data.generation.mode,
+            ))
+      ) {
+        nextGeneration.model = getProviderDefaultModel(
+          value as VideoProviderId,
+          nextGeneration.mode,
+        );
+      }
+
+      if (
+        field === "mode" &&
+        nextGeneration.providerId !== "auto" &&
+        (!node.data.generation.model ||
+          node.data.generation.model ===
+            getProviderDefaultModel(
+              currentProviderId,
+              node.data.generation.mode,
+            ))
+      ) {
+        nextGeneration.model = getProviderDefaultModel(
+          nextGeneration.providerId,
+          value as EditorFlowNode["data"]["generation"]["mode"],
+        );
+      }
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          generation: nextGeneration,
+        },
+      };
+    });
+  }
+
+  function toggleReferenceCharacter(nodeId: string, characterId: string) {
+    updateNode(nodeId, (node) => {
+      const alreadySelected = node.data.generation.referenceCharacterIds.includes(
+        characterId,
+      );
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceCharacterIds: alreadySelected
+              ? node.data.generation.referenceCharacterIds.filter(
+                  (item) => item !== characterId,
+                )
+              : [...node.data.generation.referenceCharacterIds, characterId],
+          },
+        },
+      };
+    });
+  }
+
+  function toggleReferenceScene(nodeId: string, sceneId: string) {
+    updateNode(nodeId, (node) => {
+      const alreadySelected = node.data.generation.referenceSceneIds.includes(sceneId);
+
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          generation: {
+            ...node.data.generation,
+            referenceSceneIds: alreadySelected
+              ? node.data.generation.referenceSceneIds.filter((item) => item !== sceneId)
+              : [...node.data.generation.referenceSceneIds, sceneId],
+          },
+        },
+      };
+    });
+  }
+
+  async function collectReferenceImages(node: EditorFlowNode) {
+    const uniqueCharacterIds = Array.from(
+      new Set(
+        [
+          ...node.data.generation.referenceCharacterIds,
+          ...node.data.actions
+            .map((action) => action.characterId)
+            .filter((characterId) => characterId.trim().length > 0),
+        ].filter(Boolean),
+      ),
+    );
+    const referenceAssets = uniqueCharacterIds
+      .map((characterId) =>
+        characters.find((character) => character.id === characterId),
+      )
+      .filter((character): character is CharacterDefinition => Boolean(character))
+      .flatMap((character) => character.referenceImageAssetRefs)
+      .concat(
+        node.data.generation.referenceSceneIds
+          .map((sceneId) => scenes.find((scene) => scene.id === sceneId))
+          .filter((scene): scene is SceneDefinition => Boolean(scene))
+          .flatMap((scene) => scene.referenceImageAssetRefs),
+      )
+      .slice(0, 4);
+
+    const imageFiles = referenceAssets
+      .map((assetRef) => assetRuntimeMap[assetRef.assetId]?.file)
+      .filter((file): file is File => Boolean(file));
+
+    return Promise.all(imageFiles.map((file) => readFileAsDataUrl(file)));
+  }
+
+  async function handleGenerateVideo(nodeId: string) {
+    const node = nodes.find((item) => item.id === nodeId);
+
+    if (!node) {
+      return;
+    }
+
+    const referenceImages = await collectReferenceImages(node);
+
+    if (
+      node.data.generation.mode === "image-to-video" &&
+      referenceImages.length === 0
+    ) {
+      setNotice({
+        tone: "error",
+        message: "图生视频至少需要一个角色参考图。请先在资源库里为角色上传图片。",
+      });
+      return;
+    }
+
+    const requestBody: UnifiedVideoGenerationRequest = {
+      prompt: buildNodePrompt(node, characters, scenes),
+      mode: node.data.generation.mode,
+      aspectRatio: node.data.generation.aspectRatio,
+      durationSec: node.data.generation.durationSec,
+      resolution: node.data.generation.resolution,
+      model: node.data.generation.model || undefined,
+      firstFrameImage: referenceImages[0],
+      referenceImages,
+    };
+
+    updateNode(nodeId, (currentNode) => ({
+      ...currentNode,
+      data: {
+        ...currentNode.data,
+        assetStatus: "generating",
+        generationTask: {
+          providerId:
+            currentNode.data.generation.providerId === "auto"
+              ? settings.providerPriority[0]
+              : currentNode.data.generation.providerId,
+          taskId: "pending",
+          status: "queued",
+          submittedAt: new Date().toISOString(),
+        },
+      },
+    }));
+
+    try {
+      const { data: result, error } = await videoApi.createVideoTask({
+        providerId: node.data.generation.providerId,
+        providerPriority: settings.providerPriority,
+        credentials: providerCredentials,
+        request: requestBody as Record<string, unknown>,
+      });
+
+      if (!result) {
+        throw new Error(error ?? "创建生成任务失败。");
+      }
+
+      const hasGeneratedVideo =
+        result.status === "succeeded" &&
+        typeof result.videoUrl === "string" &&
+        result.videoUrl.trim().length > 0;
+
+      updateNode(nodeId, (currentNode) => ({
+        ...currentNode,
+        data: {
+          ...currentNode.data,
+          generatedVideoUrl: hasGeneratedVideo ? result.videoUrl : undefined,
+          generatedCoverUrl: hasGeneratedVideo ? result.coverUrl : undefined,
+          generationTask: {
+            providerId: result.providerId,
+            taskId: result.taskId,
+            status:
+              hasGeneratedVideo
+                ? "succeeded"
+                : result.status === "failed"
+                  ? "failed"
+                  : "processing",
+            rawStatus: result.rawStatus,
+            errorMessage: result.errorMessage,
+            submittedAt: new Date().toISOString(),
+          },
+          assetStatus:
+            hasGeneratedVideo
+              ? "generated"
+              : result.status === "failed"
+                ? "failed"
+                : "generating",
+        },
+      }));
+
+      setNotice({
+        tone: "success",
+        message: `已提交「${node.data.title}」的视频生成任务，当前 provider：${PROVIDER_DEFINITIONS[result.providerId].label}。`,
+      });
+    } catch (error) {
+      updateNode(nodeId, (currentNode) => ({
+        ...currentNode,
+        data: {
+          ...currentNode.data,
+          generationTask: currentNode.data.generationTask
+            ? {
+                ...currentNode.data.generationTask,
+                status: "failed",
+                errorMessage:
+                  error instanceof Error ? error.message : "创建任务失败。",
+              }
+            : undefined,
+          assetStatus: "failed",
+        },
+      }));
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "视频生成任务创建失败。",
+      });
+    }
+  }
+
+  const sceneFlowNodes = useMemo<EditorFlowNode[]>(
+    () =>
+      nodes.map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          previewUrl: getNodePreviewUrl(node, assetRuntimeMap),
+          onTitleChange: handleNodeTitleChange,
+        },
+      })),
+    [assetRuntimeMap, handleNodeTitleChange, nodes],
+  );
+
+  const flowNodes = useMemo<CanvasFlowNode[]>(
+    () => [...characterCanvasNodes, ...sceneCanvasNodes, ...sceneFlowNodes],
+    [characterCanvasNodes, sceneCanvasNodes, sceneFlowNodes],
+  );
+
+  const configuredProviders = getConfiguredProviderPriority(
+    providerCredentials,
+    settings.providerPriority,
+  );
+  const assetLibraryItems = useMemo(
+    () =>
+      Object.entries(assetRuntimeMap).map(([assetId, runtimeAsset]) => {
+        const linkedCharacters = characters.filter((character) =>
+          character.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId),
+        );
+        const linkedScenes = scenes.filter((scene) =>
+          scene.referenceImageAssetRefs.some((assetRef) => assetRef.assetId === assetId),
+        );
+        const linkedNode = nodes.find((node) => node.data.assetRef?.assetId === assetId);
+
+        const isInGlobalLibrary = globalAssets.some(
+          (globalAsset) =>
+            globalAsset.sourceProjectId === currentProjectId &&
+            globalAsset.sourceAssetId === assetId,
+        );
+
+        return {
+          assetId,
+          kind: runtimeAsset.kind,
+          objectUrl: runtimeAsset.objectUrl,
+          fileName: runtimeAsset.file.name,
+          linkedCharacters,
+          linkedScenes,
+          linkedNode,
+          isInGlobalLibrary,
+        };
+      }),
+    [assetRuntimeMap, characters, currentProjectId, globalAssets, nodes, scenes],
+  );
+  const selectedNodePreviewUrl = selectedNode
+    ? getNodePreviewUrl(selectedNode, assetRuntimeMap)
+    : undefined;
+  const selectedCharacterPreviewUrl = selectedCharacter
+    ? getCharacterPreviewUrl(selectedCharacter, assetRuntimeMap)
+    : REFERENCE_PLACEHOLDER_SVG;
+  const selectedScenePreviewUrl = selectedScene
+    ? getScenePreviewUrl(selectedScene, assetRuntimeMap)
+    : SCENE_PLACEHOLDER_SVG;
+  const currentProjectStatusLabel =
+    projectSaveState === "saving"
+      ? "正在保存"
+      : projectSaveState === "dirty"
+        ? "有未同步更改"
+        : projectSaveState === "error"
+          ? "保存失败"
+          : isHydratingProject
+            ? "正在加载"
+            : "已保存";
+  const currentProjectStatusTone =
+    projectSaveState === "error"
+      ? styles.noticeError
+      : projectSaveState === "dirty"
+        ? styles.noticeInfo
+        : styles.noticeSuccess;
+
+  const activeTemplateSummary =
+    templateRecords.find((templateRecord) => templateRecord.id === activeTemplateId) ?? null;
+
+  const applyProjectSnapshot = useCallback(
+    (
+      project: EditorProject,
+      nextAssetRuntimeMap: Record<string, RuntimeAsset>,
+      options?: {
+        activeTemplateId?: string | null;
+        templateName?: string;
+        templateDescription?: string;
+        noticeMessage?: string;
+      },
+    ) => {
+      const nextNodes = hydrateProjectNodes(project).map((node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          assetStatus: node.data.generatedVideoUrl
+            ? "generated"
+            : node.data.assetRef && nextAssetRuntimeMap[node.data.assetRef.assetId]
+              ? "ready"
+              : node.data.assetRef
+                ? "missing"
+                : node.data.assetStatus,
+        },
+      }));
+      const hydratedEdges = hydrateProjectEdges(project);
+
+      cleanupAllAssets();
+
+      startTransition(() => {
+        setNodes(nextNodes);
+        setEdges(hydratedEdges.edges);
+        setCharacters(project.characters);
+        setScenes(project.scenes);
+        setSettings(project.settings);
+        setAssetRuntimeMap(nextAssetRuntimeMap);
+        setSelectedNodeId(null);
+        setSelectedCharacterId(null);
+        setSelectedSceneId(null);
+        setSelectedEdgeId(null);
+        setActiveTemplateId(options?.activeTemplateId ?? null);
+        setTemplateSaveName(options?.templateName ?? "");
+        setTemplateSaveDescription(options?.templateDescription ?? "");
+      });
+
+      if (options?.noticeMessage) {
+        setNotice({
+          tone: "success",
+          message: options.noticeMessage,
+        });
+      }
+
+      requestAnimationFrame(() => {
+        reactFlowRef.current?.fitView({
+          duration: 240,
+          padding: 0.24,
+        });
+      });
+    },
+    [cleanupAllAssets],
+  );
+
+  const refreshTemplates = useCallback(async () => {
+    setIsLoadingTemplates(true);
+
+    try {
+      const nextTemplates = await listProjectTemplates();
+      setTemplateRecords(nextTemplates);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "读取模板库失败。",
+      });
+    } finally {
+      setIsLoadingTemplates(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshTemplates();
+  }, [refreshTemplates]);
+
+  const refreshGlobalAssets = useCallback(async () => {
+    setIsLoadingGlobalAssets(true);
+
+    try {
+      const nextAssets = await listGlobalAssets();
+      setGlobalAssets(nextAssets);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "读取全局素材库失败。",
+      });
+    } finally {
+      setIsLoadingGlobalAssets(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshGlobalAssets();
+  }, [refreshGlobalAssets]);
+
+  useEffect(() => {
+    const previewEntries = globalAssets.map((asset) => [
+      asset.id,
+      URL.createObjectURL(asset.blob),
+    ] as const);
+    const nextPreviewMap = Object.fromEntries(previewEntries);
+
+    setGlobalAssetPreviewMap(nextPreviewMap);
+
+    return () => {
+      previewEntries.forEach(([, objectUrl]) => {
+        URL.revokeObjectURL(objectUrl);
+      });
+    };
+  }, [globalAssets]);
+
+  function buildRuntimeMapFromProjectMedia(
+    mediaEntries: Array<{
+      assetId: string;
+      kind: AssetKind;
+      fileName: string;
+      mimeType?: string;
+      blob: Blob;
+    }>,
+  ) {
+    const nextAssetRuntimeMap: Record<string, RuntimeAsset> = {};
+
+    for (const mediaEntry of mediaEntries) {
+      const file = new File([mediaEntry.blob], mediaEntry.fileName, {
+        type: mediaEntry.mimeType || mediaEntry.blob.type || undefined,
+      });
+
+      nextAssetRuntimeMap[mediaEntry.assetId] = {
+        file,
+        objectUrl: URL.createObjectURL(file),
+        kind: mediaEntry.kind,
+      };
+    }
+
+    return nextAssetRuntimeMap;
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function hydrateProjectFromLibrary() {
+      if (!projectId) {
+        return;
+      }
+
+      projectHydratedRef.current = false;
+      setIsHydratingProject(true);
+
+      try {
+        const [loadedProject, recoveryDraft] = await Promise.all([
+          loadProject(projectId),
+          loadRecoveryDraft(projectId),
+        ]);
+        if (isDramaSnapshot(loadedProject.record.snapshot)) {
+          router.replace(`/video-studio?project=${projectId}`);
+          return;
+        }
+        const resolved = resolveProjectSnapshotForEditing(
+          loadedProject.record,
+          recoveryDraft,
+        );
+        if (isDramaSnapshot(resolved.snapshot)) {
+          router.replace(`/video-studio?project=${projectId}`);
+          return;
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        const nextAssetRuntimeMap = buildRuntimeMapFromProjectMedia(loadedProject.media);
+        applyProjectSnapshot(resolved.snapshot, nextAssetRuntimeMap, {
+          activeTemplateId: null,
+          templateName: "",
+          templateDescription: "",
+          noticeMessage:
+            resolved.source === "recovery"
+              ? `已恢复项目「${loadedProject.record.name}」的最近自动保存。`
+              : undefined,
+        });
+        setCurrentProjectId(loadedProject.record.id);
+        setCurrentProjectName(loadedProject.record.name);
+        setCurrentProjectDescription(loadedProject.record.description);
+        setLastProjectSavedAt(loadedProject.record.updatedAt);
+        setProjectSaveState("saved");
+        projectHydratedRef.current = true;
+        setStoredActiveProjectId(loadedProject.record.id);
+        await updateProjectLastOpenedAt(loadedProject.record.id);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setNotice({
+          tone: "error",
+          message:
+            error instanceof Error ? error.message : "读取项目失败。",
+        });
+        router.replace("/projects");
+      } finally {
+        if (!cancelled) {
+          setIsHydratingProject(false);
+        }
+      }
+    }
+
+    void hydrateProjectFromLibrary();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyProjectSnapshot, projectId, router]);
+
+  async function buildTemplatePreviewImage(
+    project: EditorProject,
+    mediaInputs: TemplateMediaInput[],
+  ) {
+    const runtimeImageMap: Record<string, string> = {};
+
+    for (const mediaEntry of mediaInputs) {
+      if (mediaEntry.kind !== "image") {
+        continue;
+      }
+
+      runtimeImageMap[mediaEntry.assetId] = await readBlobAsDataUrl(mediaEntry.blob);
+    }
+
+    return getTemplatePreviewFallback(project, runtimeImageMap);
+  }
+
+  async function resolveExportableMediaUrl(
+    sourceUrl?: string,
+    fallbackFile?: File,
+    options?: {
+      inlineRemote?: boolean;
+    },
+  ) {
+    if (fallbackFile) {
+      return readFileAsDataUrl(fallbackFile);
+    }
+
+    if (!sourceUrl || sourceUrl.trim().length === 0) {
+      return undefined;
+    }
+
+    if (sourceUrl.startsWith("data:")) {
+      return sourceUrl;
+    }
+
+    if (sourceUrl.startsWith("blob:")) {
+      const response = await fetch(sourceUrl);
+
+      if (!response.ok) {
+        throw new Error("导出时读取本地媒体失败。");
+      }
+
+      return readBlobAsDataUrl(await response.blob());
+    }
+
+    if (options?.inlineRemote) {
+      return readBlobAsDataUrl(await fetchExportMediaBlob(sourceUrl));
+    }
+
+    return sourceUrl;
+  }
+
+  async function buildCurrentTemplateSnapshot() {
+    const project = serializeProject(nodes, edges, characters, scenes, settings);
+    const normalizedNodes = await Promise.all(
+      project.nodes.map(async (node) => ({
+        ...node,
+        data: {
+          ...node.data,
+          generatedVideoUrl: await resolveExportableMediaUrl(
+            node.data.generatedVideoUrl,
+          ),
+          generatedCoverUrl: await resolveExportableMediaUrl(
+            node.data.generatedCoverUrl,
+          ),
+        },
+      })),
+    );
+    const normalizedProject: EditorProject = {
+      ...project,
+      nodes: normalizedNodes,
+    };
+    const referencedAssetIds = collectProjectReferencedAssetIds(normalizedProject);
+    const mediaInputs: TemplateMediaInput[] = [];
+
+    for (const assetId of referencedAssetIds) {
+      const runtimeAsset = assetRuntimeMap[assetId];
+
+      if (!runtimeAsset) {
+        continue;
+      }
+
+      mediaInputs.push({
+        assetId,
+        kind: runtimeAsset.kind,
+        fileName: runtimeAsset.file.name,
+        mimeType: runtimeAsset.file.type || undefined,
+        blob: runtimeAsset.file,
+      });
+    }
+    const previewImageUrl = await buildTemplatePreviewImage(
+      normalizedProject,
+      mediaInputs,
+    );
+
+    return {
+      project: normalizedProject,
+      referencedAssetIds,
+      mediaInputs,
+      previewImageUrl,
+    };
+  }
+
+  const buildCurrentProjectMediaInputs = useCallback(
+    (project: EditorProject): ProjectMediaInput[] => {
+      const referencedAssetIds = collectProjectReferencedAssetIds(project);
+      const mediaInputs: ProjectMediaInput[] = [];
+
+      for (const assetId of referencedAssetIds) {
+        const runtimeAsset = assetRuntimeMap[assetId];
+
+        if (!runtimeAsset) {
+          continue;
+        }
+
+        mediaInputs.push({
+          assetId,
+          kind: runtimeAsset.kind,
+          fileName: runtimeAsset.file.name,
+          mimeType: runtimeAsset.file.type || undefined,
+          blob: runtimeAsset.file,
+        });
+      }
+
+      return mediaInputs;
+    },
+    [assetRuntimeMap],
+  );
+
+  const buildCurrentProjectSavePayload = useCallback<
+    () => ReturnType<typeof buildProjectSaveInput>
+  >(() => {
+    const snapshot = serializeProject(nodes, edges, characters, scenes, settings);
+    const media = buildCurrentProjectMediaInputs(snapshot);
+
+    return buildProjectSaveInput({
+      projectId: currentProjectId ?? undefined,
+      name: currentProjectName,
+      description: currentProjectDescription,
+      snapshot,
+      media,
+    });
+  }, [
+    buildCurrentProjectMediaInputs,
+    currentProjectDescription,
+    currentProjectId,
+    currentProjectName,
+    edges,
+    nodes,
+    characters,
+    scenes,
+    settings,
+  ]);
+
+  useEffect(() => {
+    if (!currentProjectId || isHydratingProject || !projectHydratedRef.current) {
+      return;
+    }
+
+    setProjectSaveState("dirty");
+
+    if (autosaveTimerRef.current) {
+      window.clearTimeout(autosaveTimerRef.current);
+    }
+
+    autosaveTimerRef.current = window.setTimeout(() => {
+      void (async () => {
+        try {
+          setProjectSaveState("saving");
+          const payload = buildCurrentProjectSavePayload();
+          const savedRecord = await saveProject(payload);
+          await saveRecoveryDraft({
+            projectId: savedRecord.id,
+            updatedAt: savedRecord.updatedAt,
+            snapshot: savedRecord.snapshot,
+          });
+          setStoredActiveProjectId(savedRecord.id);
+          setCurrentProjectId(savedRecord.id);
+          setCurrentProjectName(savedRecord.name);
+          setCurrentProjectDescription(savedRecord.description);
+          setLastProjectSavedAt(savedRecord.updatedAt);
+          setProjectSaveState("saved");
+        } catch (error) {
+          setProjectSaveState("error");
+          setNotice({
+            tone: "error",
+            message:
+              error instanceof Error ? error.message : "自动保存项目失败。",
+          });
+        }
+      })();
+    }, 720);
+
+    return () => {
+      if (autosaveTimerRef.current) {
+        window.clearTimeout(autosaveTimerRef.current);
+      }
+    };
+  }, [
+    buildCurrentProjectSavePayload,
+    isHydratingProject,
+    currentProjectId,
+  ]);
+
+  async function persistTemplate(mode: "create" | "update" | "rename") {
+    const trimmedName = templateSaveName.trim();
+
+    if (!trimmedName) {
+      setNotice({
+        tone: "error",
+        message: "先给模板起一个名字。",
+      });
+      return;
+    }
+
+    if (mode !== "create" && !activeTemplateId) {
+      setNotice({
+        tone: "error",
+        message: "当前没有可更新的模板。",
+      });
+      return;
+    }
+
+    setIsSavingTemplate(true);
+
+    try {
+      let savedRecord;
+
+      if (mode === "rename" && activeTemplateId) {
+        const loadedTemplate = await loadProjectTemplate(activeTemplateId);
+        savedRecord = await updateProjectTemplate(activeTemplateId, {
+          name: trimmedName,
+          description: templateSaveDescription.trim(),
+          previewImageUrl:
+            loadedTemplate.record.previewImageUrl,
+          project: loadedTemplate.record.project,
+          referencedAssetIds: loadedTemplate.record.referencedAssetIds,
+          media: loadedTemplate.media.map((mediaEntry) => ({
+            assetId: mediaEntry.assetId,
+            kind: mediaEntry.kind,
+            fileName: mediaEntry.fileName,
+            mimeType: mediaEntry.mimeType,
+            blob: mediaEntry.blob,
+          })),
+        });
+      } else {
+        const templateSnapshot = await buildCurrentTemplateSnapshot();
+        savedRecord =
+          mode === "update" && activeTemplateId
+            ? await updateProjectTemplate(activeTemplateId, {
+                name: trimmedName,
+                description: templateSaveDescription.trim(),
+                previewImageUrl: templateSnapshot.previewImageUrl,
+                project: templateSnapshot.project,
+                referencedAssetIds: templateSnapshot.referencedAssetIds,
+                media: templateSnapshot.mediaInputs,
+              })
+            : await saveProjectTemplate({
+                name: trimmedName,
+                description: templateSaveDescription.trim(),
+                previewImageUrl: templateSnapshot.previewImageUrl,
+                project: templateSnapshot.project,
+                referencedAssetIds: templateSnapshot.referencedAssetIds,
+                media: templateSnapshot.mediaInputs,
+              });
+      }
+
+      setActiveTemplateId(savedRecord.id);
+      setTemplateSaveName(savedRecord.name);
+      setTemplateSaveDescription(savedRecord.description);
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message:
+          mode === "update"
+            ? "当前模板已更新。"
+            : mode === "rename"
+              ? "模板名称已更新。"
+              : "已保存为新模板。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "保存模板失败。",
+      });
+    } finally {
+      setIsSavingTemplate(false);
+    }
+  }
+
+  async function handleApplyTemplate(templateId: string) {
+    try {
+      const loadedTemplate = await loadProjectTemplate(templateId);
+      const nextAssetRuntimeMap: Record<string, RuntimeAsset> = {};
+
+      for (const mediaEntry of loadedTemplate.media) {
+        const file = new File([mediaEntry.blob], mediaEntry.fileName, {
+          type: mediaEntry.mimeType || mediaEntry.blob.type || undefined,
+        });
+
+        nextAssetRuntimeMap[mediaEntry.assetId] = {
+          file,
+          objectUrl: URL.createObjectURL(file),
+          kind: mediaEntry.kind,
+        };
+      }
+
+      applyProjectSnapshot(loadedTemplate.record.project, nextAssetRuntimeMap, {
+        activeTemplateId: loadedTemplate.record.id,
+        templateName: loadedTemplate.record.name,
+        templateDescription: loadedTemplate.record.description,
+        noticeMessage: `模板「${loadedTemplate.record.name}」已加载。`,
+      });
+      setTemplateDialogState(null);
+      setIsTemplateDrawerOpen(false);
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "加载模板失败。",
+      });
+    }
+  }
+
+  async function handleDeleteTemplate(templateId: string) {
+    try {
+      await deleteProjectTemplate(templateId);
+      if (activeTemplateId === templateId) {
+        setActiveTemplateId(null);
+        setTemplateSaveName("");
+        setTemplateSaveDescription("");
+      }
+      setTemplateDialogState(null);
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message: "模板已删除。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "删除模板失败。",
+      });
+    }
+  }
+
+  function startRenamingTemplate(templateRecord: ProjectTemplateSummary) {
+    setRenamingTemplateId(templateRecord.id);
+    setRenamingTemplateName(templateRecord.name);
+    setRenamingTemplateDescription(templateRecord.description);
+  }
+
+  async function submitTemplateRename(templateId: string) {
+    const trimmedName = renamingTemplateName.trim();
+
+    if (!trimmedName) {
+      setNotice({
+        tone: "error",
+        message: "模板名称不能为空。",
+      });
+      return;
+    }
+
+    try {
+      const loadedTemplate = await loadProjectTemplate(templateId);
+      await updateProjectTemplate(templateId, {
+        name: trimmedName,
+        description: renamingTemplateDescription.trim(),
+        previewImageUrl: loadedTemplate.record.previewImageUrl,
+        project: loadedTemplate.record.project,
+        referencedAssetIds: loadedTemplate.record.referencedAssetIds,
+        media: loadedTemplate.media.map((mediaEntry) => ({
+          assetId: mediaEntry.assetId,
+          kind: mediaEntry.kind,
+          fileName: mediaEntry.fileName,
+          mimeType: mediaEntry.mimeType,
+          blob: mediaEntry.blob,
+        })),
+      });
+      if (activeTemplateId === templateId) {
+        setTemplateSaveName(trimmedName);
+        setTemplateSaveDescription(renamingTemplateDescription.trim());
+      }
+      setRenamingTemplateId(null);
+      setRenamingTemplateName("");
+      setRenamingTemplateDescription("");
+      await refreshTemplates();
+      setNotice({
+        tone: "success",
+        message: "模板名称已更新。",
+      });
+    } catch (error) {
+      setNotice({
+        tone: "error",
+        message:
+          error instanceof Error ? error.message : "重命名模板失败。",
+      });
+    }
+  }
+
+  async function prepareNodesForHtmlExport(mode: HtmlExportMode = "inline") {
+    return Promise.all(
+      nodes.map(async (node) => {
+        const localRuntimeAsset = node.data.assetRef
+          ? assetRuntimeMap[node.data.assetRef.assetId]
+          : undefined;
+        const resolvedVideoUrl = node.data.generatedVideoUrl
+          ? await resolveExportableMediaUrl(node.data.generatedVideoUrl, undefined, {
+              inlineRemote: mode === "inline",
+            })
+          : localRuntimeAsset?.kind === "video"
+            ? await resolveExportableMediaUrl(undefined, localRuntimeAsset.file)
+            : undefined;
+        const resolvedCoverUrl = await resolveExportableMediaUrl(
+          node.data.generatedCoverUrl,
+          undefined,
+          {
+            inlineRemote: mode === "inline",
+          },
+        );
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            generatedVideoUrl: resolvedVideoUrl,
+            generatedCoverUrl: resolvedCoverUrl,
+          },
+        };
+      }),
+    );
+  }
+
+  if (workspace === "agent") {
+    return (
+      <div className={styles.agentPage}>
+        <div className={styles.agentPageHeader}>
+          <div className={styles.agentPageTitleBlock}>
+            <span className={styles.sectionTitle}>Agent 工作台</span>
+            <h1 className={styles.agentPageTitle}>故事拆解与落图</h1>
+            <p className={styles.hint}>
+              在这里先完成故事策划，再把角色、场景、节点和过渡一次性落到编辑器里。
+            </p>
+          </div>
+          <div className={styles.agentPageActions}>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() =>
+                router.push(
+                  currentProjectId
+                    ? `/pencil-studio-vid?project=${currentProjectId}`
+                    : "/pencil-studio-vid",
+                )
+              }
+            >
+              返回编辑器
+            </button>
+            <button
+              type="button"
+              className={styles.primaryButton}
+              onClick={handleApplyAgentDraft}
+              disabled={!agentDraft}
+            >
+              应用到画布
+            </button>
+          </div>
+        </div>
+
+        {notice ? (
+          <p
+            className={`${styles.notice} ${
+              notice.tone === "success"
+                ? styles.noticeSuccess
+                : notice.tone === "info"
+                  ? styles.noticeInfo
+                  : styles.noticeError
+            }`}
+          >
+            {notice.message}
+          </p>
+        ) : null}
+
+        <div className={styles.agentWorkbenchStandalone}>
+          <section className={styles.agentComposer}>
+            <div className={styles.agentComposerIntro}>
+              <div className={styles.agentComposerIntroText}>
+                <span className={styles.sectionTitle}>当前项目</span>
+                <strong className={styles.agentComposerProject}>
+                  {currentProjectName}
+                </strong>
+                <p className={styles.hint}>
+                  先喂故事，再看角色和场景预设，确认后一次性落到当前项目。
+                </p>
+              </div>
+              <div className={styles.agentFlowList}>
+                <span className={styles.agentFlowPill}>1. 输入故事</span>
+                <span className={styles.agentFlowPill}>2. 检查草案</span>
+                <span className={styles.agentFlowPill}>3. 应用到画布</span>
+              </div>
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>故事模板</label>
+              <textarea
+                className={`${styles.textArea} ${styles.agentStoryInput}`}
+                value={agentStoryText}
+                onChange={(event) => setAgentStoryText(event.target.value)}
+                placeholder="输入完整故事、关键选择点、主要结局方向。"
+              />
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>参考图片（可选）</label>
+              <input
+                type="text"
+                className={styles.textInput}
+                value={agentImageUrl}
+                onChange={(event) => setAgentImageUrl(event.target.value)}
+                placeholder="输入图片 URL，Agent 将根据图片内容生成故事"
+              />
+              {agentImageUrl ? (
+                <div className={styles.agentImagePreview}>
+                  <Image
+                    src={agentImageUrl}
+                    alt="预览"
+                    className={styles.agentImagePreviewImg}
+                    width={960}
+                    height={540}
+                    unoptimized
+                    onError={(event) => {
+                      (event.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </div>
+              ) : null}
+            </div>
+
+            <div className={styles.field}>
+              <label className={styles.label}>给 Agent 的意见</label>
+              <textarea
+                className={`${styles.compactTextArea} ${styles.agentFeedbackInput}`}
+                value={agentFeedbackText}
+                onChange={(event) => setAgentFeedbackText(event.target.value)}
+                placeholder="例如：把女主塑造成更冷静；增加一个失败分支。"
+              />
+            </div>
+
+            <div className={styles.agentActionRow}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleGenerateRandomAgentStory()}
+                disabled={
+                  isGeneratingRandomAgentStory ||
+                  isGeneratingAgentDraft ||
+                  isGeneratingAgentScreenplay
+                }
+              >
+                {isGeneratingRandomAgentStory ? "随机生成中..." : "随机剧本"}
+              </button>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => void handleGenerateAgentDraft()}
+                disabled={isGeneratingAgentDraft || isGeneratingRandomAgentStory}
+              >
+                {isGeneratingAgentDraft ? "生成中..." : "生成草案"}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => void handleGenerateAgentDraft()}
+                disabled={
+                  isGeneratingAgentDraft ||
+                  isGeneratingRandomAgentStory ||
+                  (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
+                }
+              >
+                根据意见重算
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => void handleGenerateAgentScreenplay()}
+                disabled={
+                  isGeneratingAgentScreenplay ||
+                  isGeneratingRandomAgentStory ||
+                  (agentStoryText.trim().length === 0 && agentImageUrl.trim().length === 0)
+                }
+              >
+                {isGeneratingAgentScreenplay ? "剧本生成中..." : "生成剧本"}
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.agentPreviewPane}>
+            {agentDraft || agentScreenplay ? (
+              <>
+                {agentDraft ? (
+                  <div className={styles.agentSummaryCard}>
+                    <div>
+                      <h2 className={styles.modalTitle}>{agentDraft.storyTitle}</h2>
+                      <p className={styles.hint}>{agentDraft.summary}</p>
+                    </div>
+                    <div className={styles.agentStatGrid}>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.characters.length}</strong>
+                        <span>角色</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.scenePresets.length}</strong>
+                        <span>场景</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.branches.length}</strong>
+                        <span>分支</span>
+                      </div>
+                      <div className={styles.agentStatItem}>
+                        <strong>{agentDraft.scenes.length}</strong>
+                        <span>镜头</span>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={styles.agentPreviewTabs}>
+                  {(
+                    [
+                      ["overview", "总览"],
+                      ["references", "角色 / 场景"],
+                      ["storyboard", "分支 / 镜头"],
+                      ["script", "剧本"],
+                    ] as const
+                  ).map(([tab, label]) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      className={`${styles.agentPreviewTab} ${
+                        agentPreviewTab === tab ? styles.agentPreviewTabActive : ""
+                      }`}
+                      onClick={() => setAgentPreviewTab(tab)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+
+                {agentPreviewTab === "overview" ? (
+                  <div className={styles.agentOverviewGrid}>
+                    {agentDraft ? (
+                      <>
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>角色快照</h3>
+                            <span className={styles.hint}>
+                              {agentDraft.characters.length} 个
+                            </span>
+                          </div>
+                          <div className={styles.agentCompactList}>
+                            {agentDraft.characters.map((character) => (
+                              <div key={character.id} className={styles.agentCompactItem}>
+                                <strong>{character.name}</strong>
+                                <span className={styles.hint}>{character.bio}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>场景快照</h3>
+                            <span className={styles.hint}>
+                              {agentDraft.scenePresets.length} 个
+                            </span>
+                          </div>
+                          <div className={styles.agentCompactList}>
+                            {agentDraft.scenePresets.map((scenePreset) => (
+                              <div key={scenePreset.id} className={styles.agentCompactItem}>
+                                <strong>{scenePreset.name}</strong>
+                                <span className={styles.hint}>
+                                  {scenePreset.description}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>分支走向</h3>
+                            <span className={styles.hint}>
+                              Root {agentRootSceneCount}
+                            </span>
+                          </div>
+                          <div className={styles.agentBranchGrid}>
+                            {agentDraft.branches.map((branch) => (
+                              <div key={branch.id} className={styles.agentListItem}>
+                                <div className={styles.agentListHead}>
+                                  <strong>{branch.name}</strong>
+                                  <span className={styles.providerBadge}>{branch.tone}</span>
+                                </div>
+                                <p className={styles.hint}>{branch.predictedOutcome}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </article>
+
+                        <article className={styles.agentCard}>
+                          <div className={styles.inlineHeader}>
+                            <h3 className={styles.sectionTitle}>下一步</h3>
+                            <span className={styles.hint}>
+                              {agentScreenplay ? "剧本已就绪" : "继续补足剧本"}
+                            </span>
+                          </div>
+                          <div className={styles.agentCompactList}>
+                            <div className={styles.agentCompactItem}>
+                              <strong>先检查角色与场景</strong>
+                              <span className={styles.hint}>
+                                重点确认人物辨识度、场景氛围和分支结果是否够清楚。
+                              </span>
+                            </div>
+                            <div className={styles.agentCompactItem}>
+                              <strong>再决定是否直接落图</strong>
+                              <span className={styles.hint}>
+                                “应用到画布”会把草案写进当前项目，并触发后续自动保存。
+                              </span>
+                            </div>
+                          </div>
+                        </article>
+                      </>
+                    ) : null}
+                  </div>
+                ) : null}
+
+                {agentPreviewTab === "references" && agentDraft ? (
+                  <div className={styles.agentReferenceGrid}>
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>角色预设</h3>
+                        <span className={styles.hint}>{agentDraft.characters.length} 个</span>
+                      </div>
+                      <div className={styles.agentCardList}>
+                        {agentDraft.characters.map((character) => (
+                          <div key={character.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{character.name}</strong>
+                              <span className={styles.characterIdBadge}>
+                                @{character.id}
+                              </span>
+                            </div>
+                            <p className={styles.hint}>{character.bio}</p>
+                            <pre className={styles.agentPrompt}>
+                              {character.appearancePrompt}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>场景预设</h3>
+                        <span className={styles.hint}>
+                          {agentDraft.scenePresets.length} 个
+                        </span>
+                      </div>
+                      <div className={styles.agentCardList}>
+                        {agentDraft.scenePresets.map((scenePreset) => (
+                          <div key={scenePreset.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{scenePreset.name}</strong>
+                              <span className={styles.characterIdBadge}>
+                                #{scenePreset.id}
+                              </span>
+                            </div>
+                            <p className={styles.hint}>{scenePreset.description}</p>
+                            <pre className={styles.agentPrompt}>
+                              {scenePreset.appearancePrompt}
+                            </pre>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {agentPreviewTab === "storyboard" && agentDraft ? (
+                  <div className={styles.agentStoryboardGrid}>
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>分支与结果</h3>
+                        <span className={styles.hint}>Root {agentRootSceneCount}</span>
+                      </div>
+                      <div className={styles.agentBranchGrid}>
+                        {agentDraft.branches.map((branch) => (
+                          <div key={branch.id} className={styles.agentListItem}>
+                            <div className={styles.agentListHead}>
+                              <strong>{branch.name}</strong>
+                              <span className={styles.providerBadge}>{branch.tone}</span>
+                            </div>
+                            <p className={styles.hint}>{branch.predictedOutcome}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+
+                    <article className={styles.agentCard}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>镜头草案</h3>
+                        <span className={styles.hint}>
+                          {agentDraft.transitions.length} 条连接
+                        </span>
+                      </div>
+                      <div className={styles.agentSceneGrid}>
+                        {agentSceneGroups.map((group) => (
+                          <div key={group.id} className={styles.agentSceneGroup}>
+                            <div className={styles.agentSceneGroupHead}>
+                              <strong>{group.name}</strong>
+                              <span className={styles.hint}>{group.tone}</span>
+                            </div>
+                            <p className={styles.hint}>{group.predictedOutcome}</p>
+                            <div className={styles.agentSceneGroupList}>
+                              {group.scenes.map((scene) => (
+                                <div key={scene.id} className={styles.agentListItem}>
+                                  <div className={styles.agentListHead}>
+                                    <strong>{scene.title}</strong>
+                                    <span className={styles.hint}>
+                                      {scene.durationSec} 秒
+                                    </span>
+                                  </div>
+                                  <p className={styles.hint}>{scene.summary}</p>
+                                  <pre className={styles.agentPrompt}>
+                                    {scene.videoPrompt}
+                                  </pre>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </article>
+                  </div>
+                ) : null}
+
+                {agentPreviewTab === "script" ? (
+                  agentScreenplay ? (
+                    <article className={styles.agentScriptCard}>
+                      <div className={styles.agentScriptMeta}>
+                        <h3 className={styles.sectionTitle}>剧本</h3>
+                        <strong>{agentScreenplay.title}</strong>
+                        <p className={styles.hint}>{agentScreenplay.logline}</p>
+                      </div>
+                      <div className={styles.agentScriptActions}>
+                        <button
+                          type="button"
+                          className={styles.secondaryButton}
+                          onClick={() => void handleCopyAgentScreenplay()}
+                        >
+                          复制剧本
+                        </button>
+                      </div>
+                      <pre className={styles.agentScriptText}>
+                        {agentScreenplay.script}
+                      </pre>
+                    </article>
+                  ) : (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>还没有剧本</p>
+                      <p className={styles.hint}>
+                        先生成草案，再点“生成剧本”，这里会显示完整可复制的长文本。
+                      </p>
+                    </div>
+                  )
+                ) : null}
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyStateTitle}>先生成一个故事草案</p>
+                <p className={styles.hint}>
+                  Agent 会输出角色预设、场景预设、剧情节点、分支结果和剧本。
+                </p>
+              </div>
+            )}
+          </section>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className={styles.page}>
+      {/* ── Editor Top Bar (LibTV-style) ── */}
+      <div className={styles.editorTopBar}>
+        <div className={styles.editorTopLeft}>
+          <span className={styles.editorLogoBadge}>F</span>
+          <span className={styles.editorTopDivider} />
+          <span className={styles.editorProjectName}>{currentProjectName}</span>
+          <span className={`${styles.editorSavePill} ${currentProjectStatusTone}`}>
+            {currentProjectStatusLabel}
+          </span>
+        </div>
+      </div>
+
+      <div
+        className={styles.layout}
+        style={{
+          '--sidebar-width': sidebarResizer.collapsed ? '0px' : `${sidebarResizer.width}px`,
+          '--details-width': detailsResizer.collapsed ? '0px' : `${detailsResizer.width}px`,
+        } as React.CSSProperties}
+      >
+        <aside className={`${styles.panel} ${styles.sidebar} ${sidebarResizer.collapsed ? styles.panelCollapsed : ''}`}>
+          <section className={styles.hero}>
+            <div className={styles.sidebarProjectCard}>
+              <div className={styles.sidebarProjectHead}>
+                <div className={styles.sidebarProjectText}>
+                  <span className={styles.sectionTitle}>当前项目</span>
+                  <strong className={styles.sidebarProjectName}>{currentProjectName}</strong>
+                  <p className={styles.heroBody}>
+                    {currentProjectDescription || "继续编辑当前作品。"}
+                  </p>
+                </div>
+                <span className={`${styles.sidebarStatusPill} ${currentProjectStatusTone}`}>
+                  {currentProjectStatusLabel}
+                </span>
+              </div>
+              <div className={styles.sidebarButtonRow}>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => router.push("/projects")}
+                >
+                  项目库
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() =>
+                    router.push(
+                      currentProjectId
+                        ? `/pencil-studio-vid/play-agent?project=${currentProjectId}`
+                        : "/projects",
+                    )
+                  }
+                >
+                  Play 创作
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() =>
+                    router.push(
+                      currentProjectId
+                        ? `/pencil-studio-vid/agent?project=${currentProjectId}`
+                        : "/pencil-studio-vid/agent",
+                    )
+                  }
+                >
+                  Agent 工作台
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.inlineHeader}>
+              <h2 className={styles.sectionTitle}>创作入口</h2>
+            </div>
+            <div className={styles.sidebarPrimaryAction}>
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={handleAddNode}
+              >
+                添加视频节点
+              </button>
+            </div>
+            <div className={styles.sidebarActionGrid}>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => setIsExportModalOpen(true)}
+              >
+                导出设置
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => openResourceDrawer("characters")}
+              >
+                资源库
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => {
+                  setIsTemplateDrawerOpen(false);
+                  setIsSettingsDrawerOpen(true);
+                }}
+              >
+                模型配置
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => {
+                  setIsResourceDrawerOpen(false);
+                  setIsSettingsDrawerOpen(false);
+                  setIsTemplateDrawerOpen(true);
+                }}
+              >
+                模板
+              </button>
+              <input
+                ref={importInputRef}
+                className={styles.hiddenInput}
+                type="file"
+                accept=".zip,application/zip,application/json,.json"
+                onChange={handleImportChange}
+              />
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.compactSummaryGrid}>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("characters")}
+              >
+                <strong>{characters.length}</strong>
+                <span>角色资产</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("scenes")}
+              >
+                <strong>{scenes.length}</strong>
+                <span>场景资产</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => openResourceDrawer("project-assets")}
+              >
+                <strong>{assetLibraryItems.length}</strong>
+                <span>项目素材</span>
+              </button>
+              <button
+                type="button"
+                className={styles.summaryCard}
+                onClick={() => setIsSettingsDrawerOpen(true)}
+              >
+                <strong>{configuredProviders.length}</strong>
+                <span>已配置引擎</span>
+              </button>
+            </div>
+          </section>
+
+          <section className={styles.section}>
+            <div className={styles.quickActions}>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={handleAddCharacter}
+              >
+                新增角色
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={handleAddScenePreset}
+              >
+                新增场景
+              </button>
+              <button
+                type="button"
+                className={styles.ghostButton}
+                onClick={handleLoadDemoCase}
+              >
+                加载 Demo Case
+              </button>
+            </div>
+          </section>
+
+          {notice ? (
+            <p
+              className={`${styles.notice} ${
+                notice.tone === "success"
+                  ? styles.noticeSuccess
+                  : notice.tone === "info"
+                    ? styles.noticeInfo
+                  : styles.noticeError
+              }`}
+            >
+              {notice.message}
+            </p>
+          ) : null}
+        </aside>
+
+        <div
+          className={`${styles.resizeHandle} ${sidebarResizer.isDragging ? styles.resizeHandleActive : ''}`}
+          onMouseDown={sidebarResizer.startDrag}
+        >
+          <button
+            type="button"
+            className={`${styles.collapseBtn} ${styles.collapseBtnLeft}`}
+            onClick={sidebarResizer.toggleCollapse}
+            aria-label={sidebarResizer.collapsed ? '展开左侧面板' : '折叠左侧面板'}
+          >
+            {sidebarResizer.collapsed ? '▶' : '◀'}
+          </button>
+        </div>
+
+        <section className={`${styles.panel} ${styles.canvasPanel}`}>
+          {/* LibLib-style floating toolbar */}
+          <div className={styles.canvasToolbar}>
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="添加视频节点"
+              onClick={handleAddNode}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 3v12M3 9h12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+            <div className={styles.toolbarDivider} />
+            <button
+              type="button"
+              className={styles.toolbarBtn}
+              title="适配画布"
+              onClick={() => reactFlowRef.current?.fitView({ duration: 220, padding: 0.24 })}
+            >
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 6V3a1 1 0 011-1h3M12 2h3a1 1 0 011 1v3M16 12v3a1 1 0 01-1 1h-3M6 16H3a1 1 0 01-1-1v-3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+            </button>
+          </div>
+
+          <div className={styles.canvasLayerLegend}>
+            <span className={styles.layerLegendPill}>参考层 · 已钉住角色与场景</span>
+            <span className={`${styles.layerLegendPill} ${styles.layerLegendPillAccent}`}>
+              主叙事层 · 节点与分支
+            </span>
+          </div>
+          <ReactFlow<CanvasFlowNode, EditorFlowEdge>
+            className={styles.flow}
+            nodes={flowNodes}
+            edges={edges}
+            nodeTypes={nodeTypes}
+            fitView
+            fitViewOptions={{ padding: 0.24 }}
+            connectionMode={ConnectionMode.Loose}
+            connectionRadius={80}
+            onInit={(instance) => {
+              reactFlowRef.current = instance;
+              requestAnimationFrame(() => {
+                instance.fitView({
+                  duration: 180,
+                  padding: 0.24,
+                });
+              });
+            }}
+            onNodesChange={handleNodesChange}
+            onEdgesChange={handleEdgesChange}
+            onConnect={handleConnect}
+            onConnectEnd={handleConnectEnd}
+            onNodeDragStop={(_, node) => {
+              if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
+                handleCharacterNodeDragStop(node.id, node.position);
+                return;
+              }
+
+              if (node.type === SCENE_REFERENCE_NODE_TYPE) {
+                handleSceneNodeDragStop(node.id, node.position);
+              }
+            }}
+            onNodeClick={(_, node) => {
+              if (node.type === CHARACTER_REFERENCE_NODE_TYPE) {
+                setSelectedCharacterId(node.data.characterId);
+                setSelectedNodeId(null);
+                setSelectedSceneId(null);
+              } else if (node.type === SCENE_REFERENCE_NODE_TYPE) {
+                setSelectedSceneId(node.data.sceneId);
+                setSelectedNodeId(null);
+                setSelectedCharacterId(null);
+              } else {
+                setSelectedNodeId(node.id);
+                setSelectedCharacterId(null);
+                setSelectedSceneId(null);
+              }
+
+              setSelectedEdgeId(null);
+            }}
+            onEdgeClick={(_, edge) => {
+              setSelectedEdgeId(edge.id);
+              setSelectedNodeId(null);
+              setSelectedCharacterId(null);
+              setSelectedSceneId(null);
+            }}
+            onPaneClick={() => {
+              setSelectedNodeId(null);
+              setSelectedCharacterId(null);
+              setSelectedSceneId(null);
+              setSelectedEdgeId(null);
+              closeContextMenu();
+            }}
+            onPaneContextMenu={handlePaneContextMenu}
+            onMoveStart={closeContextMenu}
+            defaultEdgeOptions={{
+              type: "smoothstep",
+              markerEnd: { type: MarkerType.ArrowClosed },
+            }}
+            minZoom={0.35}
+            deleteKeyCode={["Backspace", "Delete"]}
+            selectionOnDrag
+            proOptions={{ hideAttribution: true }}
+          >
+            <Background gap={28} color="rgba(255, 255, 255, 0.04)" size={1} />
+            <MiniMap
+              pannable
+              zoomable
+              style={{
+                backgroundColor: "rgba(30, 30, 30, 0.95)",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+              }}
+            />
+            <Controls showInteractive={false} />
+
+            {contextMenu && (
+              <div
+                className={styles.canvasContextMenu}
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+              >
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddNodeAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>▶</span>
+                  添加视频节点
+                </button>
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddCharacterAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>👤</span>
+                  添加角色卡
+                </button>
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    handleAddSceneAtPosition(contextMenu.flowPosition);
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>🏞</span>
+                  添加场景卡
+                </button>
+                <div className={styles.contextMenuDivider} />
+                <button
+                  type="button"
+                  className={styles.contextMenuItem}
+                  onClick={() => {
+                    reactFlowRef.current?.fitView({ duration: 220, padding: 0.24 });
+                    closeContextMenu();
+                  }}
+                >
+                  <span className={styles.contextMenuIcon}>⊞</span>
+                  适配画布
+                </button>
+              </div>
+            )}
+          </ReactFlow>
+        </section>
+
+        <div
+          className={`${styles.resizeHandle} ${detailsResizer.isDragging ? styles.resizeHandleActive : ''}`}
+          onMouseDown={detailsResizer.startDrag}
+        >
+          <button
+            type="button"
+            className={`${styles.collapseBtn} ${styles.collapseBtnRight}`}
+            onClick={detailsResizer.toggleCollapse}
+            aria-label={detailsResizer.collapsed ? '展开右侧面板' : '折叠右侧面板'}
+          >
+            {detailsResizer.collapsed ? '◀' : '▶'}
+          </button>
+        </div>
+
+        <aside className={`${styles.panel} ${styles.details} ${detailsResizer.collapsed ? styles.panelCollapsed : ''}`}>
+          <section className={styles.section}>
+            <h2 className={styles.sectionTitle}>属性面板</h2>
+
+            {selectedNode ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="node-title">
+                    节点标题
+                  </label>
+                  <input
+                    id="node-title"
+                    className={styles.textInput}
+                    value={selectedNode.data.title}
+                    onChange={(event) =>
+                      handleNodeTitleChange(selectedNode.id, event.target.value)
+                    }
+                    placeholder="输入节点标题"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="node-notes">
+                    主 Prompt / 一句话描述
+                  </label>
+                  <textarea
+                    id="node-notes"
+                    className={styles.compactTextArea}
+                    value={selectedNode.data.shotNotes}
+                    onChange={(event) =>
+                      updateNode(selectedNode.id, (node) => ({
+                        ...node,
+                        data: {
+                          ...node.data,
+                          shotNotes: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="先写清这个镜头要发生什么。"
+                  />
+                </div>
+
+                {selectedNodeIncomingChoices.length > 0 ? (
+                  <div className={styles.field}>
+                    <label className={styles.label}>进入当前节点的选项</label>
+                    <div className={styles.tagGrid}>
+                      {selectedNodeIncomingChoices.map((choiceLabel) => (
+                        <span key={choiceLabel} className={styles.tagChip}>
+                          {choiceLabel}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className={styles.assetCard}>
+                  <p
+                    className={`${styles.assetStatus} ${
+                      selectedNode.data.assetStatus === "generated"
+                        ? styles.assetReady
+                        : selectedNode.data.assetStatus === "generating"
+                          ? styles.assetMissing
+                          : selectedNode.data.assetStatus === "failed"
+                            ? styles.assetUnsupported
+                            : styles.assetEmpty
+                    }`}
+                  >
+                    {selectedNode.data.generationTask
+                      ? `任务状态：${selectedNode.data.generationTask.status}${
+                          selectedNode.data.generationTask.rawStatus
+                            ? ` / ${selectedNode.data.generationTask.rawStatus}`
+                            : ""
+                        }`
+                      : "还没有提交生成任务。"}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    当前执行 provider：
+                    {selectedNode.data.generation.providerId === "auto"
+                      ? configuredProviders[0]
+                        ? PROVIDER_DEFINITIONS[configuredProviders[0]].label
+                        : "尚未配置 API"
+                      : PROVIDER_DEFINITIONS[selectedNode.data.generation.providerId].label}
+                  </p>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateVideo(selectedNode.id)}
+                  >
+                    生成视频
+                  </button>
+                </div>
+
+                <div className={styles.assetCard}>
+                  <p
+                    className={`${styles.assetStatus} ${
+                      selectedNode.data.assetStatus === "ready" ||
+                      selectedNode.data.assetStatus === "generated"
+                        ? styles.assetReady
+                        : selectedNode.data.assetStatus === "generating"
+                          ? styles.assetMissing
+                          : selectedNode.data.assetStatus === "missing"
+                            ? styles.assetMissing
+                            : selectedNode.data.assetStatus === "failed" ||
+                                selectedNode.data.assetStatus === "unsupported"
+                              ? styles.assetUnsupported
+                              : styles.assetEmpty
+                    }`}
+                  >
+                    {formatStatusLabel(selectedNode)}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    生成结果：
+                    {selectedNode.data.generatedVideoUrl ? "已生成，可预览" : "暂无"}
+                  </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
+                  <p className={styles.assetMeta}>
+                    本地素材：{selectedNode.data.assetRef?.fileName ?? "未绑定"}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    素材范围：
+                    {selectedNode.data.generatedVideoUrl
+                      ? " 生成结果优先"
+                      : selectedNode.data.assetRef
+                        ? " 当前项目素材"
+                        : " 暂无本地素材"}
+                  </p>
+                  <div className={styles.secondaryActions}>
+                    <label className={styles.secondaryButton}>
+                      绑定已有视频
+                      <input
+                        className={styles.hiddenInput}
+                        type="file"
+                        accept="video/*"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+
+                          if (file) {
+                            void replaceNodeAsset(selectedNode.id, file);
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() => clearNodeAsset(selectedNode.id)}
+                    >
+                      清空本地视频
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <section className={styles.section}>
+                      <div className={styles.inlineHeader}>
+                        <h3 className={styles.sectionTitle}>动作脚本</h3>
+                        <button
+                          type="button"
+                          className={styles.ghostButton}
+                          onClick={() => handleAddAction(selectedNode.id)}
+                        >
+                          添加动作
+                        </button>
+                      </div>
+
+                      <div className={styles.actionList}>
+                        {selectedNode.data.actions.length === 0 ? (
+                          <div className={styles.emptyState}>
+                            <p className={styles.emptyStateTitle}>先写“@谁做什么”</p>
+                            <p className={styles.hint}>
+                              每一行动作都会进入提示词，供视频模型生成镜头。
+                            </p>
+                          </div>
+                        ) : (
+                          selectedNode.data.actions.map((action) => (
+                            <article key={action.id} className={styles.actionCard}>
+                              <div className={styles.actionCardHeader}>
+                                <span className={styles.actionHandle}>
+                                  @
+                                  {(
+                                    (characterNameMap[action.characterId] ??
+                                      action.characterId) ||
+                                    "未指定"
+                                  )}
+                                </span>
+                                <button
+                                  type="button"
+                                  className={styles.miniDangerButton}
+                                  onClick={() =>
+                                    handleRemoveAction(selectedNode.id, action.id)
+                                  }
+                                >
+                                  移除
+                                </button>
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>角色</label>
+                                <select
+                                  className={styles.selectInput}
+                                  value={action.characterId}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "characterId",
+                                      event.target.value,
+                                    )
+                                  }
+                                >
+                                  <option value="">未指定角色</option>
+                                  {characters.map((character) => (
+                                    <option key={character.id} value={character.id}>
+                                      {character.name} (@{character.id})
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>动作</label>
+                                <input
+                                  className={styles.textInput}
+                                  value={action.action}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "action",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="例如 推门走进房间"
+                                />
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>情绪 / 状态</label>
+                                <input
+                                  className={styles.textInput}
+                                  value={action.emotion}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "emotion",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="例如 紧张、克制"
+                                />
+                              </div>
+
+                              <div className={styles.field}>
+                                <label className={styles.label}>台词</label>
+                                <textarea
+                                  className={styles.compactTextArea}
+                                  value={action.dialogue}
+                                  onChange={(event) =>
+                                    handleActionChange(
+                                      selectedNode.id,
+                                      action.id,
+                                      "dialogue",
+                                      event.target.value,
+                                    )
+                                  }
+                                  placeholder="可选，写角色说的话。"
+                                />
+                              </div>
+                            </article>
+                          ))
+                        )}
+                      </div>
+                    </section>
+
+                    <section className={styles.section}>
+                      <h3 className={styles.sectionTitle}>生成设置</h3>
+                      <div className={styles.field}>
+                        <label className={styles.label}>生成引擎</label>
+                        <select
+                          className={styles.selectInput}
+                          value={selectedNode.data.generation.providerId}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "providerId",
+                              event.target.value as GenerationProviderSelection,
+                            )
+                          }
+                        >
+                          <option value="auto">按项目默认（项目优先级）</option>
+                          {settings.providerPriority.map((providerId) => (
+                            <option key={providerId} value={providerId}>
+                              {PROVIDER_DEFINITIONS[providerId].label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>生成模式</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.mode}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "mode",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="image-to-video">参考图生成视频</option>
+                            <option value="text-to-video">纯提示词生成</option>
+                          </select>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>模型</label>
+                          <input
+                            className={styles.textInput}
+                            value={selectedNode.data.generation.model}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "model",
+                                event.target.value,
+                              )
+                            }
+                            placeholder={
+                              selectedNode.data.generation.providerId === "auto"
+                                ? PROVIDER_DEFINITIONS[settings.providerPriority[0]].videoModel
+                                : PROVIDER_DEFINITIONS[
+                                    selectedNode.data.generation.providerId
+                                  ].videoModel
+                            }
+                          />
+                        </div>
+                      </div>
+
+                      <div className={styles.gridTwo}>
+                        <div className={styles.field}>
+                          <label className={styles.label}>画面比例</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.aspectRatio}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "aspectRatio",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="16:9">16:9</option>
+                            <option value="9:16">9:16</option>
+                            <option value="1:1">1:1</option>
+                          </select>
+                        </div>
+
+                        <div className={styles.field}>
+                          <label className={styles.label}>分辨率</label>
+                          <select
+                            className={styles.selectInput}
+                            value={selectedNode.data.generation.resolution}
+                            onChange={(event) =>
+                              handleGenerationConfigChange(
+                                selectedNode.id,
+                                "resolution",
+                                event.target.value,
+                              )
+                            }
+                          >
+                            <option value="720p">720p</option>
+                            <option value="1080p">1080p</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>时长（秒）</label>
+                        <input
+                          className={styles.textInput}
+                          type="number"
+                          min={3}
+                          max={12}
+                          value={selectedNode.data.generation.durationSec}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "durationSec",
+                              Number(event.target.value),
+                            )
+                          }
+                        />
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>参考角色</label>
+                        <div className={styles.tagGrid}>
+                          {characters.length === 0 ? (
+                            <p className={styles.hint}>
+                              先在资源库中创建角色并上传参考图。
+                            </p>
+                          ) : (
+                            characters.map((character) => {
+                              const active =
+                                selectedNode.data.generation.referenceCharacterIds.includes(
+                                  character.id,
+                                );
+
+                              return (
+                                <button
+                                  key={character.id}
+                                  type="button"
+                                  className={`${styles.tagChip} ${
+                                    active ? styles.tagChipActive : ""
+                                  }`}
+                                  onClick={() =>
+                                    toggleReferenceCharacter(selectedNode.id, character.id)
+                                  }
+                                >
+                                  {character.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>参考场景</label>
+                        <div className={styles.tagGrid}>
+                          {scenes.length === 0 ? (
+                            <p className={styles.hint}>
+                              先在资源库中创建场景卡并上传参考图。
+                            </p>
+                          ) : (
+                            scenes.map((scene) => {
+                              const active =
+                                selectedNode.data.generation.referenceSceneIds.includes(
+                                  scene.id,
+                                );
+
+                              return (
+                                <button
+                                  key={scene.id}
+                                  type="button"
+                                  className={`${styles.tagChip} ${
+                                    active ? styles.tagChipActive : ""
+                                  }`}
+                                  onClick={() =>
+                                    toggleReferenceScene(selectedNode.id, scene.id)
+                                  }
+                                >
+                                  {scene.name}
+                                </button>
+                              );
+                            })
+                          )}
+                        </div>
+                      </div>
+
+                      <div className={styles.field}>
+                        <label className={styles.label}>补充提示词</label>
+                        <textarea
+                          className={styles.compactTextArea}
+                          value={selectedNode.data.generation.promptOverride}
+                          onChange={(event) =>
+                            handleGenerationConfigChange(
+                              selectedNode.id,
+                              "promptOverride",
+                              event.target.value,
+                            )
+                          }
+                          placeholder="可选，补充风格、镜头语言、光影、运镜要求。"
+                        />
+                      </div>
+
+                      <div className={styles.assetCard}>
+                        <p className={styles.assetStatus}>最终提示词预览</p>
+                        <pre className={styles.promptPreview}>{selectedNodePrompt}</pre>
+                      </div>
+                    </section>
+
+                    <section className={styles.section}>
+                      <h3 className={styles.sectionTitle}>时间裁剪</h3>
+                      <TrimPreview
+                        src={selectedNodePreviewUrl}
+                        poster={selectedNode.data.generatedCoverUrl}
+                        trim={selectedNode.data.trim}
+                        onTrimChange={(trim: TrimRange) =>
+                          updateNode(selectedNode.id, (node) => ({
+                            ...node,
+                            data: {
+                              ...node.data,
+                              trim,
+                            },
+                          }))
+                        }
+                      />
+                    </section>
+
+                    <div className={styles.metaList}>
+                      <div className={styles.metaRow}>
+                        <span>节点 ID</span>
+                        <code>{selectedNode.id}</code>
+                      </div>
+                      <div className={styles.metaRow}>
+                        <span>画布位置</span>
+                        <code>{formatNodePosition(selectedNode)}</code>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      className={styles.dangerButton}
+                      onClick={() => clearGeneratedVideo(selectedNode.id)}
+                    >
+                      清空生成结果
+                    </button>
+                  </>
+                ) : null}
+
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={handleDeleteSelectedNode}
+                >
+                  删除当前节点
+                </button>
+              </>
+            ) : selectedCharacter ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.label}>角色名</label>
+                  <input
+                    className={styles.textInput}
+                    value={selectedCharacter.name}
+                    onChange={(event) =>
+                      handleCharacterFieldChange(
+                        selectedCharacter.id,
+                        "name",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例如 李沐"
+                  />
+                  <p className={styles.hint}>@{selectedCharacter.id}</p>
+                </div>
+
+                <div className={styles.assetCard}>
+                  <p className={styles.assetStatus}>
+                    {selectedCharacter.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
+                  </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
+                  <div className={styles.referenceStage}>
+                    <div className={styles.referenceHero}>
+                      <Image
+                        className={styles.referenceHeroImage}
+                        src={selectedCharacterPreviewUrl}
+                        alt={selectedCharacter.name || selectedCharacter.id}
+                        width={720}
+                        height={720}
+                        unoptimized
+                      />
+                      <div className={styles.referenceOverlay}>
+                        <span className={styles.referenceBadge}>
+                          {selectedCharacter.referenceImageAssetRefs.length > 0
+                            ? `${selectedCharacter.referenceImageAssetRefs.length} 张参考图`
+                            : "角色参考图区"}
+                        </span>
+                        <label className={styles.inlineLinkButton}>
+                          上传参考图
+                          <input
+                            className={styles.hiddenInput}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(event) =>
+                              void handleCharacterImageChange(
+                                selectedCharacter.id,
+                                event,
+                              )
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>简介</label>
+                  <textarea
+                    className={styles.compactTextArea}
+                    value={selectedCharacter.bio}
+                    onChange={(event) =>
+                      handleCharacterFieldChange(
+                        selectedCharacter.id,
+                        "bio",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="写外形、年龄感、服装、身份。"
+                  />
+                </div>
+
+                <div className={styles.gridTwo}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateCharacterImage(selectedCharacter)}
+                    disabled={generatingCharacterIdSet.has(selectedCharacter.id)}
+                  >
+                    {generatingCharacterIdSet.has(selectedCharacter.id)
+                      ? "正在生图..."
+                      : "生成 1K 角色图"}
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => toggleCharacterCanvasPinned(selectedCharacter.id)}
+                  >
+                    {selectedCharacter.canvasPinned ? "取消钉住" : "钉到画布"}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <div className={styles.field}>
+                      <label className={styles.label}>角色 ID</label>
+                      <input
+                        className={styles.textInput}
+                        value={selectedCharacter.id}
+                        onChange={(event) =>
+                          handleCharacterIdChange(
+                            selectedCharacter.id,
+                            event.target.value,
+                          )
+                        }
+                        placeholder="例如 hero_li"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>补充 Prompt</label>
+                      <textarea
+                        className={styles.compactTextArea}
+                        value={selectedCharacter.basePrompt}
+                        onChange={(event) =>
+                          handleCharacterFieldChange(
+                            selectedCharacter.id,
+                            "basePrompt",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="写镜头风格、表演偏好、禁忌项。"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>生图模型</label>
+                      <select
+                        className={styles.selectInput}
+                        value={selectedCharacter.imageModel}
+                        onChange={(event) =>
+                          handleCharacterImageModelChange(
+                            selectedCharacter.id,
+                            event.target.value as ImageGenerationModel,
+                          )
+                        }
+                      >
+                        {IMAGE_MODEL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.thumbnailGrid}>
+                      {selectedCharacter.referenceImageAssetRefs.length === 0 ? (
+                        <div className={styles.thumbnailMissing}>暂无参考图</div>
+                      ) : (
+                        selectedCharacter.referenceImageAssetRefs.map((assetRef) => (
+                          <div key={assetRef.assetId} className={styles.thumbnailCard}>
+                            {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
+                              <Image
+                                className={styles.thumbnail}
+                                src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
+                                alt={assetRef.fileName}
+                                width={240}
+                                height={240}
+                                unoptimized
+                              />
+                            ) : (
+                              <div className={styles.thumbnailMissing}>待重绑</div>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.thumbnailDelete}
+                              onClick={() =>
+                                removeCharacterReferenceAsset(
+                                  selectedCharacter.id,
+                                  assetRef.assetId,
+                                )
+                              }
+                            >
+                              移除
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={() => handleDeleteCharacter(selectedCharacter.id)}
+                >
+                  删除当前角色
+                </button>
+              </>
+            ) : selectedScene ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.label}>场景名</label>
+                  <input
+                    className={styles.textInput}
+                    value={selectedScene.name}
+                    onChange={(event) =>
+                      handleSceneFieldChange(
+                        selectedScene.id,
+                        "name",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例如 深夜车站"
+                  />
+                  <p className={styles.hint}>#{selectedScene.id}</p>
+                </div>
+
+                <div className={styles.assetCard}>
+                  <p className={styles.assetStatus}>
+                    {selectedScene.canvasPinned ? "已钉在画布参考层" : "仅存在于资源库"}
+                  </p>
+                  <p className={styles.assetMeta}>所属项目：{currentProjectName}</p>
+                  <div className={styles.referenceStage}>
+                    <div className={styles.referenceHero}>
+                      <Image
+                        className={styles.referenceHeroImage}
+                        src={selectedScenePreviewUrl}
+                        alt={selectedScene.name || selectedScene.id}
+                        width={960}
+                        height={600}
+                        unoptimized
+                      />
+                      <div className={styles.referenceOverlay}>
+                        <span className={styles.referenceBadge}>
+                          {selectedScene.referenceImageAssetRefs.length > 0
+                            ? `${selectedScene.referenceImageAssetRefs.length} 张参考图`
+                            : "场景参考图区"}
+                        </span>
+                        <label className={styles.inlineLinkButton}>
+                          上传参考图
+                          <input
+                            className={styles.hiddenInput}
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            onChange={(event) =>
+                              void handleSceneImageChange(selectedScene.id, event)
+                            }
+                          />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>简介</label>
+                  <textarea
+                    className={styles.compactTextArea}
+                    value={selectedScene.description}
+                    onChange={(event) =>
+                      handleSceneFieldChange(
+                        selectedScene.id,
+                        "description",
+                        event.target.value,
+                      )
+                    }
+                    placeholder="写空间关系、时间、天气、色调、关键布景。"
+                  />
+                </div>
+
+                <div className={styles.gridTwo}>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleGenerateSceneImage(selectedScene)}
+                  >
+                    生成参考图
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => toggleSceneCanvasPinned(selectedScene.id)}
+                  >
+                    {selectedScene.canvasPinned ? "取消钉住" : "钉到画布"}
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.ghostButton}
+                  onClick={() =>
+                    setIsAdvancedInspectorOpen((currentValue) => !currentValue)
+                  }
+                >
+                  {isAdvancedInspectorOpen ? "收起高级设置" : "展开高级设置"}
+                </button>
+
+                {isAdvancedInspectorOpen ? (
+                  <>
+                    <div className={styles.field}>
+                      <label className={styles.label}>场景 ID</label>
+                      <input
+                        className={styles.textInput}
+                        value={selectedScene.id}
+                        onChange={(event) =>
+                          handleSceneIdChange(selectedScene.id, event.target.value)
+                        }
+                        placeholder="例如 station_night"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>补充 Prompt</label>
+                      <textarea
+                        className={styles.compactTextArea}
+                        value={selectedScene.basePrompt}
+                        onChange={(event) =>
+                          handleSceneFieldChange(
+                            selectedScene.id,
+                            "basePrompt",
+                            event.target.value,
+                          )
+                        }
+                        placeholder="写镜头气质、材质偏好、禁忌元素。"
+                      />
+                    </div>
+
+                    <div className={styles.field}>
+                      <label className={styles.label}>生图模型</label>
+                      <select
+                        className={styles.selectInput}
+                        value={selectedScene.imageModel}
+                        onChange={(event) =>
+                          handleSceneImageModelChange(
+                            selectedScene.id,
+                            event.target.value as ImageGenerationModel,
+                          )
+                        }
+                      >
+                        {IMAGE_MODEL_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className={styles.thumbnailGrid}>
+                      {selectedScene.referenceImageAssetRefs.length === 0 ? (
+                        <div className={styles.thumbnailMissing}>暂无参考图</div>
+                      ) : (
+                        selectedScene.referenceImageAssetRefs.map((assetRef) => (
+                          <div key={assetRef.assetId} className={styles.thumbnailCard}>
+                            {assetRuntimeMap[assetRef.assetId]?.objectUrl ? (
+                              <Image
+                                className={styles.thumbnail}
+                                src={assetRuntimeMap[assetRef.assetId]?.objectUrl}
+                                alt={assetRef.fileName}
+                                width={240}
+                                height={240}
+                                unoptimized
+                              />
+                            ) : (
+                              <div className={styles.thumbnailMissing}>待重绑</div>
+                            )}
+                            <button
+                              type="button"
+                              className={styles.thumbnailDelete}
+                              onClick={() =>
+                                removeSceneReferenceAsset(selectedScene.id, assetRef.assetId)
+                              }
+                            >
+                              移除
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </>
+                ) : null}
+
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={() => handleDeleteScene(selectedScene.id)}
+                >
+                  删除当前场景
+                </button>
+              </>
+            ) : selectedEdge ? (
+              <>
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="edge-choice">
+                    选项文案
+                  </label>
+                  <input
+                    id="edge-choice"
+                    className={styles.textInput}
+                    value={selectedEdge.data?.choiceLabel ?? ""}
+                    onChange={(event) =>
+                      updateEdgeChoiceLabel(
+                        selectedEdge.id,
+                        event.target.value,
+                      )
+                    }
+                    placeholder="例如 继续主线 / 改走支线"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label} htmlFor="edge-condition">
+                    过渡条件变量
+                  </label>
+                  <input
+                    id="edge-condition"
+                    className={styles.textInput}
+                    value={selectedEdge.data?.conditionVariable ?? ""}
+                    onChange={(event) =>
+                      updateEdgeConditionVariable(
+                        selectedEdge.id,
+                        event.target.value,
+                      )
+                    }
+                    onBlur={normalizeSelectedEdgeCondition}
+                    placeholder="例如 has_ticket"
+                  />
+                </div>
+
+                <div className={styles.assetCard}>
+                  <p className={styles.assetStatus}>过渡信息</p>
+                  <p className={styles.assetMeta}>
+                    选项：{selectedEdge.data?.choiceLabel?.trim() || "未设置"}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    起点：{nodeTitleMap[selectedEdge.source] ?? selectedEdge.source}
+                  </p>
+                  <p className={styles.assetMeta}>
+                    终点：{nodeTitleMap[selectedEdge.target] ?? selectedEdge.target}
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className={styles.dangerButton}
+                  onClick={handleDeleteSelectedEdge}
+                >
+                  删除当前过渡
+                </button>
+              </>
+            ) : (
+              <div className={styles.emptyState}>
+                <p className={styles.emptyStateTitle}>选择一个节点或过渡</p>
+                <p className={styles.hint}>
+                  选中剧情节点后可以编辑动作和生成参数；选中角色卡或场景卡后可以维护参考图；选中过渡后可以编辑条件变量。
+                </p>
+              </div>
+            )}
+          </section>
+        </aside>
+      </div>
+
+      {isTemplateDrawerOpen ? (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsTemplateDrawerOpen(false)}
+        >
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.drawerHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>模板库</span>
+                <h2 className={styles.modalTitle}>保存并复用你的项目模板</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsTemplateDrawerOpen(false)}
+                aria-label="关闭模板库"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerBody}>
+              <section className={styles.drawerSection}>
+                <div className={styles.inlineHeader}>
+                  <h3 className={styles.sectionTitle}>保存当前为模板</h3>
+                  {activeTemplateSummary ? (
+                    <span className={styles.hint}>当前来自模板：{activeTemplateSummary.name}</span>
+                  ) : null}
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>模板名称</label>
+                  <input
+                    className={styles.textInput}
+                    value={templateSaveName}
+                    onChange={(event) => setTemplateSaveName(event.target.value)}
+                    placeholder="例如 港口悬疑互动短剧模板"
+                  />
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.label}>一句话说明</label>
+                  <textarea
+                    className={styles.compactTextArea}
+                    value={templateSaveDescription}
+                    onChange={(event) => setTemplateSaveDescription(event.target.value)}
+                    placeholder="描述这个模板适合什么故事或风格。"
+                  />
+                </div>
+
+                <div className={styles.templateActionRow}>
+                  {activeTemplateSummary ? (
+                    <button
+                      type="button"
+                      className={styles.primaryButton}
+                      onClick={() => void persistTemplate("update")}
+                      disabled={isSavingTemplate}
+                    >
+                      {isSavingTemplate ? "保存中..." : "更新当前模板"}
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className={activeTemplateSummary ? styles.secondaryButton : styles.primaryButton}
+                    onClick={() => void persistTemplate("create")}
+                    disabled={isSavingTemplate}
+                  >
+                    {isSavingTemplate
+                      ? "保存中..."
+                      : activeTemplateSummary
+                        ? "另存为新模板"
+                        : "保存当前为模板"}
+                  </button>
+                </div>
+              </section>
+
+              <section className={styles.drawerSection}>
+                <div className={styles.inlineHeader}>
+                  <h3 className={styles.sectionTitle}>我的模板</h3>
+                  <span className={styles.hint}>{templateRecords.length} 个</span>
+                </div>
+
+                {isLoadingTemplates ? (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>正在读取模板库</p>
+                  </div>
+                ) : templateRecords.length === 0 ? (
+                  <div className={styles.emptyState}>
+                    <p className={styles.emptyStateTitle}>还没有模板</p>
+                    <p className={styles.hint}>
+                      先把当前项目保存成模板，后面就可以一键套用了。
+                    </p>
+                  </div>
+                ) : (
+                  <div className={styles.templateList}>
+                    {templateRecords.map((templateRecord) => (
+                      <article
+                        key={templateRecord.id}
+                        className={`${styles.templateCard} ${
+                          activeTemplateId === templateRecord.id ? styles.templateCardActive : ""
+                        }`}
+                      >
+                        {templateRecord.previewImageUrl ? (
+                          <Image
+                            className={styles.templatePreview}
+                            src={templateRecord.previewImageUrl}
+                            alt={templateRecord.name}
+                            width={480}
+                            height={270}
+                            unoptimized
+                          />
+                        ) : (
+                          <div className={styles.templatePreviewPlaceholder}>
+                            <span>模板封面</span>
+                          </div>
+                        )}
+
+                        <div className={styles.templateCardBody}>
+                          <div className={styles.templateCardHeader}>
+                            <strong>{templateRecord.name}</strong>
+                            <span className={styles.hint}>
+                              {formatTemplateUpdatedAt(templateRecord.updatedAt)}
+                            </span>
+                          </div>
+                          <p className={styles.hint}>
+                            {templateRecord.description || "暂无说明"}
+                          </p>
+                          <div className={styles.templateStatsGrid}>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.characterCount} 角色
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.sceneCount} 场景
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.nodeCount} 节点
+                            </span>
+                            <span className={styles.templateStatChip}>
+                              {templateRecord.stats.branchCount} 分支点
+                            </span>
+                          </div>
+
+                          {renamingTemplateId === templateRecord.id ? (
+                            <div className={styles.templateRenamePanel}>
+                              <input
+                                className={styles.textInput}
+                                value={renamingTemplateName}
+                                onChange={(event) =>
+                                  setRenamingTemplateName(event.target.value)
+                                }
+                                placeholder="模板名称"
+                              />
+                              <textarea
+                                className={styles.compactTextArea}
+                                value={renamingTemplateDescription}
+                                onChange={(event) =>
+                                  setRenamingTemplateDescription(event.target.value)
+                                }
+                                placeholder="一句话说明"
+                              />
+                              <div className={styles.templateActionRow}>
+                                <button
+                                  type="button"
+                                  className={styles.primaryButton}
+                                  onClick={() => void submitTemplateRename(templateRecord.id)}
+                                >
+                                  保存名称
+                                </button>
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() => {
+                                    setRenamingTemplateId(null);
+                                    setRenamingTemplateName("");
+                                    setRenamingTemplateDescription("");
+                                  }}
+                                >
+                                  取消
+                                </button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className={styles.templateActionRow}>
+                              <button
+                                type="button"
+                                className={styles.primaryButton}
+                                onClick={() =>
+                                  setTemplateDialogState({
+                                    mode: "apply",
+                                    template: templateRecord,
+                                  })
+                                }
+                              >
+                                应用模板
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => startRenamingTemplate(templateRecord)}
+                              >
+                                重命名
+                              </button>
+                              <button
+                                type="button"
+                                className={styles.dangerButton}
+                                onClick={() =>
+                                  setTemplateDialogState({
+                                    mode: "delete",
+                                    template: templateRecord,
+                                  })
+                                }
+                              >
+                                删除
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isResourceDrawerOpen ? (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsResourceDrawerOpen(false)}
+        >
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.drawerHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>资源库</span>
+                <h2 className={styles.modalTitle}>角色 / 场景 / 资产</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsResourceDrawerOpen(false)}
+                aria-label="关闭资源库"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerTabs}>
+              {(
+                [
+                  ["characters", "角色"],
+                  ["scenes", "场景"],
+                  ["project-assets", "项目素材"],
+                  ["global-assets", "全局素材"],
+                ] as const
+              ).map(([tab, label]) => (
+                <button
+                  key={tab}
+                  type="button"
+                  className={`${styles.drawerTab} ${
+                    leftDrawerTab === tab ? styles.drawerTabActive : ""
+                  }`}
+                  onClick={() => setLeftDrawerTab(tab)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <div className={styles.drawerBody}>
+              {leftDrawerTab === "characters" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>角色</h3>
+                    <button
+                      type="button"
+                      className={styles.ghostButton}
+                      onClick={handleAddCharacter}
+                    >
+                      新增角色
+                    </button>
+                  </div>
+                  <div className={styles.resourceList}>
+                    {characters.length === 0 ? (
+                      <div className={styles.emptyState}>
+                        <p className={styles.emptyStateTitle}>暂无角色</p>
+                      </div>
+                    ) : (
+                      characters.map((character) => (
+                        <article key={character.id} className={styles.resourceCard}>
+                          <Image
+                            className={styles.resourcePreview}
+                            src={getCharacterPreviewUrl(character, assetRuntimeMap)}
+                            alt={character.name || character.id}
+                            width={180}
+                            height={180}
+                            unoptimized
+                          />
+                          <div className={styles.resourceInfo}>
+                            <strong>{character.name || character.id}</strong>
+                            <span className={styles.characterIdBadge}>@{character.id}</span>
+                            <p className={styles.assetLibraryMeta}>
+                              {character.referenceImageAssetRefs.length} 张参考图
+                            </p>
+                          </div>
+                          <div className={styles.resourceActions}>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => {
+                                setSelectedCharacterId(character.id);
+                                setSelectedNodeId(null);
+                                setSelectedSceneId(null);
+                                setSelectedEdgeId(null);
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleCharacterCanvasPinned(character.id)}
+                            >
+                              {character.canvasPinned ? "取消钉住" : "钉到画布"}
+                            </button>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "scenes" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>场景</h3>
+                    <button
+                      type="button"
+                      className={styles.ghostButton}
+                      onClick={handleAddScenePreset}
+                    >
+                      新增场景
+                    </button>
+                  </div>
+                  <div className={styles.resourceList}>
+                    {scenes.length === 0 ? (
+                      <div className={styles.emptyState}>
+                        <p className={styles.emptyStateTitle}>暂无场景</p>
+                      </div>
+                    ) : (
+                      scenes.map((scene) => (
+                        <article key={scene.id} className={styles.resourceCard}>
+                          <Image
+                            className={styles.resourcePreviewWide}
+                            src={getScenePreviewUrl(scene, assetRuntimeMap)}
+                            alt={scene.name || scene.id}
+                            width={240}
+                            height={150}
+                            unoptimized
+                          />
+                          <div className={styles.resourceInfo}>
+                            <strong>{scene.name || scene.id}</strong>
+                            <span className={styles.characterIdBadge}>#{scene.id}</span>
+                            <p className={styles.assetLibraryMeta}>
+                              {scene.referenceImageAssetRefs.length} 张参考图
+                            </p>
+                          </div>
+                          <div className={styles.resourceActions}>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => {
+                                setSelectedSceneId(scene.id);
+                                setSelectedCharacterId(null);
+                                setSelectedNodeId(null);
+                                setSelectedEdgeId(null);
+                              }}
+                            >
+                              编辑
+                            </button>
+                            <button
+                              type="button"
+                              className={styles.secondaryButton}
+                              onClick={() => toggleSceneCanvasPinned(scene.id)}
+                            >
+                              {scene.canvasPinned ? "取消钉住" : "钉到画布"}
+                            </button>
+                          </div>
+                        </article>
+                      ))
+                    )}
+                  </div>
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "project-assets" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>项目素材</h3>
+                    <span className={styles.hint}>{assetLibraryItems.length} 项</span>
+                  </div>
+                  {assetLibraryItems.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>暂无资产</p>
+                    </div>
+                  ) : (
+                    <div className={styles.assetLibraryGrid}>
+                      {assetLibraryItems.map((asset) => (
+                        <article key={asset.assetId} className={styles.assetLibraryCard}>
+                          <div className={styles.assetLibraryMedia}>
+                            {asset.kind === "image" ? (
+                              <Image
+                                className={styles.assetLibraryImage}
+                                src={asset.objectUrl}
+                                alt={asset.fileName}
+                                width={480}
+                                height={480}
+                                unoptimized
+                              />
+                            ) : (
+                              <video
+                                className={styles.assetLibraryVideo}
+                                src={asset.objectUrl}
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            )}
+                          </div>
+                          <div className={styles.assetLibraryBody}>
+                            <strong className={styles.assetLibraryName}>{asset.fileName}</strong>
+                            <p className={styles.assetLibraryMeta}>
+                              {asset.kind === "image" ? "图片" : "视频"}
+                              {asset.isInGlobalLibrary ? " · 已收藏到全局库" : ""}
+                            </p>
+                            <div className={styles.actionGrid}>
+                              <button
+                                type="button"
+                                className={styles.secondaryButton}
+                                onClick={() => void saveAssetToGlobalLibrary(asset.assetId)}
+                                disabled={asset.isInGlobalLibrary}
+                              >
+                                {asset.isInGlobalLibrary ? "已收藏" : "收藏到全局库"}
+                              </button>
+                              {asset.kind === "image" && selectedCharacter ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingImageToCharacter(
+                                      selectedCharacter.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  复用到当前角色
+                                </button>
+                              ) : null}
+                              {asset.kind === "image" && selectedScene ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingImageToScene(
+                                      selectedScene.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  复用到当前场景
+                                </button>
+                              ) : null}
+                              {asset.kind === "video" && selectedNode ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    attachExistingVideoToNode(
+                                      selectedNode.id,
+                                      asset.assetId,
+                                    )
+                                  }
+                                >
+                                  绑定到当前节点
+                                </button>
+                              ) : null}
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+
+              {leftDrawerTab === "global-assets" ? (
+                <div className={styles.drawerSection}>
+                  <div className={styles.inlineHeader}>
+                    <h3 className={styles.sectionTitle}>全局素材</h3>
+                    <span className={styles.hint}>
+                      {isLoadingGlobalAssets ? "读取中..." : `${globalAssets.length} 项`}
+                    </span>
+                  </div>
+                  {isLoadingGlobalAssets ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>正在读取全局素材库</p>
+                    </div>
+                  ) : globalAssets.length === 0 ? (
+                    <div className={styles.emptyState}>
+                      <p className={styles.emptyStateTitle}>还没有全局素材</p>
+                      <p className={styles.hint}>
+                        在“项目素材”里把常用图像或视频收藏进来，后面就能跨项目复用了。
+                      </p>
+                    </div>
+                  ) : (
+                    <div className={styles.assetLibraryGrid}>
+                      {globalAssets.map((asset) => (
+                        <article key={asset.id} className={styles.assetLibraryCard}>
+                          <div className={styles.assetLibraryMedia}>
+                            {asset.kind === "image" ? (
+                              <Image
+                                className={styles.assetLibraryImage}
+                                src={globalAssetPreviewMap[asset.id] ?? REFERENCE_PLACEHOLDER_SVG}
+                                alt={asset.fileName}
+                                width={480}
+                                height={480}
+                                unoptimized
+                              />
+                            ) : (
+                              <video
+                                className={styles.assetLibraryVideo}
+                                src={globalAssetPreviewMap[asset.id]}
+                                muted
+                                playsInline
+                                preload="metadata"
+                              />
+                            )}
+                          </div>
+                          <div className={styles.assetLibraryBody}>
+                            <strong className={styles.assetLibraryName}>{asset.name}</strong>
+                            <p className={styles.assetLibraryMeta}>
+                              {asset.kind === "image" ? "图片" : "视频"}
+                            </p>
+                            <div className={styles.actionGrid}>
+                              {asset.kind === "image" && selectedCharacter ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalImageToCharacter(
+                                      selectedCharacter.id,
+                                      asset.id,
+                                    )
+                                  }
+                                >
+                                  复用到角色
+                                </button>
+                              ) : null}
+                              {asset.kind === "image" && selectedScene ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalImageToScene(selectedScene.id, asset.id)
+                                  }
+                                >
+                                  复用到场景
+                                </button>
+                              ) : null}
+                              {asset.kind === "video" && selectedNode ? (
+                                <button
+                                  type="button"
+                                  className={styles.secondaryButton}
+                                  onClick={() =>
+                                    void attachGlobalVideoToNode(selectedNode.id, asset.id)
+                                  }
+                                >
+                                  绑定到节点
+                                </button>
+                              ) : null}
+                              <button
+                                type="button"
+                                className={styles.dangerButton}
+                                onClick={() => void handleDeleteGlobalAsset(asset.id)}
+                              >
+                                删除收藏
+                              </button>
+                            </div>
+                          </div>
+                        </article>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : null}
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {isSettingsDrawerOpen ? (
+        <div
+          className={styles.drawerBackdrop}
+          onClick={() => setIsSettingsDrawerOpen(false)}
+        >
+          <aside
+            className={`${styles.sideDrawer} ${styles.leftDrawer}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.drawerHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>设置</span>
+                <h2 className={styles.modalTitle}>模型与项目</h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsSettingsDrawerOpen(false)}
+                aria-label="关闭设置"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerBody}>
+              <div className={styles.providerSummaryCard}>
+                <div className={styles.priorityRow}>
+                  {settings.providerPriority.map((providerId, index) => (
+                    <span key={providerId} className={styles.priorityPill}>
+                      {index + 1}. {PROVIDER_DEFINITIONS[providerId].label}
+                    </span>
+                  ))}
+                </div>
+                <div className={styles.providerStatusRow}>
+                  {settings.providerPriority.map((providerId) => (
+                    <span
+                      key={providerId}
+                      className={`${styles.providerBadge} ${
+                        isCredentialConfigured(providerId, providerCredentials)
+                          ? styles.providerReady
+                          : styles.providerMissing
+                      }`}
+                    >
+                      {PROVIDER_DEFINITIONS[providerId].label}
+                      {" · "}
+                      {isCredentialConfigured(providerId, providerCredentials)
+                        ? "已配置"
+                        : "未配置"}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className={styles.drawerSection}>
+                <button
+                  type="button"
+                  className={styles.primaryButton}
+                  onClick={() => setIsProviderModalOpen(true)}
+                >
+                  打开视频 API 设置
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={handleLoadDemoCase}
+                >
+                  加载 Demo Case
+                </button>
+              </div>
+            </div>
+          </aside>
+        </div>
+      ) : null}
+
+      {templateDialogState ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setTemplateDialogState(null)}
+        >
+          <div
+            className={`${styles.modalCard} ${styles.templateConfirmCard}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>
+                  {templateDialogState.mode === "apply" ? "应用模板" : "删除模板"}
+                </span>
+                <h2 className={styles.modalTitle}>
+                  {templateDialogState.template.name}
+                </h2>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setTemplateDialogState(null)}
+                aria-label="关闭模板确认"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.drawerSection}>
+              <p className={styles.hint}>
+                {templateDialogState.mode === "apply"
+                  ? "应用模板会替换当前画布里的节点、角色、场景和本地媒体预览。"
+                  : "删除模板后，本地模板库中的模板和关联媒体都会被移除。"}
+              </p>
+              <div className={styles.templateActionRow}>
+                <button
+                  type="button"
+                  className={
+                    templateDialogState.mode === "apply"
+                      ? styles.primaryButton
+                      : styles.dangerButton
+                  }
+                  onClick={() =>
+                    templateDialogState.mode === "apply"
+                      ? void handleApplyTemplate(templateDialogState.template.id)
+                      : void handleDeleteTemplate(templateDialogState.template.id)
+                  }
+                >
+                  {templateDialogState.mode === "apply" ? "继续替换" : "确认删除"}
+                </button>
+                <button
+                  type="button"
+                  className={styles.secondaryButton}
+                  onClick={() => setTemplateDialogState(null)}
+                >
+                  取消
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isExportModalOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setIsExportModalOpen(false)}
+        >
+          <div
+            className={styles.exportModalCard}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.exportModalHeader}>
+              <div>
+                <h2 className={styles.exportModalTitle}>导出与继续编辑</h2>
+                <p className={styles.exportModalSubtitle}>把当前项目导出成继续编辑的工程包，或者导出成可交付的互动内容</p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsExportModalOpen(false)}
+                aria-label="关闭"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className={styles.exportGrid}>
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>📦</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>项目包</h3>
+                  <p className={styles.exportCardDesc}>
+                    带着项目结构和本地素材一起打包，后面可重新导入继续编辑
+                  </p>
+                </div>
+                <div className={styles.exportCardActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => importInputRef.current?.click()}
+                  >
+                    导入项目
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleExportProjectPackage()}
+                  >
+                    导出项目包
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={handleExportProjectJson}
+                  >
+                    兼容 JSON
+                  </button>
+                </div>
+              </article>
+
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>🎬</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>互动版 HTML</h3>
+                  <p className={styles.exportCardDesc}>
+                    面向交付的可玩版本，视频播完后出现选项分支
+                  </p>
+                </div>
+                <div className={styles.exportCardActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => void handleExportInteractivePackage("linked")}
+                  >
+                    远程兼容
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleExportInteractivePackage("inline")}
+                  >
+                    本地单文件
+                  </button>
+                </div>
+              </article>
+
+              <article className={styles.exportCard}>
+                <div className={styles.exportCardIcon}>🔀</div>
+                <div className={styles.exportCardBody}>
+                  <h3 className={styles.exportCardTitle}>全分支遍历版</h3>
+                  <p className={styles.exportCardDesc}>
+                    面向审片和复查的线性观看版本，每条路径各导出一份
+                  </p>
+                </div>
+                <div className={styles.exportCardActions}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={() => void handleExportTraversalPackage("linked")}
+                  >
+                    远程兼容
+                  </button>
+                  <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={() => void handleExportTraversalPackage("inline")}
+                  >
+                    本地单文件
+                  </button>
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {isProviderModalOpen ? (
+        <div
+          className={styles.modalBackdrop}
+          onClick={() => setIsProviderModalOpen(false)}
+        >
+          <div
+            className={styles.modalCard}
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className={styles.modalHeader}>
+              <div className={styles.modalTitleBlock}>
+                <span className={styles.sectionTitle}>API 设置</span>
+                <h2 className={styles.modalTitle}>视频生成 API 配置</h2>
+                <p className={styles.hint}>
+                  这里统一配置豆包、MiniMax、Vidu、Kling 的视频生成凭证。凭证只保存在当前浏览器，不会写进工程 JSON。
+                </p>
+              </div>
+              <button
+                type="button"
+                className={styles.modalClose}
+                onClick={() => setIsProviderModalOpen(false)}
+                aria-label="关闭 API 设置"
+              >
+                关闭
+              </button>
+            </div>
+
+            <div className={styles.modalMeta}>
+              <div className={styles.priorityRow}>
+                {settings.providerPriority.map((providerId, index) => (
+                  <span key={providerId} className={styles.priorityPill}>
+                    {index + 1}. {PROVIDER_DEFINITIONS[providerId].label}
+                  </span>
+                ))}
+              </div>
+              <p className={styles.hint}>
+                当前节点若选择“按项目默认”，会按这里的 provider 优先级自动选择已配置凭证。
+              </p>
+            </div>
+
+            <div className={styles.modalBody}>
+              <div className={styles.providerGrid}>
+                {settings.providerPriority.map((providerId) => {
+                  const provider = PROVIDER_DEFINITIONS[providerId];
+
+                  return (
+                    <article key={providerId} className={styles.providerCard}>
+                      <div className={styles.providerHead}>
+                        <div>
+                          <strong>{provider.label}</strong>
+                          <p className={styles.providerMeta}>{provider.vendor}</p>
+                        </div>
+                        <span
+                          className={`${styles.providerBadge} ${
+                            isCredentialConfigured(providerId, providerCredentials)
+                              ? styles.providerReady
+                              : styles.providerMissing
+                          }`}
+                        >
+                          {isCredentialConfigured(providerId, providerCredentials)
+                            ? "已配置"
+                            : "未配置"}
+                        </span>
+                      </div>
+                      <p className={styles.hint}>{provider.description}</p>
+                      <p className={styles.providerModel}>
+                        默认视频模型：{provider.videoModel}
+                      </p>
+                      {provider.imageModel ? (
+                        <p className={styles.providerModel}>
+                          参考图模型：{provider.imageModel}
+                        </p>
+                      ) : null}
+                      {provider.credentialFields.map((field) => (
+                        <div key={field.key} className={styles.field}>
+                          <label className={styles.label}>{field.label}</label>
+                          <input
+                            className={styles.textInput}
+                            type={field.secret ? "password" : "text"}
+                            value={
+                              providerCredentials[providerId][
+                                field.key as keyof ProviderCredentialState[typeof providerId]
+                              ] as string
+                            }
+                            onChange={(event) =>
+                              setProviderCredentials((currentCredentials) => ({
+                                ...currentCredentials,
+                                [providerId]: {
+                                  ...currentCredentials[providerId],
+                                  [field.key]: event.target.value,
+                                },
+                              }))
+                            }
+                            placeholder={field.placeholder}
+                          />
+                        </div>
+                      ))}
+                      <a
+                        className={styles.inlineLinkButton}
+                        href={provider.docsUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        打开官方文档
+                      </a>
+                    </article>
+                  );
+                })}
+              </div>
+
+              <div className={styles.providerCard} style={{ marginTop: "20px" }}>
+                <strong>Grok Image · OpenRouter</strong>
+                <p className={styles.providerMeta}>角色与场景生图。留空使用服务器配置的密钥。</p>
+                <label>
+                  OpenRouter API Key
+                  <input type="password" autoComplete="off" value={openRouterImageKey}
+                    onChange={(event) => setOpenRouterImageKey(event.target.value)}
+                    placeholder="sk-or-…" />
+                </label>
+              </div>
+              {/* Agent API Key 配置 */}
+              <div className={styles.providerCard} style={{ marginTop: "20px" }}>
+                <div className={styles.providerHead}>
+                  <div>
+                    <strong>Agent API 配置</strong>
+                    <p className={styles.providerMeta}>豆包方舟 - 故事生成与剧本创作</p>
+                  </div>
+                  <span
+                    className={`${styles.providerBadge} ${
+                      agentApiKey.trim().length > 0
+                        ? styles.providerReady
+                        : styles.providerMissing
+                    }`}
+                  >
+                    {agentApiKey.trim().length > 0 ? "已配置" : "未配置"}
+                  </span>
+                </div>
+                <p className={styles.hint}>
+                  Agent 用于故事拆解和剧本创作。支持图像理解功能。
+                  凭证保存在浏览器 localStorage 中。
+                </p>
+                <div className={styles.field}>
+                  <label className={styles.label}>Agent API Key</label>
+                  <input
+                    className={styles.textInput}
+                    type="password"
+                    value={agentApiKey}
+                    onChange={(event) => {
+                      const newKey = event.target.value;
+                      setAgentApiKey(newKey);
+                      if (typeof window !== "undefined") {
+                        if (newKey.trim()) {
+                          localStorage.setItem(AGENT_API_KEY_STORAGE_KEY, newKey);
+                        } else {
+                          localStorage.removeItem(AGENT_API_KEY_STORAGE_KEY);
+                        }
+                      }
+                    }}
+                    placeholder="输入豆包方舟 API Key"
+                  />
+                </div>
+                <div className={styles.field}>
+                  <button
+                    type="button"
+                    className={styles.secondaryButton}
+                    onClick={async () => {
+                      if (!agentApiKey.trim()) {
+                        setNotice({
+                          tone: "error",
+                          message: "请先输入 API Key",
+                        });
+                        return;
+                      }
+
+                      setNotice({
+                        tone: "info",
+                        message: "正在测试 API Key...",
+                      });
+
+                      try {
+                        const { data: result, error } = await agentApi.testApiKey(agentApiKey);
+
+                        if (result?.success) {
+                          setNotice({
+                            tone: "success",
+                            message: "✅ API Key 配置正确！可以开始使用 Agent 功能了。",
+                          });
+                        } else {
+                          setNotice({
+                            tone: "error",
+                            message: `❌ API Key 测试失败：${result?.message ?? error ?? "未知错误"}`,
+                          });
+                        }
+                      } catch (error) {
+                        setNotice({
+                          tone: "error",
+                          message: `测试失败：${error instanceof Error ? error.message : "未知错误"}`,
+                        });
+                      }
+                    }}
+                  >
+                    测试 API Key 连接
+                  </button>
+                </div>
+                <a
+                  className={styles.inlineLinkButton}
+                  href="https://www.volcengine.com/docs/ark"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  打开官方文档获取 API Key
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+    </div>
+  );
+}

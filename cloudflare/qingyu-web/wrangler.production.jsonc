@@ -1,0 +1,92 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "qingyu-stories",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": [
+    "nodejs_compat"
+  ],
+  "workers_dev": true,
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": [
+      "/api/*",
+      "/health",
+      "/community-guidelines"
+    ]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "qingyu-db",
+      "database_id": "67528064-1378-4794-9ebf-b39b25b0d418",
+      "migrations_dir": "engine/cloudflare/dzmm/migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "qingyu-media"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "LIVE_STUDIOS",
+        "class_name": "ViduLiveStudio"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "qingyu-live-v1",
+      "new_sqlite_classes": [
+        "ViduLiveStudio"
+      ]
+    }
+  ],
+  "ratelimits": [
+    {
+      "name": "CHAT_RATE_LIMITER",
+      "namespace_id": "202610232",
+      "simple": {
+        "limit": 12,
+        "period": 60
+      }
+    },
+    {
+      "name": "MEMORY_RATE_LIMITER",
+      "namespace_id": "202610233",
+      "simple": {
+        "limit": 12,
+        "period": 60
+      }
+    }
+  ],
+  "vars": {
+    "APP_ORIGINS": "https://qingyu.xumengchat.top,https://qingyu-stories.850587960.workers.dev",
+    "PAYMENTS_ACCEPTING_ENABLED": "false",
+    "SUBSCRIPTION_ENABLED": "false",
+    "EMAIL_AUTH_ENABLED": "false",
+    "GENERATION_ENABLED": "false",
+    "CREDIT_BILLING_ENABLED": "false",
+    "NOWPAYMENTS_ENABLED": "false",
+    "STRIPE_PAYMENT_MODE": "test",
+    "SUBSCRIPTION_PLANS_JSON": "[{\"id\": \"vip_monthly\", \"label\": \"晴屿 VIP\", \"revision\": 2, \"amountMinor\": 2800, \"currency\": \"cny\", \"durationDays\": 30, \"dailyCredits\": 500, \"maxClaims\": 30, \"timezone\": \"Asia/Shanghai\"}]"
+  },
+  "account_id": "274d62c1f24b885b3dfe562cda5d60c1",
+  "services": [
+    {
+      "binding": "COMPANION",
+      "service": "qingyu-companion"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "qingyu.xumengchat.top",
+      "custom_domain": true
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "checked_files": 1825,
+  "earlier_check": {
+    "checked_files": 1825,
+    "changed_files": [],
+    "original_unchanged": true,
+    "new_project": "cloudflare/qingyu-web"
+  },
+  "final_changed_files": [
+    "src/lib/xumeng-feature-availability.ts",
+    "cloudflare/dzmm-web/wrangler.jsonc",
+    "cloudflare/dzmm-web/test/generation-pause.test.mts"
+  ],
+  "new_project": "cloudflare/qingyu-web",
+  "scope_of_this_task_writes": [
+    "cloudflare/qingyu-web/",
+    "output/playwright/qingyu/"
+  ],
+  "note": "The earlier comparison found all 1825 original files unchanged. A later final comparison detected changes to three original files outside this task writing scope. This task did not write or revert those original files; concurrent workspace changes have been preserved."
+}

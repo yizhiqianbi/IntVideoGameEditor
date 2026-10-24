@@ -1,0 +1,4 @@
+{
+  "extends": "./tsconfig.worker.json",
+  "include": ["scripts/dev-native-host.ts", "src/server/local-native-binding.ts"]
+}
