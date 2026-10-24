@@ -1,0 +1,519 @@
+{
+  "layer": "actual isolated Miniflare D1/R2; ordinary original fixtures; no production",
+  "migrations": [
+    "0001_initial.sql",
+    "0002_preferences_extras.sql",
+    "0003_forum.sql",
+    "0004_super_accounts.sql",
+    "0005_character_context.sql",
+    "0006_character_publishing.sql",
+    "0007_task_claims.sql",
+    "0008_payments.sql",
+    "0009_payment_modes.sql",
+    "0010_email_auth.sql",
+    "0011_zpay_payments.sql",
+    "0012_zpay_recharge_tiers.sql",
+    "0013_subscriptions.sql",
+    "0014_conversation_story_memory.sql",
+    "0015_credit_usage.sql",
+    "0016_conversation_world_state.sql",
+    "0017_chat_media.sql",
+    "0018_chat_media_wav.sql",
+    "0019_conversation_opening.sql",
+    "0020_credit_cost_pricing.sql",
+    "0021_private_novels.sql",
+    "0022_admin_super.sql",
+    "0023_trusted_credit_grants.sql",
+    "0024_generation_jobs.sql",
+    "0025_preferences_models.sql",
+    "0026_task_market.sql",
+    "0027_task_market_instructions.sql",
+    "0028_telegram_feedback.sql",
+    "0029_forum_demo_seed.sql",
+    "0030_generation_references.sql",
+    "0031_novel_characters.sql",
+    "0032_character_voice.sql",
+    "0033_character_voice_style.sql",
+    "0034_creator_games.sql",
+    "0035_creator_scenarios.sql",
+    "0036_forum_create_requests.sql",
+    "0037_nowpayments_membership.sql",
+    "0038_nowpayments_quarterly_membership.sql",
+    "0039_preferences_cydonia.sql",
+    "0040_preferences_model_choices.sql",
+    "0041_referrals.sql",
+    "0042_community_credit_wallet.sql",
+    "0043_referral_reward_amount.sql",
+    "0043_waffo_cny_membership.sql",
+    "0044_chat_media_credit.sql",
+    "0045_password_reset.sql",
+    "0046_character_likes.sql",
+    "0047_guagua_payments.sql",
+    "0048_guagua_wxpay.sql",
+    "0049_guagua_vip.sql",
+    "0050_dream_coin.sql",
+    "0051_companion_turn_billing.sql",
+    "0052_creator_game_media.sql",
+    "0053_studio_still_billing.sql",
+    "0054_studio_still_price.sql",
+    "0055_qingyu_safe_model_choices.sql"
+  ],
+  "observations": [
+    {
+      "case": "boundary501-and-legacy",
+      "role": "user",
+      "legacy": 501,
+      "pages": [
+        {
+          "assets": 500,
+          "directory": {
+            "version": 1,
+            "limit": 500,
+            "scannedRows": 500,
+            "upper": {
+              "createdAt": 1791943200000,
+              "id": "cm_directory_00500_395e382e-bd78-4476-9f36-44d304566e68"
+            },
+            "after": null,
+            "nextCursor": "WzEsIjQxNzE3NWIwLTkzMmMtNDU4Mi05MTYyLTM5MTI5YTgxZmE5ZCIsIjhjYWM5ZDI2LWViMDgtNGExYy1iYmFhLTJiNjU2MDNlNTEyYyIsNTAwLDE3OTE5NDMyMDAwMDAsImNtX2RpcmVjdG9yeV8wMDQ5OV9iM2Y3M2Q0OS0xODJkLTRhMjAtOTMxMS05YjI2NDVjOGY2ODMiLDE3OTE5NDMyMDAwMDAsImNtX2RpcmVjdG9yeV8wMDUwMF8zOTVlMzgyZS1iZDc4LTQ0NzYtOWYzNi00NGQzMDQ1NjZlNjgiXQ"
+          }
+        },
+        {
+          "assets": 1,
+          "directory": {
+            "version": 1,
+            "limit": 500,
+            "scannedRows": 1,
+            "upper": {
+              "createdAt": 1791943200000,
+              "id": "cm_directory_00500_395e382e-bd78-4476-9f36-44d304566e68"
+            },
+            "after": {
+              "createdAt": 1791943200000,
+              "id": "cm_directory_00499_b3f73d49-182d-4a20-9311-9b2645c8f683"
+            },
+            "nextCursor": null
+          }
+        }
+      ],
+      "completeIds": 501
+    },
+    {
+      "case": "empty-stale-page-progress",
+      "scannedFirst": 500,
+      "returnedFirst": 0,
+      "completeIds": [
+        "cm_matching_00000_c370493d-433f-4cc8-af32-9bb0e117c73b"
+      ]
+    },
+    {
+      "case": "pending-quota-and-high-water",
+      "usage": {
+        "audio": 2,
+        "image": 0
+      },
+      "pending": 2,
+      "newAfterUpperExcluded": true
+    },
+    {
+      "case": "distinct-source-no-amplification",
+      "rawVersions": 500,
+      "sourceReadQueries": 1,
+      "distinctMessageIds": 1,
+      "actualSourceBytes": 36000,
+      "hypotheticalRepeatedBodyBytes": 18000000
+    },
+    {
+      "case": "source-byte-cap",
+      "chunkMaxIds": 40,
+      "actualLargestValidChunkBytes": 1920000,
+      "projectedOversizedBytes": 2097153,
+      "status": 413,
+      "partialSuccess": false,
+      "scope": "all stored contents satisfy real D1 12,000-character CHECK; oversize defense uses isolated SQL result projection, not actual stored history"
+    },
+    {
+      "case": "post-read-byte-defense",
+      "actualD1SourceRemainedValid": true,
+      "projectedSourceBytes": 2160000,
+      "status": 413,
+      "partialSuccess": false,
+      "scope": "isolated inconsistent SQL projection; no schema bypass or actual oversized historical data"
+    }
+  ],
+  "requests": [
+    {
+      "accountId": "417175b0-932c-4582-9162-39129a81fa9d",
+      "conversationId": "8cac9d26-eb08-4a1c-bbaa-2b65603e512c",
+      "query": "",
+      "status": 200,
+      "assets": 501,
+      "pending": 0,
+      "scannedRows": null
+    },
+    {
+      "accountId": "417175b0-932c-4582-9162-39129a81fa9d",
+      "conversationId": "8cac9d26-eb08-4a1c-bbaa-2b65603e512c",
+      "query": "&pagination=1&limit=500",
+      "status": 200,
+      "assets": 500,
+      "pending": 0,
+      "scannedRows": 500
+    },
+    {
+      "accountId": "417175b0-932c-4582-9162-39129a81fa9d",
+      "conversationId": "8cac9d26-eb08-4a1c-bbaa-2b65603e512c",
+      "query": "&pagination=1&limit=500&cursor=WzEsIjQxNzE3NWIwLTkzMmMtNDU4Mi05MTYyLTM5MTI5YTgxZmE5ZCIsIjhjYWM5ZDI2LWViMDgtNGExYy1iYmFhLTJiNjU2MDNlNTEyYyIsNTAwLDE3OTE5NDMyMDAwMDAsImNtX2RpcmVjdG9yeV8wMDQ5OV9iM2Y3M2Q0OS0xODJkLTRhMjAtOTMxMS05YjI2NDVjOGY2ODMiLDE3OTE5NDMyMDAwMDAsImNtX2RpcmVjdG9yeV8wMDUwMF8zOTVlMzgyZS1iZDc4LTQ0NzYtOWYzNi00NGQzMDQ1NjZlNjgiXQ",
+      "status": 200,
+      "assets": 1,
+      "pending": 0,
+      "scannedRows": 1
+    },
+    {
+      "accountId": "edf454b2-0ac2-4c0b-88ce-cc2119cc721c",
+      "conversationId": "133528d4-02e1-4cb9-9a4f-5793062404d6",
+      "query": "&pagination=1&limit=500",
+      "status": 200,
+      "assets": 0,
+      "pending": 0,
+      "scannedRows": 500
+    },
+    {
+      "accountId": "edf454b2-0ac2-4c0b-88ce-cc2119cc721c",
+      "conversationId": "133528d4-02e1-4cb9-9a4f-5793062404d6",
+      "query": "&pagination=1&limit=500&cursor=WzEsImVkZjQ1NGIyLTBhYzItNGMwYi04OGNlLWNjMjExOWNjNzIxYyIsIjEzMzUyOGQ0LTAyZTEtNGNiOS05YTRmLTU3OTMwNjI0MDRkNiIsNTAwLDE3OTE5NDMyMDA0OTksImNtX2RpcmVjdG9yeV8wMDQ5OV8xZGJiMmNkZC01NTQ1LTQxNzAtOWE4MS01ZjM5ZDZhYmVlNjQiLDE3OTE5NDMyMDIwMDAsImNtX21hdGNoaW5nXzAwMDAwX2MzNzA0OTNkLTQzM2YtNGNjOC1hZjMyLTliYjBlMTE3YzczYiJd",
+      "status": 200,
+      "assets": 1,
+      "pending": 0,
+      "scannedRows": 1
+    },
+    {
+      "accountId": "b79fae05-885f-4ad6-abb9-d3e5d0fef05c",
+      "conversationId": "032ac147-a9fb-4fc4-b741-3d9abf4f2c80",
+      "query": "&pagination=1&limit=2",
+      "status": 200,
+      "assets": 2,
+      "pending": 0,
+      "scannedRows": 2
+    },
+    {
+      "accountId": "b79fae05-885f-4ad6-abb9-d3e5d0fef05c",
+      "conversationId": "032ac147-a9fb-4fc4-b741-3d9abf4f2c80",
+      "query": "&pagination=1&limit=2&cursor=WzEsImI3OWZhZTA1LTg4NWYtNGFkNi1hYmI5LWQzZTVkMGZlZjA1YyIsIjAzMmFjMTQ3LWE5ZmItNGZjNC1iNzQxLTNkOWFiZjRmMmM4MCIsMiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfNjRjMDRjY2QtMjU4MC00ZjQwLWJjMzQtMGFjNWU3NjNiMjU5IiwxNzkxOTQzMjAwMTAxLCJjbV9wZW5kaW5nXzAwMDAxXzFlOGY0ZDdkLTRlZmItNGEzYy1iODg2LTFlMzYxMTkzZTRlMCJd",
+      "status": 200,
+      "assets": 0,
+      "pending": 2,
+      "scannedRows": 2
+    },
+    {
+      "accountId": "b79fae05-885f-4ad6-abb9-d3e5d0fef05c",
+      "conversationId": "032ac147-a9fb-4fc4-b741-3d9abf4f2c80",
+      "query": "&pagination=1&limit=500",
+      "status": 200,
+      "assets": 3,
+      "pending": 2,
+      "scannedRows": 5
+    },
+    {
+      "accountId": "11b74412-908f-4c6f-a99c-94c351efe1a2",
+      "conversationId": "d90c6052-8161-473f-a495-cc32734bced8",
+      "query": "&pagination=1&limit=500",
+      "status": 200,
+      "assets": 0,
+      "pending": 1,
+      "scannedRows": 2
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1",
+      "status": 200,
+      "assets": 1,
+      "pending": 0,
+      "scannedRows": 1
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&limit=500",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&pagination=1",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=501",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=500&limit=500",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&unknown=1",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&cursor=",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&cursor=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&cursor=***",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=2&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzIsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjk4ODQ4OTg2LWQyYTYtNDFlMC1iNGNmLWIzMDAxNGJiMjkwMSIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjQ5YTZkNjRiLWMyZDQtNGU0My1iMGU1LTAyMjFkYjU4OGY5MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAyLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0IiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0Il0",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYzRkMjlkMjgtMTY4OS00MzkzLTkxYzctNmIxYTFkYzU1ZGZkIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfZmEzY2RmMTUtMjk0MC00ZGQwLWIwNGItYzk0Njg3YjczOTg0IiwiZXh0cmEiXQ",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjgxZjFjNDUzLTcxNDItNDg2YS05YmQxLTBlYzNlNzc2NDM0MCIsIjc5NDQwYjBmLTE3YzktNDkwMi1iYzE0LWI4YWE5ZWY4ZjI4MCIsMSwtMSwiY21fZGlyZWN0b3J5XzAwMDAwX2M0ZDI5ZDI4LTE2ODktNDM5My05MWM3LTZiMWExZGM1NWRmZCIsMTc5MTk0MzIwMDAwMSwiY21fZGlyZWN0b3J5XzAwMDAxX2ZhM2NkZjE1LTI5NDAtNGRkMC1iMDRiLWM5NDY4N2I3Mzk4NCJd",
+      "status": 400,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "49a6d64b-c2d4-4e43-b0e5-0221db588f90",
+      "query": "&pagination=1",
+      "status": 404,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "81f1c453-7142-486a-9bd1-0ec3e7764340",
+      "conversationId": "79440b0f-17c9-4902-bc14-b8aa9ef8f280",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 2,
+      "pending": 0,
+      "scannedRows": 2
+    },
+    {
+      "accountId": "8c842069-2269-4fad-9f17-1376269bb064",
+      "conversationId": "b1127edb-59b3-4f93-9a9f-27c02e583902",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 0,
+      "pending": 0,
+      "scannedRows": 0
+    },
+    {
+      "accountId": "8c842069-2269-4fad-9f17-1376269bb064",
+      "conversationId": "b1127edb-59b3-4f93-9a9f-27c02e583902",
+      "query": "&pagination=1&limit=1",
+      "status": 200,
+      "assets": 1,
+      "pending": 0,
+      "scannedRows": 1
+    },
+    {
+      "accountId": "8c842069-2269-4fad-9f17-1376269bb064",
+      "conversationId": "b1127edb-59b3-4f93-9a9f-27c02e583902",
+      "query": "&pagination=1&limit=1&cursor=WzEsIjhjODQyMDY5LTIyNjktNGZhZC05ZjE3LTEzNzYyNjliYjA2NCIsImIxMTI3ZWRiLTU5YjMtNGY5My05YTlmLTI3YzAyZTU4MzkwMiIsMSwxNzkxOTQzMjAwMDAwLCJjbV9kaXJlY3RvcnlfMDAwMDBfYWM5NThjM2YtMTViZS00NDM5LThkMzEtZDdlNjVjYzc4MTRlIiwxNzkxOTQzMjAwMDAxLCJjbV9kaXJlY3RvcnlfMDAwMDFfY2JiY2RjZDMtZDQ0ZS00MmNjLTkzMjgtZjBhYzNlZjQ2ZGU5Il0",
+      "status": 200,
+      "assets": 0,
+      "pending": 0,
+      "scannedRows": 0
+    },
+    {
+      "accountId": "c948fd0e-ea2e-458d-a7ba-48cd2b1d41e5",
+      "conversationId": "dbd927df-c641-44ce-bc8c-4824555e0af8",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 0,
+      "pending": 0,
+      "scannedRows": 500
+    },
+    {
+      "accountId": "aa078d33-d592-416b-85fb-903a40867934",
+      "conversationId": "c90a5770-729e-4d49-83b7-1551d9cd720a",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 41,
+      "pending": 0,
+      "scannedRows": 41
+    },
+    {
+      "accountId": "3cdce40b-5daa-43a8-9f60-14c497a60960",
+      "conversationId": "eb1a373d-c83c-4521-a6ba-c1e1686ee5d7",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 40,
+      "pending": 0,
+      "scannedRows": 40
+    },
+    {
+      "accountId": "a77f2a16-f27d-4735-a031-975de6c22370",
+      "conversationId": "fff2cd9a-ead5-4e4b-9e8b-26ca37b31037",
+      "query": "&pagination=1",
+      "status": 413,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "fde30b07-6a49-4ad6-bdca-13b38f15b262",
+      "conversationId": "91d21972-7a5b-45da-a937-6985256739e9",
+      "query": "&pagination=1",
+      "status": 413,
+      "assets": null,
+      "pending": null,
+      "scannedRows": null
+    },
+    {
+      "accountId": "ff9ba629-e5a3-42b1-a40f-924100679e18",
+      "conversationId": "438cdfbb-0e8f-4b8a-a704-2971de81c34e",
+      "query": "&pagination=1",
+      "status": 200,
+      "assets": 1,
+      "pending": 0,
+      "scannedRows": 1
+    }
+  ],
+  "cleanup": {
+    "counts": {
+      "users": 0,
+      "conversations": 0,
+      "messages": 0,
+      "chat_media_assets": 0,
+      "chat_media_usage": 0
+    },
+    "r2Objects": 0
+  },
+  "modelCalls": 0,
+  "providerCalls": 0,
+  "productionOperations": 0
+}

@@ -1,0 +1,7 @@
+{
+  "providerAccount": "authorized existing account; no original credentials/configuration written",
+  "agreements": "existing accepted flags reused only after both copied document fingerprints match exactly",
+  "storage": ".runtime/native-host",
+  "binding": "loopback-only private development service; Cloudflare binding retained",
+  "credentials": "omitted"
+}

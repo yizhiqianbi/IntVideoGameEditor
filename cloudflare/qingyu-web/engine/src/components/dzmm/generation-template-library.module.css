@@ -1,0 +1,103 @@
+.library[hidden]{display:none}
+.toolbar{display:flex;align-items:center;justify-content:flex-start;gap:24px;margin:0 0 14px}
+.parts{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:18px;align-items:start}
+.part{min-width:0;max-height:calc(100vh - 188px);overflow:auto;padding-right:2px}
+.posterGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:8px}
+.poster{border:0!important;background:transparent!important;border-radius:8px;padding:0!important;cursor:pointer}
+.poster:hover{transform:none}
+.poster .cardImage{aspect-ratio:3/4;border-radius:8px}
+.poster img{display:block;width:100%;height:100%;object-fit:cover;background:#111}
+.poster strong{position:absolute;top:0;left:0;right:0;padding:8px 8px 22px;background:linear-gradient(#000c,transparent);color:#fff;font-size:12px;font-weight:620;line-height:1.3;text-align:left;text-shadow:0 1px 2px #000}
+.poster:disabled{opacity:1;cursor:default}
+.stillGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.still{display:flex!important;flex-direction:column;align-items:flex-start!important;gap:4px;min-height:72px;padding:10px 10px 9px!important;text-align:left;border:1px solid var(--line)!important;border-radius:8px;background:var(--surface)!important;color:var(--text)}
+.still strong{font-size:13px;font-weight:620;line-height:1.35}
+.still span{font-size:11px;line-height:1.45;color:var(--muted)}
+.still:hover{border-color:color-mix(in srgb,var(--pink) 45%,var(--line))!important}
+.groupTabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.groupTabs button{display:inline-flex;align-items:center;gap:5px;border:1px solid var(--line);background:transparent;color:var(--muted);border-radius:999px;font-size:12px;padding:5px 9px}
+.groupTabs button em{font-style:normal;font-size:10px;opacity:.7}
+.groupTabs button[aria-pressed=true]{background:var(--pink);color:#fff;border-color:transparent}
+.groupTabs button:hover{color:var(--text)}
+.groupTabs button[aria-pressed=true]:hover{color:#fff}
+.part .listHeader{margin:0 0 10px}
+.part .listHeader h2{font-size:15px}
+.part .listHeader p{margin-top:3px}
+.kindTabs{display:flex;gap:6px}
+.kindTabs button,.categories button{background:transparent;color:var(--muted);border:1px solid transparent;border-radius:24px;font-size:13px;padding:10px 18px;white-space:nowrap}
+.kindTabs button[aria-pressed=true]{background:var(--pink);color:#fff}
+.kindTabs button:hover{background:var(--soft);color:var(--text)}
+.kindTabs button[aria-pressed=true]:hover{background:var(--pink);color:#fff}
+.search{display:flex;align-items:center;gap:9px;box-sizing:border-box;width:min(420px,100%);background:var(--surface);border:1px solid var(--line);border-radius:9px;color:var(--muted);padding:0 12px}
+.search input{font:inherit;min-width:0;width:100%;padding:12px 0;background:transparent;color:var(--text);border:0;outline:none;font-size:13px}
+.search:focus-within{border-color:var(--pink)}
+.search button{background:transparent;border:0;color:var(--muted);padding:5px}
+.categories{display:flex;flex-wrap:wrap;gap:4px;padding-bottom:22px;border-bottom:1px solid var(--line)}
+.categories button{border-radius:7px;font-size:12px;padding:8px 12px}
+.categories button[aria-pressed=true]{color:var(--pink);background:var(--pink-soft)}
+.categories button:hover{background:var(--soft)}
+.listHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:25px 0 18px}
+.listHeader h2{font-size:16px;font-weight:600;margin:0}
+.listHeader p{font-size:12px;color:var(--muted);line-height:1.6;margin:6px 0 0}
+.listHeader>span{font-size:12px;color:var(--muted);white-space:nowrap}
+.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 18px;animation:reveal .18s ease}
+.card{display:flex!important;flex-direction:column;text-align:left;align-items:stretch!important;padding:0!important;min-width:0;overflow:hidden;border:1px solid var(--line)!important;border-radius:12px;background:var(--surface)!important;color:var(--text);transition:transform .16s,border-color .16s}
+.card:hover{transform:translateY(-3px);border-color:color-mix(in srgb,var(--pink) 45%,var(--line))!important}
+.cardImage{position:relative;width:100%;aspect-ratio:8/5;background:var(--soft);overflow:hidden}
+.cardImage img{display:block;width:100%;height:100%;object-fit:cover;transition:transform .24s}
+.cardImage video{display:block;width:100%;height:100%;object-fit:contain;background:#151722}
+.cardSelect{display:flex!important;flex-direction:column;flex:1;align-items:stretch!important;text-align:left;width:100%;border:0;background:transparent;color:var(--text);padding:0!important}
+.cardSelect .cardText{width:100%;box-sizing:border-box}
+.cardImage:has(video) .kindBadge{pointer-events:none}
+.card:hover img{transform:scale(1.025)}
+.kindBadge{position:absolute;left:12px;top:12px;display:flex;align-items:center;gap:5px;font-size:10px;color:#fff;background:#171721b8;border:1px solid #fff2;border-radius:20px;padding:5px 8px}
+.illustrationNote{position:absolute;right:10px;bottom:9px;font-size:9px;line-height:1.5;color:#fffc;background:#171721a6;border-radius:4px;padding:3px 6px}
+.cardText{display:flex;flex-direction:column;flex:1;padding:17px 16px 14px}
+.cardText>strong{font-size:15px;font-weight:620;line-height:1.5}
+.cardText>p{font-size:12px;color:var(--muted);line-height:1.65;margin:7px 0 13px;min-height:39px}
+.tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:16px}
+.tags span{font-size:10px;line-height:1.5;padding:3px 6px;background:var(--soft);border-radius:4px;color:var(--muted)}
+.cardAction{display:flex;align-items:center;justify-content:space-between;gap:8px;padding-top:12px;margin-top:auto;border-top:1px solid var(--line);font-size:12px;font-weight:500;color:var(--text);transition:color .16s}
+.cardAction svg{transition:transform .16s}
+.card:hover .cardAction,.card:focus-visible .cardAction{color:var(--pink)}
+.card:hover .cardAction svg,.card:focus-visible .cardAction svg{transform:translateX(3px)}
+.empty{padding:70px 20px;text-align:center;color:var(--muted)}
+.empty>svg{opacity:.5}
+.empty h3{font-size:16px;color:var(--text);font-weight:500;margin:18px 0 8px}
+.empty p{font-size:13px;margin:0 0 20px}
+.empty button{border:1px solid var(--line);border-radius:8px;padding:9px 14px;background:var(--surface);color:var(--text);font-size:12px}
+.library button:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.library button:disabled,.search input:disabled{opacity:.5;cursor:default}
+.card:disabled:hover{transform:none;border-color:var(--line)!important}
+.card:disabled:hover img{transform:none}
+.card:disabled:hover .cardAction{color:var(--text)}
+.card:disabled:hover .cardAction svg{transform:none}
+@keyframes reveal{from{opacity:.75;transform:translateY(5px)}to{opacity:1;transform:none}}
+@media(min-width:1600px){.grid{grid-template-columns:repeat(5,minmax(0,1fr))}}
+@media(max-width:1050px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px 14px}.parts{grid-template-columns:1fr}.posterGrid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}.part{max-height:70vh}}
+@media(max-width:760px){
+  .parts{grid-template-columns:1fr;gap:22px}
+  .part{max-height:70vh}
+  .posterGrid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .stillGrid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .toolbar{align-items:stretch;flex-direction:column;gap:15px}
+  .search{width:100%}
+  .kindTabs button{flex:1;font-size:12px;padding:10px 13px}
+  .categories{flex-wrap:nowrap;overflow-x:auto;gap:3px;padding-bottom:14px}
+  .categories button{flex-shrink:0}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 12px}
+  .cardText{padding:13px 12px 12px}
+  .cardText>strong{font-size:13px}
+  .cardText>p{font-size:11px;min-height:37px}
+  .tags{margin-bottom:12px;gap:4px}
+  .tags span{font-size:9px}
+  .kindBadge{left:8px;top:8px;font-size:9px;padding:4px 6px}
+  .illustrationNote{right:7px;bottom:7px;font-size:8px}
+  .listHeader{align-items:flex-start}
+  .listHeader>span{font-size:10px}
+  .listHeader h2{font-size:14px}
+  .listHeader p{font-size:11px}
+  .cardAction{font-size:11px;padding-top:10px}
+}
+@media(max-width:400px){.listHeader{flex-direction:column;gap:7px}.cardText{padding:12px 10px}.tags span{padding:3px 4px}}
+@media(prefers-reduced-motion:reduce){.grid{animation:none}.card,.cardImage img,.cardAction,.cardAction svg{transition:none}}

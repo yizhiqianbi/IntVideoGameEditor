@@ -1,0 +1,82 @@
+diff --git a/src/A_memorix/core/runtime/services/search_hit_processing_service.py b/src/A_memorix/core/runtime/services/search_hit_processing_service.py
+index c9d7ce8..0f01101 100644
+--- a/src/A_memorix/core/runtime/services/search_hit_processing_service.py
++++ b/src/A_memorix/core/runtime/services/search_hit_processing_service.py
+@@ -204,7 +204,15 @@ class MemorySearchHitProcessingService(KernelServiceBase):
+     @classmethod
+     def _paragraph_scope_identity(cls, paragraph: Dict[str, Any]) -> tuple[str, set[str]]:
+         """按新字段优先、旧来源兼容的顺序解释段落范围。"""
+-        metadata = coerce_metadata_dict(paragraph.get("metadata"))
++        raw_metadata = paragraph.get("metadata")
++        # MetadataStore.query returns SQLite JSON columns as strings. Decode
++        # only here so scope checks also see person_fact chat ownership.
++        if isinstance(raw_metadata, str):
++            try:
++                raw_metadata = json.loads(raw_metadata)
++            except json.JSONDecodeError:
++                raw_metadata = None
++        metadata = coerce_metadata_dict(raw_metadata)
+         scope_type = str(metadata.get("scope_type", "") or "").strip().lower()
+         chat_ids = cls._metadata_chat_scope_ids(metadata)
+         source = str(paragraph.get("source", "") or metadata.get("source", "") or "").strip()
+diff --git a/pytests/A_memorix_test/test_person_fact_json_scope.py b/pytests/A_memorix_test/test_person_fact_json_scope.py
+new file mode 100644
+--- /dev/null
++++ b/pytests/A_memorix_test/test_person_fact_json_scope.py
+@@ -0,0 +1,56 @@
++from pathlib import Path
++from types import SimpleNamespace
++
++import pytest
++
++from src.A_memorix.core.runtime.services.search_hit_processing_service import MemorySearchHitProcessingService
++from src.A_memorix.core.storage import MetadataStore
++
++
++def test_person_fact_scope_reads_real_sqlite_json_and_excludes_other_chats(tmp_path: Path) -> None:
++    store = MetadataStore(data_dir=tmp_path / "metadata")
++    store.connect()
++    try:
++        current = store.add_paragraph(
++            "合成用户甲喜欢桂花乌龙，不加糖",
++            source="person_fact:person-current",
++            metadata={"chat_id": "session-current", "chat_ids": ["session-current"]},
++        )
++        other = store.add_paragraph(
++            "合成用户乙喜欢薄荷茶",
++            source="person_fact:person-other",
++            metadata={"chat_id": "session-other", "chat_ids": ["session-other"]},
++        )
++        explicit_global = store.add_paragraph(
++            "公开的合成背景资料",
++            source="manual",
++            metadata={"scope_type": "global"},
++        )
++        raw_rows = store.query("SELECT hash, metadata FROM paragraphs")
++        assert all(isinstance(row["metadata"], str) for row in raw_rows)
++        service = MemorySearchHitProcessingService(SimpleNamespace(metadata_store=store))
++
++        scope = service._resolve_retrieval_scope("session-current")
++        assert scope is not None
++        assert scope.paragraph_ids == frozenset({current, explicit_global})
++        assert other not in scope.paragraph_ids
++
++        other_scope = service._resolve_retrieval_scope("session-other")
++        assert other_scope is not None
++        assert other_scope.paragraph_ids == frozenset({other, explicit_global})
++        assert current not in other_scope.paragraph_ids
++    finally:
++        store.close()
++
++
++@pytest.mark.parametrize("metadata", ["{invalid", "null", '"session-current"', "7", "true", '[]', '[{"chat_id":"session-current"}]'])
++def test_malformed_or_non_object_metadata_does_not_grant_scope(metadata: str) -> None:
++    assert MemorySearchHitProcessingService._paragraph_scope_identity(
++        {"source": "person_fact:test", "metadata": metadata}
++    ) == ("unknown", set())
++
++
++def test_already_decoded_metadata_keeps_existing_scope() -> None:
++    assert MemorySearchHitProcessingService._paragraph_scope_identity(
++        {"source": "person_fact:test", "metadata": {"scope_type": "chat", "chat_ids": ["session-current"]}}
++    ) == ("chat", {"session-current"})

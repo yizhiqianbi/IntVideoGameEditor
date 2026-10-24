@@ -1,0 +1,20 @@
+{
+  "httpStatus": 200,
+  "sessionId": "fa1d738d-c6e5-4b72-9bb9-011029b11901",
+  "messagesAfterReconciliation": 41,
+  "voiceMessages": 1,
+  "duplicateVoicePlaceholders": 0,
+  "reviewedSourceText": "小禾，记得喝杯温热的柚子茶。",
+  "browserAudio": {
+    "duration": 2.928,
+    "readyState": 4,
+    "playing": true
+  },
+  "speechProofPreserved": true,
+  "nativeProactive": {
+    "queued": true,
+    "userMessageFabricated": false,
+    "additionalAssistantReplies": 1,
+    "beforeReconciliationCountStayedAt42": true
+  }
+}

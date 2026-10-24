@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>叙梦 Super 后台 · 本地隔离验收</title>
+    <style>
+      :root { font-family:system-ui,sans-serif; color:#18181b; background:white; }
+      * { box-sizing:border-box; } body { margin:0; } button { font:inherit; }
+      .fixture-panel { padding:16px 24px; background:#f7f7f8; border-bottom:1px solid #ddd; }
+      .fixture-panel h1 { font-size:18px; margin:0 0 8px; } .fixture-panel p { font-size:12px; color:#62626c; margin:8px 0; }
+      .fixture-actions { display:flex; flex-wrap:wrap; gap:8px; } .fixture-actions button { border:1px solid #ddd; border-radius:6px; padding:7px 10px; cursor:pointer; background:white; font-size:12px; }
+      .fixture-panel pre { max-height:180px; overflow:auto; white-space:pre-wrap; font-size:10px; }
+    </style>
+  </head>
+  <body>
+    <div id="fixture-controls"></div><div id="root"></div>
+    <script type="module" src="./admin-flow.tsx"></script>
+  </body>
+</html>

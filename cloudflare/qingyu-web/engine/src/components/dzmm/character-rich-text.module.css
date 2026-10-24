@@ -1,0 +1,9 @@
+.content { white-space: normal; overflow-wrap: anywhere; line-height: 1.85; }
+.content div + div, .content p { margin-top: .65em; }
+.content p { margin-bottom: .65em; }
+.content details { margin: 1em 0; padding: .8em 1em; border: 1px solid var(--line, #38383f); border-radius: 10px; }
+.content summary { cursor: pointer; font-weight: 600; }
+.content summary:focus-visible { outline: 2px solid var(--pink, #ec1870); outline-offset: 3px; }
+.content hr { margin: 1em 0; border: 0; border-top: 1px solid var(--line, #38383f); }
+.content small { color: var(--muted, #9999a3); }
+.content h1, .content h2, .content h3, .content h4, .content h5, .content h6 { margin: .8em 0 .3em; font-size: 1.1em; }

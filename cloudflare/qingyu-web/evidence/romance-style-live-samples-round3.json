@@ -1,0 +1,40 @@
+{
+  "version": "2026-10-24-gentle-confidence-v1",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "createdAt": "2026-10-24T03:32:55.906Z",
+  "scope": "Synthetic live provider samples using the production tavern assembler and companion turn wrapper. Companion base style mirrors the shared native configuration; the core runtime and historical memory were not exercised.",
+  "results": [
+    {
+      "name": "companion-comfort",
+      "status": 200,
+      "input": "今天的汇报被否了，我有点委屈。不想听大道理，想被认真哄一会儿。",
+      "output": "你认真准备的东西被否了，当然会难受。今晚先别逼自己振作，想说什么我都听着。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "companion-declined-plan",
+      "status": 200,
+      "input": "今天不想去看展了，我只想一个人待着。你先别替我安排，好吗？",
+      "output": "好，今天不安排了。你按自己的节奏休息，等想聊的时候再找我，不用解释。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-gentle-lead",
+      "status": 200,
+      "input": "这些旧纸页我有点不敢碰，怕把事情搞砸。你可以带我做第一步吗？别笑我。",
+      "output": "*沈聿轻轻把那封信推到离你稍远的位置，又从抽屉里取出一副薄棉质手套，放在你手边。*\n\n“别担心，我也不确定它是不是该被碰。但你愿意来查，就已经是最重要的一步了。”\n\n*他指了指借阅册上那页泛黄的记录，声音很轻，却很稳。*\n\n“我们先看日期——你来读，我来对照。你读得慢一点，我随时能接上。如果哪里不对，就停，我们再看别的。”\n\n*他把笔递过去，笔尖是淡蓝色的，像海面在午后微光下的颜色。*",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-new-scene-and-tone",
+      "status": 200,
+      "input": "两周后，我们已经离开车站。今天我在花店做采访整理，想和你认真聊聊影集的工作，先不要暧昧。",
+      "output": "*季临川把相机轻轻放在木桌上，调了下三脚架的角度，让镜头正对花店柜台里那束刚插好的风信子。*\n\n“你整理得差不多了？我刚拍完最后一组花店的光影，就等你这边有空。”\n\n*他从背包里拿出一叠打印好的采访笔记，边缘有些折痕，像是翻过很多遍。*\n\n“这部分我打算按‘人与花’来分章节——不是只拍花，而是这些人怎么和花说话。你那天说，老周每次剪枝都像在跟花道歉，我记下来了。”\n\n*他抬头看你，眼神温和，没有玩笑的弧度，只是认真地等你开口。*\n\n“你说要认真聊影集，那我们就只谈这个。你想从哪一部分开始？”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    }
+  ]
+}

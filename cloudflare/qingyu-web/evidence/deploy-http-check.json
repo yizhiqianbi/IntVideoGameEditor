@@ -1,0 +1,67 @@
+{
+  "base": "https://qingyu-stories.850587960.workers.dev",
+  "results": [
+    {
+      "path": "/api/status",
+      "status": 200,
+      "contentType": "application/json",
+      "body": {
+        "brand": "晴屿",
+        "edition": "otome-simple",
+        "policy": "all-ages",
+        "configured": true
+      }
+    },
+    {
+      "path": "/health",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "ok": true,
+        "service": "dzmm-web"
+      }
+    },
+    {
+      "path": "/art/shiyu.webp",
+      "status": 200,
+      "contentType": "image/webp"
+    },
+    {
+      "path": "/api/backend/v1/billing/config",
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "body": {
+        "enabled": false,
+        "priceRevision": null,
+        "inputCreditsPer1000": null,
+        "outputCreditsPer1000": null,
+        "memoryBilled": false,
+        "tokenUnit": 1000,
+        "rounding": "ceil_combined",
+        "outputIncludesReasoning": true,
+        "failureRule": "no_valid_output_refund",
+        "cancellationRule": "valid_output_bill_usage",
+        "missingUsageRule": "pending_then_refund",
+        "reservationTtlMs": 600000
+      }
+    },
+    {
+      "path": "/api/backend/v1/payments/checkout",
+      "status": 404,
+      "contentType": "application/json",
+      "body": {
+        "error": "当前版本暂未开放此功能。",
+        "code": "FEATURE_UNAVAILABLE"
+      }
+    },
+    {
+      "path": "/api/phone/status",
+      "status": 404,
+      "contentType": "application/json",
+      "body": {
+        "error": "当前版本暂未开放此功能。",
+        "code": "FEATURE_UNAVAILABLE"
+      }
+    }
+  ]
+}

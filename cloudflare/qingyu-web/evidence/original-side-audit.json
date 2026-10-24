@@ -1,0 +1,13 @@
+{
+  "checked": 780,
+  "changedOriginalFiles": [
+    "src/lib/xumeng-feature-availability.ts",
+    "src/lib/xumeng-generation-draft.test.mts",
+    "src/lib/xumeng-h3-actions.ts",
+    "src/lib/xumeng-intimate-stills.ts",
+    "src/lib/xumeng-krea2-stills.ts",
+    "cloudflare/dzmm-web/src/h3-r2v.ts",
+    "cloudflare/dzmm-web/test/h3-r2v.test.mts"
+  ],
+  "note": "Concurrent original-side edits preserved. Task writes are confined to cloudflare/qingyu-web and output/playwright/qingyu."
+}

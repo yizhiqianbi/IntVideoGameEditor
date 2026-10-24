@@ -1,0 +1,360 @@
+{
+  "ok": true,
+  "mode": "local-read-only",
+  "import": {
+    "valid": true,
+    "fileBytes": 18796,
+    "maxFileBytes": 262144,
+    "format": "SillyTavern-v2-JSON",
+    "fieldChars": {
+      "name": 3,
+      "author": 5,
+      "description": 632,
+      "personality": 200,
+      "scenario": 148,
+      "firstMessage": 772,
+      "systemPrompt": 444,
+      "postHistoryInstructions": 300,
+      "messageExamples": 387,
+      "introduction": 74
+    },
+    "tags": 6,
+    "galleryImages": 0,
+    "suggestedReplies": 3,
+    "worldbookEntries": 10
+  },
+  "authoring": {
+    "ready": true,
+    "mainOpeningMessages": 1,
+    "assistantMainOpenings": 1,
+    "alternateOpenings": 2,
+    "nonemptyModelSettingFields": 4
+  },
+  "promptAssembly": {
+    "valid": true,
+    "samples": [
+      {
+        "openingIndex": 0,
+        "valid": true,
+        "openingMessages": 1,
+        "providerMessages": 17,
+        "promptChars": 7933,
+        "promptUtf8Bytes": 21534,
+        "diagnostics": {
+          "version": "2026-10-24-qingyu-gentle-confidence-v1",
+          "historyMessages": 2,
+          "exampleMessages": 8,
+          "loreEntries": 8,
+          "hasMemory": false,
+          "segments": [
+            {
+              "source": "rules-and-character",
+              "role": "system",
+              "chars": 2570
+            },
+            {
+              "source": "worldbook",
+              "role": "system",
+              "chars": 1156
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 38
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 22
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 39
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 17
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 13
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 26
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 51
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 32
+            },
+            {
+              "source": "opening",
+              "role": "assistant",
+              "chars": 772
+            },
+            {
+              "source": "recent-history",
+              "role": "user",
+              "chars": 6
+            },
+            {
+              "source": "author-post-history",
+              "role": "system",
+              "chars": 300
+            },
+            {
+              "source": "living-world",
+              "role": "system",
+              "chars": 2034
+            },
+            {
+              "source": "round-reminder",
+              "role": "system",
+              "chars": 757
+            }
+          ]
+        }
+      },
+      {
+        "openingIndex": 1,
+        "valid": true,
+        "openingMessages": 1,
+        "providerMessages": 17,
+        "promptChars": 7062,
+        "promptUtf8Bytes": 19085,
+        "diagnostics": {
+          "version": "2026-10-24-qingyu-gentle-confidence-v1",
+          "historyMessages": 2,
+          "exampleMessages": 8,
+          "loreEntries": 5,
+          "hasMemory": false,
+          "segments": [
+            {
+              "source": "rules-and-character",
+              "role": "system",
+              "chars": 2570
+            },
+            {
+              "source": "worldbook",
+              "role": "system",
+              "chars": 809
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 38
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 22
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 39
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 17
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 13
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 26
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 51
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 32
+            },
+            {
+              "source": "opening",
+              "role": "assistant",
+              "chars": 248
+            },
+            {
+              "source": "recent-history",
+              "role": "user",
+              "chars": 6
+            },
+            {
+              "source": "author-post-history",
+              "role": "system",
+              "chars": 300
+            },
+            {
+              "source": "living-world",
+              "role": "system",
+              "chars": 2034
+            },
+            {
+              "source": "round-reminder",
+              "role": "system",
+              "chars": 757
+            }
+          ]
+        }
+      },
+      {
+        "openingIndex": 2,
+        "valid": true,
+        "openingMessages": 1,
+        "providerMessages": 17,
+        "promptChars": 7304,
+        "promptUtf8Bytes": 19719,
+        "diagnostics": {
+          "version": "2026-10-24-qingyu-gentle-confidence-v1",
+          "historyMessages": 2,
+          "exampleMessages": 8,
+          "loreEntries": 7,
+          "hasMemory": false,
+          "segments": [
+            {
+              "source": "rules-and-character",
+              "role": "system",
+              "chars": 2570
+            },
+            {
+              "source": "worldbook",
+              "role": "system",
+              "chars": 1050
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 38
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 22
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 39
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 17
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 13
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 50
+            },
+            {
+              "source": "dialogue-example",
+              "role": "user",
+              "chars": 26
+            },
+            {
+              "source": "dialogue-example",
+              "role": "assistant",
+              "chars": 51
+            },
+            {
+              "source": "example-boundary",
+              "role": "system",
+              "chars": 32
+            },
+            {
+              "source": "opening",
+              "role": "assistant",
+              "chars": 249
+            },
+            {
+              "source": "recent-history",
+              "role": "user",
+              "chars": 6
+            },
+            {
+              "source": "author-post-history",
+              "role": "system",
+              "chars": 300
+            },
+            {
+              "source": "living-world",
+              "role": "system",
+              "chars": 2034
+            },
+            {
+              "source": "round-reminder",
+              "role": "system",
+              "chars": 757
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "warnings": [
+    {
+      "code": "CREATOR_NOTES_DISPLAY_ONLY",
+      "message": "作者备注仅供展示，不会传给模型；重要设定应写入模型设定字段。"
+    },
+    {
+      "code": "DISPLAY_METADATA_NOT_PROMPT",
+      "message": "角色介绍、图库和建议回复用于界面展示，不直接加入模型提示词。"
+    }
+  ],
+  "limitations": [
+    "只验证文件导入及主、备选开场下的本地提示词组装；没有调用模型，不证明实际故事质量。",
+    "样本使用中性用户输入及剧情时间。未在样本中触发的世界书组合仍可能在未来造成上下文超限。",
+    "不检查远程图片可访问性、图片权属或公开投稿资格，也不会保存草稿或提交审核。"
+  ],
+  "stage": "completed"
+}

@@ -1,0 +1,23 @@
+{
+  "tool": "built-in image_gen.imagegen",
+  "mode": "generate",
+  "transparent_background": false,
+  "assets": [
+    {
+      "path": "public/art/shiyu.webp",
+      "prompt": "Use case: illustration-story. Create an ORIGINAL male romantic visual novel character illustration for a sophisticated all-ages otome app. Adult man age 25-29, beautiful expressive face, delicate detailed anime-inspired 2D painterly digital art, elegant natural proportions, luminous eyes, cinematic soft light, subtle flowering branches, refined pale ivory, blush rose and muted lavender palette. Vertical 3:4 portrait framed from head to mid-thigh, full head visible, composed stylishly, calm inviting expression directed toward viewer. Fully clothed modest stylish outfit, no sexualization, no bare torso. No text, logos, watermark, UI, panels, collage. Premium polished otome game character key art, not watercolor children's book. 24? No: age 26. Soft silver ash hair, pale violet eyes, ivory shirt under a light lavender tailored coat, slender fingers holding a folded musical score, standing beside a grand piano in a sunlit conservatory overlooking the sea. Gentle restrained smile, evening breeze in curtains, white camellias."
+    },
+    {
+      "path": "public/art/shen.webp",
+      "prompt": "Use case: illustration-story. Create an ORIGINAL male romantic visual novel character illustration for a sophisticated all-ages otome app. Adult man age 25-29, beautiful expressive face, delicate detailed anime-inspired 2D painterly digital art, elegant natural proportions, luminous eyes, cinematic soft light, subtle flowering branches, refined pale ivory, blush rose and muted lavender palette. Vertical 3:4 portrait framed from head to mid-thigh, full head visible, composed stylishly, calm inviting expression directed toward viewer. Fully clothed modest stylish outfit, no sexualization, no bare torso. No text, logos, watermark, UI, panels, collage. Premium polished otome game character key art, not watercolor children's book. Age 28. Neat dark black hair, subtle thin gold frame glasses, warm amber eyes, white shirt, charcoal blue tailored jacket with closed collar, holding a worn book and a small pressed flower, tall arched library window with cream curtains and lilac wisteria shadows. Quiet composed look."
+    },
+    {
+      "path": "public/art/linchuan.webp",
+      "prompt": "Use case: illustration-story. Create an ORIGINAL male romantic visual novel character illustration for a sophisticated all-ages otome app. Adult man age 25-29, beautiful expressive face, delicate detailed anime-inspired 2D painterly digital art, elegant natural proportions, luminous eyes, cinematic soft light, subtle flowering branches, refined pale ivory, blush rose and muted lavender palette. Vertical 3:4 portrait framed from head to mid-thigh, full head visible, composed stylishly, calm inviting expression directed toward viewer. Fully clothed modest stylish outfit, no sexualization, no bare torso. No text, logos, watermark, UI, panels, collage. Premium polished otome game character key art, not watercolor children's book. Age 27. Slightly tousled warm chestnut brown hair, sea blue eyes, cream knit sweater and light beige travelling jacket, vintage film camera hanging by a strap, small leather bag, standing at a flower-covered seaside railway platform in golden late afternoon light, warm lively smile."
+    },
+    {
+      "path": "public/art/xingcheng.webp",
+      "prompt": "Use case: illustration-story. Create an ORIGINAL male romantic visual novel character illustration for a sophisticated all-ages otome app. Adult man age 25-29, beautiful expressive face, delicate detailed anime-inspired 2D painterly digital art, elegant natural proportions, luminous eyes, cinematic soft light, subtle flowering branches, refined pale ivory, blush rose and muted lavender palette. Vertical 3:4 portrait framed from head to mid-thigh, full head visible, composed stylishly, calm inviting expression directed toward viewer. Fully clothed modest stylish outfit, no sexualization, no bare torso. No text, logos, watermark, UI, panels, collage. Premium polished otome game character key art, not watercolor children's book. Age 25. Dark indigo blue hair, cool grey blue eyes, ivory turtleneck and dark navy long coat with a tiny silver star pin, holding a brass celestial compass at an observatory balcony with distant purple dusk sky and pale city lights, thoughtful curious expression."
+    }
+  ]
+}

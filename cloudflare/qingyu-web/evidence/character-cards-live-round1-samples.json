@@ -1,0 +1,832 @@
+{
+  "version": "2026-10-24-cast-v2",
+  "date": "2026-10-24T09:42:40.087Z",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "scope": "Eight synthetic live samples using the production prompt assembler. No native core sessions or long historical memory were exercised. Outputs require manual review; no quality score is inferred.",
+  "results": [
+    {
+      "name": "陆时予",
+      "caseName": "comfort",
+      "input": "今天汇报被否了，我很委屈，只想听你认真哄一句。别讲大道理，也先别邀我听音乐。",
+      "status": 200,
+      "output": "*他停下翻谱的手，轻轻将铅笔搁在琴谱边缘。*\n\n“汇报被否了，今天的事，不该被一句‘别难过’就轻轻带过去。”\n\n*他抬头看你，声音不急，也不轻。*\n\n“你委屈，是应该的。我听到了，也记住了。”\n\n*他没说“我懂”，也没说“以后会好”，只是把那张写满修改痕迹的谱纸推到一边，站起身来。*\n\n“许阿姨今天烤了焦一点的吐司，我顺路买了两片。如果你愿意，现在就去她店里坐一会儿。不谈音乐，不谈曲子，也不谈明天该做什么。”\n\n*他顿了顿，语调轻了些。*\n\n“就当是，今天你该被好好对待一次。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2511
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1053
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 45
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 10
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 44
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 11
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 804
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 38
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 57
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 410
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "沈聿",
+      "caseName": "evidence",
+      "input": "邮戳早只能说明信可能比较早，并不能证明这本书很早入馆。这样想对吗？别直接替我猜寄信人。",
+      "status": 200,
+      "output": "*沈聿轻轻点头，镜片后的目光落在你刚指出的那行字上。*\n\n“你说得对。邮戳早，只能说明信可能早，不能反推书入馆时间。我刚才的表述太急了，把推测当成结论了。”\n\n*他翻动手中那叠资料，将“信寄出”与“书入馆”的时间分开列在两行，笔尖顿了顿。*\n\n“这封信是后来夹进去的，也可能是原始记录遗漏了来源。但不管怎样，它和书的入馆时间，确实是两个独立的事。”\n\n*他把笔记本合上，语气平静却不容置疑。*\n\n“你刚才那句话提醒我了——我得把‘可能’和‘一定’分开。现在我知道该查什么了，也清楚什么不该说。”\n\n*他抬头看你一眼，声音轻了些。*\n\n“你不想查信了，我也不再逼你。要不要去后窗那边看看？那边的玻璃有点反光，但能看到海面。风不大，坐着也舒服。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2566
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1070
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 57
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 41
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 11
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 21
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 62
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 771
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 43
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 64
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 419
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "季临川",
+      "caseName": "withdrawal",
+      "input": "我刚才答应接受采访，现在反悔了。文字和照片都别放进影集。",
+      "status": 200,
+      "output": "*他静静听着，没有追问，也没有立刻翻笔记。*\n\n“好，我记下了。文字和照片都撤回，不放进影集。你刚才愿意开口，已经让我很感谢了。”\n\n*他把采访本合上，轻轻推到一旁，动作很轻，像是怕惊扰什么。*\n\n“我不会让任何一句话变成负担。如果哪天你想重新聊，或者想看看别的照片，我都在。但今天——你说了算。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2590
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1057
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 19
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 49
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 51
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 30
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 55
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 764
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 28
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 62
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 418
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "许星澄",
+      "caseName": "no-lecture",
+      "input": "我不懂这些原理，也不想学，只想看看漂亮的星图。你会觉得我不认真吗？",
+      "status": 200,
+      "output": "*他轻轻把模拟星图的转速调慢，屏幕上的星群缓缓划过天幕。*\n\n“你刚才说的，我听到了。不是所有来的人，都得懂原理才配看星星。”\n\n*他从桌下拿出一个旧星盘，轻轻放在你面前的桌面上，边缘的刻度有些磨旧，但指针还稳稳地停在“猎户座”上。*\n\n“这个，不用动，也不用背。你要是想看哪片亮，我指给你。你只管说‘停在这里’，我来负责让它亮得清楚。”\n\n*他顿了顿，语气轻了些。*\n\n“我刚才盯着记录，是怕万一出错，让你白等。但你来，不是来听我解释的。你来，是想看看——星星，是不是真的像画里那样好看。”\n\n*他笑了笑，没再提设备，也没再看屏幕。*\n\n“那，现在，我们只看。你指，我来调。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 8,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2570
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1156
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 22
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 39
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 17
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 13
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 26
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 51
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 772
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 33
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 62
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 413
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "陆时予",
+      "caseName": "new-scene",
+      "input": "一个月后，音乐会已结束。今天在菜市场碰见你，我们聊聊做饭，不再聊开场曲。",
+      "status": 200,
+      "output": "*菜市场午后阳光斜照在摊位间，陆时予提着一袋蘑菇，正低头看标签。听到脚步声抬头，看见你站在豆腐摊前，便自然地走过来。*\n\n“这蘑菇是刚到的，你家那款我记错了，不是这个品种。”\n\n*他把袋子轻轻放在你手边的塑料筐上，没问你要不要拿，只是顺手把旁边一盒鸡蛋推了推，让出更宽的空位。*\n\n“许阿姨说她新试了无糖红豆沙，明天要不要带一盒？她问你上次说的那款，是不是太甜。”\n\n*他顿了顿，声音轻了一些。*\n\n“我今天煮汤，放了半勺盐。汤快成味精水了，但……还是比上次好。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2511
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1053
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 45
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 10
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 44
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 11
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 804
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 36
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 57
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 410
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 924
+          }
+        ]
+      }
+    },
+    {
+      "name": "沈聿",
+      "caseName": "decline",
+      "input": "今天不想查信，也不想让你安排别的，我只想自己在海边坐一会儿。",
+      "status": 200,
+      "output": "*海堤的风比馆里大，他把外套搭在栏杆上，没再靠近那张椅子。*\n\n“你坐一会儿，我在这边看天。” *他从口袋里掏出一包咸味饼干，撕开包装，只拿了一块。*\n\n*远处有轮渡的汽笛声，他抬头看了一眼，没说话。*\n\n“你不想说话，我也不会问。风大了，就往里靠一点。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2566
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1070
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 57
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 41
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 11
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 21
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 62
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 771
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 30
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 64
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 419
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "季临川",
+      "caseName": "continuity",
+      "input": "两周后，车站的采访已经结束。今天我在花店整理录音，先只聊工作，不要暧昧。",
+      "status": 200,
+      "output": "*他把录音文件夹放在花店靠窗的木桌上，轻轻推开一扇没关严的玻璃门，让晨光透进来。*\n\n“录音整理得怎么样？我刚从文献馆回来，把旧线的站台档案又核了一遍，有几段记录和你录的不太一样。”\n\n*他拉开一张小凳坐下，没急着翻本子，而是从包里取出一罐橘子，剥了一半，推到桌边。*\n\n“酸的，你上次说喜欢偏酸的。不是为了让你多吃，就是顺手带了。”\n\n*他低头看着文件夹里的标注，语气平稳。*\n\n“如果你觉得某段录音需要重录，或者想删掉某个片段，我这边随时能调。不一定要等影集做完了才说。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2590
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1057
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 19
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 49
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 51
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 30
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 55
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 764
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 36
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 62
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 418
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 924
+          }
+        ]
+      }
+    },
+    {
+      "name": "许星澄",
+      "caseName": "time-jump",
+      "input": "半年后，老望远镜已经正常开放。我们今天来社区下棋，不聊设备和检修。",
+      "status": 200,
+      "output": "*社区活动室的木桌被阳光晒得微微发烫，许星澄把棋盒轻轻推到桌中央，指尖在黑子上顿了顿。*\n\n“这局不按规则来，你先走。”\n\n*他抬眼笑了笑，没再提望远镜，也没说设备校准的事。窗外的风把旧海报吹得轻轻晃动，他顺手压住一角，动作自然得像只是整理了下衣袖。*\n\n“今天不聊工作，也不说数据。你要是输了，我请你吃面——不是那种计时煮的，是慢一点的。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 9,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2570
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1276
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 22
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 39
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 17
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 13
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 26
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 51
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 772
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 33
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 62
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 413
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 925
+          }
+        ]
+      }
+    }
+  ]
+}

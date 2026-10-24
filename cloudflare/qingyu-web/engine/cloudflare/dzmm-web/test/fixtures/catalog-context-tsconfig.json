@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.client.json",
+  "include": ["./catalog-context-flow.tsx", "./catalog-context-vite.config.ts", "../../src/env.d.ts"]
+}

@@ -1,0 +1,61 @@
+.page { width:min(860px,calc(100% - 64px)); margin:32px auto 88px; color:var(--text,#18181b); }
+.heading { display:flex; align-items:center; gap:18px; margin-bottom:34px; }
+.heading h1 { margin:0; font-size:25px; font-weight:650; }
+.back { color:var(--muted,#85858d)!important; padding:7px 0; font-size:13px; }
+.back:hover { color:var(--pink,#ed1763)!important; }
+.appSummary { display:flex; align-items:center; gap:24px; padding:8px 0 28px; }
+.appIcon { border-radius:23px; width:96px; height:96px; flex-shrink:0; border:1px solid var(--line,#eeeeef); }
+.appInfo { min-width:0; }
+.eyebrow { color:var(--pink,#ed1763); font-size:12px; }
+.appInfo h2 { margin:4px 0 7px; font-size:34px; line-height:1.25; letter-spacing:-.8px; font-weight:700; }
+.appInfo p { margin:0; color:var(--muted,#85858d); font-size:14px; line-height:1.8; }
+.installArea { padding:23px 25px 16px; background:var(--pink-soft,#fff0f5); border-radius:12px; }
+.availability { display:flex; align-items:flex-start; gap:14px; }
+.statusIcon { width:37px; height:37px; display:flex; align-items:center; justify-content:center; flex-shrink:0; border-radius:50%; color:var(--pink,#ed1763); background:var(--surface,#fff); }
+.availability h3 { font-size:15px; font-weight:600; margin:1px 0 6px; }
+.availability p { margin:0; color:var(--muted,#85858d); line-height:1.75; font-size:12px; }
+.actions { display:flex; gap:12px; flex-wrap:wrap; padding-left:51px; margin-top:18px; }
+.primary,.secondary { min-height:40px; border-radius:7px; padding:10px 18px; font-size:13px; font-weight:500; }
+.primary { background:var(--pink,#ed1763); color:#fff!important; }
+.primary:not(:disabled):hover { filter:brightness(.94); transform:translateY(-1px); }
+.secondary { border:1px solid var(--line,#eeeeef); background:var(--surface,#fff); }
+.secondary:hover { color:var(--pink,#ed1763)!important; }
+.message { margin:12px 0 0 51px; min-height:6px; font-size:12px; color:var(--pink,#ed1763); line-height:1.7; }
+.instructions { margin-top:38px; }
+.instructions > h2,.details h2 { margin:0 0 17px; font-size:17px; font-weight:600; }
+.instructions > h2 { scroll-margin-top:88px; }
+.tabs { display:flex; gap:28px; border-bottom:1px solid var(--line,#eeeeef); }
+.tabs button { position:relative; gap:7px; padding:12px 0; font-size:13px; color:var(--muted,#85858d); white-space:nowrap; }
+.tabs button:hover { color:var(--text,#18181b); }
+.tabs .activeTab { color:var(--pink,#ed1763)!important; }
+.activeTab::after { content:""; position:absolute; left:0; right:0; bottom:-1px; height:2px; background:var(--pink,#ed1763); }
+.guide { padding-top:22px; animation:reveal .18s ease-out; }
+.guide ol { margin:0; padding:0; list-style:none; counter-reset:step; display:flex; flex-direction:column; gap:16px; }
+.guide li { display:flex; align-items:flex-start; gap:15px; font-size:13px; line-height:1.8; counter-increment:step; }
+.guide li::before { content:counter(step); width:27px; height:27px; flex-shrink:0; display:flex; align-items:center; justify-content:center; border-radius:50%; background:var(--soft,#f7f7f8); color:var(--muted,#85858d); font-size:12px; }
+.guide li > span { padding-top:2px; }
+.note { margin:20px 0 0 42px; color:var(--muted,#85858d); font-size:12px; line-height:1.9; }
+.details { border-top:1px solid var(--line,#eeeeef); margin-top:32px; padding-top:25px; }
+.details p { margin:9px 0; color:var(--muted,#85858d); font-size:12px; line-height:1.9; }
+@keyframes reveal { from { opacity:.6; transform:translateY(3px); } to { opacity:1; transform:none; } }
+@media (max-width:600px) {
+  .page { width:calc(100% - 32px); margin-top:23px; }
+  .heading { margin-bottom:25px; gap:14px; }
+  .heading h1 { font-size:22px; }
+  .appSummary { gap:17px; padding-bottom:23px; }
+  .appIcon { width:76px; height:76px; border-radius:19px; }
+  .appInfo h2 { font-size:29px; }
+  .appInfo p { font-size:12px; }
+  .installArea { padding:20px 18px 14px; }
+  .actions { padding-left:0; }
+  .actions button { flex:1; }
+  .message { margin-left:0; }
+  .tabs { gap:20px; }
+  .tabs button { font-size:12px; gap:5px; }
+  .tabs svg { width:17px; height:17px; }
+  .instructions { margin-top:30px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .guide { animation:none; }
+  .primary:not(:disabled):hover { transform:none; }
+}

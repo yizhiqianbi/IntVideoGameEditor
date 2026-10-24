@@ -1,0 +1,34 @@
+[
+  {
+    "id": "qy-shiyu",
+    "name": "陆时予",
+    "version": "2026-10-24-cast-v2",
+    "openings": 3,
+    "loreEntries": 10,
+    "download": "/character-cards/qy-shiyu.json"
+  },
+  {
+    "id": "qy-shen",
+    "name": "沈聿",
+    "version": "2026-10-24-cast-v2",
+    "openings": 3,
+    "loreEntries": 10,
+    "download": "/character-cards/qy-shen.json"
+  },
+  {
+    "id": "qy-linchuan",
+    "name": "季临川",
+    "version": "2026-10-24-cast-v2",
+    "openings": 3,
+    "loreEntries": 10,
+    "download": "/character-cards/qy-linchuan.json"
+  },
+  {
+    "id": "qy-xingcheng",
+    "name": "许星澄",
+    "version": "2026-10-24-cast-v2",
+    "openings": 3,
+    "loreEntries": 10,
+    "download": "/character-cards/qy-xingcheng.json"
+  }
+]

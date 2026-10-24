@@ -1,0 +1,93 @@
+{
+  "date": "2026-10-23",
+  "timezone": "Asia/Shanghai",
+  "brand": "晴屿 Qingyu",
+  "build": "passed: TypeScript + Vite production build",
+  "behavior_tests": {
+    "passed": 14,
+    "failed": 0,
+    "actual_paid_model_calls": 0,
+    "provider": "mocked input and output moderation responses"
+  },
+  "worker": {
+    "dry_run": "passed",
+    "local_url": "http://127.0.0.1:8796",
+    "status": {
+      "mode": "demo",
+      "brand": "晴屿",
+      "policy": "all-ages",
+      "freeInput": false
+    },
+    "assets": "HTML and bundled app loaded",
+    "fresh_browser_console": {
+      "errors": 0,
+      "warnings": 0
+    }
+  },
+  "browser": {
+    "desktop_viewport": [
+      1440,
+      1100
+    ],
+    "mobile_viewport": [
+      390,
+      844
+    ],
+    "mobile_document_width": 390,
+    "mobile_composer_bottom": 770,
+    "mobile_navigation_top": 778,
+    "checks": [
+      "all five original illustration assets loaded",
+      "favorite toggled and shown in favorites",
+      "category filter showed only 森森",
+      "search 海边 in all categories showed 屿白",
+      "character detail opened",
+      "story choice produced authored next chapter",
+      "reload restored both messages and chapter",
+      "private character template creation persisted to storybook",
+      "journey backup download completed",
+      "clear required second confirmation and returned to home"
+    ],
+    "development_note": "Changing a useEffect dependency list during hot reload produced a React development-only diagnostic. Fresh production Worker page had zero errors/warnings."
+  },
+  "original_verification": {
+    "checked_files": 1825,
+    "earlier_check": {
+      "checked_files": 1825,
+      "changed_files": [],
+      "original_unchanged": true,
+      "new_project": "cloudflare/qingyu-web"
+    },
+    "final_changed_files": [
+      "src/lib/xumeng-feature-availability.ts",
+      "cloudflare/dzmm-web/wrangler.jsonc",
+      "cloudflare/dzmm-web/test/generation-pause.test.mts"
+    ],
+    "new_project": "cloudflare/qingyu-web",
+    "scope_of_this_task_writes": [
+      "cloudflare/qingyu-web/",
+      "output/playwright/qingyu/"
+    ],
+    "note": "The earlier comparison found all 1825 original files unchanged. A later final comparison detected changes to three original files outside this task writing scope. This task did not write or revert those original files; concurrent workspace changes have been preserved."
+  },
+  "limitations": [
+    "No real model or moderation provider configured or called",
+    "Real provider behavior and all-ages classification require provider-specific validation",
+    "No remote deployment performed",
+    "Data is browser-local; no account sync, billing, forum, voice or video integration"
+  ],
+  "screenshots": [
+    "output/playwright/qingyu/desktop-home.png",
+    "output/playwright/qingyu/desktop-chat.png",
+    "output/playwright/qingyu/mobile-home.png",
+    "output/playwright/qingyu/mobile-chat.png"
+  ],
+  "final_assets": {
+    "public/mark.svg": "0eb7328dcfee1336d457fd2149c773a7a64fb5f4280780656aa3693472f2c984",
+    "public/art/lin.webp": "7cd49992633fe0a622a8a72c5179672faed31623f57cec6d9823e7b3982ada67",
+    "public/art/yu.webp": "98981ac762eebd2359eabb5e21fdeb178f2c497aded1efae96c04202a582d2a1",
+    "public/art/wan.webp": "572db9e7c8e6a6c4d5eb114255f73bc945dc70547281e8c2e5ad53552cd9f72d",
+    "public/art/island.webp": "4108577f68605cd5b6d40f9b8218381901868b4c40cf56dacc99d8fa101b6042",
+    "public/art/mori.webp": "94edd6e46c24680df96b280e12e71fd2ec7309f7c767804a8302dd1e0386731f"
+  }
+}

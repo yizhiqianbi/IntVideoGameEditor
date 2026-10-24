@@ -1,0 +1,53 @@
+{
+  "url": "https://qingyu.xumengchat.top",
+  "downloads": [
+    {
+      "id": "qy-shiyu",
+      "status": 200,
+      "bytes": 18500,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-shen",
+      "status": 200,
+      "bytes": 18681,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-linchuan",
+      "status": 200,
+      "bytes": 18844,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-xingcheng",
+      "status": 200,
+      "bytes": 18796,
+      "shaMatches": true
+    }
+  ],
+  "login": 200,
+  "chat": {
+    "status": 200,
+    "contentType": "text/event-stream; charset=utf-8",
+    "answer": "*陆时予放下琴键，指尖在黑白键上轻轻收住余音。他转过身，目光温和而专注地落在你身上，没有急着去翻谱子，也没有询问细节。*\n\n“辛苦你了。在那样的场合下坚持表达完自己的想法，本身就很不容易。”\n\n*他语气平稳，像是在陈述一个确凿的事实，而不是敷衍的客套。*\n\n“此刻的委屈是真实的，不用急着把它消化掉。我就在这里，你可以安心地难过一会儿。”",
+    "world": {
+      "state": {
+        "clock": {
+          "elapsedMinutes": 0,
+          "day": 1,
+          "minuteOfDay": null,
+          "calendarLabel": "",
+          "remainderMs": 0
+        },
+        "location": "",
+        "relationships": [],
+        "threads": [],
+        "facts": []
+      },
+      "recordedAt": 1792835950809,
+      "updated": false
+    }
+  },
+  "scope": "One authenticated production chat using the actual request preparation and streamed world-response parser; no account story history was overwritten."
+}

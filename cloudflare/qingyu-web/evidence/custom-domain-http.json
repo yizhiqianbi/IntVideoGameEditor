@@ -1,0 +1,69 @@
+{
+  "url": "https://qingyu.xumengchat.top",
+  "results": [
+    {
+      "path": "/",
+      "status": "200",
+      "bytes": 669,
+      "exitCode": 0
+    },
+    {
+      "path": "/api/status",
+      "status": "200",
+      "bytes": 81,
+      "exitCode": 0,
+      "body": {
+        "brand": "晴屿",
+        "edition": "otome-simple",
+        "policy": "all-ages",
+        "configured": true
+      }
+    },
+    {
+      "path": "/health",
+      "status": "200",
+      "bytes": 32,
+      "exitCode": 0,
+      "body": {
+        "ok": true,
+        "service": "dzmm-web"
+      }
+    },
+    {
+      "path": "/art/shiyu.webp",
+      "status": "200",
+      "bytes": 279530,
+      "exitCode": 0
+    },
+    {
+      "path": "/api/backend/v1/billing/config",
+      "status": "200",
+      "bytes": 340,
+      "exitCode": 0,
+      "body": {
+        "enabled": false,
+        "priceRevision": null,
+        "inputCreditsPer1000": null,
+        "outputCreditsPer1000": null,
+        "memoryBilled": false,
+        "tokenUnit": 1000,
+        "rounding": "ceil_combined",
+        "outputIncludesReasoning": true,
+        "failureRule": "no_valid_output_refund",
+        "cancellationRule": "valid_output_bill_usage",
+        "missingUsageRule": "pending_then_refund",
+        "reservationTtlMs": 600000
+      }
+    },
+    {
+      "path": "/api/phone/status",
+      "status": "404",
+      "bytes": 77,
+      "exitCode": 0,
+      "body": {
+        "error": "当前版本暂未开放此功能。",
+        "code": "FEATURE_UNAVAILABLE"
+      }
+    }
+  ]
+}

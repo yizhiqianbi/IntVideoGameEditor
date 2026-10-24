@@ -1,0 +1,50 @@
+{
+  "at": "2026-10-23T14:31:37.027Z",
+  "results": [
+    {
+      "path": "/api/backend/v1/payments/checkout",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/dzmm/backend/v1/nowpayments/checkout",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/backend/v1/dream-coin/withdrawals",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/backend/v1/dream-coin/exchange",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/backend/v1/subscriptions/checkout",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/payments/stripe/webhook",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/payments/nowpayments/ipn",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/phone/ws",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    },
+    {
+      "path": "/api/live/sessions",
+      "status": 404,
+      "code": "FEATURE_UNAVAILABLE"
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "version": "2026-10-24-gentle-confidence-v1",
+  "styleSha256": "109f21a9a795375bcef5c1b72216b29dc2ff97a173c4d78d19840a2aa4be56df",
+  "model": "qwen/qwen3-30b-a3b-instruct-2507",
+  "createdAt": "2026-10-24T03:38:01.183Z",
+  "scope": "Synthetic live provider samples using the production tavern assembler and companion turn wrapper. Companion base style mirrors the shared native configuration; the core runtime and historical memory were not exercised.",
+  "results": [
+    {
+      "name": "companion-comfort",
+      "status": 200,
+      "input": "今天的汇报被否了，我有点委屈。不想听大道理，想被认真哄一会儿。",
+      "output": "你认真准备的东西被否了，当然会难受。今晚先不用逼自己振作，想抱怨就说给我听，我认真听着。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "companion-declined-plan",
+      "status": 200,
+      "input": "今天不想去看展了，我只想一个人待着。你先别替我安排，好吗？",
+      "output": "好，今天不安排了。你按自己的节奏休息，等想聊的时候再找我，不用解释。",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-gentle-lead",
+      "status": 200,
+      "input": "这些旧纸页我有点不敢碰，怕把事情搞砸。你可以带我做第一步吗？别笑我。",
+      "output": "*沈聿轻轻把一双手套推到你手边，是浅灰色的棉质，边缘绣着极细的墨线花纹。*\n\n“这副手套你戴上，能防潮也防油，纸张不会被指尖的温度和汗渍伤到。我以前也怕碰坏东西，后来发现，连最脆弱的纸，也经得起一次小心的触碰。”\n\n*他稍顿，目光落回那封信上，声音很轻，像怕惊扰了什么。*\n\n“我们先从信封的折痕开始。你看到那道压痕了吗？它不是从正面折的，是反着对折的——这说明，有人在写完后，特意把信纸折了再放进信封。不是随便塞进去的。”\n\n*他没有催促，只把放大镜轻轻推到你手边。*\n\n“你想看哪一部分？我在这里，慢慢来。”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    },
+    {
+      "name": "tavern-new-scene-and-tone",
+      "status": 200,
+      "input": "两周后，我们已经离开车站。今天我在花店做采访整理，想和你认真聊聊影集的工作，先不要暧昧。",
+      "output": "*季临川正低头整理相机内存卡，听见你的话，抬眼看了你一眼，嘴角微扬，却没接暧昧的茬。*\n\n“好，不暧昧。”  \n*他把一张刚导出的照片推到桌边——是那天在花店，你侧身翻看旧相册的背影，阳光斜穿过玻璃窗，落在你发梢上。*\n\n“这帧我留了三秒，没按快门。因为我想——等你愿意说的时候，再拍。”\n\n*他轻轻把内存卡放进一个贴着“慢车·终章”标签的文件夹，合上。*\n\n“影集的结构我改了。现在不是‘风景+人物’，而是‘时间+声音’。你整理的那些录音，我打算按晨光、正午、暮色分三章。你记得花店老板说‘这花不说话，可它知道日子’吗？我想把这句话，放在第三章开头。”\n\n*他顿了顿，语气轻，却很稳。*\n\n“你说要认真聊工作，那我认真说：这册影集，不为纪念慢车，而是为了记住——那些愿意在时间里站住脚的人。”",
+      "finishReason": "stop",
+      "moderation": "allowed"
+    }
+  ]
+}

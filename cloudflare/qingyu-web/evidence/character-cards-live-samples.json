@@ -1,0 +1,214 @@
+{
+  "version": "2026-10-24-cast-v2",
+  "date": "2026-10-24T09:50:22.997Z",
+  "model": "qwen/qwen3.6-plus",
+  "scope": "Synthetic live samples using the production prompt assembler. No native core sessions or long historical memory were exercised. Outputs require manual review; no quality score is inferred.",
+  "results": [
+    {
+      "name": "季临川",
+      "caseName": "withdrawal",
+      "input": "我刚才答应接受采访，现在反悔了。文字和照片都别放进影集。",
+      "status": 200,
+      "output": "“收到。刚才的录音和照片，我都不会放进影集。”\n\n*他立刻合上录音笔，取出存储卡，当着你面将刚才那段文件移入加密隔离区，随后把相机里的原片也做了标记删除处理。动作干脆，没有半分迟疑或试图说服的意思。*\n\n“这部分沟通责任在我，我会处理好后续的资料清理，不会让它出现在任何公开或私人的归档里。你现在的安排优先，我不打扰你等车。”\n\n*他把相机背带理顺，退后两步让出更宽敞的通道空间，低头在提纲上划掉这一项，不再看你，给你留出完整的独处空隙。*",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2590
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1057
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 19
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 49
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 50
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 15
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 51
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 30
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 55
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 764
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 28
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 294
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 418
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    },
+    {
+      "name": "沈聿",
+      "caseName": "decline",
+      "input": "今天不想查信，也不想让你安排别的，我只想自己在海边坐一会儿。",
+      "status": 200,
+      "output": "*沈聿停下手中核对的动作，将那张未署名的信件复印件收进档案袋，封好口，推到桌角不再显眼的位置。他摘下细框眼镜，用衣角擦了擦镜片，重新戴好时目光平静地落在你身上，没有追问原因，也没有试图用“海边风大”或“需要陪同”来挽留。*\n\n“好。那今天的查阅就到这里。”\n\n*他起身拉开椅子，为你让出通往门口的通道，顺手将桌上那本关于沿海旧线的公开索引推到你手边，方便你离开时带走或留下。*\n\n“去透透气也好。路上小心。”",
+      "moderation": "allowed",
+      "finishReason": "stop",
+      "diagnostics": {
+        "version": "2026-10-24-qingyu-gentle-confidence-v1",
+        "historyMessages": 2,
+        "exampleMessages": 8,
+        "loreEntries": 7,
+        "hasMemory": false,
+        "segments": [
+          {
+            "source": "rules-and-character",
+            "role": "system",
+            "chars": 2566
+          },
+          {
+            "source": "worldbook",
+            "role": "system",
+            "chars": 1070
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 38
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 16
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 57
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 18
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 41
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 11
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 47
+          },
+          {
+            "source": "dialogue-example",
+            "role": "user",
+            "chars": 21
+          },
+          {
+            "source": "dialogue-example",
+            "role": "assistant",
+            "chars": 62
+          },
+          {
+            "source": "example-boundary",
+            "role": "system",
+            "chars": 32
+          },
+          {
+            "source": "opening",
+            "role": "assistant",
+            "chars": 771
+          },
+          {
+            "source": "recent-history",
+            "role": "user",
+            "chars": 30
+          },
+          {
+            "source": "author-post-history",
+            "role": "system",
+            "chars": 281
+          },
+          {
+            "source": "character-status",
+            "role": "system",
+            "chars": 419
+          },
+          {
+            "source": "round-reminder",
+            "role": "system",
+            "chars": 757
+          }
+        ]
+      }
+    }
+  ]
+}

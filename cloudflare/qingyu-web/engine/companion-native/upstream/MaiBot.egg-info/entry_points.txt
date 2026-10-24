@@ -1,0 +1,2 @@
+[console_scripts]
+maibot = src.cli.tool:main

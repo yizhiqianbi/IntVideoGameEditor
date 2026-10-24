@@ -1,0 +1,37 @@
+{
+  "url": "https://qingyu.xumengchat.top",
+  "downloads": [
+    {
+      "id": "qy-shiyu",
+      "status": 200,
+      "bytes": 18500,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-shen",
+      "status": 200,
+      "bytes": 18681,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-linchuan",
+      "status": 200,
+      "bytes": 18844,
+      "shaMatches": true
+    },
+    {
+      "id": "qy-xingcheng",
+      "status": 200,
+      "bytes": 18796,
+      "shaMatches": true
+    }
+  ],
+  "login": 200,
+  "chat": {
+    "status": 503,
+    "body": {
+      "error": "没有收到可检查的生成正文。"
+    }
+  },
+  "scope": "One authenticated production chat using the actual request preparation and streamed world-response parser; no account story history was overwritten."
+}

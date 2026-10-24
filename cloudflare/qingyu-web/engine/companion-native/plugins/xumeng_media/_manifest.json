@@ -1,0 +1,39 @@
+{
+  "manifest_version": 2,
+  "version": "1.0.0",
+  "name": "晴屿媒体动作",
+  "description": "原生角色的全年龄表情、已审核文字的语音与已审核图片。",
+  "author": {
+    "name": "晴屿",
+    "url": "https://qingyu.invalid"
+  },
+  "license": "MIT",
+  "urls": {
+    "repository": "https://qingyu.invalid",
+    "homepage": "https://qingyu.invalid"
+  },
+  "host_application": {
+    "min_version": "1.3.0",
+    "max_version": "1.3.99"
+  },
+  "sdk": {
+    "min_version": "2.0.0",
+    "max_version": "2.99.99"
+  },
+  "dependencies": [],
+  "capabilities": [
+    "send.emoji",
+    "send.image",
+    "send.hybrid",
+    "emoji.get_by_description",
+    "emoji.get_random"
+  ],
+  "i18n": {
+    "default_locale": "zh-CN",
+    "locales_path": "_locales",
+    "supported_locales": [
+      "zh-CN"
+    ]
+  },
+  "id": "xumeng.xumeng-media"
+}

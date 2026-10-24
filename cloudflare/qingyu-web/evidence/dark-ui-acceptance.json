@@ -1,0 +1,27 @@
+{
+  "theme": "night lilac",
+  "defaultBackground": "#15121c",
+  "palette": {
+    "surface": "#201b29",
+    "soft": "#2a2333",
+    "text": "#efe6ef",
+    "muted": "#b4a2b7",
+    "accent": "#d1aec5",
+    "gold": "#ccb995"
+  },
+  "verified": [
+    "new clean browser uses dark default",
+    "desktop homepage1440x1100 visually inspected",
+    "mobile homepage390x844 visually inspected",
+    "mobile native chat390px viewport and document, composer bottom796 within844px screen",
+    "theme-color and PWA background match dark surface",
+    "existing test account theme saved through actual UI and reloaded",
+    "storage and backup39/39; original account contents and custom preferences roundtrip preserved"
+  ],
+  "screenshots": [
+    "otome-night-desktop.png",
+    "otome-night-mobile.png",
+    "otome-night-native-mobile.png"
+  ],
+  "deferredByUser": "video and telephone external API configuration will be supplied later; independent full source/routes retained"
+}
