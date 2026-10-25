@@ -26,6 +26,7 @@ import {
 } from "@/lib/dzmm-characters";
 import { getDzmmNewConversationBlockReason, mergeDzmmConversationCharacters, selectDzmmDirectory } from "@/lib/dzmm-catalog";
 import { DzmmMemoryRequestError, prepareDzmmRememberedRequest } from "@/lib/dzmm-memory-client";
+import { qingyuDirectOpening, qingyuDirectPreview, splitQingyuDirectMessage, withQingyuDirectMessageStyle } from "@/lib/qingyu-direct-messages";
 import { applyDzmmConversationOpening, captureDzmmConversationOpening, parseDzmmConversationOpening,
   reconcileDzmmConversationOpening, resolveDzmmConversationOpening, restoreDzmmConversationContexts } from "@/lib/dzmm-conversation-context";
 import { DZMM_CONVERSATION_BACKUP_MAX_BYTES, parseDzmmConversationBackup } from "@/lib/dzmm-conversation-backup";
@@ -106,6 +107,15 @@ type Message = DzmmSavedMessage;
 type Conversation = DzmmSavedConversation;
 type Preferences = DzmmPreferences;
 type ChatSection = "stories" | "chats" | "games";
+const DM_SEEN_KEY = "qingyu-dm-seen-v1";
+function formatDirectTime(at: number): string {
+  const date = new Date(at), today = new Date();
+  const days = Math.round((new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+    - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 86_400_000);
+  if (days <= 0) return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  if (days === 1) return "昨天";
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
 const CHAT_SECTION_ROUTES: Record<ChatSection, string> = { stories: "chat", chats: "chat/chats", games: "chat/games" };
 const TABS = ["关注", "最新", "猜你喜欢", "新手", "榜单", "分类"];
 const MODEL_MODES = DZMM_OFFERED_MODEL_OPTIONS;
@@ -551,6 +561,28 @@ export default function TavernApp() {
     input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
   }, [draft, activeId, activeCharacter, view, detail]);
   const activeOpening = useMemo(() => activeCharacter && active ? resolveDzmmConversationOpening(activeCharacter, active) : null, [activeCharacter, active]);
+  const directChat = active?.phase === "chat";
+  const [dmSeen, setDmSeen] = useState<Record<string, number>>(() => {
+    try { const value: unknown = JSON.parse(localStorage.getItem(DM_SEEN_KEY) ?? "{}"); return value && typeof value === "object" ? value as Record<string, number> : {}; }
+    catch { return {}; }
+  });
+  const activeSeenLength = view === "chat" && !busy && active?.phase === "chat" ? active.messages.length : -1;
+  useEffect(() => {
+    if (!activeId || activeSeenLength < 0) return;
+    setDmSeen(previous => {
+      if (previous[activeId] === activeSeenLength) return previous;
+      const next = { ...previous, [activeId]: activeSeenLength };
+      try { localStorage.setItem(DM_SEEN_KEY, JSON.stringify(next)); } catch { /* Unread badges are a convenience. */ }
+      return next;
+    });
+  }, [activeId, activeSeenLength]);
+  const unreadOf = (conversation: Conversation) => conversation.messages.slice(dmSeen[conversation.id] ?? conversation.messages.length)
+    .filter(message => message.role === "assistant" && message.content.trim()).length;
+  const directThreads = useMemo(() => Object.fromEntries(state.conversations.filter(c => c.phase === "chat").map(c => {
+    const last = [...c.messages].reverse().find(message => message.content.trim());
+    return [c.characterId, { preview: last ? (last.role === "user" ? "你：" : "") + qingyuDirectPreview(last.content) : "", at: c.updatedAt,
+      unread: c.messages.slice(dmSeen[c.id] ?? c.messages.length).filter(message => message.role === "assistant" && message.content.trim()).length }];
+  })), [state.conversations, dmSeen]);
   const chatBusy = busy;
   const replySuggestionKeys = useMemo(() => {
     if (!active) return [];
@@ -1120,6 +1152,28 @@ export default function TavernApp() {
     setError("");
     setGameRequest(null); navigate("chat");
   }
+  function startDirect(character: Character, lines: string[]) {
+    if (!loaded || cloud.authBusy) { setNotice("正在加载你的会话，请稍候再开始。"); return; }
+    if (requestActive.current) { setNotice("请先停止当前回复，再切换会话。"); return; }
+    const existing = state.conversations.find(c => c.characterId === character.id && c.phase === "chat");
+    let id = existing?.id;
+    if (!existing) {
+      const block = getDzmmNewConversationBlockReason(character);
+      if (block) { setNotice(block); return; }
+      const opening = qingyuDirectOpening(lines);
+      const conversation: Conversation = {
+        id: uid(), characterId: character.id, title: character.name, opening,
+        messages: opening.messages.map(message => ({ ...message, id: uid() })),
+        phase: "chat", worldClockMode: state.preferences.worldClockMode ?? "story", updatedAt: Date.now(),
+      };
+      id = conversation.id;
+      setState(previous => ({ ...previous, conversations: [conversation, ...previous.conversations] }));
+    }
+    window.history.replaceState(null, "", "#chat/chats");
+    if (!navigate("chat", "chat/chats")) return;
+    setDetail(null); setError(""); setGameRequest(null); setCompanionOpen(false);
+    setActiveId(id ?? null);
+  }
   function selectConversation(c: Conversation) {
     if (requestActive.current) {
       setNotice("请先停止当前回复，再切换会话。");
@@ -1233,7 +1287,8 @@ export default function TavernApp() {
     controller.current = abort;
     try {
       const worldRuntime = resolveDzmmWorldRuntime(conversation.worldState, submitted, Date.now(), conversation.worldClockMode ?? "story");
-      const { request } = await prepareDzmmRememberedRequest({ character: applyDzmmConversationOpening(activeCharacter, { ...conversation, messages: submitted }), messages: submitted,
+      const opened = applyDzmmConversationOpening(activeCharacter, { ...conversation, messages: submitted });
+      const { request } = await prepareDzmmRememberedRequest({ character: conversation.phase === "chat" ? withQingyuDirectMessageStyle(opened) : opened, messages: submitted,
         world: { clockMode: conversation.worldClockMode ?? "story", ...(worldRuntime ? { state: worldRuntime.state,
           recordedAt: worldRuntime.recordedAt, previousClockMode: worldRuntime.clockMode } : {}) },
         memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: state.preferences.persona,
@@ -1421,7 +1476,7 @@ export default function TavernApp() {
   }
 
   const paymentReturn = typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
-  const companionInMain = companionOpen || (conversationType === "chats" && wideChat && loaded && !cloud.authBusy && Boolean(cloud.user));
+  const companionInMain = companionOpen || (conversationType === "chats" && wideChat && !directChat && loaded && !cloud.authBusy && Boolean(cloud.user));
 
   return (
     <div
@@ -1514,7 +1569,7 @@ export default function TavernApp() {
       </header>
 
 
-      {(view === "characters" || view === "play-games") && !detail && <OtomeHome characters={characters} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} authors={authors} onCharacter={showDetail} onStart={startChat} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onNavigate={navigate} onImport={() => importRef.current?.click()} dark={dark} onToggleTheme={() => setState((p) => ({ ...p, preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}/>}
+      {(view === "characters" || view === "play-games") && !detail && <OtomeHome characters={characters} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} authors={authors} onCharacter={showDetail} onStart={startChat} onDirect={startDirect} threads={directThreads} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onNavigate={navigate} onImport={() => importRef.current?.click()} dark={dark} onToggleTheme={() => setState((p) => ({ ...p, preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}/>}
 
       {view === "chat" && !detail && (
         <main className={s.chatLayout}>
@@ -1587,26 +1642,25 @@ export default function TavernApp() {
                   <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong>{gameLastPlayed.has(game.id) && <time className={s.conversationTime}>{new Date(gameLastPlayed.get(game.id)!).toLocaleDateString("zh-CN", {month:"numeric",day:"numeric"})}</time>}<small>{game.synopsis || "私人游戏作品"}</small></span>
                 </button>)
                 : <div className={gameNavigation.listState}><p>{conversationQuery ? "没有找到匹配的游戏。" : "还没有游戏作品。"}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>导入或创作游戏</button>}</div>)}
-              {conversationType === "chats" && companionMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "classic" ? "page" : undefined} onClick={() => openCompanion("classic")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><Icon name="heart" size={20}/></span>
-                <span><strong>陆时予</strong><small>钢琴家 · 温柔笃定</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
-              {conversationType === "chats" && intimateMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "intimate" ? "page" : undefined} onClick={() => openCompanion("intimate")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><Icon name="heart" size={20}/></span>
-                <span><strong>沈聿</strong><small>古籍修复师 · 认真倾听</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
-              {conversationType === "chats" && qwenMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "qwen" ? "page" : undefined} onClick={() => openCompanion("qwen")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><Icon name="heart" size={20}/></span>
-                <span><strong>季临川</strong><small>旅行摄影师 · 明朗坦率</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
               {conversationType === "chats" && chatConversations.map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
                 if (!ch) return null;
+                const last = [...c.messages].reverse().find(message => message.content.trim());
+                const unread = activeId === c.id ? 0 : unreadOf(c);
                 return <button key={`story-chat:${c.id}`} className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""}`} onClick={() => selectConversation(c)}>
-                  <Cover character={ch} /><span><strong>{ch.name}</strong><time className={s.conversationTime}>{new Date(c.updatedAt).toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}</time><small>{c.messages.at(-1)?.content || "继续聊天"}</small></span>
+                  <Cover character={ch} /><span><strong>{ch.name}</strong><time className={s.conversationTime}>{formatDirectTime(c.updatedAt)}</time><small>{last ? `${last.role === "user" ? "你：" : ""}${qingyuDirectPreview(last.content)}` : ""}</small></span>
+                  {unread > 0 && <b className={s.unreadBadge} aria-label={`${unread} 条未读`}>{unread > 99 ? "99+" : unread}</b>}
+                </button>;
+              })}
+              {conversationType === "chats" && ([
+                ["classic", "qy-shiyu", "陆时予", "今天排练结束得早。你呢？", companionMatchesSearch],
+                ["intimate", "qy-shen", "沈聿", "嗯。到家说一声。", intimateMatchesSearch],
+                ["qwen", "qy-linchuan", "季临川", "这边信号一格，你先说。", qwenMatchesSearch],
+              ] as const).filter(([, id, , , visible]) => visible && !chatConversations.some(c => c.characterId === id)).map(([variant, id, name, preview]) => {
+                const ch = conversationCharacters.find(x => x.id === id);
+                return <button key={`companion:${variant}`} className={`${s.conversation} ${companionInMain && companionVariant === variant ? s.conversationActive : ""}`} aria-current={companionInMain && companionVariant === variant ? "page" : undefined} onClick={() => openCompanion(variant)}>
+                  {ch ? <Cover character={ch} /> : <span className={gameNavigation.companionAvatar} aria-hidden="true"><Icon name="heart" size={20}/></span>}
+                  <span><strong>{name}</strong><small>{preview}</small></span>
                 </button>;
               })}
               {conversationType === "chats" && !chatConversations.length && !companionMatchesSearch && !intimateMatchesSearch && !qwenMatchesSearch && <p className={s.sidebarEmpty} role="status">还没有主角聊天</p>}
@@ -1655,7 +1709,7 @@ export default function TavernApp() {
               gameLibrary.privateGame ? <GamePlayer key={`${cloud.user?.id}:private:${gameSelection.id}:${gameLibrary.privateGame.version}`} game={gameLibrary.privateGame} onBack={leaveGame}/> : <div className={gameNavigation.gameLoading} role={gameLibrary.privateError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.privateError || "正在打开游戏…"}</p>{gameLibrary.privateError && <button onClick={cloud.user?.isGuest ? () => openAccount("login") : gameLibrary.refresh}>{cloud.user?.isGuest ? "登录" : "重试打开"}</button>}<button onClick={leaveGame}>返回游戏列表</button></div>
             ) : activeCharacter && active ? (
               <>
-                <header className={s.chatHeader}>
+                <header className={`${s.chatHeader} ${directChat ? s.dmHeader : ""}`}>
                   <button
                     className={`${s.iconButton} ${s.mobileBack}`}
                     aria-label="返回会话列表"
@@ -1676,7 +1730,7 @@ export default function TavernApp() {
                     <Cover character={activeCharacter} />
                     <span>
                       <strong>{activeCharacter.name}</strong>
-                      <small>{busy ? "正在输入…" : active.phase === "adventure" ? "探险中" : "保留探险记录"}</small>
+                      <small>{busy ? "对方正在输入…" : directChat ? "在线" : active.phase === "adventure" ? "探险中" : "保留探险记录"}</small>
                     </span>
                   </button>
                   <div className={s.modelPicker}>
@@ -1783,12 +1837,21 @@ export default function TavernApp() {
                     {active.messages.map((m, index) => (
                       <div
                         key={m.id}
-                        className={`${s.messageRow} ${m.role === "user" ? s.userRow : ""}`}
+                        className={`${s.messageRow} ${m.role === "user" ? s.userRow : ""} ${directChat ? s.dmRow : ""}`}
                       >
+                        {directChat && (m.role === "assistant"
+                          ? <Cover character={activeCharacter} className={s.dmAvatar} />
+                          : <span className={`${s.avatar} ${s.dmAvatar}`} aria-hidden="true">{Array.from(state.preferences.nickname)[0] ?? "我"}</span>)}
                         <div className={s.messageContent}>
                           <ChatMessageMedia message={m} disabled={busy} label={`第 ${index + 1} 条消息`}
                             onCopy={() => { void copyMessage(m.content); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
+                          {directChat ? <div className={s.dmStack} data-message-text>
+                            {splitQingyuDirectMessage(m.content).map((part, partIndex) => part.aside
+                              ? <div key={partIndex} className={s.dmAside}>{part.text}</div>
+                              : <div key={partIndex} className={s.dmBubble}><MessageText text={part.text} role={m.role} characterName={activeCharacter.name} userName={playUserName} /></div>)}
+                            {!m.content.trim() && busy && <div className={`${s.dmBubble} ${s.dmTyping}`} aria-label="对方正在输入"><span /><span /><span /></div>}
+                          </div> : <>
                           <span className={s.messageName}>
                             {m.role === "assistant" ? (
                               <Cover
@@ -1818,12 +1881,13 @@ export default function TavernApp() {
                                 ? getDzmmCharacterCreatorNotes(activeCharacter) : undefined}
                               renderBody={body => <MessageText text={body} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} />}
                           </div>
+                          </>}
                           </ChatMessageMedia>
-                          {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
+                          {m.role === "assistant" && m.content.trim() && (!directChat || index === active.messages.length - 1) && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
                             contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
                             accountId={profileUser.id} onAutomaticStart={() => setAutomaticSuggestions(previous => {
                               const next = new Set(previous); next.delete(`${profileUser.id}:${active.id}:${m.id}`); return next;
-                            })} automatic={index === active.messages.length - 1 && automaticSuggestions.has(`${profileUser.id}:${active.id}:${m.id}`)
+                            })} automatic={!directChat && index === active.messages.length - 1 && automaticSuggestions.has(`${profileUser.id}:${active.id}:${m.id}`)
                               && Boolean(billingConfig) && (!billingConfig?.enabled || !cloud.user?.isGuest)}
                             label={`第 ${index + 1} 条回复`} disabled={busy || cloud.authBusy} billed={Boolean(billingConfig?.enabled)}
                             historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
@@ -1831,7 +1895,13 @@ export default function TavernApp() {
                         </div>
                       </div>
                     ))}
-                    {busy && active.messages.at(-1)?.role !== "assistant" && (
+                    {busy && directChat && active.messages.at(-1)?.role !== "assistant" && (
+                      <div className={`${s.messageRow} ${s.dmRow}`}>
+                        <Cover character={activeCharacter} className={s.dmAvatar} />
+                        <div className={`${s.dmBubble} ${s.dmTyping}`} aria-label="对方正在输入"><span /><span /><span /></div>
+                      </div>
+                    )}
+                    {busy && !directChat && active.messages.at(-1)?.role !== "assistant" && (
                       <div className={s.typing}>
                         <span />
                         <span />
@@ -1839,7 +1909,7 @@ export default function TavernApp() {
                       </div>
                     )}
                     {busy && summarizing && <p className={s.memoryProgress} role="status">正在整理较早的剧情，完成后继续回复…</p>}
-                    {!busy && !active.messages.some(message => message.role === "user") && (
+                    {!busy && !directChat && !active.messages.some(message => message.role === "user") && (
                       <div className={s.quickStarts}>
                         <button
                           onClick={() =>
@@ -1852,7 +1922,7 @@ export default function TavernApp() {
                         </button>
                       </div>
                     )}
-                    {!busy && !active.messages.some(message => message.role === "user") && Boolean(activeCharacter.suggestedReplies?.length) && <div className={s.quickStarts} aria-label="角色建议回复">{activeCharacter.suggestedReplies?.map((reply, index) => <button key={`${index}:${reply}`} onClick={() => setDraft(reply)}>{reply}</button>)}</div>}
+                    {!busy && !directChat && !active.messages.some(message => message.role === "user") && Boolean(activeCharacter.suggestedReplies?.length) && <div className={s.quickStarts} aria-label="角色建议回复">{activeCharacter.suggestedReplies?.map((reply, index) => <button key={`${index}:${reply}`} onClick={() => setDraft(reply)}>{reply}</button>)}</div>}
                     <div ref={endRef} />
                   </div>
                   </ChatMediaProvider>
@@ -1921,7 +1991,7 @@ export default function TavernApp() {
                       ref={composerInputRef}
                       aria-label="发送消息"
                       disabled={!loaded || cloud.authBusy}
-                      placeholder="输入消息 (Shift+Enter 换行)"
+                      placeholder={directChat ? `发消息给${activeCharacter.name}…` : "输入消息 (Shift+Enter 换行)"}
                       value={draft}
                       maxLength={12000}
                       rows={1}
@@ -1959,7 +2029,7 @@ export default function TavernApp() {
                       </button>
                     )}
                   </form>
-                  <p className={s.composerNote}>{active.phase === "adventure" ? "探险记录会保留到聊天" : "聊天记录自动保存"}</p>
+                  {!directChat && <p className={s.composerNote}>{active.phase === "adventure" ? "探险记录会保留到聊天" : "聊天记录自动保存"}</p>}
                   {billingConfig?.enabled && <p className={s.composerNote}>
                     {billingConfig.memoryBilled ? "聊天和剧情记忆会按服务器实际用量扣除 Credit" : "聊天会按服务器实际用量扣除 Credit"}，发送前会暂时预留，完成后返还未使用部分 · <a href="#recharge" onClick={event => { event.preventDefault(); navigate("recharge"); }}>余额与消费明细</a>
                   </p>}
