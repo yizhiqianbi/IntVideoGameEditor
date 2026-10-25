@@ -271,7 +271,7 @@ export default function CharacterDetail({
           <div className={s.primaryActions}>
             <button className={s.start} type="button" onClick={contextMissing ? onEdit : onStart}>
               <Icon name="chat" size={18} />
-              {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始探险"}
+              {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "发私信"}
             </button>
             <button
               className={`${s.outline} ${s.customize}`}

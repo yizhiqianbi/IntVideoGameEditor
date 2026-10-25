@@ -19,6 +19,7 @@ import { handleBillingApi } from "./billing-api";
 import { handleGames } from "./games";
 import { handleScenarios } from "./scenarios";
 import { handleNovels } from "./novels";
+import { handleCreatorCommunity } from "./creator-community";
 import { ApiError, json } from "./http";
 import type { Env } from "./types";
 
@@ -72,9 +73,11 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         const paymentsResponse = subscriptionsResponse ?? await handlePaymentsApi(request, env);
         const publishingResponse = paymentsResponse ? null : await handlePublishingApi(request, env);
         const authResponse = paymentsResponse || publishingResponse ? null : await handleAuth(request, env);
+        const communityResponse = paymentsResponse || publishingResponse || authResponse ? null : await handleCreatorCommunity(request, env);
         if (paymentsResponse) response = paymentsResponse;
         else if (publishingResponse) response = publishingResponse;
         else if (authResponse) response = authResponse;
+        else if (communityResponse) response = communityResponse;
         else {
           const user = await requireUser(request, env);
           response = await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);

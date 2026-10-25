@@ -27,19 +27,26 @@ function environment(auth: unknown = identity) {
   return { env, seen };
 }
 
-test("authentication requires the real session cookie, authenticated flag, non-guest UUID account", async () => {
+test("authentication requires the real session cookie and a server-issued UUID account", async () => {
   for (const rawCookie of ["", "other=1", "qingyu_session=forged", cookie + "; " + cookie]) {
     const { env, seen } = environment();
     assert.equal((await handleCompanionGateway(request("/health", "GET", undefined, { Cookie: rawCookie }), env)).status, 401);
     assert.equal(seen.auth.length, 0); assert.equal(seen.companion.length, 0);
   }
   for (const value of [null, {}, { user: identity.user }, { ...identity, authenticated: false }, { ...identity, authenticated: "true" },
-    { ...identity, user: { ...identity.user, isGuest: true } }, { ...identity, user: { ...identity.user, isGuest: "false" } },
+    { ...identity, user: { ...identity.user, isGuest: "false" } }, { ...identity, user: { ...identity.user, isGuest: undefined } },
     { ...identity, user: { ...identity.user, id: "forged-account" } }]) {
     const { env, seen } = environment(value);
     assert.equal((await handleCompanionGateway(request("/health"), env)).status, 401);
     assert.equal(seen.auth.length, 1); assert.equal(seen.companion.length, 0);
   }
+});
+
+test("guest sessions reach their own companion instance without signing in", async () => {
+  const { env, seen } = environment({ authenticated: false, user: { id: owner, role: "user", isGuest: true } });
+  assert.equal((await handleCompanionGateway(request("/sessions"), env)).status, 200);
+  assert.equal(seen.companion.length, 1);
+  assert.equal(seen.companion[0].headers.get("X-Xumeng-Account-Id"), owner);
 });
 
 test("both real account roles pass while invalid backend roles fail closed", async () => {

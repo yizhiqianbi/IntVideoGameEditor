@@ -19,7 +19,7 @@ export function contentText(value: unknown): string {
   return parts.join("\n");
 }
 export function checkLocalContent(value: unknown): void {
-  if (hasBlockedContent(contentText(value))) throw new ContentError(422, "晴屿只支持全年龄内容，请调整这段文字后重试。");
+  if (hasBlockedContent(contentText(value))) throw new ContentError(422, "晴屿可以亲近，但不能描绘性行为。请调整这段文字后重试。");
 }
 const REVIEW_POLICY = reviewPolicy.system;
 const reviewSchema = reviewPolicy.responseFormat;
@@ -71,12 +71,12 @@ async function uncachedReview(input:unknown,env:ModerationEnv,fetcher:typeof fet
           !["allowed", "blocked", "uncertain"].includes(result.decision) ||
           !Array.isArray(result.categories) || result.categories.some((c: unknown) => typeof c !== "string" || !c.trim())) throw new Error();
     } catch {throw new ContentError(503,"内容检查结果无效，未放行这次内容。");}
-    if (result.decision === "uncertain") throw new ContentError(503,"暂时无法确认内容适合全年龄，请调整后重试。");
-    if (result.decision !== "allowed" || result.categories.length) throw new ContentError(422,"这段内容不适合晴屿，请换一个全年龄的话题。");
+    if (result.decision === "uncertain") throw new ContentError(503,"暂时无法确认这段内容停在亲近之前，请调整后重试。");
+    if (result.decision !== "allowed" || result.categories.length) throw new ContentError(422,"这段内容越过了晴屿的边界，请停在亲近之前。");
     return;
   }
   if(!Array.isArray(data?.results)||!data.results.length||data.results.some((r:any)=>typeof r?.flagged!=="boolean"))throw new ContentError(503,"内容检查结果无效，未放行这次内容。");
-  if(data.results.some((r:any)=>r.flagged||Object.values(r.categories??{}).some(v=>v===true)))throw new ContentError(422,"这段内容不适合晴屿，请换一个全年龄的话题。");
+  if(data.results.some((r:any)=>r.flagged||Object.values(r.categories??{}).some(v=>v===true)))throw new ContentError(422,"这段内容越过了晴屿的边界，请停在亲近之前。");
 }
 const approvedReviews = new Map<string, { promise: Promise<void>; expires: number }>();
 function mutableImage(input: unknown): boolean {

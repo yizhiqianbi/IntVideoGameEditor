@@ -1,7 +1,7 @@
 export const XUMENG_COMMUNITY_GUIDELINES_PATH = "/community-guidelines";
 export const XUMENG_COMMUNITY_GUIDELINES_TITLE = "晴屿社区公约";
-export const XUMENG_COMMUNITY_GUIDELINES_VERSION = "1.0";
-export const XUMENG_COMMUNITY_GUIDELINES_DATE = "2026-10-10";
+export const XUMENG_COMMUNITY_GUIDELINES_VERSION = "1.1";
+export const XUMENG_COMMUNITY_GUIDELINES_DATE = "2026-10-25";
 export const XUMENG_COMMUNITY_GUIDELINES_DESCRIPTION = "晴屿的社区交流、创作发布、隐私保护与举报规则。";
 
 export const XUMENG_COMMUNITY_GUIDELINES = [
@@ -31,8 +31,9 @@ export const XUMENG_COMMUNITY_GUIDELINES = [
     ],
   },
   {
-    id: "safety", title: "守住内容边界", summary: "晴屿面向年满 18 周岁的用户。",
+    id: "safety", title: "守住内容边界", summary: "晴屿面向年满 18 周岁的用户。亲近可以，性行为不描绘。",
     rules: [
+      "订阅动态、私信和故事可以写成年之间的心动、暧昧、拥抱、亲吻，以及只给对方的日常。不得描绘性行为、性器官或裸露私密部位，不得以任何方式涉及未成年人。",
       "不得传播真实的非自愿私密影像、性剥削内容、恐怖主义宣传，或鼓励现实伤害、诈骗及其他违法行为。",
       "不得上传恶意程序、钓鱼链接，或故意绕过内容安全措施。私人创作和 AI 生成同样应遵守适用法律与服务规则。",
     ],
@@ -71,5 +72,5 @@ const escapeHtml = (value: string) => value.replace(/[&<>"']/g, character => ({ 
 export function renderXumengCommunityGuidelines(): string {
   const contents = XUMENG_COMMUNITY_GUIDELINES.map((section, index) => `<a href="#${section.id}"><span>${String(index + 1).padStart(2, "0")}</span>${escapeHtml(section.title)}</a>`).join("");
   const sections = XUMENG_COMMUNITY_GUIDELINES.map((section, index) => `<section class="community-rule" id="${section.id}" tabindex="-1" aria-labelledby="${section.id}-title"><div class="community-rule-number">${String(index + 1).padStart(2, "0")}</div><div><h2 id="${section.id}-title">${escapeHtml(section.title)}</h2><p class="community-rule-summary">${escapeHtml(section.summary)}</p><ul>${section.rules.map(rule => `<li>${escapeHtml(rule)}</li>`).join("")}</ul></div></section>`).join("");
-  return `<div class="community-page"><a class="community-skip" href="#community-content">跳到公约正文</a><header class="community-topbar"><a class="community-brand" href="/#characters" aria-label="返回晴屿角色广场"><img src="/assets/qingyu/brand/qingyu-mark.svg" alt="" width="34" height="34"><span>晴屿<small>XUMENG</small></span></a><nav aria-label="公约页面导航"><a href="/#characters">角色广场</a><a href="/#forum">进入论坛 <span aria-hidden="true">↗</span></a></nav></header><main class="community-document" id="community-content" tabindex="-1"><div class="community-intro"><p class="community-eyebrow">晴屿 · 社区</p><h1>社区公约</h1><p class="community-lead">写自己的故事，也尊重别人的边界。</p><p class="community-scope">适用于公开角色、封面、论坛主题与回复，以及任务中的交流内容。</p><p class="community-version">版本 ${XUMENG_COMMUNITY_GUIDELINES_VERSION}<span aria-hidden="true"> · </span><time datetime="${XUMENG_COMMUNITY_GUIDELINES_DATE}">${XUMENG_COMMUNITY_GUIDELINES_DATE}</time></p></div><div class="community-body"><aside class="community-index"><nav aria-label="公约目录">${contents}</nav><p>参与须年满 18 周岁。<br>发布前请先阅读相关条目。</p></aside><div class="community-rules">${sections}<section class="community-closing" aria-labelledby="community-update-title"><h2 id="community-update-title">公约更新</h2><p>公约会随产品和社区需要调整，本页标明版本与更新时间。它说明社区参与和公开发布的规则，不代替充值页的费用说明。</p><a class="community-primary" href="/#forum">返回论坛<span aria-hidden="true"> →</span></a></section></div></div></main><footer class="community-footer"><span>晴屿 · 社区公约</span><a href="/#studio">创作者中心</a><a href="/#recharge">充值与 VIP</a></footer></div>`;
+  return `<div class="community-page"><a class="community-skip" href="#community-content">跳到公约正文</a><header class="community-topbar"><a class="community-brand" href="/#characters" aria-label="返回晴屿"><img src="/assets/qingyu/brand/qingyu-mark.svg" alt="" width="34" height="34"><span>晴屿<small>XUMENG</small></span></a><nav aria-label="公约页面导航"><a href="/#characters">动态</a><a href="/#forum">进入论坛 <span aria-hidden="true">↗</span></a></nav></header><main class="community-document" id="community-content" tabindex="-1"><div class="community-intro"><p class="community-eyebrow">晴屿 · 社区</p><h1>社区公约</h1><p class="community-lead">写自己的故事，也尊重别人的边界。</p><p class="community-scope">适用于公开角色、封面、论坛主题与回复，以及任务中的交流内容。</p><p class="community-version">版本 ${XUMENG_COMMUNITY_GUIDELINES_VERSION}<span aria-hidden="true"> · </span><time datetime="${XUMENG_COMMUNITY_GUIDELINES_DATE}">${XUMENG_COMMUNITY_GUIDELINES_DATE}</time></p></div><div class="community-body"><aside class="community-index"><nav aria-label="公约目录">${contents}</nav><p>参与须年满 18 周岁。<br>发布前请先阅读相关条目。</p></aside><div class="community-rules">${sections}<section class="community-closing" aria-labelledby="community-update-title"><h2 id="community-update-title">公约更新</h2><p>公约会随产品和社区需要调整，本页标明版本与更新时间。它说明社区参与和公开发布的规则，不代替充值页的费用说明。</p><a class="community-primary" href="/#forum">返回论坛<span aria-hidden="true"> →</span></a></section></div></div></main><footer class="community-footer"><span>晴屿 · 社区公约</span><a href="/#studio">创作者中心</a><a href="/#recharge">充值与 VIP</a></footer></div>`;
 }
