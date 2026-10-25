@@ -14,6 +14,8 @@ type Props = {
   authors: DzmmAuthor[];
   onCharacter: (c: Character) => void;
   onStart: (c: Character) => void;
+  onDirect: (c: Character, opening: string[]) => void;
+  threads: Record<string, { preview: string; at: number; unread: number }>;
   onFavorite: (id: string) => void;
   onLike: (id: string) => void;
   onAuthor: (a: DzmmAuthor) => void;
@@ -127,6 +129,12 @@ const STATIC_ALERTS: Alert[] = [
   { id: "a3", tab: "promo", creatorId: "qy-xingcheng", text: "公开了新的观测时段，订阅后可以看到。", ago: "3天前" },
 ];
 
+function shortTime(at: number): string {
+  const date = new Date(at), now = new Date();
+  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  return new Date(now.getTime() - 86_400_000).toDateString() === date.toDateString() ? "昨天" : `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 function readStore(): Store {
   if (typeof localStorage === "undefined") return EMPTY;
   const ids = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
@@ -237,7 +245,12 @@ export default function OtomeHome(p: Props) {
 
   function go(next: Screen) { setScreen(next); setRailMenu(false); setMenuPost(null); window.scrollTo({ top: 0 }); }
   function openPerson(id: string) { setPersonId(id as CreatorId); setProfileTab("posts"); setShowMore(false); go("person"); }
-  function openMail(id: CreatorId) { setMailId(id); update(previous => previous.read.includes(id) ? previous : { ...previous, read: [...previous.read, id] }); }
+  const directLines = (id: CreatorId) => LETTERS[id].filter(letter => !letter.price).map(letter => letter.text);
+  function openDirect(id: CreatorId) { const who = creator(id); if (who) p.onDirect(who.character, directLines(id)); }
+  const unreadFor = (id: CreatorId) => p.threads[id] ? p.threads[id].unread : isSub(id) && !store.read.includes(id) ? LETTERS[id].length : 0;
+  function openMail(id: CreatorId) {
+    if (p.threads[id] && isSub(id)) { openDirect(id); return; }
+    setMailId(id); update(previous => previous.read.includes(id) ? previous : { ...previous, read: [...previous.read, id] }); }
 
   function confirmModal() {
     if (!modal) return;
@@ -358,7 +371,6 @@ export default function OtomeHome(p: Props) {
         if (!who) return null;
         return <button key={story.creatorId} className={store.seenStories.includes(story.creatorId) ? s.storySeen : s.story} onClick={() => setModal({ kind: "story", index })}><span><img src={who.character.cover} alt="" /></span><small>{who.character.name}</small></button>;
       })}</div>
-      {!store.subs.length && <div className={s.intro}><strong>先看他们愿意公开的。</strong><span>订阅之后，锁住的那一页才会打开。亲近可以，亲吻之后停笔。</span></div>}
       {feed.map(renderPost)}
       {!feed.length && <div className={s.empty}><h2>没有匹配的动态</h2><button onClick={() => setQuery("")}>清除搜索</button></div>}
     </>;
@@ -384,21 +396,22 @@ export default function OtomeHome(p: Props) {
   }
 
   function renderMail() {
-    const list = people.filter(who => mailFilter === "all" || (mailFilter === "unread" ? isSub(who.id) && !store.read.includes(who.id) : LETTERS[who.id].some(letter => store.unlocked.includes(letter.id))))
+    const list = people.filter(who => mailFilter === "all" || (mailFilter === "unread" ? unreadFor(who.id) > 0 : LETTERS[who.id].some(letter => store.unlocked.includes(letter.id))))
       .filter(who => !needle || who.character.name.includes(query.trim()));
     const current = mailId ? creator(mailId) : undefined;
     return <div className={s.mail}>
       <section className={current ? s.mailListHidden : s.mailList}>
-        {pageHead("私信", <button className={s.iconButton} aria-label="写私信" onClick={() => current ? p.onStart(current.character) : setNotice("先选一个人。")}>{I.plus(20)}</button>)}
+        {pageHead("私信", <button className={s.iconButton} aria-label="写私信" onClick={() => current && isSub(current.id) ? openDirect(current.id) : setNotice("先选一个已订阅的人。")}>{I.plus(20)}</button>)}
         <label className={s.searchInline}>{I.search(18)}<input value={query} onChange={event => setQuery(event.target.value)} placeholder="搜索" aria-label="搜索私信" /></label>
         {tabs([["all", "全部"], ["unread", "未读"], ["paid", "已解锁"]], mailFilter, setMailFilter, "私信筛选")}
         <ul className={s.threadList}>{list.map(who => {
           const last = LETTERS[who.id].at(-1)!;
-          const unread = isSub(who.id) && !store.read.includes(who.id);
+          const thread = isSub(who.id) ? p.threads[who.id] : undefined;
+          const unread = unreadFor(who.id);
           return <li key={who.id}><button aria-current={mailId === who.id} onClick={() => openMail(who.id)}>
             <span className={s.avatarDot}><img src={who.character.cover} alt="" />{who.online === "现在在线" && <i />}</span>
-            <span className={s.threadText}><strong>{who.character.name}<Verified /></strong><em>{isSub(who.id) ? last.text : "订阅后才能和他私信"}</em></span>
-            <span className={s.threadMeta}><small>{last.time.split(" ")[0]}</small>{unread && <b>{LETTERS[who.id].length}</b>}</span>
+            <span className={s.threadText}><strong>{who.character.name}<Verified /></strong><em>{thread ? thread.preview : isSub(who.id) ? last.text : "订阅后才能和他私信"}</em></span>
+            <span className={s.threadMeta}><small>{thread ? shortTime(thread.at) : last.time.split(" ")[0]}</small>{unread > 0 && <b>{unread}</b>}</span>
           </button></li>;
         })}</ul>
       </section>
@@ -424,7 +437,7 @@ export default function OtomeHome(p: Props) {
               </div>;
             }) : <div className={s.mailGate}>{I.lock(30)}<p>订阅{current.character.name}之后才能私信他。</p>{subscribeButton(current.id)}</div>}
           </div>
-          {isSub(current.id) && <button className={s.composer} onClick={() => p.onStart(current.character)}><span>写给{current.character.name}…</span>{I.send(20)}</button>}
+          {isSub(current.id) && <button className={s.composer} onClick={() => openDirect(current.id)}><span>写给{current.character.name}…</span>{I.send(20)}</button>}
         </>}
       </section>
     </div>;
@@ -590,7 +603,7 @@ export default function OtomeHome(p: Props) {
     </div>;
   }
 
-  const unreadMail = people.filter(who => isSub(who.id) && !store.read.includes(who.id)).length;
+  const unreadMail = people.reduce((total, who) => total + unreadFor(who.id), 0);
   const navItems: [Screen, string, ReactNode, number?][] = [
     ["home", "首页", I.home(), undefined],
     ["alerts", "通知", I.bell(), undefined],
@@ -638,7 +651,7 @@ export default function OtomeHome(p: Props) {
         <button className={s.iconButton} aria-label="下一个" onClick={() => setSuggestOffset(value => value + 1)}>{I.next(18)}</button>
       </div></div>
       <div className={s.suggestList}>{suggestions.length ? page.map(who => creatorCard(who)) : <p className={s.muted}>没有找到这个人。</p>}</div>
-      <p className={s.asideFoot}><a href="/community-guidelines">社区公约</a> · 四位都是成年原创角色 · 亲近可以，亲吻之后停笔 · 扣费未开放</p>
+      <p className={s.asideFoot}><a href="/community-guidelines">社区公约</a> · 扣费未开放</p>
     </aside>}
 
     {renderModal()}

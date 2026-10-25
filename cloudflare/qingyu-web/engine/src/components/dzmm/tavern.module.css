@@ -667,40 +667,58 @@
   background: var(--pink-soft) !important;
 }
 .conversation > img {
-  height: 40px;
-  width: 40px;
+  height: 48px;
+  width: 48px;
   object-fit: cover;
+  object-position: 50% 16%;
   border-radius: 50%;
   flex-shrink: 0;
 }
 .conversation > span {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   min-width: 0;
-  gap: 5px;
+  gap: 4px;
   flex: 1;
 }
 .conversation strong {
-  font-size: 12px;
+  font-size: 15px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-weight: 500;
-  padding-right: 38px;
+  font-weight: 600;
+  padding-right: 44px;
 }
 .conversationTime {
   position: absolute;
   right: 12px;
-  top: 14px;
-  font-size: 9px;
+  top: 16px;
+  font-size: 11px;
   color: var(--muted);
 }
 .conversation small {
-  font-size: 11px;
+  font-size: 13px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--muted);
+  padding-right: 30px;
+}
+.unreadBadge {
+  position: absolute;
+  right: 12px;
+  bottom: 14px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--pink);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  display: grid;
+  place-items: center;
 }
 .sidebarEmpty {
   font-size: 12px;
@@ -1025,6 +1043,126 @@
 .visibleStatus p { margin: 0; padding: 0 11px 10px; color: var(--muted); font-size: 10px; line-height: 1.45; }
 .userRow {
   justify-content: flex-end;
+}
+.dmRow {
+  gap: 10px;
+  margin-bottom: 14px;
+  align-items: flex-start;
+}
+.dmRow.userRow {
+  flex-direction: row-reverse;
+  justify-content: flex-start;
+}
+.dmHeader {
+  height: 60px;
+}
+.dmHeader .chatIdentity {
+  display: flex !important;
+  flex: 1;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+}
+.dmHeader .chatIdentity img {
+  display: block !important;
+  width: 38px !important;
+  height: 38px !important;
+  object-position: 50% 16%;
+}
+.dmHeader .chatIdentity > span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+}
+.dmHeader .chatIdentity strong {
+  font-size: 15px !important;
+  font-weight: 600;
+}
+.dmHeader .chatIdentity small {
+  display: block !important;
+  font-size: 11px !important;
+  color: var(--muted);
+}
+.dmRow :global([class*="_tools_"]) {
+  display: none;
+}
+.dmRow:hover :global([class*="_tools_"]),
+.dmRow:focus-within :global([class*="_tools_"]) {
+  display: flex;
+}
+@media (max-width: 1023px) {
+  .dmHeader .modelPicker {
+    display: none;
+  }
+}
+.dmAvatar {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: 50% 16%;
+  flex-shrink: 0;
+  font-size: 14px !important;
+  font-weight: 600;
+}
+.dmRow .messageContent {
+  max-width: min(72%, 520px);
+}
+.dmStack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.dmRow.userRow .dmStack {
+  align-items: flex-end;
+}
+.dmBubble {
+  max-width: 100%;
+  padding: 9px 14px;
+  border-radius: 4px 18px 18px 18px;
+  background: var(--soft);
+  font-size: 15px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.dmBubble + .dmBubble {
+  border-top-left-radius: 18px;
+}
+.dmRow.userRow .dmBubble {
+  border-radius: 18px 4px 18px 18px;
+  background: var(--pink);
+  color: #fff;
+}
+.dmRow.userRow .dmBubble + .dmBubble {
+  border-top-right-radius: 18px;
+}
+.dmBubble p {
+  margin: 0;
+}
+.dmAside {
+  font-size: 12px;
+  color: var(--muted);
+  padding: 2px 4px;
+}
+.dmTyping {
+  display: flex;
+  gap: 4px;
+  padding: 14px 16px;
+}
+.dmTyping span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--muted);
+  animation: pulse 1.2s infinite;
+}
+.dmTyping span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dmTyping span:nth-child(3) {
+  animation-delay: 0.4s;
 }
 .userRow .messageName {
   justify-content: flex-end;
