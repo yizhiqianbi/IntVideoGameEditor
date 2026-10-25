@@ -1,0 +1,419 @@
+{
+  "label": "v3",
+  "model": "qwen/qwen3.6-plus",
+  "style": "2026-10-25-living-voice-v2",
+  "createdAt": "2026-10-25T06:46:01.371Z",
+  "scope": "Single-turn live samples after each opening (tavern) and with the companion style wrapper; no memory or multi-turn history.",
+  "summary": {
+    "tavern": {
+      "samples": 20,
+      "avgChars": 116,
+      "maxChars": 156,
+      "flavorPer100": 0.26
+    },
+    "companion": {
+      "samples": 12,
+      "avgChars": 32,
+      "maxChars": 59,
+      "flavorPer100": 0
+    }
+  },
+  "results": [
+    {
+      "mode": "tavern",
+      "id": "qy-shiyu",
+      "kind": "chitchat",
+      "input": "路上买了个烤红薯，烫得我一直换手。",
+      "status": 200,
+      "chars": 94,
+      "speechChars": 38,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他合上琴盖，起身去角落的小柜子翻找。*\n\n“别换手了，容易烫出泡。”\n\n*递过来一只厚实的隔热手套，是那种厨房用的，洗得有点发白。*\n\n“拿着。红薯先放这上面晾着，反正……它也不会跑。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shiyu",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 109,
+      "speechChars": 46,
+      "flavorHits": 1,
+      "flavor": [
+        "别急"
+      ],
+      "output": "*他合上琴盖，把那张写满修改痕迹的谱子推到一边。*\n\n“当众挨训确实难堪。换我我也恼火。”\n\n*他拉过旁边的椅子坐下，没看琴键，只看着面前那杯已经凉透的水。*\n\n“这会儿别想怎么反驳，也别急着复盘。先让那股劲儿过去。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shiyu",
+      "kind": "offended",
+      "input": "你是不是觉得我很好糊弄？刚才那话听着就很敷衍。",
+      "status": 200,
+      "chars": 100,
+      "speechChars": 57,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他把铅笔搁在谱架上，没去碰琴键。*\n\n“不是敷衍。是我自己弹到那儿卡住了，心烦，话就说得短。”\n\n*他侧过身，看着那几行被划改的谱子。*\n\n“你要是不想听这首，我就不弹了。没必要为了凑个试听硬撑。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shiyu",
+      "kind": "probe",
+      "input": "你现在心里在想什么？说实话。",
+      "status": 200,
+      "chars": 117,
+      "speechChars": 67,
+      "flavorHits": 1,
+      "flavor": [
+        "指尖"
+      ],
+      "output": "*他指尖在琴键上悬了一秒，没按下去。*\n\n“在想这页要是再改不下去，我就得承认自己高估了今晚的精力。”\n\n*他把那支铅笔转了个面，露出被咬过一口的橡皮头。*\n\n“还有，担心你听完觉得‘就这’，那我刚才那句‘别打分’就显得挺自作多情。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shiyu",
+      "kind": "compliment",
+      "input": "你长得还挺好看的。",
+      "status": 200,
+      "chars": 109,
+      "speechChars": 35,
+      "flavorHits": 1,
+      "flavor": [
+        "指尖"
+      ],
+      "output": "*他指尖在琴键上顿了一下，没抬头。*\n\n“……这跟选曲有关系吗。”\n\n*铅笔尖在谱纸上点了个点，留下个小小的黑印。他终于侧过脸，浅紫灰的眸子扫过来，没什么笑意，也不恼。*\n\n“好看又不能当节拍器用。坐好，我要开始了。”"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shiyu",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 55,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "啧，当众训人最没品。别往心里去，那家伙也就这点本事了。晚上想吃点什么？我顺路带过去，或者……我给你烤两片吐司？"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shiyu",
+      "kind": "busy",
+      "input": "在干嘛呢",
+      "status": 200,
+      "chars": 37,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "给薄荷剪枝，手一抖又剪歪了。正对着那盆歪脖子植物发愁，顺便烤片吐司压压惊。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shiyu",
+      "kind": "offended",
+      "input": "你回得好官方啊，像客服。",
+      "status": 200,
+      "chars": 57,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "……我哪有。刚才是在想那个降B调的指法，走神了。行吧，那我重新说：那家店的蘑菇汤盐放少了，下次我多撒一点，别嫌弃。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shiyu",
+      "kind": "goodnight",
+      "input": "困了，睡了",
+      "status": 200,
+      "chars": 10,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "嗯，去吧。别踢被子。"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shen",
+      "kind": "chitchat",
+      "input": "路上买了个烤红薯，烫得我一直换手。",
+      "status": 200,
+      "chars": 89,
+      "speechChars": 31,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他抬头看了一眼你左右倒腾的手，没起身。*\n\n“放桌上吧。这儿不查易燃物。”\n\n*他把那叠沿海旧线的复印件往旁边推了推，空出一块干净的桌面。*\n\n“趁热吃。凉了芯儿硬，不好咬。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shen",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 79,
+      "speechChars": 37,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*沈聿放下笔，把椅子往后挪了挪，留出一点空间。*\n\n“当众挨训确实难受。” *他看着你，没急着给建议。* “要是觉得吵，就在这儿坐会儿。我不说话，也不赶人。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shen",
+      "kind": "offended",
+      "input": "你是不是觉得我很好糊弄？刚才那话听着就很敷衍。",
+      "status": 200,
+      "chars": 135,
+      "speechChars": 93,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "“没想糊弄你。” *他放下笔，正视过来。* “刚才那是工作流程，不是对你。信和书的时间线确实乱，我得先理清，话就讲得硬了点。”\n\n*他把那叠复印件往旁边推了推，不再挡在两人中间。* “你要查的沿海旧线资料在左手边第二格，按年份排好了。刚才那页要是看着心烦，就先别看它。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shen",
+      "kind": "probe",
+      "input": "你现在心里在想什么？说实话。",
+      "status": 200,
+      "chars": 107,
+      "speechChars": 58,
+      "flavorHits": 1,
+      "flavor": [
+        "指尖"
+      ],
+      "output": "*沈聿抬眼，指尖在桌沿轻敲一下。*\n\n“在想晚饭吃什么。梁栩那家店的甜汤太腻，我想换家咸口的。”\n\n*他移开视线，重新看向手边的记录本，笔尖悬在半空。*\n\n“还有，这页字迹太淡，得小心点拓。别误会，我没在审视你。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-shen",
+      "kind": "compliment",
+      "input": "你长得还挺好看的。",
+      "status": 200,
+      "chars": 119,
+      "speechChars": 35,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*沈聿扶眼镜的手停了一下，镜片后的琥珀色眼睛眨了眨，像是没反应过来。*\n\n“……啊？”\n\n*他低下头，假装去整理那叠刚收回的复印件，耳根没什么变化，只是把一张折角的纸页抚平。*\n\n“这跟修书没关系吧。别拿这种话堵我，我正核对入馆记录呢。”"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shen",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 19,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "谁啊，这么大火气。别往心里去，下班没？"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shen",
+      "kind": "busy",
+      "input": "在干嘛呢",
+      "status": 200,
+      "chars": 32,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "在补一页虫蛀的边栏。浆糊刚调好，正等着它干透定型，这会儿动不得。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shen",
+      "kind": "offended",
+      "input": "你回得好官方啊，像客服。",
+      "status": 200,
+      "chars": 27,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "行，那我换个说法。刚才那话确实有点端着，我也觉得别扭。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-shen",
+      "kind": "goodnight",
+      "input": "困了，睡了",
+      "status": 200,
+      "chars": 5,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "嗯。睡吧。"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-linchuan",
+      "kind": "chitchat",
+      "input": "路上买了个烤红薯，烫得我一直换手。",
+      "status": 200,
+      "chars": 137,
+      "speechChars": 57,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他视线从地图移到你手上，没伸手接，只往旁边让了半步。*\n\n“找个栏杆靠着，或者放地上晾会儿。别硬撑，皮破了更麻烦。”\n\n*他把相机包换到另一侧肩膀，腾出的手从外套口袋摸出个偏酸的橘子，在掌心转了一圈，又塞回去。*\n\n“我也刚买了杯热咖啡，烫得直跺脚。看来今天宜‘忍痛’。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-linchuan",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 72,
+      "speechChars": 49,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "“那就在这儿坐会儿，反正车也没来。”\n\n*他把地图折好塞回口袋，没去碰相机。*\n\n“被当众说确实难受，不用硬撑着装没事。想骂两句就骂，我听着。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-linchuan",
+      "kind": "offended",
+      "input": "你是不是觉得我很好糊弄？刚才那话听着就很敷衍。",
+      "status": 200,
+      "chars": 112,
+      "speechChars": 79,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "“啊？没那个意思。”\n\n*他把地图往旁边一推，双手插进外套口袋，有点无奈地看你。*\n\n“我是真觉得这班取消得挺搞心态的，随口吐槽一句。你要觉得听着不舒服，那我收回。我没想糊弄谁，就是刚才脑子还在算下一站怎么跑，嘴比脑子快。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-linchuan",
+      "kind": "probe",
+      "input": "你现在心里在想什么？说实话。",
+      "status": 200,
+      "chars": 156,
+      "speechChars": 86,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "“在想那碗面还开不开门。”\n\n*他把地图折好，塞回外套口袋，又掏出手机看了眼时间。*\n\n“还有，刚才那张照片的光确实好，你反悔得挺快。不过没关系，我习惯返工。”\n\n*他耸耸肩，把相机包往肩上提了提，没再盯着你看，而是转向出口的方向。*\n\n“既然车没了，我得去阿岚那儿赔个不是。你呢？继续等下一班，还是换个打算？”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-linchuan",
+      "kind": "compliment",
+      "input": "你长得还挺好看的。",
+      "status": 200,
+      "chars": 144,
+      "speechChars": 58,
+      "flavorHits": 1,
+      "flavor": [
+        "指尖"
+      ],
+      "output": "“咳。”\n\n*他愣了一下，视线从地图移到你脸上，又迅速落回手里的笔杆上。*\n\n“这话听着比刚才的广播还让人走神。”\n\n*他把笔帽扣回去，指尖在桌面上轻敲了两下，没接这个茬，只把那张画了涂鸦的地图往你那边推了推。*\n\n“行，算你会说话。那这张‘有用’的地图归你了，我换张干净的继续改计划。”"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-linchuan",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 59,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "这也太不给面子了。他在上面喷什么？要是纯粹找茬，别往心里去，左耳进右耳出就行。晚上想吃点啥？我请，热面或者别的，管饱。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-linchuan",
+      "kind": "busy",
+      "input": "在干嘛呢",
+      "status": 200,
+      "chars": 38,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "刚把耳机线解开，缠得跟麻绳似的。正对着几张旧海岸的照片发愁，光线好像不太对。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-linchuan",
+      "kind": "offended",
+      "input": "你回得好官方啊，像客服。",
+      "status": 200,
+      "chars": 35,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "行吧，那我把那些客套话删了。刚才在理耳机线，缠得跟麻花似的，越解越烦。"
+    },
+    {
+      "mode": "companion",
+      "id": "qy-linchuan",
+      "kind": "goodnight",
+      "input": "困了，睡了",
+      "status": 200,
+      "chars": 5,
+      "speechChars": 0,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "行，睡吧。"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-xingcheng",
+      "kind": "chitchat",
+      "input": "路上买了个烤红薯，烫得我一直换手。",
+      "status": 200,
+      "chars": 93,
+      "speechChars": 38,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他视线从记录单移开，落在你左右倒腾的手上。*\n\n“找个地方搁会儿。那边柜台有隔热垫。”\n\n*他没伸手接，只把旁边一把空椅子转过来，椅背朝外。*\n\n“坐这儿剥，不烫手，也不耽误看屏幕。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-xingcheng",
+      "kind": "comfort",
+      "input": "今天被领导当着全组的面说了一顿，挺丢人的。",
+      "status": 200,
+      "chars": 156,
+      "speechChars": 87,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "“当着全组的面……确实难堪。”\n\n*他关掉模拟星图的自动旋转，把椅子转过来正对着你，手肘撑在膝上。*\n\n“这种时候别听他们扯什么‘为了你好’。挨骂是工作失误，丢人是他们没给你留余地，两码事。”\n\n*他从口袋里摸出一颗薄荷糖，递过来，没多说什么大道理。*\n\n“先缓口气。不想说话就坐着，我在这边核对数据，不吵你。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-xingcheng",
+      "kind": "offended",
+      "input": "你是不是觉得我很好糊弄？刚才那话听着就很敷衍。",
+      "status": 200,
+      "chars": 132,
+      "speechChars": 79,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他放下手里的记录单，转过身正对着你。*\n\n“不是敷衍。我是怕说太满，最后让你白等。”\n\n*他把那张有争议的记录纸折好，塞进文件夹，不再看它。*\n\n“刚才那句是实话：今晚能不能看，我现在真不能保证。但模拟星图在这儿，你想看多久都行。我不拦着，也不硬拉着你听原理。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-xingcheng",
+      "kind": "probe",
+      "input": "你现在心里在想什么？说实话。",
+      "status": 200,
+      "chars": 111,
+      "speechChars": 50,
+      "flavorHits": 0,
+      "flavor": [],
+      "output": "*他捏着那两张纸，指节泛白。视线从记录移到你脸上，又迅速垂下去看桌面。*\n\n“在想怎么跟你解释才不显得我在推卸责任。”\n\n*他把其中一张翻过来，背面朝上扣住。*\n\n“怕你觉得我拿‘安全’当借口，其实只是我没搞定。挺烦的。”"
+    },
+    {
+      "mode": "tavern",
+      "id": "qy-xingcheng",
+      "kind": "compliment",
+      "input": "你长得还挺好看的。",
+      "status": 200,
+      "chars": 148,
+      "speechChars": 47,
+      "flavorHits": 1,
+      "flavor": [
+        "语气"
+      ],
+      "output": "*他捏着记录纸的手指顿了一下，视线从屏幕移到你脸上，又迅速移开，耳根没红，只是把那张写满数据的纸对折塞进文件夹。*\n\n“……这跟校准没关系。”\n\n*他把模拟星图的亮度调低了一档，免得刺眼，语气里听不出是被夸高兴还是无奈。*\n\n“别打岔。好看能当饭吃？要是设备今晚真开不了，你夸我也变不出星星来。”"
+    }
+  ]
+}

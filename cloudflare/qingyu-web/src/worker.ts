@@ -18,7 +18,7 @@ const mutation=new Set(["POST","PUT","PATCH"]);
 async function contentGate(request:Request,env:Env) {
  const path=new URL(request.url).pathname.replace("/api/dzmm/backend/","/api/backend/");
  if(!mutation.has(request.method))return;
- const content=/\/api\/(?:backend\/v1\/(?:state|characters|conversations|preferences|forum|publishing|novels|games|scenarios|task-market|character-voice|chat-media|generation)|chat|memory|novel|reply-suggestions|dzmm\/(?:chat|memory|scenario|novel)|qingyu\/companion)/.test(path);
+ const content=/\/api\/(?:backend\/v1\/(?:state|characters|conversations|preferences|forum|publishing|community|novels|games|scenarios|task-market|character-voice|chat-media|generation)|chat|memory|novel|reply-suggestions|dzmm\/(?:chat|memory|scenario|novel)|qingyu\/companion)/.test(path);
  if(content&&request.headers.get("Content-Type")?.includes("application/json")){
   if(Number(request.headers.get("Content-Length")??0)>16_777_216)throw new ContentError(413,"请求过大。");
   const text=await request.clone().text();if(text.length>16_777_216)throw new ContentError(413,"请求过大。");
@@ -26,11 +26,11 @@ async function contentGate(request:Request,env:Env) {
   checkLocalContent(body);
   // Review free-form persisted content when connected. Public publishing and
   // native companion writes always require review before crossing the boundary.
-  const publicWrite = /\/forum\/(?:posts|replies)|\/publishing\/(?:submissions|characters)|\/qingyu\/companion/.test(path);
+  const publicWrite = /\/forum\/(?:posts|replies)|\/publishing\/(?:submissions|characters)|\/community(?:\/|$)|\/qingyu\/companion/.test(path);
   const persistedContent = /\/api\/backend\/v1\/(?:state|characters|conversations|preferences|novels|games|scenarios|task-market)/.test(path);
   const reviewText = contentText(body);
   if (reviewText.trim() && (publicWrite || (persistedContent && reviewReady(env)))) {
-   await requireReviewSession(request,r=>backendFetch(r,env),path.includes('/qingyu/companion'));
+   await requireReviewSession(request,r=>backendFetch(r,env));
    await reviewContent(reviewText,env);
   }
  }

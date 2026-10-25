@@ -125,7 +125,7 @@ const en: XumengMessages = Object.freeze({
 
 const zhHans: XumengMessages = Object.freeze({
   language: "语言",
-  navPlay: "探险", navChat: "聊天", navLive: "电话", navGeneration: "生图/视频", navForum: "小岛社区", navCreate: "灵感工坊", navProfile: "我的",
+  navPlay: "动态", navChat: "私信", navLive: "电话", navGeneration: "生图/视频", navForum: "小岛社区", navCreate: "灵感工坊", navProfile: "我的",
   navInvite: "邀请好友", navEarnCredit: "赚 Credit", navNovels: "小说创作", navVoice: "角色语音", navTasks: "任务中心", navRecharge: "Credit 充值", navVip: "VIP 会员",
   navPresets: "模型与预设", navSettings: "账号设置", navInstallApp: "安装应用", navAdmin: "后台管理",
   utilityExploreApps: "探索与应用", utilityDailyCheckIn: "每日签到", utilityInviteEarn: "邀请好友赚 Credit", utilityRechargeVip: "充值与 VIP", utilityInstallApp: "安装应用",

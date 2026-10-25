@@ -143,7 +143,7 @@ export async function handleCompanionGateway(request: Request, env: CompanionGat
   // Match the backend's actual session token format and discard unrelated cookies.
   const cookies = (request.headers.get("Cookie") ?? "").split(";").map(value => value.trim()).filter(value => value.startsWith("qingyu_session="));
   if (cookies.length !== 1 || !/^qingyu_session=[a-f0-9]{64}$/.test(cookies[0])) {
-    return reply(401, { error: "请先登录正式账号，再使用陪伴聊天。", code: "LOGIN_REQUIRED" });
+    return reply(401, { error: "会话已失效，请刷新页面后重试。", code: "SESSION_REQUIRED" });
   }
   let accountId: string;
   try {
@@ -156,11 +156,13 @@ export async function handleCompanionGateway(request: Request, env: CompanionGat
       return reply(auth.status === 401 ? 401 : 503, { error: "登录状态暂时无法确认，请重新登录或稍后重试。", code: "ACCOUNT_UNAVAILABLE" });
     }
     const value: unknown = await auth.json();
-    if (!record(value) || value.authenticated !== true || !record(value.user)
-      || value.user.isGuest !== false || typeof value.user.id !== "string" || !UUID.test(value.user.id)) {
-      return reply(401, { error: "请先登录正式账号，再使用陪伴聊天。", code: "LOGIN_REQUIRED" });
+    // Guest accounts are server-issued UUIDs, so they keep their own isolated companion instances.
+    if (!record(value) || !record(value.user) || typeof value.user.isGuest !== "boolean"
+      || (value.authenticated !== true && value.user.isGuest !== true)
+      || typeof value.user.id !== "string" || !UUID.test(value.user.id)) {
+      return reply(401, { error: "会话已失效，请刷新页面后重试。", code: "SESSION_REQUIRED" });
     }
-    // auth.ts toUser exposes only user/super. Both real account roles are allowed.
+    // auth.ts toUser exposes only user/super. Both roles are allowed.
     if (value.user.role !== "user" && value.user.role !== "super") return reply(403, { error: "当前账号身份无效，请重新登录后再试。", code: "COMPANION_NOT_ALLOWED" });
     accountId = value.user.id;
   } catch { return reply(503, { error: "账户服务暂时连接不上，请稍后重试。", code: "ACCOUNT_UNAVAILABLE" }); }

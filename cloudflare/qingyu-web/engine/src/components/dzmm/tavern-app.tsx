@@ -131,7 +131,7 @@ function formatLikeTotal(character: Character, stat?: LikeStat) {
   return String(total);
 }
 const NAV: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
-  { view: "characters", labelKey: "navPlay", icon: "users" },
+  { view: "characters", labelKey: "navPlay", icon: "grid" },
   { view: "chat", labelKey: "navChat", icon: "chat" },
   ...(QINGYU_EXTERNAL_CALLS_ENABLED ? [{ view: "live" as const, labelKey: "navLive" as const, icon: "phone" as const }] : []),
   ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ view: "generation" as const, labelKey: "navGeneration" as const, icon: "image" as const }] : []),
@@ -1435,7 +1435,7 @@ export default function TavernApp() {
             e.preventDefault();
             navigate("characters");
           }}
-          aria-label="晴屿角色广场"
+          aria-label="晴屿"
         >
           <img
             src="/assets/qingyu/brand/qingyu-mark.svg"
@@ -1514,7 +1514,7 @@ export default function TavernApp() {
       </header>
 
 
-      {(view === "characters" || view === "play-games") && !detail && <OtomeHome characters={characters} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} authors={authors} onCharacter={showDetail} onStart={startChat} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onNavigate={navigate} onImport={() => importRef.current?.click()}/>}
+      {(view === "characters" || view === "play-games") && !detail && <OtomeHome characters={characters} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} authors={authors} onCharacter={showDetail} onStart={startChat} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onNavigate={navigate} onImport={() => importRef.current?.click()} dark={dark} onToggleTheme={() => setState((p) => ({ ...p, preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}/>}
 
       {view === "chat" && !detail && (
         <main className={s.chatLayout}>
