@@ -47,7 +47,10 @@ export function DetailPage({ type, slug }: DetailPageProps) {
 
         <section className={styles.relatedSection}>
           <div className={styles.relatedHeader}>
-            <h2 className={styles.relatedTitle}>继续浏览</h2>
+            <h2 className={styles.relatedTitle}>
+              继续浏览
+              <span className={styles.relatedTitleAlt}>Keep playing</span>
+            </h2>
           </div>
           <div className={styles.relatedGrid}>
             {relatedEntries.map((relatedEntry) => (

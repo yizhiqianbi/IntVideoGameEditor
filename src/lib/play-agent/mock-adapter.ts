@@ -1,4 +1,5 @@
 import { composePlayAgentPrompt, buildPlayAgentPlanInput } from "./prompts";
+import { buildFallbackHtmlGame } from "./html-prompts";
 import type {
   PlayAgentArtifactBundle,
   PlayAgentEvent,
@@ -142,12 +143,17 @@ export const MOCK_PLAY_AGENT_ADAPTER: PlayAgentProviderAdapter = {
     });
     const plan = createMockPlayAgentPlan(planInput);
     const files = buildMockFiles(plan, input);
+    const htmlGame = buildFallbackHtmlGame(
+      plan.concept,
+      `基于「${input.prompt}」的本地雏形 — 接入真实 LLM provider 后会替换为 AI 产出。`,
+    );
     const bundle: PlayAgentArtifactBundle = {
       sessionId: input.sessionId,
       plan,
       files,
+      htmlGame,
       coverPrompt: `${composePlayAgentPrompt(planInput)}\n封面要求：${plan.coverConcept}`,
-      previewEntry: "src/game.ts",
+      previewEntry: "index.html",
     };
 
     return {

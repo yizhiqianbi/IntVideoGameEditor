@@ -65,10 +65,26 @@ export type PlayAgentArtifactFile = {
   content: string;
 };
 
+export type HtmlGameArtifact = {
+  html: string;
+  meta: {
+    title: string;
+    description: string;
+    coverPrompt?: string;
+    durationSec?: number;
+  };
+  runtime: {
+    width: number;
+    height: number;
+    orientation: "portrait" | "landscape";
+  };
+};
+
 export type PlayAgentArtifactBundle = {
   sessionId: string;
   plan: PlayAgentPlan;
   files: PlayAgentArtifactFile[];
+  htmlGame?: HtmlGameArtifact;
   coverPrompt?: string;
   coverAssetUrl?: string;
   previewEntry?: string;

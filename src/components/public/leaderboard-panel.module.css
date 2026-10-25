@@ -1,56 +1,211 @@
 .panel {
   display: grid;
-  gap: 8px;
-  border-radius: 16px;
-  background: rgba(18, 20, 26, 0.96);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-  padding: 10px;
+  gap: 20px;
+  padding: 24px;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  position: relative;
+  overflow: hidden;
 }
 
+.panel::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle at top right, rgba(255, 61, 0, 0.14), transparent 62%);
+  pointer-events: none;
+}
+
+/* ── Header ──────────────────────────────── */
 .header {
-  display: flex;
+  display: grid;
+  gap: 12px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.headerMain {
+  display: grid;
+  gap: 8px;
+}
+
+.kicker {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--color-muted);
+}
+
+.kickerDot {
+  color: var(--color-accent);
+  font-size: 7px;
 }
 
 .title {
   margin: 0;
-  font-size: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
   line-height: 1;
-  letter-spacing: -0.02em;
 }
 
+.titleEn {
+  font-family: var(--font-serif), serif;
+  font-style: italic;
+  font-size: 44px;
+  font-weight: 400;
+  letter-spacing: -0.03em;
+  color: var(--color-accent-ink);
+}
+
+.titleCn {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--color-subtle);
+}
+
+.headerDash {
+  color: var(--color-accent);
+}
+
+.headerCount {
+  color: var(--color-text);
+}
+
+/* ── List ────────────────────────────────── */
 .list {
+  list-style: none;
   display: grid;
-  gap: 6px;
+  gap: 2px;
+  counter-reset: rank;
+}
+
+.listItem {
+  display: block;
 }
 
 .item {
   display: grid;
-  grid-template-columns: 30px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  padding: 8px 9px;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.03);
+  gap: 18px;
+  padding: 14px 4px;
+  border-bottom: 1px solid var(--color-line);
   color: inherit;
   text-decoration: none;
+  transition: background var(--transition-fast), padding var(--transition-fast);
 }
 
+.listItem:last-child .item {
+  border-bottom: 0;
+}
+
+.item:hover {
+  background: linear-gradient(90deg, var(--color-accent-soft), transparent 80%);
+  padding-left: 12px;
+  padding-right: 12px;
+}
+
+/* rank number — huge serif */
 .rank {
-  font-family: var(--font-mono);
-  color: rgba(255, 255, 255, 0.54);
-  font-size: 11px;
+  font-family: var(--font-serif), serif;
+  font-style: italic;
+  font-size: 36px;
+  font-weight: 400;
+  letter-spacing: -0.04em;
+  color: var(--color-subtle);
+  line-height: 1;
+  min-width: 48px;
+  transition: color var(--transition-fast);
+}
+
+.item:hover .rank {
+  color: var(--color-text);
+}
+
+.rankTop {
+  color: var(--color-accent);
+  font-size: 44px;
+}
+
+.itemTop:hover .rank {
+  color: var(--color-accent-ink);
 }
 
 .copy {
   min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.itemType {
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  color: var(--color-subtle);
 }
 
 .itemTitle {
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  color: var(--color-text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.trend {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: rgba(245, 243, 236, 0.04);
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 700;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.item:hover .trend {
+  background: var(--color-accent);
+  color: var(--color-paper);
+}
+
+@media (max-width: 720px) {
+  .panel {
+    padding: 18px;
+  }
+
+  .rank {
+    font-size: 28px;
+    min-width: 40px;
+  }
+
+  .rankTop {
+    font-size: 34px;
+  }
 }

@@ -1,5 +1,13 @@
 import { composePlayAgentPrompt } from "./prompts";
+import {
+  buildFallbackHtmlGame,
+  buildHtmlGameSystemPrompt,
+  buildHtmlGameUserPrompt,
+  extractHtmlBlock,
+  validateHtmlGame,
+} from "./html-prompts";
 import type {
+  HtmlGameArtifact,
   PlayAgentArtifactBundle,
   PlayAgentEvent,
   PlayAgentPlan,
@@ -208,35 +216,45 @@ export function createGlmCodingPlanAdapter(
         skills: [],
       };
       const draftPlan = await this.plan(planInput);
-      const text = await callGlmCoding(config, [
-        {
-          role: "system",
-          content: "You generate structured H5 game artifact bundles as strict JSON.",
-        },
-        {
-          role: "user",
-          content: buildRunPrompt(input, draftPlan),
-        },
+
+      const htmlText = await callGlmCoding(config, [
+        { role: "system", content: buildHtmlGameSystemPrompt() },
+        { role: "user", content: buildHtmlGameUserPrompt(planInput, draftPlan) },
       ]);
-      const parsed = parseJsonObject<{
-        files?: unknown;
-        coverPrompt?: string;
-        previewEntry?: string;
-      }>(text);
-      const files = normalizeFiles(parsed.files);
+
+      let htmlGame: HtmlGameArtifact;
+      try {
+        const html = extractHtmlBlock(htmlText);
+        validateHtmlGame(html);
+        htmlGame = {
+          html,
+          meta: {
+            title: draftPlan.concept,
+            description: draftPlan.loop,
+            coverPrompt: draftPlan.coverConcept,
+            durationSec: 45,
+          },
+          runtime: { width: 480, height: 854, orientation: "portrait" },
+        };
+      } catch {
+        htmlGame = buildFallbackHtmlGame(draftPlan.concept, draftPlan.loop);
+      }
+
+      const files = [
+        { path: "index.html", content: htmlGame.html },
+        {
+          path: "plan.json",
+          content: JSON.stringify(draftPlan, null, 2),
+        },
+      ];
       const timestamp = new Date().toISOString();
       const bundle: PlayAgentArtifactBundle = {
         sessionId: input.sessionId,
         plan: draftPlan,
         files,
-        coverPrompt:
-          typeof parsed.coverPrompt === "string" && parsed.coverPrompt.trim()
-            ? parsed.coverPrompt
-            : draftPlan.coverConcept,
-        previewEntry:
-          typeof parsed.previewEntry === "string" && parsed.previewEntry.trim()
-            ? parsed.previewEntry
-            : files[0]?.path,
+        htmlGame,
+        coverPrompt: draftPlan.coverConcept,
+        previewEntry: "index.html",
       };
       const events: PlayAgentEvent[] = [
         {

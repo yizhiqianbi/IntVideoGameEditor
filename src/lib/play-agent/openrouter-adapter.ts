@@ -1,4 +1,5 @@
 import type {
+  HtmlGameArtifact,
   PlayAgentArtifactBundle,
   PlayAgentEvent,
   PlayAgentPlan,
@@ -7,6 +8,13 @@ import type {
   PlayAgentRunInput,
 } from "./types";
 import { composePlayAgentPrompt } from "./prompts";
+import {
+  buildFallbackHtmlGame,
+  buildHtmlGameSystemPrompt,
+  buildHtmlGameUserPrompt,
+  extractHtmlBlock,
+  validateHtmlGame,
+} from "./html-prompts";
 
 type OpenRouterConfig = {
   apiKey: string;
@@ -219,37 +227,59 @@ export function createOpenRouterAdapter(
         skills: [],
       });
 
-      const text = await callOpenRouter(config, [
-        {
-          role: "system",
-          content: "You generate structured H5 game artifact bundles as strict JSON.",
-        },
+      const htmlText = await callOpenRouter(config, [
+        { role: "system", content: buildHtmlGameSystemPrompt() },
         {
           role: "user",
-          content: buildRunPrompt(input, plan),
+          content: buildHtmlGameUserPrompt(
+            {
+              projectId: input.projectId,
+              prompt: input.prompt,
+              template: {
+                id: input.templateId,
+                name: input.templateId,
+                category: "arcade",
+                starterPrompt: "",
+                starterConstraints: [],
+                outputShape: "single-screen",
+              },
+              skills: [],
+            },
+            plan,
+          ),
         },
       ]);
 
-      const parsed = parseJsonObject<{
-        files?: unknown;
-        coverPrompt?: string;
-        previewEntry?: string;
-      }>(text);
+      let htmlGame: HtmlGameArtifact;
+      try {
+        const html = extractHtmlBlock(htmlText);
+        validateHtmlGame(html);
+        htmlGame = {
+          html,
+          meta: {
+            title: plan.concept,
+            description: plan.loop,
+            coverPrompt: plan.coverConcept,
+            durationSec: 45,
+          },
+          runtime: { width: 480, height: 854, orientation: "portrait" },
+        };
+      } catch {
+        htmlGame = buildFallbackHtmlGame(plan.concept, plan.loop);
+      }
 
-      const files = normalizeFiles(parsed.files);
+      const files = [
+        { path: "index.html", content: htmlGame.html },
+        { path: "plan.json", content: JSON.stringify(plan, null, 2) },
+      ];
       const timestamp = new Date().toISOString();
       const bundle: PlayAgentArtifactBundle = {
         sessionId: input.sessionId,
         plan,
         files,
-        coverPrompt:
-          typeof parsed.coverPrompt === "string" && parsed.coverPrompt.trim()
-            ? parsed.coverPrompt
-            : plan.coverConcept,
-        previewEntry:
-          typeof parsed.previewEntry === "string" && parsed.previewEntry.trim()
-            ? parsed.previewEntry
-            : files[0]?.path,
+        htmlGame,
+        coverPrompt: plan.coverConcept,
+        previewEntry: "index.html",
       };
       const events: PlayAgentEvent[] = [
         {

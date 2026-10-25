@@ -11,6 +11,7 @@ type PublicSearchPanelProps = {
   placeholder?: string;
   limit?: number;
   typeLabel?: string;
+  hideHeader?: boolean;
 };
 
 function normalize(text: string) {
@@ -51,6 +52,7 @@ export function PublicSearchPanel({
   placeholder = "搜索内容",
   limit = 8,
   typeLabel,
+  hideHeader = false,
 }: PublicSearchPanelProps) {
   const [query, setQuery] = useState("");
   const normalizedQuery = normalize(query);
@@ -67,10 +69,12 @@ export function PublicSearchPanel({
 
   return (
     <section className={styles.panel}>
-      <div className={styles.header}>
-        <h2 className={styles.title}>{title}</h2>
-        {typeLabel ? <span className={styles.scope}>{typeLabel}</span> : null}
-      </div>
+      {hideHeader ? null : (
+        <div className={styles.header}>
+          <h2 className={styles.title}>{title}</h2>
+          {typeLabel ? <span className={styles.scope}>{typeLabel}</span> : null}
+        </div>
+      )}
 
       <div className={styles.searchBar}>
         <span className={styles.searchIcon} aria-hidden="true">

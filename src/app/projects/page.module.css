@@ -2,8 +2,8 @@
 .page {
   min-height: calc(100vh - var(--nav-height));
   background:
-    radial-gradient(circle at top center, rgba(124, 77, 255, 0.1), transparent 28%),
-    linear-gradient(180deg, #0b0b11 0%, #0e1017 100%);
+    radial-gradient(circle at top center, rgba(255, 122, 47, 0.07), transparent 28%),
+    linear-gradient(180deg, #07080F 0%, #080A15 100%);
 }
 
 .shell {
@@ -26,10 +26,10 @@
 .recentProjectCard,
 .recentProjectCardEmpty,
 .renameCard {
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 24px;
-  background: rgba(20, 22, 30, 0.88);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.32);
+  background: rgba(13, 16, 25, 0.92);
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.38);
 }
 
 .libraryIntro {
@@ -39,8 +39,8 @@
   padding: 24px 26px;
   min-height: 260px;
   background:
-    radial-gradient(circle at top right, rgba(124, 77, 255, 0.12), transparent 26%),
-    rgba(20, 22, 30, 0.92);
+    radial-gradient(circle at top right, rgba(255, 122, 47, 0.1), transparent 26%),
+    rgba(13, 16, 25, 0.96);
 }
 
 .libraryEyebrow {
@@ -117,7 +117,7 @@
   font-size: 13px;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(74, 53, 160, 0.28);
+  box-shadow: 0 10px 24px rgba(255, 122, 47, 0.28);
   transition: opacity var(--transition-fast), transform var(--transition-fast);
   white-space: nowrap;
 }
@@ -259,8 +259,8 @@
   align-content: end;
   padding: 28px;
   background:
-    radial-gradient(circle at top left, rgba(124, 77, 255, 0.18), transparent 36%),
-    linear-gradient(180deg, rgba(20, 22, 30, 0.92), rgba(14, 15, 21, 0.96));
+    radial-gradient(circle at top left, rgba(255, 122, 47, 0.14), transparent 36%),
+    linear-gradient(180deg, rgba(13, 16, 25, 0.96), rgba(9, 10, 17, 0.99));
 }
 
 .recentProjectVisual {
@@ -429,9 +429,9 @@
   display: grid;
   place-items: center;
   background:
-    radial-gradient(circle at 24% 24%, rgba(124, 77, 255, 0.28), transparent 32%),
-    radial-gradient(circle at 78% 74%, rgba(9, 196, 217, 0.12), transparent 28%),
-    linear-gradient(135deg, rgba(18, 20, 30, 0.98), rgba(10, 10, 16, 0.99));
+    radial-gradient(circle at 24% 24%, rgba(255, 122, 47, 0.24), transparent 32%),
+    radial-gradient(circle at 78% 74%, rgba(43, 155, 255, 0.1), transparent 28%),
+    linear-gradient(135deg, rgba(13, 16, 25, 0.99), rgba(7, 8, 15, 0.99));
 }
 
 .coverPlaceholderIcon {
@@ -469,7 +469,7 @@
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  box-shadow: 0 10px 24px rgba(74, 53, 160, 0.28);
+  box-shadow: 0 10px 24px rgba(255, 122, 47, 0.28);
   transition: opacity var(--transition-fast), transform var(--transition-fast);
 }
 
@@ -623,8 +623,8 @@
 
 .input:focus,
 .textarea:focus {
-  border-color: rgba(124, 77, 255, 0.4);
-  box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.08);
+  border-color: rgba(255, 122, 47, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 122, 47, 0.08);
 }
 
 .input {
