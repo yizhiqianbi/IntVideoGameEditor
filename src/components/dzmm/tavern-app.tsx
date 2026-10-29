@@ -1,11 +1,12 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- Local research assets and user-imported character covers. */
-import { applyDzmmReaderNames, getDzmmCharacterCreatorNotes, getDzmmCharacterPreviewText } from "@/lib/dzmm-character-presentation";
+import { applyDzmmReaderNames, getDzmmCharacterCardBlurb, getDzmmCharacterCreatorNotes } from "@/lib/dzmm-character-presentation";
 import { characterLinkId, characterSharePath } from "@/lib/xumeng-character-link";
 import CharacterIntroduction from "./character-introduction";
-import XumengInteractionPanel from "./xumeng-interaction-panel";
 import { currentXumengPanelState, splitXumengPanelTail } from "@/lib/xumeng-interaction-panels";
+import { chatViewportAnchorTop, chatViewportFrame, chatViewportSettled } from "@/lib/xumeng-chat-viewport";
+import { splitXumengMomentTail } from "@/lib/xumeng-moment-status";
 import CharacterRichText, { hasCharacterMarkup } from "./character-rich-text";
 import { useDzmmComposerDrafts } from "./use-composer-drafts";
 import {
@@ -14,6 +15,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react";
 import {
   isDzmmListedCharacter,
@@ -24,7 +26,7 @@ import {
   exportCharacterDraftJson,
   type Character,
 } from "@/lib/dzmm-characters";
-import { getDzmmNewConversationBlockReason, mergeDzmmConversationCharacters, selectDzmmDirectory } from "@/lib/dzmm-catalog";
+import { getDzmmNewConversationBlockReason, loadMissingPublishedCharacters, mergeDzmmConversationCharacters, selectDzmmDirectory } from "@/lib/dzmm-catalog";
 import { DzmmMemoryRequestError, prepareDzmmRememberedRequest } from "@/lib/dzmm-memory-client";
 import { applyDzmmConversationOpening, captureDzmmConversationOpening, parseDzmmConversationOpening,
   reconcileDzmmConversationOpening, resolveDzmmConversationOpening, restoreDzmmConversationContexts } from "@/lib/dzmm-conversation-context";
@@ -39,18 +41,33 @@ import { appendDzmmWorldSnapshot, createDzmmWorldState,
 import { readDzmmWorldResponse, type DzmmWorldStreamResult } from "@/lib/dzmm-world-stream";
 import { rebindDzmmWorldJournal } from "@/lib/dzmm-world-client";
 import {
+  copyDzmmConversationPersona,
+  dropDzmmConversationPersonas,
+  isDzmmPublishedCharacterId,
+  resolveDzmmConversationPersona,
   type DzmmSavedConversation,
   type DzmmSavedMessage,
   type DzmmPreferences,
 } from "@/lib/dzmm-storage";
 import { dzmmCloudRequest, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
+import { fetchDzmmPublicCharacter } from "@/lib/dzmm-publishing";
+import { isDzmmListPreview, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
+import { dzmmLocalLook } from "@/lib/dzmm-local-looks";
+import { usePublicCharacterShelf } from "./use-public-shelf";
 import Icon, { type IconName } from "./icons";
+import { ComposerQuickInsert } from "./composer-quick-insert";
+import { dzmmChatBackgroundStyle, dzmmChatDisplayStyle, dzmmEnterSends } from "@/lib/dzmm-chat-display";
 import ResponsiveNavigation from "./responsive-navigation";
 import CharacterDetail from "./character-detail";
 import AccountModal from "./account-modal";
 import authorsData from "@/lib/dzmm-authors.json";
-import { findCharacterAuthor, isDzmmCharacterBlocked, type DzmmAuthor, type DzmmForumTopic } from "@/lib/dzmm-discovery";
+import { DZMM_DISCOVERY_CATEGORIES, dzmmDiscoveryCutoff, findCharacterAuthor, isDzmmCharacterBlocked, resolveCharacterAuthorTarget, type DzmmAuthor, type DzmmForumTopic } from "@/lib/dzmm-discovery";
 import { characterMatchesShelfTag, coverShelfTags } from "@/lib/xumeng-shelf-tags";
+import { isPublicRecommendationCharacter, QUALIFIED_USER_MESSAGES, type RecommendationSurface } from "@/lib/xumeng-recommendations";
+import {
+  fetchXumengRecommendations, recommendationRequestAborted, recordXumengRecommendationEvents,
+  type XumengRecommendationEvent, type XumengRecommendationPage,
+} from "@/lib/xumeng-recommendations-client";
 import { DZMM_GLOBAL_QUERY_MAX_LENGTH, dzmmDiscoveryRouteCategory, dzmmDiscoverySource, dzmmSearchDiscoverySource, mergeDzmmDiscoveryHistory, readDzmmDiscoveryHistory,
   defaultDzmmTaskSelection, dzmmTaskSelectionForRole, dzmmTaskDiscoverySource,
   type DzmmDiscoverySource, type DzmmTaskSelection } from "@/lib/dzmm-discovery-history";
@@ -61,6 +78,7 @@ import ChatSettings from "./chat-settings";
 import UnavailableConversation from "./unavailable-conversation";
 import { fetchDzmmForumPosts } from "@/lib/dzmm-forum";
 import { getDzmmCharacterMedia, withDzmmPublicOpening } from "@/lib/dzmm-character-media";
+import { CoverReel } from "./cover-reel";
 import { xumengImageUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import CharacterStudio from "./character-studio";
 import PublishingCenter from "./publishing-center";
@@ -71,7 +89,7 @@ import { useGamePlayLibrary, type GamePlaySelection } from "./use-game-play-libr
 import { parseXumengGameId } from "@/lib/xumeng-games";
 import gameNavigation from "./game-play-navigation.module.css";
 import { ScenarioStudio } from "./scenario-studio";
-import { CommunityGuidelinesLink } from "./community-guidelines";
+import { xumengStatusBarFields, xumengStatusBarLabels } from "@/lib/xumeng-character-status";
 import { XUMENG_PAYMENT_INFO_DRAFT, XUMENG_PAYMENT_INFO_PAGES } from "@/lib/xumeng-payment-info";
 import AdminDashboard from "./admin-dashboard";
 import NovelStudio from "./novel-studio";
@@ -80,6 +98,8 @@ import MiniCpmPhone from "./minicpm-phone";
 import CompanionPage from "@/app/xumeng/girlfriend/companion-page";
 import QwenCompanion from "@/app/xumeng/girlfriend/qwen-companion";
 import { REALISTIC_COMPANION_PROFILES, type CompanionProfile } from "@/app/xumeng/girlfriend/companion-profiles";
+import { GIRLFRIEND_CAST, girlfriendCastById, type GirlfriendCast } from "@/app/xumeng/girlfriend/cast";
+import { chatListStamp, companionLane, useCompanionInbox } from "@/app/xumeng/girlfriend/companion-inbox";
 import VoiceStudio from "./voice-studio";
 import { usePerformanceCharacters } from "./use-performance-characters";
 import { xumengPerformanceFromCard, type XumengPerformanceCharacter } from "@/lib/xumeng-performance-character";
@@ -91,10 +111,12 @@ import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/d
 import { TaskHub } from "./task-hub";
 import { InstallApp } from "./install-app";
 import { Recharge } from "./recharge";
+import { DailyCheckin } from "./daily-checkin";
+import { SignupWelcome } from "./signup-welcome";
 import { ChatMediaProvider, ChatMessageMedia } from "./chat-message-media";
 import ChatMessageEditor from "./chat-message-editor";
 import { ChatBillingStatus } from "./chat-billing-status";
-import { plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengStatusPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
+import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, xumengStatusPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
 import { canRegenerateDzmmMessage, createDzmmRegenerationBranch, createDzmmReplySuggestionBranch, editDzmmConversationMessage } from "@/lib/dzmm-message-actions";
 import { dzmmReplySuggestionPrefixKeys, dzmmReplySuggestionSettingsKey, fetchDzmmReplySuggestions, prepareDzmmReplySuggestionsRequest,
   insertDzmmReplySuggestion, type DzmmReplySuggestionInsertion } from "@/lib/dzmm-reply-suggestions-client";
@@ -104,15 +126,23 @@ import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzm
 import { XUMENG_LOCALES, resolveXumengLocale, xumengHtmlLang, xumengLocaleLabel, xumengTranslate, type XumengMessageKey } from "@/lib/xumeng-i18n";
 import s from "./tavern.module.css";
 
-type View = "play-games" | "characters" | "chat" | "forum" | "profile" | "search" | "author" | "settings" | "presets" | "admin" | "studio" | "studio-edit" | "games" | "scenarios" | "novels" | "live" | "voice" | "generation" | "tasks" | "app" | "recharge" | "vip" | "invite";
+type View = "play-games" | "characters" | "chat" | "forum" | "profile" | "search" | "author" | "settings" | "presets" | "admin" | "studio" | "studio-edit" | "games" | "scenarios" | "novels" | "live" | "voice" | "generation" | "tasks" | "app" | "recharge" | "vip" | "invite" | "checkin";
 type Message = DzmmSavedMessage;
 type Conversation = DzmmSavedConversation;
 type Preferences = DzmmPreferences;
 type ChatSection = "stories" | "chats" | "games";
 const CHAT_SECTION_ROUTES: Record<ChatSection, string> = { stories: "chat", chats: "chat/chats", games: "chat/games" };
-const TABS = ["新手", "关注", "最新", "猜你喜欢", "榜单", "分类"];
+const TABS = ["新手", "关注", "最新", "榜单", "分类"];
 const FEATURED_CHARACTER_COUNT = 13;
 const MODEL_MODES = DZMM_OFFERED_MODEL_OPTIONS;
+const MAX_PARALLEL_REPLIES = 3;
+const COARSE_POINTER = "(pointer: coarse)";
+function subscribeCoarsePointer(onChange: () => void) {
+  const query = window.matchMedia(COARSE_POINTER);
+  query.addEventListener("change", onChange);
+  return () => query.removeEventListener("change", onChange);
+}
+function readCoarsePointer() { return window.matchMedia(COARSE_POINTER).matches; }
 const AUTHORS: DzmmAuthor[] = authorsData;
 const uid = () => crypto.randomUUID();
 type LikeStat = { count: number; liked: boolean };
@@ -137,8 +167,6 @@ function formatLikeTotal(character: Character, stat?: LikeStat) {
 const NAV: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
   { view: "characters", labelKey: "navPlay", icon: "users" },
   { view: "chat", labelKey: "navChat", icon: "chat" },
-  { view: "live", labelKey: "navLive", icon: "phone" },
-  ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ view: "generation" as const, labelKey: "navGeneration" as const, icon: "image" as const }] : []),
   { view: "forum", labelKey: "navForum", icon: "compass" },
   { view: "studio", labelKey: "navCreate", icon: "edit" },
   { view: "profile", labelKey: "navProfile", icon: "user" },
@@ -174,33 +202,51 @@ function download(filename: string, content: string) {
 
 const CONTENT_PEOPLE = [
   {
-    variant: "classic" as const, name: "Yume", line: "商科学生 · 爱打游戏", cover: "/assets/xumeng/content-covers/yume.jpg",
+    variant: "classic" as const, castId: "", look: "photo" as const, name: "Yume", line: "大学同学 · 爱打游戏", cover: "/assets/xumeng/content-covers/yume.jpg",
     situation: "宿舍夜里刚打完一局排位，耳机还挂在脖子上，转过椅子接电话。",
     description: "二十二岁，商科在读，住宿舍。这通电话是她刚打完一局排位，想把这局讲给你听。耳机还挂在脖子上，椅子刚转过来。她不知道你没说出口的事。",
     personality: "说话短，先接你刚刚那句。这局赢了会得意两句，输了先骂自己的操作，不把火气甩给你。游戏里的词只在这局相关时用。问你在干嘛是真想知道。你不接话，她把这局的关键两句讲完，再问你要不要听后面。你说先挂，她就停。没发生的事不说成已经发生。",
   },
   {
-    variant: "intimate" as const, name: "晚宁", line: "你的恋人", cover: "/assets/xumeng/content-covers/wanning.jpg",
+    variant: "intimate" as const, castId: "", look: "photo" as const, name: "晚宁", line: "女朋友", cover: "/assets/xumeng/content-covers/wanning.jpg",
     situation: "晚上灯还亮着，刚忙完一天，靠在灯下想和你说话。",
     description: "二十二岁，商科在读，是你的恋人。晚上灯还亮着，刚忙完，靠在灯下接你。她不是 Yume。问她是谁，她说晚宁。她不说自己是程序，也不说自己能马上线下见面。她只按这通电话里说过的话理解你们。",
     personality: "跟你说话用「你」，句子短，具体。问今天怎样，就从自己刚做完的事接过去。你靠近，她按你说的靠近；你说停、不要或不想，她停在这一句，不记成分手，也不报分数。没做过的事不说成做过。称呼按你刚说的改。关系仍是恋人，除非你在这通电话里改口。",
   },
+  ...GIRLFRIEND_CAST.map(person => ({
+    variant: "cast" as const, castId: person.id, look: "photo" as const, name: person.name, line: person.line, cover: person.cover,
+    situation: person.situation, description: person.description, personality: person.style.personality,
+  })),
   {
-    variant: "qwen" as const, name: "苏麦", line: "说话直一点", cover: "/assets/xumeng/content-covers/sumai.jpg",
+    variant: "sales" as const, castId: "", look: "photo" as const, name: "沈盼", line: "美妆销售 · 会来勾你", cover: "/assets/xumeng/exported-cards/foreverse-songzhixia-cover.png",
+    situation: "刚加完微信，她还在柜上，手里转着一支没盖盖的口红。",
+    description: "二十七岁，商场美妆柜销售。空下来就发消息，嘴甜，想把护手霜、香水或口红卖给你。你说停，她这一轮就收住。",
+    personality: "先撩一句，再落到一件具体的货。一次只推一个。对方不回就换钩子，不连着问在吗。对方说停、不买或忙，就收住。",
+  },
+  {
+    variant: "qwen" as const, castId: "", look: "photo" as const, name: "苏麦", line: "说话直一点", cover: "/assets/xumeng/content-covers/sumai.jpg",
     situation: "夜里在街上走，外套拉链拉到一半，说话直，不绕弯。",
     description: "夜里在街上走，外套拉链拉到一半。她接电话是因为你打来了。她有自己要去的地方，这通电话可以很短。",
     personality: "先答你问的那一句，不哄，不绕。你含糊，她问你到底想说什么。她不把没说过的关系说成已经很熟。你要她留下，她会说自己还在走，再问你这通电话要说到哪。说完她可以挂。",
   },
 ];
-type CompanionVariant = "classic" | "intimate" | "qwen" | "custom";
-const CHAT_CALL_CHARACTERS: XumengPerformanceCharacter[] = CONTENT_PEOPLE.map(person => ({
-  id: `chat-${person.variant}`, key: `chat:${person.variant}`, source: "character", sourceId: person.variant, sourceLabel: "聊天",
-  name: person.name, avatar: person.cover, description: person.description, personality: person.personality, scenario: person.situation, dialogue: "",
-  liveVoice: "zh_female_liuchangnv_uranus_bigtts",
-}));
-function hasCallImage(avatar: string) {
-  return Boolean(avatar) && !avatar.endsWith(".svg") && !avatar.includes("placeholder");
+type CompanionVariant = "classic" | "intimate" | "qwen" | "custom" | "sales" | "cast";
+function isGirlfriendRoute(route: string) {
+  return route === "chat/girlfriend" || route === "chat/girlfriend-intimate" || route === "chat/girlfriend-qwen" || route === "chat/girlfriend-sales" || route.startsWith("chat/girlfriend-custom/") || route.startsWith("chat/girlfriend-cast/");
 }
+function companionVariantFromRoute(route: string): CompanionVariant {
+  if (route === "chat/girlfriend-intimate") return "intimate";
+  if (route === "chat/girlfriend-qwen") return "qwen";
+  if (route === "chat/girlfriend-sales") return "sales";
+  if (route.startsWith("chat/girlfriend-custom/")) return "custom";
+  if (route.startsWith("chat/girlfriend-cast/")) return "cast";
+  return "classic";
+}
+const CHAT_CALL_CHARACTERS: XumengPerformanceCharacter[] = CONTENT_PEOPLE.map(person => ({
+  id: `chat-${person.castId || person.variant}`, key: `chat:${person.castId || person.variant}`, source: "character" as const, sourceId: person.castId || person.variant, sourceLabel: "聊天",
+  name: person.name, avatar: person.cover, description: person.description, personality: person.personality, scenario: person.situation, dialogue: "",
+  liveVoice: "zh_female_liuchangnv_uranus_bigtts" as const,
+}));
 function gameHeat(id: string): number {
   let hash = 0;
   for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
@@ -232,6 +278,32 @@ function weaveEqual<T>(lanes: readonly (readonly T[])[]): T[] {
   return mixed;
 }
 
+function storyUnread(messages: { id: string; role: string; content: string }[], seenId: string | undefined) {
+  if (!seenId) return 0;
+  const index = messages.findIndex(message => message.id === seenId);
+  if (index < 0) return 0;
+  return messages.slice(index + 1).filter(message => message.role === "assistant" && message.content.trim()).length;
+}
+
+function formatConversationStamp(updatedAt: number): string {
+  const date = new Date(updatedAt);
+  const now = new Date();
+  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  if (date.toDateString() === yesterday.toDateString()) return "昨天";
+  if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return `周${"日一二三四五六"[date.getDay()]}`;
+  return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+}
+
+function chatPresence(character: { description: string; tags: string[] }, typing: boolean): string {
+  if (typing) return "正在输入…";
+  const line = character.description.replace(/\s+/g, " ").trim();
+  if (!line) return character.tags[0] || "在线";
+  const chars = Array.from(line);
+  return chars.length > 18 ? `${chars.slice(0, 18).join("")}…` : line;
+}
+
 function Cover({
   character,
   className,
@@ -253,24 +325,42 @@ function Cover({
 }
 
 export default function TavernApp() {
-  const [busy, setBusy] = useState(false);
+  const [generating, setGenerating] = useState<Record<string, "reply" | "summary">>({});
   const [notice, setNotice] = useState("");
-  const cloud = useDzmmCloud({ busy, onNotice: setNotice });
+  const cloud = useDzmmCloud({ busy: Object.keys(generating).length > 0, onNotice: setNotice });
   const { state, setState, loaded } = cloud;
   const [backupSelection, setBackupSelection] = useState<{ accountId: string; key: string } | null>(null);
   const requestedBackup = backupSelection?.accountId === cloud.user?.id ? backupSelection?.key : undefined;
   const selectedBackup = requestedBackup && cloud.backupChoices.some(item => item.key === requestedBackup)
     ? requestedBackup : cloud.backupChoices[0]?.key ?? "";
   const [accountMode, setAccountMode] = useState<"login" | "register" | null>(null);
+  const [guestGate, setGuestGate] = useState<{ character: Character; stage: "account" | "welcome" | "open" } | null>(null);
   const [pendingInvite, setPendingInvite] = useState("");
   const [view, setView] = useState<View>("characters");
   const [tab, setTab] = useState("新手");
+  useEffect(() => { if (tab === "猜你喜欢") setTab("新手"); }, [tab]);
   const [genre, setGenre] = useState("全部");
+  const [look, setLookState] = useState<DzmmCatalogLook>("photo");
+  const setLook = (value: DzmmCatalogLook) => {
+    setLookState(value);
+    window.localStorage.setItem("xumeng-catalog-look", value);
+  };
+  useEffect(() => {
+    const saved = window.localStorage.getItem("xumeng-catalog-look");
+    if (saved === "anime" || saved === "photo") setLookState(saved);
+  }, []);
   const [query, setQuery] = useState("");
   const [sortMode, setSortMode] = useState<"recommended" | "heat" | "likes" | "updated" | "name">("recommended");
   const [rankingPeriod, setRankingPeriod] = useState<"day" | "week" | "all">("week");
+  const [recommendEpoch, setRecommendEpoch] = useState(0);
+  const [localHidden, setLocalHidden] = useState<string[]>([]);
+  const [recommendation, setRecommendation] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error" }>({ status: "idle", ids: [], personalized: false, hiddenIds: [] });
+  const [relatedRank, setRelatedRank] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error" }>({ status: "idle", ids: [], personalized: false, hiddenIds: [] });
   const [detail, setDetail] = useState<Character | null>(null);
   const [likeStats, setLikeStats] = useState<Record<string, LikeStat>>({});
+  const likeStatsRef = useRef(likeStats);
+  likeStatsRef.current = likeStats;
+  const likeOwner = useRef<string | null>(null);
   const [editor, setEditor] = useState<Character | "new" | null>(null);
   const [studioSession, setStudioSession] = useState(0);
   const [studioSubmission, setStudioSubmission] = useState<Pick<DzmmPublishingSubmission, "status" | "reason"> | null>(null);
@@ -290,17 +380,29 @@ export default function TavernApp() {
   const novelRouteActive = useRef(false);
   const liveBusy = useRef(false);
   const liveRouteActive = useRef(false);
+  const callReturnRoute = useRef("chat");
   const [liveMode, setLiveMode] = useState<"phone" | "video">("phone");
   const activeAccount = useRef<string | null>(null);
+  const detailRecommendSurface = useRef<RecommendationSurface | null>(null);
+  const catalogRef = useRef<HTMLElement | null>(null);
+  const shelfMoreRef = useRef<HTMLDivElement | null>(null);
+  const resolvedAttempt = useRef(new Set<string>());
+  const impressed = useRef(new Set<string>());
+  const qualifiedSent = useRef(new Set<string>());
+  const qualifiedPending = useRef(new Set<string>());
   const previousStudioAccount = useRef<string | null>(null);
   activeAccount.current = cloud.user?.id ?? null;
   const [activeId, setActiveId] = useState<string | null>(null);
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
+  const busy = activeId ? generating[activeId] !== undefined : false;
   const selectedConversationAccount = useRef<string | null>(null);
   const [conversationQuery, setConversationQuery] = useState("");
   const [conversationType, setConversationType] = useState<ChatSection>("stories");
   const [companionOpen, setCompanionOpen] = useState(false);
   const [companionVariant, setCompanionVariant] = useState<CompanionVariant>("classic");
   const [customCompanion, setCustomCompanion] = useState<CompanionProfile | null>(null);
+  const [castCompanion, setCastCompanion] = useState<GirlfriendCast | null>(null);
   const companionWarmup = useRef(new Set<string>());
   const [wideChat, setWideChat] = useState(false);
   const [gameRequest, setGameRequest] = useState<(GamePlaySelection & {accountId: string}) | null>(null);
@@ -309,10 +411,10 @@ export default function TavernApp() {
   const gameLastPlayed = new Map(gameLibrary.recent.map(game => [game.id, game.updatedAt]));
   const visibleGames = [...filterDzmmSearchRows(gameLibrary.games, conversationQuery, game => [game.title, game.synopsis])]
     .sort((a, b) => (gameLastPlayed.get(b.id) ?? b.updatedAt) - (gameLastPlayed.get(a.id) ?? a.updatedAt));
-  const companionMatchesSearch = filterDzmmSearchRows(["Yume 商科学生 爱打游戏"], conversationQuery, name => [name]).length > 0;
-  const intimateMatchesSearch = filterDzmmSearchRows(["晚宁 恋人"], conversationQuery, name => [name]).length > 0;
-  const qwenMatchesSearch = filterDzmmSearchRows(["苏麦 说话直"], conversationQuery, name => [name]).length > 0;
-  const chatEntryCount = CONTENT_PEOPLE.length + REALISTIC_COMPANION_PROFILES.length;
+  const chatInbox = useCompanionInbox(CONTENT_PEOPLE.map(companionLane));
+  const [storySeen, setStorySeen] = useState<Record<string, string>>({});
+  const chatPeople = [...CONTENT_PEOPLE].sort((left, right) => (chatInbox.get(companionLane(right))?.at ?? 0) - (chatInbox.get(companionLane(left))?.at ?? 0))
+    .filter(person => filterDzmmSearchRows([`${person.name} ${person.line} ${person.description} ${chatInbox.get(companionLane(person))?.preview || ""}`], conversationQuery, value => [value]).length > 0);
 
 
   const { drafts: composerDrafts, setDrafts: setComposerDrafts, warning: composerStorageWarning, originalCache: composerOriginalCache } = useDzmmComposerDrafts(cloud.user?.id ?? null);
@@ -323,7 +425,15 @@ export default function TavernApp() {
   function setDraft(text: string) {
     if (activeId) setComposerDrafts(previous => ({ ...previous, [activeId]: { ...previous[activeId], text, failed: previous[activeId]?.failed ?? [] } }));
   }
-  const [summarizing, setSummarizing] = useState(false);
+  function insertComposerSnippet(text: string, caret: number) {
+    const input = composerInputRef.current;
+    const start = input?.selectionStart ?? draft.length, end = input?.selectionEnd ?? draft.length;
+    const next = draft.slice(0, start) + text + draft.slice(end);
+    if (next.length > 12000) { setNotice("输入已达上限，无法再插入。"); return; }
+    setDraft(next);
+    requestAnimationFrame(() => { input?.focus(); input?.setSelectionRange(start + caret, start + caret); });
+  }
+  const summarizing = activeId ? generating[activeId] === "summary" : false;
   const [error, setError] = useState("");
   const [billingConfig, setBillingConfig] = useState<DzmmBillingConfig | null>(null);
   const [billingRefresh, setBillingRefresh] = useState(0);
@@ -345,6 +455,52 @@ export default function TavernApp() {
   const taskSelectionRef = useRef(taskSelection);
   taskSelectionRef.current = taskSelection;
   const [authorId, setAuthorId] = useState<string | null>(null);
+  const [resolvedCards, setResolvedCards] = useState<Character[]>([]);
+  const [deferredQuery, setDeferredQuery] = useState("");
+  const [deferredCategoryQuery, setDeferredCategoryQuery] = useState("");
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDeferredQuery(query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [query]);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setDeferredCategoryQuery(discoveryFilters.query.trim()), 300);
+    return () => window.clearTimeout(timer);
+  }, [discoveryFilters.query]);
+  const shelfRequest = useMemo((): DzmmCatalogRequest | null => {
+    const authorKey = /^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/;
+    const scoped = (request: DzmmCatalogRequest): DzmmCatalogRequest => ({ ...request, look });
+    if (view === "search") return scoped({ q: deferredQuery, sort: "hot" });
+    if (view === "author" && authorId && authorKey.test(authorId)) return scoped({ authorIds: [authorId], sort: "new" });
+    if (view === "forum") return scoped({ sort: "hot" });
+    if (view !== "characters" && view !== "play-games") return null;
+    if (tab === "分类") {
+      if (!category) return null;
+      const item = DZMM_DISCOVERY_CATEGORIES.find((entry) => entry.slug === category);
+      const since = dzmmDiscoveryCutoff(discoveryFilters.time);
+      const sort = discoveryFilters.sort === "new" ? "new" : discoveryFilters.sort === "likes" ? "likes" : "hot";
+      return scoped({ tags: item ? [...item.tags] : [], q: deferredCategoryQuery, sort, ...(since ? { since } : {}) });
+    }
+    if (tab === "关注") {
+      const authorIds = (state.preferences.followedAuthors ?? []).filter((id) => authorKey.test(id)).slice(0, 20);
+      return authorIds.length ? scoped({ authorIds, sort: "new" }) : null;
+    }
+    if (tab === "榜单" && (sortMode === "recommended" || sortMode === "heat" || sortMode === "likes")) {
+      if (recommendation.status !== "ready") return null;
+      return scoped({ ids: recommendation.ids, sort: "hot" });
+    }
+    const sort = sortMode === "name" ? "name" : sortMode === "likes" ? "likes" : sortMode === "updated" || tab === "最新" ? "new" : "hot";
+    return scoped({ tags: genre === "全部" ? [] : [genre], sort });
+  }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, sortMode, genre, look]);
+  const publicShelf = usePublicCharacterShelf(shelfRequest);
+  const rememberCharacter = (character: Character) => {
+    setResolvedCards((previous) => {
+      const index = previous.findIndex((item) => item.id === character.id);
+      if (index < 0) return [character, ...previous].slice(0, 80);
+      const next = previous.slice();
+      next[index] = character;
+      return next;
+    });
+  };
   const [forumPostId, setForumPostId] = useState<string | null>(null);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
@@ -354,8 +510,10 @@ export default function TavernApp() {
   useEffect(() => { if (view !== "chat") setGameRequest(null); }, [view]);
   const voiceBusy = useRef(false);
   const [systemDark, setSystemDark] = useState(false);
-  const controller = useRef<AbortController | null>(null);
-  const requestActive = useRef(false);
+  const replyRequests = useRef(new Map<string, AbortController>());
+  const anyReplyActive = () => replyRequests.current.size > 0;
+  const activeReplyActive = () => Boolean(activeIdRef.current && replyRequests.current.has(activeIdRef.current));
+  const appRef = useRef<HTMLDivElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
@@ -443,36 +601,43 @@ export default function TavernApp() {
     ? Object.entries(likeStats).filter(([, stat]) => stat.liked).map(([id]) => id)
     : [];
   useEffect(() => {
-    if (!loaded || cloud.authBusy || !cloud.user?.id) { setLikeStats({}); return; }
+    if (!loaded || cloud.authBusy || !cloud.user?.id) { likeOwner.current = null; setLikeStats({}); return; }
+    const owner = cloud.user.id;
+    if (likeOwner.current !== owner) { likeOwner.current = owner; setLikeStats({}); likeStatsRef.current = {}; }
     const controller = new AbortController();
-    const ids = [...new Set(cloud.catalog
+    const ids = [...new Set([...cloud.catalog, ...publicShelf.characters]
       .filter((character) => character.sourceKind === "public-summary" || character.publication)
       .map((character) => character.id))];
-    setLikeStats({});
+    const missing = ids.filter((id) => likeStatsRef.current[id] === undefined);
+    if (!missing.length) return () => controller.abort();
     void (async () => {
-      for (let index = 0; index < ids.length; index += 100) {
-        const batch = await fetchDzmmLikeStats(ids.slice(index, index + 100), controller.signal);
-        if (controller.signal.aborted) return;
+      for (let index = 0; index < missing.length; index += 100) {
+        const batch = await fetchDzmmLikeStats(missing.slice(index, index + 100), controller.signal);
+        if (controller.signal.aborted || likeOwner.current !== owner) return;
         setLikeStats((previous) => ({ ...previous, ...batch }));
       }
     })().catch((failure) => {
       if (!controller.signal.aborted) setNotice(failure instanceof Error ? failure.message : "点赞状态暂时无法读取。请稍后重试。");
     });
     return () => controller.abort();
-  }, [cloud.catalog, cloud.authBusy, cloud.user?.id, loaded]);
+  }, [cloud.catalog, publicShelf.characters, cloud.authBusy, cloud.user?.id, loaded]);
   const authors = useMemo(() => {
     const community = new Map<string, DzmmAuthor>();
-    for (const card of cloud.catalog) {
+    for (const card of [...cloud.catalog, ...publicShelf.characters]) {
       if (!card.publication) continue;
       const author = community.get(card.publication.authorId) ?? { id: card.publication.authorId, name: card.author, sourceUrl: "", characterIds: [] };
-      author.characterIds.push(card.id);
+      if (!author.characterIds.includes(card.id)) author.characterIds.push(card.id);
       community.set(author.id, author);
     }
     const sourceAuthors = AUTHORS.map(author => ({ ...author, characterIds: author.characterIds.filter(id => isDzmmListedCharacter({ id })) }))
       .filter(author => author.characterIds.length > 0);
     return [...sourceAuthors, ...community.values()];
-  }, [cloud.catalog]);
-  const selectedAuthor = authors.find((author) => author.id === authorId);
+  }, [cloud.catalog, publicShelf.characters]);
+  const authorHold = useRef<DzmmAuthor | null>(null);
+  const authorRecord = authors.find((author) => author.id === authorId) ?? null;
+  if (authorRecord) authorHold.current = authorRecord;
+  else if (authorHold.current?.id !== authorId) authorHold.current = null;
+  const selectedAuthor = authorRecord ?? authorHold.current;
   function savePreferences(preferences: Preferences) { setState((previous) => ({ ...previous, preferences })); }
   const studioCharacterId = view === "studio-edit" && editor && editor !== "new" ? editor.id : null;
   const studioAccountId = cloud.user?.id;
@@ -505,8 +670,9 @@ export default function TavernApp() {
 
   useEffect(() => {
     const backgroundRequests = suggestionRequests.current;
+    const replies = replyRequests.current;
     return () => {
-      controller.current?.abort();
+      for (const abort of replies.values()) abort.abort();
       for (const abort of backgroundRequests) abort.abort();
     };
   }, []);
@@ -550,7 +716,7 @@ export default function TavernApp() {
     setConversationQuery("");
     suggestionInsertions.current = {};
     for (const abort of suggestionRequests.current) abort.abort();
-    controller.current?.abort();
+    for (const abort of replyRequests.current.values()) abort.abort();
     setError("");
   }, [cloud.user?.id]);
   useEffect(() => {
@@ -559,29 +725,173 @@ export default function TavernApp() {
     return () => clearTimeout(timer);
   }, [notice]);
   const characters = useMemo(
-    () => selectDzmmDirectory(state.custom, cloud.catalog.map(withDzmmPublicOpening), new Set(cloud.suppressedPrivateIds)).map((character) => ({
+    () => selectDzmmDirectory(state.custom, [...cloud.catalog, ...resolvedCards].map(withDzmmPublicOpening), new Set(cloud.suppressedPrivateIds)).map((character) => ({
       ...character,
       likes: formatLikeTotal(character, likeStats[character.id]),
     })),
-    [state.custom, cloud.catalog, cloud.suppressedPrivateIds, likeStats],
+    [state.custom, cloud.catalog, resolvedCards, cloud.suppressedPrivateIds, likeStats],
   );
+  const charactersRef = useRef(characters);
+  charactersRef.current = characters;
+  const [pendingCharacterIds, setPendingCharacterIds] = useState<ReadonlySet<string>>(() => new Set());
+  const pendingCharacterIdsRef = useRef(pendingCharacterIds);
+  pendingCharacterIdsRef.current = pendingCharacterIds;
+  const publishedCharacterKey = useMemo(() => {
+    const ids = new Set<string>();
+    for (const conversation of state.conversations) if (isDzmmPublishedCharacterId(conversation.characterId)) ids.add(conversation.characterId);
+    for (const id of state.favorites) if (isDzmmPublishedCharacterId(id)) ids.add(id);
+    return [...ids].sort().join("\n");
+  }, [state.conversations, state.favorites]);
+  useLayoutEffect(() => {
+    if (!loaded || !publishedCharacterKey) return;
+    const ids = publishedCharacterKey.split("\n");
+    const missing = ids.filter((id) => !resolvedAttempt.current.has(id) && !charactersRef.current.some((character) => character.id === id && !isDzmmListPreview(character)));
+    if (!missing.length) return;
+    setPendingCharacterIds((previous) => {
+      let changed = false;
+      const next = new Set(previous);
+      for (const id of missing) if (!next.has(id)) { next.add(id); changed = true; }
+      return changed ? next : previous;
+    });
+    const controller = new AbortController();
+    let stopped = false;
+    const settle = (id: string) => {
+      if (stopped) return;
+      setPendingCharacterIds((previous) => {
+        if (!previous.has(id)) return previous;
+        const next = new Set(previous);
+        next.delete(id);
+        return next;
+      });
+    };
+    void loadMissingPublishedCharacters({
+      ids: missing,
+      hasFullCard: (id) => charactersRef.current.some((character) => character.id === id && !isDzmmListPreview(character)),
+      attempted: resolvedAttempt.current,
+      signal: controller.signal,
+      isStopped: () => stopped,
+      load: (id) => fetchDzmmPublicCharacter(id, controller.signal),
+      remember: (character) => { if (!stopped) rememberCharacter(character); },
+      onSettled: settle,
+    });
+    return () => {
+      stopped = true;
+      controller.abort();
+      setPendingCharacterIds((previous) => {
+        if (!missing.some((id) => previous.has(id))) return previous;
+        const next = new Set(previous);
+        for (const id of missing) next.delete(id);
+        return next;
+      });
+    };
+  }, [loaded, publishedCharacterKey]);
+  const serverSurface = tab === "新手" ? "home" as const : tab === "榜单" ? "ranking" as const : null;
+  const usesServerRank = serverSurface === "ranking"
+    ? sortMode === "recommended" || sortMode === "heat" || sortMode === "likes"
+    : serverSurface === "home" && sortMode === "recommended";
+  const hiddenIds = useMemo(() => new Set([...localHidden, ...recommendation.hiddenIds, ...relatedRank.hiddenIds]), [localHidden, recommendation.hiddenIds, relatedRank.hiddenIds]);
+  useEffect(() => { setLocalHidden([]); impressed.current.clear(); qualifiedSent.current.clear(); qualifiedPending.current.clear(); }, [cloud.user?.id]);
+  useEffect(() => {
+    if (!usesServerRank || !serverSurface || !cloud.user?.id) return;
+    const controller = new AbortController();
+    setRecommendation((current) => ({ ...current, status: "loading" }));
+    void fetchXumengRecommendations({ surface: serverSurface, period: serverSurface === "ranking" ? rankingPeriod : undefined }, controller.signal).then((page) => {
+      if (controller.signal.aborted) return;
+      setRecommendation({ status: "ready", ...page });
+    }, (error: unknown) => {
+      if (controller.signal.aborted || recommendationRequestAborted(error)) return;
+      setRecommendation((current) => ({ status: "error", ids: [], personalized: false, hiddenIds: current.hiddenIds }));
+    });
+    return () => controller.abort();
+  }, [usesServerRank, serverSurface, rankingPeriod, cloud.user?.id, recommendEpoch]);
+  useEffect(() => {
+    if (!detail || !cloud.user?.id || !isPublicRecommendationCharacter(detail)) {
+      setRelatedRank({ status: "idle", ids: [], personalized: false, hiddenIds: [] });
+      return;
+    }
+    const controller = new AbortController();
+    setRelatedRank((current) => ({ ...current, status: "loading", ids: [] }));
+    void fetchXumengRecommendations({ surface: "related", seed: detail.id }, controller.signal).then((page) => {
+      if (controller.signal.aborted) return;
+      setRelatedRank({ status: "ready", ...page });
+    }, (error: unknown) => {
+      if (controller.signal.aborted || recommendationRequestAborted(error)) return;
+      setRelatedRank({ status: "error", ids: [], personalized: false, hiddenIds: [] });
+    });
+    return () => controller.abort();
+  }, [detail, cloud.user?.id, recommendEpoch]);
+  useEffect(() => {
+    const accountId = cloud.user?.id;
+    if (!loaded || !accountId) return;
+    const totals = new Map<string, number>();
+    for (const conversation of state.conversations) {
+      const turns = conversation.messages.reduce((count, message) => count + (message.role === "user" ? 1 : 0), 0);
+      if (turns) totals.set(conversation.characterId, (totals.get(conversation.characterId) ?? 0) + turns);
+    }
+    for (const [characterId, turns] of totals) {
+      const key = `${accountId}:${characterId}`;
+      if (turns < QUALIFIED_USER_MESSAGES || qualifiedSent.current.has(key) || qualifiedPending.current.has(key)) continue;
+      const character = characters.find((item) => item.id === characterId);
+      if (!character || !isPublicRecommendationCharacter(character)) continue;
+      qualifiedPending.current.add(key);
+      void recordXumengRecommendationEvents([{ characterId, surface: "home", action: "depth" }]).then((accepted) => {
+        qualifiedPending.current.delete(key);
+        if (accepted >= 1) qualifiedSent.current.add(key);
+      });
+    }
+  }, [loaded, cloud.user?.id, state.conversations, characters]);
   const conversationCharacters = useMemo(() => mergeDzmmConversationCharacters(characters), [characters]);
   const visibleConversations = useMemo(() => filterDzmmConversations(state.conversations, conversationCharacters, conversationQuery),
     [state.conversations, conversationCharacters, conversationQuery]);
   const active = state.conversations.find((c) => c.id === activeId);
+  useEffect(() => {
+    setStorySeen(previous => {
+      let changed = false;
+      const next = { ...previous };
+      for (const conversation of state.conversations) {
+        if (next[conversation.id]) continue;
+        let seen = "";
+        try { seen = localStorage.getItem(`xumeng-story-seen:${conversation.id}`) || ""; } catch { /* Private mode still opens the list. */ }
+        if (!seen) {
+          seen = conversation.messages.at(-1)?.id || "";
+          if (seen) try { localStorage.setItem(`xumeng-story-seen:${conversation.id}`, seen); } catch { /* The badge can wait. */ }
+        }
+        if (seen) { next[conversation.id] = seen; changed = true; }
+      }
+      return changed ? next : previous;
+    });
+  }, [state.conversations]);
+  useEffect(() => {
+    const last = active?.messages.at(-1);
+    if (!active || !last) return;
+    try { localStorage.setItem(`xumeng-story-seen:${active.id}`, last.id); } catch { /* The open story is already on screen. */ }
+    setStorySeen(previous => previous[active.id] === last.id ? previous : { ...previous, [active.id]: last.id });
+  }, [active]);
   const activeCharacter = conversationCharacters.find((c) => c.id === active?.characterId);
   const panelTemplate = activeCharacter?.interactionTemplate;
   const panelState = useMemo(() => panelTemplate && active ? currentXumengPanelState(panelTemplate, active.messages) : null, [panelTemplate, active]);
+  const statusBarLabels = useMemo(() => activeCharacter?.statusBar ? xumengStatusBarLabels(activeCharacter.statusBar) : [], [activeCharacter?.statusBar]);
+  const statusFields = useMemo(() => !panelTemplate && activeCharacter?.statusBar
+    ? xumengStatusBarFields(activeCharacter.statusBar, active?.messages ?? [])
+    : [], [panelTemplate, activeCharacter?.statusBar, active?.messages]);
+  const momentFields = panelTemplate && panelState ? panelTemplate.panels.flatMap(panel => panel.fields.map(field => ({
+    key: `${panel.id}:${field.name}`,
+    label: field.name,
+    type: field.type,
+    value: panelState.panels[panel.title]?.[field.name] ?? field.initial,
+  }))) : statusFields;
+  const momentMessageId = [...(active?.messages ?? [])].reverse().find(message => message.role === "assistant" && message.content.trim())?.id;
   useEffect(() => {
     if (!activeId || activeCharacter) return;
     setChatSettingsOpen(false);
     setEditingMessage(null);
-    if (requestActive.current) {
-      controller.current?.abort();
+    if (active?.characterId && pendingCharacterIdsRef.current.has(active.characterId)) return;
+    if (activeReplyActive()) {
+      replyRequests.current.get(activeId)?.abort();
       setNotice("角色暂不可用，已停止当前回复并保留收到的内容。");
     }
     for (const abort of suggestionRequests.current) abort.abort();
-  }, [activeId, activeCharacter]);
+  }, [activeId, activeCharacter, active?.characterId]);
   useLayoutEffect(() => {
     const input = composerInputRef.current;
     if (!input) return;
@@ -590,6 +900,9 @@ export default function TavernApp() {
     input.style.height = `${Math.min(input.scrollHeight, 160)}px`;
   }, [draft, activeId, activeCharacter, view, detail]);
   const activeOpening = useMemo(() => activeCharacter && active ? resolveDzmmConversationOpening(activeCharacter, active) : null, [activeCharacter, active]);
+  const activePersona = resolveDzmmConversationPersona(state.preferences, active?.id);
+  const coarsePointer = useSyncExternalStore(subscribeCoarsePointer, readCoarsePointer, () => false);
+  const enterSends = dzmmEnterSends(state.preferences, coarsePointer);
   const chatBusy = busy;
   const replySuggestionKeys = useMemo(() => {
     if (!active) return [];
@@ -597,7 +910,7 @@ export default function TavernApp() {
     const world = pruneDzmmWorldJournal(active.worldState, active.messages);
     const memory = matchesDzmmStoryMemory(active.storyMemory, active.messages) ? active.storyMemory : undefined;
     const settings = dzmmReplySuggestionSettingsKey([DZMM_REPLY_SUGGESTIONS_PROMPT_VERSION, activeCharacter, activeOpening,
-      state.preferences.preset, state.preferences.persona, state.preferences.nickname, state.preferences.locale]);
+      state.preferences.preset, activePersona, state.preferences.nickname, state.preferences.locale]);
     return active.messages.map((message, index) => {
       if (message.role !== "assistant") return prefixes[index];
       // Later world/summary updates must not invalidate earlier cached options.
@@ -605,9 +918,9 @@ export default function TavernApp() {
       const context = dzmmReplySuggestionSettingsKey([snapshot, memory && memory.sourceCount <= index + 1 ? memory : undefined]);
       return `${prefixes[index]}:${settings}:${context}`;
     });
-  }, [active, activeCharacter, activeOpening, state.preferences.preset, state.preferences.persona, state.preferences.nickname, state.preferences.locale]);
+  }, [active, activeCharacter, activeOpening, state.preferences.preset, activePersona, state.preferences.nickname, state.preferences.locale]);
   useEffect(() => {
-    if (!loaded || cloud.authBusy || requestActive.current) return;
+    if (!loaded || cloud.authBusy || anyReplyActive()) return;
     setState(previous => {
       const conversations = restoreDzmmConversationContexts(previous.conversations, characters);
       return conversations === previous.conversations ? previous : { ...previous, conversations };
@@ -617,21 +930,23 @@ export default function TavernApp() {
     const hasOnlyOpening = active && activeOpening && active.messages.length <= activeOpening.messages.length
       && active.messages.every((message, index) => message.role === activeOpening.messages[index]?.role
         && message.content.trim() === activeOpening.messages[index]?.content.trim());
+    const scroller = messageScrollRef.current;
+    if (!scroller) return;
     if (!chatBusy && active && (!active.messages.some(message => message.role === "user") || hasOnlyOpening)) {
-      messageScrollRef.current?.scrollTo({ top: 0, behavior: "instant" });
+      scroller.scrollTo({ top: 0, behavior: "instant" });
       return;
     }
-    endRef.current?.scrollIntoView({
-      behavior: chatBusy ? "instant" : "smooth",
-      block: "end",
-    });
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: chatBusy ? "instant" : "smooth" });
   }, [active, activeOpening, chatBusy, view, detail]);
   useEffect(() => {
     // Only people who have chatted before are prewarmed; a shared pool slot is
     // not spent on every visitor who merely opens the chat list.
-    if (!loaded || cloud.authBusy || !cloud.user || conversationType !== "chats") return;
-    for (const variant of ["classic", "intimate"] as const) {
+    if (!loaded || cloud.authBusy || !cloud.user || cloud.user.isGuest || conversationType !== "chats") return;
+    for (const variant of ["classic", "intimate", "sales"] as const) {
       try { if (localStorage.getItem(`xumeng-companion-cache:${variant}`)) warmCompanion(variant); } catch { /* Storage can be blocked. */ }
+    }
+    for (const person of GIRLFRIEND_CAST) {
+      try { if (localStorage.getItem(`xumeng-companion-cache:cast-${person.id}`)) warmCompanion("cast", person.id); } catch { /* Storage can be blocked. */ }
     }
   }, [loaded, cloud.authBusy, cloud.user, conversationType]);
 
@@ -665,17 +980,30 @@ export default function TavernApp() {
         location.hash = studioRoute.current;
         return;
       }
-      if (requestActive.current && target !== "chat") { setNotice("请先停止当前回复，再离开聊天。"); if (target.startsWith("chat/")) window.history.replaceState(null, "", "#chat"); return; }
+      if (anyReplyActive() && target !== "chat") { setNotice("请先停止当前回复，再离开聊天。"); if (target.startsWith("chat/")) window.history.replaceState(null, "", "#chat"); return; }
       // Catalog/state updates rerun this effect; only a new route/account or actual traversal restores input.
       const restoreHistory = Boolean(event) || lastResolvedRoute.current?.accountId !== accountId || lastResolvedRoute.current?.route !== target;
-      if (target === "chat/girlfriend" || target === "chat/girlfriend-intimate" || target === "chat/girlfriend-qwen" || target.startsWith("chat/girlfriend-custom/")) {
+      if (isGirlfriendRoute(target)) {
+        if (cloud.user?.isGuest) {
+          setCompanionOpen(false);
+          setConversationType("chats");
+          setGameRequest(null); setActiveId(null); setDetail(null); setView("chat");
+          openAccount("login");
+          if (location.hash !== "#chat/chats") location.hash = "chat/chats";
+          return;
+        }
         setConversationType("chats");
         setCompanionOpen(true);
         if (target.startsWith("chat/girlfriend-custom/")) {
           setCustomCompanion(REALISTIC_COMPANION_PROFILES.find(profile => profile.id === target.slice("chat/girlfriend-custom/".length)) || REALISTIC_COMPANION_PROFILES[0]);
           setCompanionVariant("custom");
+        } else if (target.startsWith("chat/girlfriend-cast/")) {
+          const person = girlfriendCastById(target.slice("chat/girlfriend-cast/".length));
+          if (!person) { setNotice("这个女友还没准备好。"); return; }
+          setCastCompanion(person);
+          setCompanionVariant("cast");
         } else {
-          setCompanionVariant(target === "chat/girlfriend-intimate" ? "intimate" : target === "chat/girlfriend-qwen" ? "qwen" : "classic");
+          setCompanionVariant(companionVariantFromRoute(target));
         }
         setGameRequest(null); setActiveId(null); setDetail(null); setView("chat");
       } else if (target === "chat/chats" || target === "chat/games") {
@@ -745,7 +1073,7 @@ export default function TavernApp() {
         setDetail(null); setQuery(search); setView("search");
       } else if (target.startsWith("forum/post/")) {
         setDetail(null); setForumPostId(target.slice(11)); setView("forum");
-      } else if (["play-games", "characters", "chat", "forum", "profile", "settings", "presets", "admin", "search", "studio", "novels", "live", "voice", "generation", "tasks", "app", "recharge", "vip", "invite"].includes(target)) {
+      } else if (["play-games", "characters", "chat", "forum", "profile", "settings", "presets", "admin", "search", "studio", "novels", "live", "voice", "generation", "tasks", "app", "recharge", "vip", "invite", "checkin"].includes(target)) {
         setDetail(null);
         if (target === "chat") { setGameRequest(null); setConversationType("stories"); }
         if (target === "forum") setForumPostId(null);
@@ -754,8 +1082,12 @@ export default function TavernApp() {
         setView(target as View);
       } else return;
       if (restoreHistory && (target === "chat" || target.startsWith("chat/"))) setConversationQuery("");
-      if (target !== "chat/girlfriend" && target !== "chat/girlfriend-intimate" && target !== "chat/girlfriend-qwen" && !target.startsWith("chat/girlfriend-custom/")) setCompanionOpen(false);
+      if (!isGirlfriendRoute(target)) setCompanionOpen(false);
+      const previousResolved = lastResolvedRoute.current;
       lastResolvedRoute.current = { accountId, route: target };
+      if (!previousResolved || previousResolved.accountId !== accountId || previousResolved.route !== target) {
+        window.scrollTo({ top: 0, behavior: "instant" });
+      }
       // Only a resolved route can replace the displayed page's protections.
       novelRouteActive.current = target === "novels" || target.startsWith("novels/");
       if (!target.startsWith("studio/games") && !target.startsWith("studio/scenarios") && !target.startsWith("studio/room/")) creatorRoute.current = "";
@@ -785,19 +1117,21 @@ export default function TavernApp() {
       setNotice(studioBusy.current ? "请等待当前创作操作完成。" : "有未保存的修改，请用工作台的返回按钮保存或放弃修改。");
       return false;
     }
-    if (requestActive.current && (target !== "chat" || route !== "chat")) {
+    if (anyReplyActive() && (target !== "chat" || route !== "chat")) {
       setNotice("请先停止当前回复，再离开聊天。");
       return false;
     }
     saveCurrentDiscoveryHistory();
-    if (target === "live" && view !== "live") {
-      const accountId = cloud.user?.id;
-      setPerformanceSelection(accountId && !cloud.user?.isGuest && activeCharacter && active ? { accountId, character: { ...xumengPerformanceFromCard(activeCharacter), scene: buildXumengLiveConversationHandoff(active.messages, active.worldState, Date.now(), active.worldClockMode ?? "story") } } : null);
-    } else if (target !== "live" && target !== "voice") setPerformanceSelection(null);
+    if (target !== "live" && target !== "voice") setPerformanceSelection(null);
     setDetail(null);
-    const companionRoute = route === "chat/girlfriend" || route === "chat/girlfriend-intimate" || route === "chat/girlfriend-qwen" || route.startsWith("chat/girlfriend-custom/");
+    const companionRoute = isGirlfriendRoute(route);
+    if (route.startsWith("chat/girlfriend-cast/")) {
+      const person = girlfriendCastById(route.slice("chat/girlfriend-cast/".length));
+      if (!person) return false;
+      setCastCompanion(person);
+    }
     setCompanionOpen(target === "chat" && companionRoute);
-    setCompanionVariant(route === "chat/girlfriend-intimate" ? "intimate" : route === "chat/girlfriend-qwen" ? "qwen" : route.startsWith("chat/girlfriend-custom/") ? "custom" : "classic");
+    setCompanionVariant(companionVariantFromRoute(route));
     if (target === "chat") setConversationType(route === "chat/chats" || companionRoute ? "chats" : route === "chat/games" || route.startsWith("chat/game/") ? "games" : "stories");
     if (target === "studio") setCreatorSection("home");
     if (target === "novels") { setNovelInitial({}); novelRoute.current = "novels"; }
@@ -808,35 +1142,63 @@ export default function TavernApp() {
     location.hash = route;
     return true;
   }
+  function openMessages(): boolean {
+    if (anyReplyActive()) {
+      setNotice("请先停止当前回复，再离开聊天。");
+      if (view === "chat") return false;
+      return navigate("chat");
+    }
+    if (!navigate("chat", CHAT_SECTION_ROUTES[conversationType])) return false;
+    setActiveId(null);
+    setGameRequest(null);
+    setError("");
+    return true;
+  }
+  function openNav(target: View): boolean {
+    return target === "chat" ? openMessages() : navigate(target);
+  }
   function selectChatSection(section: ChatSection) {
     if (section === conversationType) return;
-    if (requestActive.current) { setNotice("请先停止当前回复，再切换分类。"); return; }
+    if (anyReplyActive()) { setNotice("请先停止当前回复，再切换分类。"); return; }
     if (!navigate("chat", CHAT_SECTION_ROUTES[section])) return;
     setActiveId(null); setGameRequest(null); setConversationQuery(""); setError("");
   }
-  function warmCompanion(variant: "classic" | "intimate" | "qwen") {
-    if (variant === "qwen" || companionWarmup.current.has(variant) || typeof window === "undefined") return;
-    companionWarmup.current.add(variant);
-    const endpoint = variant === "intimate" ? "/api/xumeng/companion-intimate/api/health" : "/api/xumeng/companion/api/health";
+  function warmCompanion(variant: "classic" | "intimate" | "qwen" | "sales" | "cast", castId?: string) {
+    const key = variant === "cast" ? `cast:${castId || ""}` : variant;
+    if (variant === "qwen" || (variant === "cast" && !castId) || companionWarmup.current.has(key) || typeof window === "undefined") return;
+    companionWarmup.current.add(key);
+    const endpoint = variant === "intimate" ? "/api/xumeng/companion-intimate/api/health"
+      : variant === "sales" ? "/api/xumeng/companion-sales/api/health"
+      : variant === "cast" ? `/api/xumeng/companion-cast/${castId}/api/health`
+      : "/api/xumeng/companion/api/health";
     void fetch(endpoint, { method: "GET", cache: "no-store", credentials: "same-origin" }).catch(() => {
-      companionWarmup.current.delete(variant);
+      companionWarmup.current.delete(key);
     });
   }
-  function openCompanion(variant: CompanionVariant = "classic", profile?: CompanionProfile) {
+  function openCompanion(variant: CompanionVariant = "classic", profile?: CompanionProfile, castId?: string) {
     if (!loaded || cloud.authBusy || !cloud.user) { setNotice("正在加载账户，请稍候再打开聊天。"); return; }
-    if (variant !== "custom") warmCompanion(variant);
-      if (variant === "custom") {
+    if (cloud.user.isGuest) { openAccount("login"); return; }
+    if (variant === "cast") {
+      const person = girlfriendCastById(castId || "");
+      if (!person) return;
+      setCastCompanion(person);
+      warmCompanion("cast", person.id);
+      if (!navigate("chat", `chat/girlfriend-cast/${person.id}`)) return;
+    } else if (variant === "custom") {
       setCustomCompanion(profile || REALISTIC_COMPANION_PROFILES[0]);
       setCompanionVariant("custom");
       if (!navigate("chat", `chat/girlfriend-custom/${encodeURIComponent((profile || REALISTIC_COMPANION_PROFILES[0]).id)}`)) return;
-    } else if (!navigate("chat", variant === "intimate" ? "chat/girlfriend-intimate" : variant === "qwen" ? "chat/girlfriend-qwen" : "chat/girlfriend")) return;
+    } else {
+      warmCompanion(variant);
+      if (!navigate("chat", variant === "intimate" ? "chat/girlfriend-intimate" : variant === "qwen" ? "chat/girlfriend-qwen" : variant === "sales" ? "chat/girlfriend-sales" : "chat/girlfriend")) return;
+    }
     setGameRequest(null); setActiveId(null); setError("");
   }
   function leaveCompanion() {
     setActiveId(null); setGameRequest(null); navigate("chat", "chat/chats");
   }
   function playGame(selection: GamePlaySelection) {
-    if (requestActive.current) { setNotice("请先停止当前回复，再切换到游戏。"); return; }
+    if (anyReplyActive()) { setNotice("请先停止当前回复，再切换到游戏。"); return; }
     const accountId = cloud.user?.id;
     if (!loaded || cloud.authBusy || !accountId) { setNotice("正在加载账户，请稍候再打开游戏。"); return; }
     if (!navigate("chat", `chat/game/${selection.kind}/${encodeURIComponent(selection.id)}`)) return;
@@ -845,7 +1207,7 @@ export default function TavernApp() {
   function leaveGame() { setGameRequest(null); setActiveId(null); navigate("chat", "chat/games"); }
   function openCreatorRoute(route: string) {
     if (["studio", "novels", "presets", "voice", "characters"].includes(route)) { navigate(route as View); return; }
-    if (creatorDirty.current || creatorBusy.current || studioDirty.current || studioBusy.current || novelDirty.current || novelBusy.current || requestActive.current) {
+    if (creatorDirty.current || creatorBusy.current || studioDirty.current || studioBusy.current || novelDirty.current || novelBusy.current || anyReplyActive()) {
       setNotice("请先保存或完成当前操作，再打开其他作品。"); return;
     }
     setDetail(null); location.hash = route;
@@ -853,8 +1215,35 @@ export default function TavernApp() {
   function performCharacter(character: XumengPerformanceCharacter, target: "live" | "voice") {
     const accountId = cloud.user?.id;
     if (!accountId || cloud.user?.isGuest || cloud.authBusy) { openAccount("login"); return; }
+    if (target === "live") {
+      const current = location.hash.replace(/^#/, "");
+      callReturnRoute.current = current && current !== "live" ? current : "chat";
+    }
     if (!navigate(target)) return;
     setPerformanceSelection({ accountId, character });
+  }
+  function returnFromCall() {
+    const route = callReturnRoute.current || "chat";
+    if (route.startsWith("chat/")) navigate("chat", route);
+    else navigate("chat");
+  }
+  function callCompanion(variant: "classic" | "intimate" | "qwen" | "sales") {
+    const person = CHAT_CALL_CHARACTERS.find(item => item.sourceId === variant);
+    if (person) performCharacter(person, "live");
+  }
+  function callCustomCompanion(profile: CompanionProfile) {
+    performCharacter({
+      id: `chat-custom-${profile.id}`, key: `chat:custom:${profile.id}`, source: "character", sourceId: profile.id, sourceLabel: "聊天",
+      name: profile.name, avatar: profile.cover, description: profile.introduction,
+      personality: profile.style.personality, scenario: profile.situation, dialogue: "",
+      liveVoice: "zh_female_liuchangnv_uranus_bigtts",
+    }, "live");
+  }
+  function navigationCurrent(itemView: View) {
+    return itemView === view
+      || (itemView === "characters" && view === "play-games")
+      || (itemView === "chat" && view === "live")
+      || (itemView === "studio" && (view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation"));
   }
   function performActiveCharacter(target: "live" | "voice") {
     if (!activeCharacter || !active) return;
@@ -862,15 +1251,11 @@ export default function TavernApp() {
       scene: buildXumengLiveConversationHandoff(active.messages, active.worldState, Date.now(), active.worldClockMode ?? "story") }, target);
   }
   const performanceLibrary = usePerformanceCharacters(cloud.user?.id, cloud.user?.isGuest ?? true, characters, view === "live" || view === "voice", view === "live");
-  const callCharacters = useMemo(() => {
-    const cards = performanceLibrary.characters.filter(item => item.source === "character" && hasCallImage(item.avatar) && !/同学妈妈|男高|乱伦|校园/.test(item.name));
-    return [...CHAT_CALL_CHARACTERS, ...cards];
-  }, [performanceLibrary.characters]);
-  const performanceCharacter = performanceSelection && performanceSelection.accountId === cloud.user?.id && !cloud.user?.isGuest && callCharacters.some(item => item.key === performanceSelection.character.key)
+  const performanceCharacter = performanceSelection && performanceSelection.accountId === cloud.user?.id && !cloud.user?.isGuest
     ? performanceSelection.character
-    : callCharacters[0];
+    : null;
   function openStudio(card: Character | "new") {
-    if (requestActive.current) { setNotice("请先停止当前回复，再编辑角色。"); return; }
+    if (anyReplyActive()) { setNotice("请先停止当前回复，再编辑角色。"); return; }
     if (creatorDirty.current || creatorBusy.current || novelDirty.current || novelBusy.current || studioDirty.current || studioBusy.current) { setNotice("请先保存或完成当前创作操作。"); return; }
     const owned = card !== "new" && state.custom.some((item) => item.id === card.id);
     const draftCard = card === "new" ? "new" : owned || (card.sourceKind === "original" && !card.publication) ? card : parseCharacterImport(exportCharacterJson(card));
@@ -929,13 +1314,22 @@ export default function TavernApp() {
     startChat(character, true, openingIndex);
   }
   function showAuthor(author: DzmmAuthor) {
-    if (requestActive.current) { setNotice("请先停止当前回复，再查看作者。"); return; }
+    if (anyReplyActive()) { setNotice("请先停止当前回复，再查看作者。"); return; }
     saveCurrentDiscoveryHistory();
     setDetail(null); setAuthorId(author.id); setView("author"); location.hash = `author/${author.id}`;
   }
   function showCharacterAuthor(character: Character) {
-    const author = findCharacterAuthor(authors, character.id);
-    if (author) showAuthor(author); else navigate("profile");
+    const target = resolveCharacterAuthorTarget(authors, character);
+    if (target.kind === "author") showAuthor(target.author);
+    else if (target.kind === "profile") navigate("profile");
+    else setNotice("这张卡没有署名作者，没有可打开的作者主页。");
+  }
+  function characterAuthorControl(character: Character) {
+    const mark = <span className={s.authorAvatar}>{Array.from(character.author)[0] ?? ""}</span>;
+    if (resolveCharacterAuthorTarget(authors, character).kind === "unsigned") {
+      return <span className={s.author}>{mark}{character.author}</span>;
+    }
+    return <button type="button" className={s.author} onClick={() => showCharacterAuthor(character)} aria-label={`查看作者 ${character.author}`}>{mark}{character.author}</button>;
   }
   function toggleFollow(character: Character) {
     const author = findCharacterAuthor(authors, character.id);
@@ -959,17 +1353,27 @@ export default function TavernApp() {
       ...(active.opening ? { opening: parseDzmmConversationOpening(reconcileDzmmConversationOpening(active.opening, active.messages)) } : {}),
       ...(worldState ? { worldState } : {}),
       ...(storyMemory ? { storyMemory } : {}), updatedAt: Date.now() };
-    setState((previous) => ({ ...previous, conversations: [branch, ...previous.conversations] }));
+    setState((previous) => ({ ...previous, conversations: [branch, ...previous.conversations], preferences: copyDzmmConversationPersona(previous.preferences, active.id, branch.id) }));
     setActiveId(branch.id); setChatSettingsOpen(false); setNotice("已复制当前会话，可从这里继续新的剧情。");
   }
   function deleteCharacter(character: Character) {
     if (busy || !state.custom.some((item) => item.id === character.id)) return;
-    setState((previous) => ({ ...previous, custom: previous.custom.filter((item) => item.id !== character.id), favorites: previous.favorites.filter((id) => id !== character.id), conversations: previous.conversations.filter((item) => item.characterId !== character.id) }));
+    setState((previous) => ({ ...previous, custom: previous.custom.filter((item) => item.id !== character.id), favorites: previous.favorites.filter((id) => id !== character.id), conversations: previous.conversations.filter((item) => item.characterId !== character.id),
+      preferences: dropDzmmConversationPersonas(previous.preferences, id => previous.conversations.some(item => item.id === id && item.characterId !== character.id)) }));
   }
-  function showDetail(character: Character, taskSource?: DzmmTaskSelection) {
-    if (requestActive.current) {
+  function showDetail(character: Character, taskSource?: DzmmTaskSelection, origin?: RecommendationSurface) {
+    if (anyReplyActive()) {
       setNotice("请先停止当前回复，再查看角色详情。");
       return;
+    }
+    if (cloud.user?.isGuest) {
+      if (openAccount("register")) setGuestGate({ character, stage: "account" });
+      return;
+    }
+    const surface = origin ?? shelfRecommendationSurface(view, tab);
+    detailRecommendSurface.current = surface;
+    if (surface && isPublicRecommendationCharacter(character)) {
+      void recordXumengRecommendationEvents([{ characterId: character.id, surface, action: "open" }]);
     }
     if (!detail || detailDiscoveryAccount.current !== activeAccount.current) {
       saveCurrentDiscoveryHistory();
@@ -983,6 +1387,13 @@ export default function TavernApp() {
       if (searchOrigin) detailReturnHash.current = searchOrigin.route;
     }
     setDetail(character);
+    if (isDzmmListPreview(character)) {
+      const requestedId = character.id;
+      void fetchDzmmPublicCharacter(requestedId).then((full) => {
+        rememberCharacter(full);
+        setDetail((current) => current?.id === requestedId ? full : current);
+      }).catch(() => setNotice("角色详情暂时无法加载。"));
+    }
     const route = `character/${character.id}`;
     pendingDetailRoute.current = { accountId: activeAccount.current, route };
     const sharePath = characterSharePath(character.id);
@@ -1003,6 +1414,16 @@ export default function TavernApp() {
       writeDiscoveryHistory(origin.route, origin.filters);
     }
   }
+  function hideRecommendation(character: Character) {
+    if (!isPublicRecommendationCharacter(character)) return;
+    setLocalHidden((current) => current.includes(character.id) ? current : [...current, character.id]);
+    const surface = detailRecommendSurface.current ?? shelfRecommendationSurface(view, tab) ?? "home";
+    void recordXumengRecommendationEvents([{ characterId: character.id, surface, action: "hide" }]).then((accepted) => {
+      if (accepted >= 1) setRecommendEpoch((value) => value + 1);
+    });
+    closeDetail();
+    setNotice("已减少类似推荐。");
+  }
   async function copyMessage(content: string) {
     try {
       await navigator.clipboard.writeText(content);
@@ -1019,19 +1440,20 @@ export default function TavernApp() {
     return true;
   }
   function editMessage(message: Message) {
-    if (!active || !activeCharacter || requestActive.current) return;
+    if (!active || !activeCharacter || activeReplyActive()) return;
     setEditingMessage({ accountId: activeAccount.current, conversationId: active.id, messageId: message.id, original: message.content });
   }
   function saveEditedMessage(content: string) {
     if (!activeCharacter) throw new Error("角色当前不可用，历史消息仅供查看。");
-    if (!editingMessage || requestActive.current) throw new Error("请先停止当前回复，再修改消息。");
+    if (!editingMessage || activeReplyActive()) throw new Error("请先停止当前回复，再修改消息。");
     if (activeAccount.current !== editingMessage.accountId || active?.id !== editingMessage.conversationId) throw new Error("账户或会话已切换，请重新打开消息编辑。");
     let changed = false;
     setState(previous => {
       const conversation = previous.conversations.find(item => item.id === editingMessage.conversationId);
       if (!conversation || conversation.messages.find(item => item.id === editingMessage.messageId)?.content !== editingMessage.original)
         throw new Error("这条消息已经更新，请关闭编辑后重新打开。");
-      const tail = editingMessage.original.slice(splitXumengPanelTail(editingMessage.original).body.length);
+      const visible = splitXumengMomentTail(splitXumengPanelTail(editingMessage.original).body).body;
+      const tail = editingMessage.original.startsWith(visible) ? editingMessage.original.slice(visible.length) : "";
       const updated = editDzmmConversationMessage(conversation, editingMessage.messageId, tail.trim() ? `${content.trimEnd()}${tail}` : content);
       changed = updated !== conversation;
       return changed ? { ...previous, conversations: previous.conversations.map(item => item.id === updated.id ? updated : item) } : previous;
@@ -1039,10 +1461,10 @@ export default function TavernApp() {
     setNotice(changed ? "消息已修改，后续聊天原文已保留。" : "消息未改变。");
   }
   function regenerateMessage(messageId: string) {
-    if (!active || !activeCharacter || requestActive.current || !canRegenerateDzmmMessage(active, messageId) || !allowBilledConversation()) return;
+    if (!active || !activeCharacter || activeReplyActive() || !canRegenerateDzmmMessage(active, messageId) || !allowBilledConversation()) return;
     if (active.messages.at(-1)?.id === messageId && active.messages.at(-2)?.role === "user") { void send(true); return; }
     const branch = createDzmmRegenerationBranch(active, messageId);
-    setState(previous => ({ ...previous, conversations: [branch, ...previous.conversations] }));
+    setState(previous => ({ ...previous, conversations: [branch, ...previous.conversations], preferences: copyDzmmConversationPersona(previous.preferences, active.id, branch.id) }));
     setActiveId(branch.id); setNotice("已建立分支重新生成，原会话完整保留。");
     void send(true, branch);
   }
@@ -1067,13 +1489,13 @@ export default function TavernApp() {
     }
   }
   function chooseReplySuggestion(messageId: string, reply: string) {
-    if (!active || !activeCharacter || requestActive.current || cloud.authBusy) throw new Error("请等待当前操作完成且角色可用，再选择建议。");
+    if (!active || !activeCharacter || activeReplyActive() || cloud.authBusy) throw new Error("请等待当前操作完成且角色可用，再选择建议。");
     const owner = activeAccount.current;
     if (!owner) throw new Error("账号仍在加载，请稍后重试。");
     cloud.assertAccount(owner);
     if (active.messages.at(-1)?.id !== messageId) {
       const branch = createDzmmReplySuggestionBranch(active, messageId);
-      setState(previous => ({ ...previous, conversations: [branch, ...previous.conversations] }));
+      setState(previous => ({ ...previous, conversations: [branch, ...previous.conversations], preferences: copyDzmmConversationPersona(previous.preferences, active.id, branch.id) }));
       setComposerDrafts(previous => ({ ...previous, [branch.id]: { text: reply, failed: [] } }));
       setActiveId(branch.id); setNotice("已从这条回复开启新分支，原会话完整保留。请确认输入后发送。");
     } else {
@@ -1106,12 +1528,19 @@ export default function TavernApp() {
     );
   }
   function toggleFavorite(id: string) {
+    const removing = state.favorites.includes(id);
     setState((previous) => ({
       ...previous,
       favorites: previous.favorites.includes(id)
         ? previous.favorites.filter((v) => v !== id)
         : [...previous.favorites, id],
     }));
+    const character = characters.find((item) => item.id === id);
+    if (!character || !isPublicRecommendationCharacter(character)) return;
+    const surface = detailRecommendSurface.current ?? shelfRecommendationSurface(view, tab) ?? "home";
+    void recordXumengRecommendationEvents([{ characterId: id, surface, action: removing ? "unfavorite" : "favorite" }]).then((accepted) => {
+      if (accepted >= 1) setRecommendEpoch((value) => value + 1);
+    });
   }
   async function toggleLike(id: string) {
     if (!loaded || cloud.authBusy || !cloud.user?.id) return;
@@ -1121,23 +1550,27 @@ export default function TavernApp() {
     try {
       const result = await setDzmmCharacterLike(id, nextLiked);
       setLikeStats((current) => ({ ...current, [id]: result }));
+      setRecommendEpoch((value) => value + 1);
     } catch (failure) {
       setLikeStats((current) => ({ ...current, [id]: previous }));
       setNotice(failure instanceof Error ? failure.message : "点赞暂时失败，请稍后重试。");
     }
   }
   function matchCharacter() {
-    const pool = characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags));
+    const pool = shelfList.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags));
     if (pool.length) showDetail(pool[Math.floor(Math.random() * pool.length)]);
     else setNotice("当前没有可匹配的角色，可以调整屏蔽标签。");
   }
   function startChat(character: Character, fresh = false, openingIndex = 0) {
-    if (!loaded || cloud.authBusy) {
-      setNotice("正在加载你的会话，请稍候再开始。");
+    if (isDzmmListPreview(character)) {
+      void fetchDzmmPublicCharacter(character.id).then((full) => {
+        rememberCharacter(full);
+        startChat(full, fresh, openingIndex);
+      }).catch(() => setNotice("角色详情暂时无法加载。"));
       return;
     }
-    if (requestActive.current) {
-      setNotice("请先停止当前回复，再切换会话。");
+    if (!loaded || cloud.authBusy) {
+      setNotice("正在加载你的会话，请稍候再开始。");
       return;
     }
     if (character.authoringDraft) { openStudio(character); setNotice("世界书还有未完成的词条，请先完善草稿再开始对话。"); return; }
@@ -1148,18 +1581,19 @@ export default function TavernApp() {
     if (newConversationBlock) {
       setNotice(newConversationBlock); return;
     }
+    const resumeExisting = Boolean(existing && !fresh && existing.messages.some(message => message.role === "user"));
     let opening: ReturnType<typeof captureDzmmConversationOpening>;
-    try { opening = existing && !fresh ? resolveDzmmConversationOpening(character, existing)
+    try { opening = resumeExisting ? resolveDzmmConversationOpening(character, existing!)
       : captureDzmmConversationOpening(character, openingIndex); }
     catch (failure) { setNotice(failure instanceof Error ? failure.message : "角色开场暂时无法加载。"); return; }
     const openingMessages = opening.messages.map((message) => ({ ...message, id: uid() }));
     if (existing && !fresh) {
       setActiveId(existing.id);
-      if (existing.opening !== opening) setState(previous => ({ ...previous, conversations: previous.conversations.map(conversation =>
+      const sameOpening = existing.messages.length === opening.messages.length && existing.messages.every((message, index) =>
+        message.role === opening.messages[index]?.role && message.content.trim() === opening.messages[index].content.trim());
+      if (!resumeExisting && !sameOpening) patchMessages(existing.id, openingMessages, undefined, undefined, opening);
+      else if (existing.opening !== opening) setState(previous => ({ ...previous, conversations: previous.conversations.map(conversation =>
         conversation.id === existing.id ? { ...conversation, opening } : conversation) }));
-      if (!existing.messages.length && openingMessages.length) {
-        patchMessages(existing.id, openingMessages);
-      }
     }
     else {
       const conversation: Conversation = {
@@ -1179,21 +1613,22 @@ export default function TavernApp() {
     }
     setDetail(null);
     setError("");
+    const surface = detailRecommendSurface.current ?? shelfRecommendationSurface(view, tab);
+    if (surface && isPublicRecommendationCharacter(character)) {
+      void recordXumengRecommendationEvents([{ characterId: character.id, surface, action: "start" }]);
+    }
     setGameRequest(null); navigate("chat");
   }
   function selectConversation(c: Conversation) {
-    if (requestActive.current) {
-      setNotice("请先停止当前回复，再切换会话。");
-      return;
-    }
     setConversationType("stories"); setCompanionOpen(false); setGameRequest(null); window.history.replaceState(null, "", "#chat");
     setActiveId(c.id);
     setError("");
   }
   function removeActiveConversation() {
-    if (!active || requestActive.current) return;
+    if (!active || activeReplyActive()) return;
     const id = active.id;
-    setState(previous => ({ ...previous, conversations: previous.conversations.filter(conversation => conversation.id !== id) }));
+    setState(previous => ({ ...previous, conversations: previous.conversations.filter(conversation => conversation.id !== id),
+      preferences: dropDzmmConversationPersonas(previous.preferences, conversationId => conversationId !== id) }));
     setComposerDrafts(previous => { const next = { ...previous }; delete next[id]; return next; });
     delete suggestionInsertions.current[id];
     setActiveId(null);
@@ -1256,7 +1691,7 @@ export default function TavernApp() {
     }
     const conversation = override ?? active;
     if (
-      requestActive.current ||
+      (conversation && replyRequests.current.has(conversation.id)) ||
       !conversation ||
       !activeCharacter ||
       (!regenerate && !draft.trim())
@@ -1265,8 +1700,13 @@ export default function TavernApp() {
     if (!regenerate && composerDrafts[conversation.id]?.pending) { setError("上次回复尚未确认，请先检查会话并恢复或移除待确认原文，再发送新消息。"); return; }
     if (!allowBilledConversation()) return;
     if (activeCharacter.authoringDraft) { setError("这个角色的世界书还有未完成项，请在创作中心完善后继续对话。"); return; }
+    if (replyRequests.current.size >= MAX_PARALLEL_REPLIES) { setNotice(`最多同时生成 ${MAX_PARALLEL_REPLIES} 个回复，请等其中一个写完。`); return; }
     const conversationId = conversation.id;
     const originalInput = draft;
+    const showError = (message: string) => {
+      if (activeIdRef.current === conversationId) setError(message);
+      else setNotice(`「${conversation.title.slice(0, 20)}」${message}`);
+    };
     const requestId = uid();
     const previousMessages =
       regenerate && conversation.messages.at(-1)?.role === "assistant"
@@ -1282,24 +1722,23 @@ export default function TavernApp() {
     const assistantId = uid();
     let answer = "";
     let preparedMemory: Conversation["storyMemory"];
-    requestActive.current = true;
-    setBusy(true);
+    const abort = new AbortController();
+    replyRequests.current.set(conversationId, abort);
+    setGenerating(previous => ({ ...previous, [conversationId]: "reply" }));
     setError("");
     setRechargeNeeded(false);
     if (!regenerate) setComposerDrafts(previous => ({ ...previous,
       [conversationId]: { text: "", failed: previous[conversationId]?.failed ?? [], pending: { requestId, text: originalInput } } }));
     // Keep the saved answer and its continuity state until valid replacement text arrives.
     if (!regenerate) patchMessages(conversationId, submitted);
-    const abort = new AbortController();
-    controller.current = abort;
     try {
       const worldRuntime = resolveDzmmWorldRuntime(conversation.worldState, submitted, Date.now(), conversation.worldClockMode ?? "story");
       const { request } = await prepareDzmmRememberedRequest({ character: applyDzmmConversationOpening(activeCharacter, { ...conversation, messages: submitted }), messages: submitted,
         world: { clockMode: conversation.worldClockMode ?? "story", ...(worldRuntime ? { state: worldRuntime.state,
           recordedAt: worldRuntime.recordedAt, previousClockMode: worldRuntime.clockMode } : {}) },
-        memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: state.preferences.persona,
+        memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: resolveDzmmConversationPersona(state.preferences, conversationId),
         userName: playUserName, locale: state.preferences.locale, model: normalizeDzmmModelSelection(state.preferences.model), maxTokens: state.preferences.maxTokens, signal: abort.signal,
-        onSummaryStart: () => setSummarizing(true),
+        onSummaryStart: () => setGenerating(previous => previous[conversationId] ? { ...previous, [conversationId]: "summary" } : previous),
         onMemory: (storyMemory) => {
           if (activeAccount.current !== owner) return;
           if (regenerate) {
@@ -1312,7 +1751,7 @@ export default function TavernApp() {
         },
       });
       if (activeAccount.current !== owner) return;
-      setSummarizing(false);
+      setGenerating(previous => previous[conversationId] ? { ...previous, [conversationId]: "reply" } : previous);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json", "X-Xumeng-Request-Id": requestId },
@@ -1346,9 +1785,7 @@ export default function TavernApp() {
       if (e instanceof DzmmMemoryRequestError && e.status === 402) setRechargeNeeded(true);
       if (e instanceof DzmmMemoryRequestError && (e.status === 401 || e.status === 403) && billingConfig?.enabled && (!cloud.user || cloud.user.isGuest)) openAccount("login");
       if (e instanceof Error && e.name !== "AbortError")
-        setError(
-          hasValidAnswer ? "回复中断，已保留收到的内容。可以重新生成。" : e.message,
-        );
+        showError(hasValidAnswer ? "回复中断，已保留收到的内容。可以重新生成。" : e.message);
       if (!hasValidAnswer && !regenerate) {
         setComposerDrafts(previous => {
           const current = previous[conversationId] ?? { text: "", failed: [] };
@@ -1370,52 +1807,110 @@ export default function TavernApp() {
         const { pending: completed, ...rest } = current; void completed;
         return { ...previous, [conversationId]: rest };
       });
-      requestActive.current = false;
-      setBusy(false);
-      setSummarizing(false);
-      controller.current = null;
+      if (replyRequests.current.get(conversationId) === abort) replyRequests.current.delete(conversationId);
+      setGenerating(previous => { const { [conversationId]: finished, ...rest } = previous; void finished; return rest; });
       setBillingRefresh(value => value + 1);
     }
   }
 
-  const filtered = useMemo(() => {
-    let list = characters.filter(
-      (c) =>
-        !isDzmmCharacterBlocked(c, state.preferences.blockedTags) &&
-        characterMatchesShelfTag(c.tags, genre),
-    );
-    if (tab === "新手")
-      list = list.filter((c) => c.sourceKind === "public-summary" || c.publication);
-    if (tab === "关注")
-      list = list.filter((c) => { const author = findCharacterAuthor(authors, c.id); return author && state.preferences.followedAuthors?.includes(author.id); });
-    const rankScore = (character: Character) => {
-      const heat = heatValue(character.heat);
-      const likes = parseLikeBaseline(character.likes || "") || 0;
-      const age = Math.max(0, Date.now() - Date.parse(character.createdAt));
-      const freshness = Number.isFinite(age) ? Math.max(0, 30 - age / 86_400_000) : 0;
-      if (rankingPeriod === "day") return heat * 1.2 + likes * 0.45 + freshness * 250;
-      if (rankingPeriod === "all") return heat * 0.8 + likes * 0.9;
-      return heat + likes * 0.65 + freshness * 120;
+  const shelfList = useMemo(() => {
+    const hideRanked = tab === "新手" || tab === "榜单";
+    const remote = publicShelf.characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id)));
+    const seen = new Set<string>();
+    const pinLocal = view === "characters" && (tab === "新手" || tab === "最新");
+    const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
+      && !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && characterMatchesShelfTag(character.tags, genre)) : [];
+    const followed = new Set(state.preferences.followedAuthors ?? []);
+    const followedLocal = tab === "关注" ? characters.filter((character) => {
+      const author = findCharacterAuthor(authors, character.id);
+      return !character.publication && author ? followed.has(author.id) : false;
+    }) : [];
+    return [...followedLocal, ...pinned, ...remote].filter((character) => {
+      if (!character.cover || character.cover.includes("placeholder")) return false;
+      if (!character.publication && dzmmLocalLook(character.id) !== look) return false;
+      if (seen.has(character.id)) return false;
+      seen.add(character.id);
+      return true;
+    });
+  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genre, authors, hiddenIds, look]);
+  const relatedCards = useMemo(() => {
+    if (!detail || relatedRank.status !== "ready") return [];
+    const byId = new Map(characters.map((character) => [character.id, character]));
+    return relatedRank.ids.flatMap((id) => {
+      const character = byId.get(id);
+      if (!character || character.id === detail.id || !isPublicRecommendationCharacter(character)) return [];
+      if (isDzmmCharacterBlocked(character, state.preferences.blockedTags) || hiddenIds.has(character.id)) return [];
+      return [character];
+    }).slice(0, 8);
+  }, [detail, relatedRank, characters, hiddenIds, state.preferences.blockedTags]);
+  const recommendPositions = usesServerRank && recommendation.status === "ready"
+    ? new Map(shelfList.map((character, index) => [character.id, index]))
+    : null;
+  const shelfKey = shelfList.map((character) => character.id).join("\n");
+  useEffect(() => {
+    const root = catalogRef.current;
+    const accountId = cloud.user?.id;
+    if (!usesServerRank || recommendation.status !== "ready" || !serverSurface || !accountId || view !== "characters" || detail || !root) return;
+    const queued: XumengRecommendationEvent[] = [];
+    let timer = 0;
+    const flush = () => {
+      if (!queued.length) return;
+      const batch = queued.splice(0, 40);
+      void recordXumengRecommendationEvents(batch);
+      if (queued.length) timer = window.setTimeout(flush, 200);
     };
-    if (tab === "最新" || sortMode === "updated") list = [...list].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt) || rankScore(b) - rankScore(a));
-    if (tab === "新手" && sortMode === "recommended") list = [...list].sort((a, b) => rankScore(b) - rankScore(a));
-    if (tab === "榜单" || sortMode === "heat") list = [...list].sort((a, b) => rankScore(b) - rankScore(a));
-    if (sortMode === "likes") list = [...list].sort((a, b) => (parseLikeBaseline(b.likes || "") || 0) - (parseLikeBaseline(a.likes || "") || 0));
-    if (sortMode === "name") list = [...list].sort((a, b) => a.name.localeCompare(b.name, "zh-CN"));
-    if (tab === "猜你喜欢" && sortMode === "recommended") list = [...list].sort((a, b) => Number(state.favorites.includes(b.id)) - Number(state.favorites.includes(a.id)));
-    return list;
-  }, [characters, genre, tab, sortMode, rankingPeriod, state.favorites, state.preferences.blockedTags, state.preferences.followedAuthors, authors]);
+    const observer = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting || entry.intersectionRatio < 0.5) continue;
+        const element = entry.target;
+        if (!(element instanceof HTMLElement)) continue;
+        const characterId = element.dataset.recommendId;
+        if (!characterId) continue;
+        const key = `${accountId}:${serverSurface}:${characterId}`;
+        if (impressed.current.has(key)) { observer.unobserve(element); continue; }
+        const position = Number(element.dataset.recommendPosition);
+        if (!Number.isInteger(position) || position < 0 || position > 500) continue;
+        impressed.current.add(key);
+        queued.push({ characterId, surface: serverSurface, action: "impression", position });
+        observer.unobserve(element);
+      }
+      window.clearTimeout(timer);
+      timer = window.setTimeout(flush, 350);
+    }, { threshold: 0.5 });
+    for (const element of root.querySelectorAll<HTMLElement>("[data-recommend-id]")) observer.observe(element);
+    return () => { observer.disconnect(); window.clearTimeout(timer); flush(); };
+  }, [usesServerRank, recommendation.status, serverSurface, view, detail, shelfKey, cloud.user?.id]);
 
   const showFeatured = tab === "新手" && genre === "全部" && sortMode === "recommended";
   const featured = useMemo<ContentShelfItem[]>(() => {
     if (!showFeatured) return [];
-    const companions: ContentShelfItem[] = CONTENT_PEOPLE.filter(person => person.variant !== "qwen").map(person => ({ kind: "companion", key: `companion:${person.variant}`, person }));
-    const cards: ContentShelfItem[] = filtered.slice(0, FEATURED_CHARACTER_COUNT).map(character => ({ kind: "character", key: `character:${character.id}`, character }));
-    return [cards[0], companions[0], ...cards.slice(1, 4), companions[1], ...cards.slice(4)].filter((item): item is ContentShelfItem => Boolean(item));
-  }, [showFeatured, filtered]);
+    const companions: ContentShelfItem[] = CONTENT_PEOPLE.filter(person => person.variant !== "qwen" && person.look === look).map(person => ({ kind: "companion", key: `companion:${person.variant}`, person }));
+    const cards: ContentShelfItem[] = shelfList.slice(0, FEATURED_CHARACTER_COUNT).map(character => ({ kind: "character", key: `character:${character.id}`, character }));
+    const mixed: ContentShelfItem[] = [];
+    if (cards[0]) mixed.push(cards[0]);
+    let cardIndex = 1;
+    companions.forEach((person, index) => {
+      mixed.push(person);
+      if (index < companions.length - 1) {
+        mixed.push(...cards.slice(cardIndex, cardIndex + 3));
+        cardIndex += 3;
+      }
+    });
+    mixed.push(...cards.slice(cardIndex));
+    return mixed;
+  }, [showFeatured, shelfList, look]);
   const shelf = useMemo(() => weaveEqual<ContentShelfItem>([
-    (showFeatured ? filtered.slice(FEATURED_CHARACTER_COUNT) : filtered).map(character => ({ kind: "character", key: `character:${character.id}`, character })),
-  ]), [filtered, showFeatured]);
+    (showFeatured ? shelfList.slice(FEATURED_CHARACTER_COUNT) : shelfList).map(character => ({ kind: "character", key: `character:${character.id}`, character })),
+  ]), [shelfList, showFeatured]);
+  useEffect(() => {
+    const node = shelfMoreRef.current;
+    if (!node || !publicShelf.hasMore || publicShelf.loading) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) publicShelf.loadMore();
+    }, { rootMargin: "720px" });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [publicShelf.hasMore, publicShelf.loading, publicShelf.loadMore, view, detail, tab]);
 
   async function importRole(file?: File) {
     if (!file) return;
@@ -1437,7 +1932,7 @@ export default function TavernApp() {
   }
   async function importConversation(file?: File) {
     if (!file) return;
-    if (requestActive.current) {
+    if (anyReplyActive()) {
       setNotice("请先停止当前回复，再导入会话。");
       if (importChatRef.current) importChatRef.current.value = "";
       return;
@@ -1447,7 +1942,7 @@ export default function TavernApp() {
       const owner = activeAccount.current;
       const raw = await file.text();
       if (activeAccount.current !== owner) throw new Error("账号已切换，请在当前账号重新导入会话。");
-      if (requestActive.current || cloud.authBusy) throw new Error("当前操作尚未完成，请稍后重新导入会话。");
+      if (anyReplyActive() || cloud.authBusy) throw new Error("当前操作尚未完成，请稍后重新导入会话。");
       if (owner) cloud.assertAccount(owner);
       const archive = parseDzmmUnavailableConversationBackup(raw, { createId: uid });
       const { character, conversation: c } = archive ? { character: null, conversation: archive }
@@ -1466,39 +1961,201 @@ export default function TavernApp() {
     if (importChatRef.current) importChatRef.current.value = "";
   }
 
-  function openAccount(mode: "login" | "register") {
-    if (!loaded) { setNotice("正在加载当前账号，请稍候。"); return; }
-    if (creatorBusy.current || creatorDirty.current || novelBusy.current || novelDirty.current) { setNotice("请先保存并完成创作操作，再登录其他账号。"); return; }
-    if (studioBusy.current) { setNotice("角色草稿正在处理，请稍候再注册或登录。"); return; }
-    if (studioDirty.current) { setNotice("请先保存或导出角色草稿，再注册或登录。"); return; }
-    if (requestActive.current) {
+  function openAccount(mode: "login" | "register"): boolean {
+    if (!loaded) { setNotice("正在加载当前账号，请稍候。"); return false; }
+    if (creatorBusy.current || creatorDirty.current || novelBusy.current || novelDirty.current) { setNotice("请先保存并完成创作操作，再登录其他账号。"); return false; }
+    if (studioBusy.current) { setNotice("角色草稿正在处理，请稍候再注册或登录。"); return false; }
+    if (studioDirty.current) { setNotice("请先保存或导出角色草稿，再注册或登录。"); return false; }
+    if (anyReplyActive()) {
       setNotice("请先停止当前回复，再切换账号。");
-      return;
+      return false;
     }
     try {
       if (cloud.user?.id) cloud.assertAccount(cloud.user.id);
-    } catch (failure) { setNotice(failure instanceof Error ? failure.message : "账号正在切换，请稍候。"); return; }
+    } catch (failure) { setNotice(failure instanceof Error ? failure.message : "账号正在切换，请稍候。"); return false; }
     cloud.clearAuthError();
     setAccountMode(mode);
+    return true;
+  }
+
+  function finishGuestGate(registered: boolean) {
+    setGuestGate(gate => gate?.stage === "account" ? { ...gate, stage: registered ? "welcome" : "open" } : gate);
   }
 
   async function submitAccount(values: DzmmAccountValues) {
     if (!accountMode) return;
-    await cloud.authenticate(accountMode, values);
+    const registered = await cloud.authenticate(accountMode, values);
     setAccountMode(null);
+    finishGuestGate(registered);
   }
 
+  useEffect(() => {
+    if (guestGate?.stage !== "open" || !cloud.user || cloud.user.isGuest || cloud.authBusy) return;
+    const { character } = guestGate;
+    setGuestGate(null);
+    showDetail(characters.find(item => item.id === character.id) ?? character);
+  }, [guestGate, cloud.user, cloud.authBusy]);
+
   const paymentReturn = typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
-  const companionInMain = companionOpen || (conversationType === "chats" && wideChat && loaded && !cloud.authBusy && Boolean(cloud.user));
+  const companionInMain = (companionOpen || (conversationType === "chats" && wideChat && loaded && !cloud.authBusy && Boolean(cloud.user))) && !cloud.user?.isGuest;
+  const pinChatToKeyboard = view === "chat" && !detail && Boolean(active || companionInMain || gameSelection);
+  useEffect(() => {
+    const root = appRef.current;
+    if (!root) return;
+    const viewport = window.visualViewport;
+    const keyboardApi = readVirtualKeyboard();
+    const fullHeight = { current: 0 };
+    let frameId = 0;
+    let followUps: number[] = [];
+    let corrections = 0;
+    let keyboardWasOpen = false;
+    let keyboardRectSeen = false;
+    let scrolledHome = false;
+    const clearFollowUps = () => {
+      for (const id of followUps) window.clearTimeout(id);
+      followUps = [];
+    };
+    const release = () => {
+      fullHeight.current = 0;
+      corrections = 0;
+      keyboardWasOpen = false;
+      scrolledHome = false;
+      for (const property of ["position", "left", "right", "top", "height", "min-height", "padding-bottom"]) {
+        root.style.removeProperty(property);
+      }
+      root.style.removeProperty("--vv-top");
+      root.style.removeProperty("--vv-height");
+      delete root.dataset.keyboard;
+      document.documentElement.style.removeProperty("overflow");
+      document.body.style.removeProperty("overflow");
+      setKeyboardOverlay(keyboardApi, false);
+    };
+    const sync = () => {
+      cancelAnimationFrame(frameId);
+      frameId = requestAnimationFrame(() => {
+        const mobile = window.matchMedia("(max-width: 767px)").matches;
+        if (!pinChatToKeyboard || !mobile) {
+          release();
+          return;
+        }
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+        if (!scrolledHome && (window.scrollX !== 0 || window.scrollY !== 0)) {
+          scrolledHome = true;
+          window.scrollTo(0, 0);
+        }
+        const layoutHeight = Math.min(window.innerHeight, document.documentElement.clientHeight || window.innerHeight);
+        if (layoutHeight < 120) return;
+        const visualHeight = viewport && viewport.height > 0 ? viewport.height : layoutHeight;
+        const offsetTop = viewport?.offsetTop ?? 0;
+        const keyboardHeight = keyboardInset(keyboardApi);
+        if (keyboardHeight > 40) keyboardRectSeen = true;
+        const snapshot = { layoutHeight, visualHeight, offsetTop, fullHeight: fullHeight.current, keyboardHeight };
+        if (chatViewportSettled(snapshot)) fullHeight.current = layoutHeight;
+        const frame = chatViewportFrame({ ...snapshot, fullHeight: fullHeight.current });
+        root.style.position = "fixed";
+        root.style.left = "0px";
+        root.style.right = "0px";
+        root.style.minHeight = "0px";
+        root.style.paddingBottom = "0px";
+        root.style.height = `${frame.height}px`;
+        root.style.setProperty("--vv-height", `${frame.height}px`);
+        const rect = root.getBoundingClientRect();
+        const usedTop = Number.parseFloat(window.getComputedStyle(root).top);
+        const currentTop = Number.isFinite(usedTop) ? usedTop : 0;
+        if (Math.abs(rect.top) > 2) {
+          corrections += 1;
+          const anchored = chatViewportAnchorTop(currentTop, rect.top, layoutHeight);
+          root.style.top = `${corrections > 4 ? 0 : anchored}px`;
+        } else {
+          corrections = 0;
+          if (!root.style.top) root.style.top = "0px";
+        }
+        root.style.setProperty("--vv-top", root.style.top || "0px");
+        const typing = document.activeElement instanceof HTMLElement
+          && root.contains(document.activeElement)
+          && (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT");
+        if (frame.keyboardOpen || typing) root.dataset.keyboard = "open";
+        else delete root.dataset.keyboard;
+        if (frame.keyboardOpen && !keyboardWasOpen && document.activeElement === composerInputRef.current) {
+          const scroller = messageScrollRef.current;
+          if (scroller) scroller.scrollTop = scroller.scrollHeight;
+        }
+        if (!frame.keyboardOpen && !typing) {
+          corrections = 0;
+          scrolledHome = false;
+        }
+        keyboardWasOpen = frame.keyboardOpen;
+      });
+    };
+    const schedule = () => {
+      sync();
+      clearFollowUps();
+      for (const delay of [80, 240, 700]) followUps.push(window.setTimeout(sync, delay));
+    };
+    const onFocusIn = (event: FocusEvent) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || !root.contains(target)) return;
+      if (target.tagName !== "TEXTAREA" && target.tagName !== "INPUT") return;
+      schedule();
+      // Only opt into the virtual-keyboard overlay when the browser neither resizes nor pans.
+      followUps.push(window.setTimeout(() => {
+        if (!keyboardApi || keyboardRectSeen || document.activeElement !== target) return;
+        if (!window.matchMedia("(max-width: 767px)").matches) return;
+        const current = window.visualViewport;
+        const layout = window.innerHeight;
+        const visual = current?.height ?? layout;
+        const unchanged = Math.abs(layout - visual) < 40
+          && Math.abs(current?.offsetTop ?? 0) < 40
+          && (fullHeight.current === 0 || fullHeight.current - layout < 80);
+        if (!unchanged) return;
+        setKeyboardOverlay(keyboardApi, true);
+        sync();
+        followUps.push(window.setTimeout(() => {
+          if (!keyboardRectSeen && document.activeElement === target) {
+            setKeyboardOverlay(keyboardApi, false);
+            sync();
+          }
+        }, 500));
+      }, 400));
+    };
+    const onFocusOut = () => schedule();
+    const onOrientation = () => {
+      fullHeight.current = 0;
+      schedule();
+    };
+    sync();
+    viewport?.addEventListener("resize", sync);
+    viewport?.addEventListener("scroll", sync);
+    window.addEventListener("resize", sync);
+    window.addEventListener("orientationchange", onOrientation);
+    document.addEventListener("focusin", onFocusIn);
+    document.addEventListener("focusout", onFocusOut);
+    keyboardApi?.addEventListener("geometrychange", sync);
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearFollowUps();
+      viewport?.removeEventListener("resize", sync);
+      viewport?.removeEventListener("scroll", sync);
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("orientationchange", onOrientation);
+      document.removeEventListener("focusin", onFocusIn);
+      document.removeEventListener("focusout", onFocusOut);
+      keyboardApi?.removeEventListener("geometrychange", sync);
+      release();
+    };
+  }, [pinChatToKeyboard]);
+  const storyOpen = Boolean(activeCharacter && active && !companionInMain && !gameSelection);
+  const chatMainStyle = storyOpen ? { ...dzmmChatDisplayStyle(state.preferences), ...dzmmChatBackgroundStyle(state.preferences, activeCharacter?.cover, state.preferences.dark) } : undefined;
 
   const renderShelfItem = (item: ContentShelfItem, index: number) => item.kind === "companion" ? (
                   <article key={item.key} className={s.card} style={{ animationDelay: `${Math.min(index, 9) * 25}ms` }}>
-                    <button className={s.coverButton} aria-label={`和${item.person.name}聊天`} onClick={() => openCompanion(item.person.variant)}>
+                    <button className={s.coverButton} aria-label={`和${item.person.name}聊天`} onClick={() => openCompanion(item.person.variant, undefined, item.person.castId || undefined)}>
                       <img src={item.person.cover} alt="" />
                       <span className={s.heat}>AI 女友</span>
                     </button>
                     <div className={s.cardBody}>
-                      <button className={s.cardText} onClick={() => openCompanion(item.person.variant)}>
+                      <button className={s.cardText} onClick={() => openCompanion(item.person.variant, undefined, item.person.castId || undefined)}>
                         <h2>{item.person.name}</h2>
                         <p>{item.person.situation}</p>
                       </button>
@@ -1522,13 +2179,10 @@ export default function TavernApp() {
                     key={item.key}
                     className={s.card}
                     style={{ animationDelay: `${Math.min(index, 9) * 25}ms` }}
+                    data-recommend-id={recommendPositions?.has(item.character.id) ? item.character.id : undefined}
+                    data-recommend-position={recommendPositions?.get(item.character.id)}
                   >
-                    <button
-                      className={s.coverButton}
-                      onClick={() => showDetail(item.character)}
-                      aria-label={`查看 ${item.character.name}`}
-                    >
-                      <Cover character={item.character} />
+                    <CoverReel className={s.coverButton} character={item.character} onOpen={() => showDetail(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
                         {item.character.heat || "—"}
@@ -1536,7 +2190,7 @@ export default function TavernApp() {
                       {item.character.sourceKind === "original" && !item.character.publication && (
                         <span className={s.localBadge}>我的角色</span>
                       )}
-                    </button>
+                    </CoverReel>
                     {coverShelfTags(item.character.tags, 2).length > 0 && <div className={s.coverTags}>{coverShelfTags(item.character.tags, 2).map((tag) => <button key={tag} type="button" onClick={() => setGenre(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                     <div className={s.cardBody}>
                       <button
@@ -1544,15 +2198,10 @@ export default function TavernApp() {
                         onClick={() => showDetail(item.character)}
                       >
                         <h2>{item.character.name}</h2>
-                        <p>{getDzmmCharacterPreviewText(item.character, playUserName)}</p>
+                        <p>{getDzmmCharacterCardBlurb(item.character, playUserName)}</p>
                       </button>
                       <div className={s.cardFooter}>
-                        <button className={s.author} onClick={() => showCharacterAuthor(item.character)}>
-                          <span className={s.authorAvatar}>
-                            {Array.from(item.character.author)[0] ?? ""}
-                          </span>
-                          {item.character.author}
-                        </button>
+                        {characterAuthorControl(item.character)}
                         <button
                           className={likedForCurrentAccount.includes(item.character.id) ? s.liked : s.like}
                           onClick={() => toggleLike(item.character.id)}
@@ -1577,7 +2226,8 @@ export default function TavernApp() {
 
   return (
     <div
-      className={`${s.app} ${dark ? s.dark : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""}`}
+      ref={appRef}
+      className={`${s.app} ${dark ? s.dark : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""}`}
     >
       <aside className={s.appRail} aria-label="主导航">
         <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
@@ -1587,8 +2237,8 @@ export default function TavernApp() {
         <nav>
           {localizedNav.map((n) => (
             <a key={n.view} href={`#${n.view}`}
-              onClick={(e) => { e.preventDefault(); navigate(n.view); }}
-              className={view === n.view || (n.view === "characters" && view === "play-games") || (n.view === "studio" && ["studio-edit", "games", "scenarios", "novels"].includes(view)) ? s.navActive : ""}>
+              onClick={(e) => { e.preventDefault(); openNav(n.view); }}
+              className={navigationCurrent(n.view) ? s.navActive : ""}>
               <Icon name={n.icon} size={18} />
               {n.label}
             </a>
@@ -1597,7 +2247,7 @@ export default function TavernApp() {
         <p className={s.railLabel}>{t("utilityExploreApps")}</p>
         <nav>
           <a href="#tasks" className={view === "tasks" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("tasks"); }}><Icon name="trophy" size={18} />{t("navTasks")}</a>
-          <a href="#tasks" onClick={(event) => { event.preventDefault(); navigate("tasks"); window.setTimeout(() => document.getElementById("task-daily_checkin")?.scrollIntoView({ behavior: "smooth", block: "center" }), 350); }}><Icon name="sun" size={18} />{t("utilityDailyCheckIn")}</a>
+          <a href="#checkin" className={view === "checkin" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("checkin"); }}><Icon name="sun" size={18} />{t("utilityDailyCheckIn")}</a>
           <a href="#invite" className={view === "invite" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("invite"); }}><Icon name="users" size={18} />{t("navInvite")}</a>
           {XUMENG_PAYMENTS_ENABLED && <a href="#recharge" className={view === "recharge" || view === "vip" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}><Icon name="wallet" size={18} />{t("utilityRechargeVip")}</a>}
           <a href="#app" className={view === "app" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("app"); }}><Icon name="download" size={18} />{t("utilityInstallApp")}</a>
@@ -1631,9 +2281,9 @@ export default function TavernApp() {
               href={`#${n.view}`}
               onClick={(e) => {
                 e.preventDefault();
-                navigate(n.view);
+                openNav(n.view);
               }}
-              className={view === n.view || (n.view === "characters" && view === "play-games") || (n.view === "studio" && ["studio-edit", "games", "scenarios", "novels"].includes(view)) ? s.navActive : ""}
+              className={navigationCurrent(n.view) ? s.navActive : ""}
             >
               <Icon name={n.icon} />
               {n.label}
@@ -1651,7 +2301,9 @@ export default function TavernApp() {
           </a>
         </nav>
         <ResponsiveNavigation key={view} items={localizedNav} tools={cloud.user?.role === "super" ? [...localizedTools, localizedAdmin] : localizedTools}
-          currentView={view === "play-games" ? "characters" : view} onNavigate={navigate} locale={locale} />
+          currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
+          onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
+          footer={<><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, locale: event.target.value as typeof locale } }))}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
         <label className={s.search}>
           <Icon name="search" size={20} />
           <input
@@ -1703,7 +2355,7 @@ export default function TavernApp() {
       {(view === "characters" || view === "play-games") && !detail && (
         <>
           <div className={s.browseNav}>
-            <nav className={s.tabs} aria-label={t("tabRecommended")}>
+            <nav className={s.tabs} aria-label="浏览">
               {TABS.map((tabKey) => (
                 <button
                   key={tabKey}
@@ -1716,13 +2368,18 @@ export default function TavernApp() {
                     if (tabKey !== "分类") { setGenre("全部"); location.hash = "characters"; } else chooseDiscoveryCategory(null);
                   }}
                 >
-                  {tabKey === "榜单" && <Icon name="trophy" size={15} />} {({ "关注": t("tabFollowing"), "最新": t("tabLatest"), "猜你喜欢": t("tabRecommended"), "新手": t("tabNew"), "榜单": t("tabRanking"), "分类": t("tabCategories") } as Record<string, string>)[tabKey] ?? tabKey}
+                  {tabKey === "榜单" && <Icon name="trophy" size={15} />} {({ "关注": t("tabFollowing"), "最新": t("tabLatest"), "新手": t("tabNew"), "榜单": t("tabRanking"), "分类": t("tabCategories") } as Record<string, string>)[tabKey] ?? tabKey}
                 </button>
               ))}
             </nav>
+            <div className={s.lookBar} role="tablist" aria-label="画面类型">
+              {([["photo", "真人"], ["anime", "动漫"]] as const).map(([value, label]) => (
+                <button key={value} type="button" role="tab" aria-selected={look === value} className={look === value ? s.lookActive : ""} onClick={() => setLook(value)}>{label}</button>
+              ))}
+            </div>
           </div>
-          {tab === "分类" ? <CatalogDiscovery characters={characters} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} initialCategory={category} filters={discoveryFilters} onFiltersChange={updateDiscoveryFilters} onCategoryChange={chooseDiscoveryCategory} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setGenre(tag); }} /> : <>
-          <main className={s.catalog}>
+          {tab === "分类" ? <CatalogDiscovery characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} initialCategory={category} filters={discoveryFilters} onFiltersChange={updateDiscoveryFilters} onCategoryChange={chooseDiscoveryCategory} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setGenre(tag); }} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : <>
+          <main className={s.catalog} ref={catalogRef}>
             <div className={s.discoveryControls}>
               {genre !== "全部" && <button type="button" className={s.tagActive} onClick={() => setGenre("全部")}>#{genre} · 全部</button>}
               <label className={s.sortSelect}><span>排序</span><select value={sortMode} onChange={event => setSortMode(event.target.value as typeof sortMode)}><option value="recommended">推荐</option><option value="heat">热度</option><option value="likes">点赞</option><option value="updated">最近更新</option><option value="name">名称</option></select></label>
@@ -1730,19 +2387,25 @@ export default function TavernApp() {
             {tab === "榜单" && <div className={s.rankingBar} role="tablist" aria-label="榜单周期">{([ ["day", "日榜"], ["week", "周榜"], ["all", "总榜"] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>}
             {featured.length > 0 && <section className={s.featuredShelf} aria-label="优秀作品"><h2>优秀作品</h2><div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>{featured.map(renderShelfItem)}</div></section>}
             {featured.length > 0 && shelf.length > 0 && <h2 className={s.shelfHeading}>更多推荐</h2>}
-            {shelf.length ? (
+            {publicShelf.loading && shelfList.length === 0 ? (
+              <div className={s.empty} role="status"><h2>正在加载角色</h2><p>马上就好。</p></div>
+            ) : shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
                 {shelf.map(renderShelfItem)}
               </div>
             ) : featured.length ? null : (
               <div className={s.empty}>
-                <Icon name={tab === "关注" ? "heart" : "search"} size={38} />
+                <Icon name={tab === "关注" ? "heart" : tab === "榜单" ? "trophy" : "search"} size={38} />
                 <h2>
-                  {tab === "关注" ? "还没有关注作者" : "没有找到相关角色"}
+                  {tab === "关注" ? "还没有关注作者" : tab === "榜单" && usesServerRank ? "榜单" : "没有找到相关角色"}
                 </h2>
                 <p>
                   {tab === "关注"
                     ? "进入作者主页，关注后就能在这里看到他的作品。"
+                    : tab === "榜单" && usesServerRank && recommendation.status !== "ready"
+                      ? (recommendation.status === "error" ? "榜单暂时没有更新，请稍后再看。" : "正在统计这个周期的真实互动。")
+                    : tab === "榜单" && usesServerRank && recommendation.ids.length === 0
+                      ? "这个周期还没有足够的真实互动。"
                     : genre !== "全部"
                       ? `「${genre}」下还没有角色。创作时加上这个标签，或换一个看看。`
                       : "试试其他关键词，或者定制你自己的角色。"}
@@ -1759,6 +2422,11 @@ export default function TavernApp() {
                 </button>
               </div>
             )}
+            <div className={s.shelfMore} ref={shelfMoreRef}>
+              {publicShelf.total > 0 && <p>已显示 {publicShelf.characters.length} / {publicShelf.total}</p>}
+              {publicShelf.error && <p role="alert">{publicShelf.error}</p>}
+              {publicShelf.loading && publicShelf.characters.length > 0 && <p>正在往下加载…</p>}
+            </div>
           </main></>}
           <footer className={s.footer}>
             <span>叙梦 · 与角色相遇，让故事继续。</span>
@@ -1775,7 +2443,6 @@ export default function TavernApp() {
               导入角色卡
             </button>
             <button onClick={() => navigate("presets")}>模型与预设</button>
-            <CommunityGuidelinesLink />
             {!XUMENG_PAYMENT_INFO_DRAFT && XUMENG_PAYMENT_INFO_PAGES.map(page => (
               <a key={page.path} href={page.path}>{page.label}</a>
             ))}
@@ -1789,37 +2456,17 @@ export default function TavernApp() {
             className={`${s.chatSidebar} ${active || gameSelection || companionInMain ? s.hasActive : ""}`}
           >
             {conversationType === "stories" && <div className={s.sidebarTools}>
-              <button
-                title="匹配"
-                aria-label="匹配角色"
-                onClick={matchCharacter}
-              >
-                <Icon name="shuffle" size={20} />
-                <span>匹配</span>
+              <button title="匹配" aria-label="匹配角色" onClick={matchCharacter}>
+                <Icon name="shuffle" size={18} /><span>匹配</span>
               </button>
-              <button
-                title="定制"
-                aria-label="定制角色"
-                onClick={() => openStudio("new")}
-              >
-                <Icon name="edit" size={20} />
-                <span>定制</span>
+              <button title="定制" aria-label="定制角色" onClick={() => openStudio("new")}>
+                <Icon name="edit" size={18} /><span>定制</span>
               </button>
-              <button
-                title="预设"
-                aria-label="对话预设"
-                onClick={() => navigate("presets")}
-              >
-                <Icon name="book" size={20} />
-                <span>预设</span>
+              <button title="预设" aria-label="对话预设" onClick={() => navigate("presets")}>
+                <Icon name="book" size={18} /><span>预设</span>
               </button>
-              <button
-                title="导入"
-                aria-label="导入角色卡"
-                onClick={() => importRef.current?.click()}
-              >
-                <Icon name="upload" size={20} />
-                <span>导入</span>
+              <button title="导入" aria-label="导入角色卡" onClick={() => importRef.current?.click()}>
+                <Icon name="upload" size={18} /><span>导入</span>
               </button>
             </div>}
             <label className={s.conversationSearch}>
@@ -1841,22 +2488,24 @@ export default function TavernApp() {
                   <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong>{gameLastPlayed.has(game.id) && <time className={s.conversationTime}>{new Date(gameLastPlayed.get(game.id)!).toLocaleDateString("zh-CN", {month:"numeric",day:"numeric"})}</time>}<small>{game.synopsis || "私人游戏作品"}</small></span>
                 </button>)
                 : <div className={gameNavigation.listState}><p>{conversationQuery ? "没有找到匹配的游戏。" : "还没有游戏作品。"}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>导入或创作游戏</button>}</div>)}
-              {conversationType === "chats" && companionMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "classic" ? "page" : undefined} onMouseEnter={() => warmCompanion("classic")} onFocus={() => warmCompanion("classic")} onClick={() => openCompanion("classic")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={CONTENT_PEOPLE[0].cover} alt="" /></span>
-                <span><strong>Yume</strong><small>商科学生 · 爱打游戏</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
-              {conversationType === "chats" && intimateMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "intimate" ? "page" : undefined} onMouseEnter={() => warmCompanion("intimate")} onFocus={() => warmCompanion("intimate")} onClick={() => openCompanion("intimate")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={CONTENT_PEOPLE[1].cover} alt="" /></span>
-                <span><strong>晚宁</strong><small>你的恋人</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
-              {conversationType === "chats" && qwenMatchesSearch && <button className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === "qwen" ? "page" : undefined} onMouseEnter={() => warmCompanion("qwen")} onFocus={() => warmCompanion("qwen")} onClick={() => openCompanion("qwen")}>
-                <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={CONTENT_PEOPLE[2].cover} alt="" /></span>
-                <span><strong>苏麦</strong><small>说话直一点</small></span>
-                <Icon name="chevron" size={15}/>
-              </button>}
-              {conversationType === "chats" && !companionMatchesSearch && !intimateMatchesSearch && !qwenMatchesSearch && <p className={s.sidebarEmpty} role="status">没有找到匹配的聊天对象</p>}
+              {conversationType === "chats" && chatPeople.map(person => {
+                const lane = companionLane(person);
+                const row = chatInbox.get(lane);
+                const preview = row?.preview || person.line;
+                const unread = row?.unread ?? 0;
+                return <button key={person.castId || person.variant} className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === person.variant && (person.variant !== "cast" || castCompanion?.id === person.castId) ? "page" : undefined} aria-label={unread ? `${person.name}，${unread}条未读，${preview}` : `${person.name}，${preview}`} onMouseEnter={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onFocus={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onClick={() => openCompanion(person.variant, undefined, person.castId || undefined)}>
+                  <span className={gameNavigation.companionFace}>
+                    <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span>
+                    {unread > 0 && <b className={gameNavigation.companionBadge} aria-hidden="true">{unread > 99 ? "99+" : unread}</b>}
+                  </span>
+                  <span className={gameNavigation.companionCopy}>
+                    <strong>{person.name}</strong>
+                    {row?.at ? <time dateTime={new Date(row.at).toISOString()}>{chatListStamp(row.at)}</time> : null}
+                    <small>{preview}</small>
+                  </span>
+                </button>;
+              })}
+              {conversationType === "chats" && !chatPeople.length && <p className={s.sidebarEmpty} role="status">没有找到匹配的聊天对象</p>}
               {conversationType === "stories" && visibleConversations.map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
                 return (
@@ -1865,17 +2514,20 @@ export default function TavernApp() {
                     className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""}`}
                     onClick={() => selectConversation(c)}
                   >
-                    {ch ? <Cover character={ch} /> : <div className={s.unavailableAvatar} aria-hidden="true"><Icon name="chat" size={20} /></div>}
+                    {(() => {
+                      const unread = activeId === c.id ? 0 : storyUnread(c.messages, storySeen[c.id]);
+                      return <span className={s.conversationAvatar}>
+                        {ch ? <Cover character={ch} /> : <div className={s.unavailableAvatar} aria-hidden="true"><Icon name="chat" size={20} /></div>}
+                        {unread > 0 && <b className={s.unreadBadge} aria-label={`${unread}条未读`}>{unread > 99 ? "99+" : unread}</b>}
+                      </span>;
+                    })()}
                     <span>
                       <strong>{c.title}</strong>
-                      <time className={s.conversationTime}>
-                        {new Date(c.updatedAt).toLocaleTimeString("zh-CN", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </time>
+                      <time className={s.conversationTime}>{formatConversationStamp(c.updatedAt)}</time>
                       <small>
-                        {!ch && "角色暂不可用 · "}{c.messages.at(-1)?.content || "开始新的故事"}
+                        {generating[c.id] && <span className={s.conversationGenerating}>正在回复… </span>}
+                        {!ch && <span>{pendingCharacterIds.has(c.characterId) ? "正在读取角色" : "角色暂不可用"}</span>}
+                        {(!ch ? " · " : "") + (xumengConversationPreview(c.messages.at(-1)?.content ?? "") || (c.messages.at(-1)?.content ? "查看对话" : "开始新的故事"))}
                       </small>
                     </span>
                   </button>
@@ -1893,11 +2545,11 @@ export default function TavernApp() {
               导入会话
             </button>}
           </aside>
-          <section className={s.chatMain}>
+          <section className={s.chatMain} style={chatMainStyle}>
               {companionInMain ? (
               companionVariant === "qwen"
-                ? <QwenCompanion key={`${cloud.user?.id ?? "loading"}:qwen`} avatar={CONTENT_PEOPLE[2].cover} onBack={leaveCompanion}/>
-                : <CompanionPage key={`${cloud.user?.id ?? "loading"}:${companionVariant}:${customCompanion?.id ?? ""}`} variant={companionVariant === "custom" ? "custom" : companionVariant} profile={companionVariant === "custom" ? customCompanion ?? REALISTIC_COMPANION_PROFILES[0] : undefined} avatar={companionVariant === "custom" ? customCompanion?.cover : CONTENT_PEOPLE.find(person => person.variant === companionVariant)?.cover} onBack={leaveCompanion}/>
+                ? <QwenCompanion key={`${cloud.user?.id ?? "loading"}:qwen`} avatar={CONTENT_PEOPLE.find(person => person.variant === "qwen")?.cover} onBack={leaveCompanion} onCall={() => callCompanion("qwen")}/>
+                : <CompanionPage key={`${cloud.user?.id ?? "loading"}:${companionVariant}:${companionVariant === "cast" ? castCompanion?.id ?? "" : customCompanion?.id ?? ""}`} variant={companionVariant === "custom" ? "custom" : companionVariant} cast={companionVariant === "cast" ? castCompanion ?? undefined : undefined} profile={companionVariant === "custom" ? customCompanion ?? REALISTIC_COMPANION_PROFILES[0] : undefined} avatar={companionVariant === "cast" ? castCompanion?.cover : companionVariant === "custom" ? customCompanion?.cover : CONTENT_PEOPLE.find(person => person.variant === companionVariant)?.cover} onBack={leaveCompanion} onLogin={() => { openAccount("login"); }} onCall={() => { if (companionVariant === "cast" && castCompanion) { const character = CHAT_CALL_CHARACTERS.find(item => item.sourceId === castCompanion.id); if (character) performCharacter(character, "live"); } else if (companionVariant === "custom") callCustomCompanion(customCompanion ?? REALISTIC_COMPANION_PROFILES[0]); else if (companionVariant === "intimate" || companionVariant === "classic" || companionVariant === "sales") callCompanion(companionVariant); }}/>
             ) : gameSelection ? (
               gameLibrary.privateGame ? <GamePlayer key={`${cloud.user?.id}:private:${gameSelection.id}:${gameLibrary.privateGame.version}`} game={gameLibrary.privateGame} onBack={leaveGame}/> : <div className={gameNavigation.gameLoading} role={gameLibrary.privateError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.privateError || "正在打开游戏…"}</p>{gameLibrary.privateError && <button onClick={cloud.user?.isGuest ? () => openAccount("login") : gameLibrary.refresh}>{cloud.user?.isGuest ? "登录" : "重试打开"}</button>}<button onClick={leaveGame}>返回游戏列表</button></div>
             ) : activeCharacter && active ? (
@@ -1907,10 +2559,6 @@ export default function TavernApp() {
                     className={`${s.iconButton} ${s.mobileBack}`}
                     aria-label="返回会话列表"
                     onClick={() => {
-                      if (requestActive.current) {
-                        setNotice("请先停止当前回复，再返回会话列表。");
-                        return;
-                      }
                       setActiveId(null);
                     }}
                   >
@@ -1923,7 +2571,7 @@ export default function TavernApp() {
                     <Cover character={activeCharacter} />
                     <span>
                       <strong>{activeCharacter.name}</strong>
-                      <small>{busy ? "正在输入…" : "单人对话"}</small>
+                      <small><span className={s.onlineDot} />{chatPresence(activeCharacter, busy)}</small>
                     </span>
                   </button>
                   <div className={s.modelPicker}>
@@ -1932,7 +2580,7 @@ export default function TavernApp() {
                       aria-label="选择 AI 模型"
                       aria-expanded={modelMenuOpen}
                       disabled={busy}
-                      onClick={() => { if (!requestActive.current) setModelMenuOpen((open) => !open); }}
+                      onClick={() => { if (!activeReplyActive()) setModelMenuOpen((open) => !open); }}
                     >
                       {MODEL_MODES.find(mode => mode.id === normalizeDzmmModelSelection(state.preferences.model))?.label}
                       <Icon name="chevron" size={12} />
@@ -1953,7 +2601,7 @@ export default function TavernApp() {
                               aria-selected={normalizeDzmmModelSelection(state.preferences.model) === mode.id}
                               disabled={busy}
                               onClick={() => {
-                                if (requestActive.current) return;
+                                if (activeReplyActive()) return;
                                 setState((previous) => ({ ...previous, preferences: { ...previous.preferences, model: mode.id } }));
                                 setModelMenuOpen(false);
                               }}
@@ -1967,7 +2615,6 @@ export default function TavernApp() {
                     )}
                   </div>
                   <div className={s.chatHeaderTools}>
-                    <button className={s.iconButton} aria-label="给当前角色打电话" title="带着当前剧情打电话" disabled={busy} onClick={() => performActiveCharacter("live")}><Icon name="phone" size={18} /></button>
                     <button className={s.iconButton} aria-label="当前角色生成语音" title="角色语音" disabled={busy} onClick={() => performActiveCharacter("voice")}><Icon name="volume" size={18} /></button>
                     <button
                       className={s.iconButton}
@@ -2015,52 +2662,44 @@ export default function TavernApp() {
                     >
                       <Icon name="sliders" size={17} />
                     </button>
+                    <button className={`${s.iconButton} ${s.callButton}`} aria-label="给当前角色打电话" title="语音通话" disabled={busy} onClick={() => performActiveCharacter("live")}><Icon name="phone" size={18} /></button>
                   </div>
                 </header>
-                {panelTemplate && panelState && <XumengInteractionPanel template={panelTemplate} values={panelState.panels} className={s.interactionPanel} />}
-                <div className={s.messageScroll} ref={messageScrollRef}>
+                <div className={s.messageScroll} ref={messageScrollRef} data-message-scroll="">
                   <ChatMediaProvider key={`${cloud.user?.id ?? "offline"}:${active.id}`} accountId={cloud.user?.id}
                     conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} saveNow={cloud.saveNow}
                     onRequireAccount={() => openAccount("login")}
-                    onVip={() => navigate("vip")}>
+                    onRecharge={() => navigate("recharge")}>
                   <div className={s.messageList}>
                     {active.messages.map((m, index) => (
                       <div
                         key={m.id}
-                        className={`${s.messageRow} ${m.role === "user" ? s.userRow : ""}`}
+                        className={`${s.messageRow} ${m.role === "user" ? s.userRow : ""} ${index > 0 && active.messages[index - 1]?.role === m.role ? s.messageGrouped : ""}`}
                       >
+                        {m.role === "assistant" ? (
+                          <button type="button" className={s.messageAvatarButton} aria-label={`查看${activeCharacter.name}`} onClick={() => showDetail(activeCharacter)}>
+                            <Cover character={activeCharacter} className={s.messageAvatar} />
+                          </button>
+                        ) : (
+                          <span className={`${s.avatar} ${s.messageAvatar}`} aria-hidden="true">{Array.from(state.preferences.nickname)[0] || "我"}</span>
+                        )}
                         <div className={s.messageContent}>
+                          <span className={s.srOnly}>{m.role === "user" ? state.preferences.nickname : activeCharacter.name}</span>
+                          {m.role === "assistant" && activeOpening?.messages[index]?.role === m.role
+                            && activeOpening.messages[index].content.trim() === m.content.trim() && (
+                            <small className={s.openingTag}>{activeOpening.kind === "background" ? "故事背景" : activeOpening.kind === "welcome" ? "故事起点" : "开场白"}</small>
+                          )}
                           <ChatMessageMedia message={m} disabled={busy} label={`第 ${index + 1} 条消息`}
-                            onCopy={() => { void copyMessage(splitXumengPanelTail(m.content).body); }} onEdit={() => editMessage(m)}
+                            moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: momentFields } : undefined}
+                            onCopy={() => { void copyMessage(splitXumengMomentTail(splitXumengPanelTail(m.content).body).body); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
-                          <span className={s.messageName}>
-                            {m.role === "assistant" ? (
-                              <Cover
-                                character={activeCharacter}
-                                className={s.messageAvatar}
-                              />
-                            ) : (
-                              <span
-                                className={`${s.avatar} ${s.messageAvatar}`}
-                              >
-                                {Array.from(state.preferences.nickname)[0] ?? ""}
-                              </span>
-                            )}
-                            {m.role === "user"
-                              ? state.preferences.nickname
-                              : activeCharacter.name}
-                            {m.role === "assistant" && activeOpening?.messages[index]?.role === m.role
-                              && activeOpening.messages[index].content.trim() === m.content.trim() && (
-                              <small>{activeOpening.kind === "background" ? "故事背景" : activeOpening.kind === "welcome" ? "故事起点" : "开场白"}</small>
-                            )}
-                          </span>
                           <div className={s.messageBubble} data-message-text>
                             {m.role === "assistant" && activeOpening?.source === "template"
                               && activeOpening.messages[index]?.content.trim() === m.content.trim() ? <CharacterIntroduction text={m.content}
                               characterName={activeCharacter.name} userName={playUserName}
                               additionalNotes={activeOpening?.source === "template" && index === activeOpening.messages.findIndex(message => message.role === "assistant")
                                 ? getDzmmCharacterCreatorNotes(activeCharacter) : undefined}
-                              renderBody={body => <MessageText text={body} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} />}
+                              renderBody={body => <MessageText text={body} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} />}
                           </div>
                           </ChatMessageMedia>
                           {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
@@ -2139,20 +2778,16 @@ export default function TavernApp() {
                       send();
                     }}
                   >
-                    <button
-                      type="button"
-                      className={s.composerPreset}
-                      aria-label="对话预设"
-                      title="对话预设"
-                      onClick={() => navigate("presets")}
-                    >
-                      <Icon name="sliders" size={16} />
-                    </button>
+                    <div className={s.composerBar}>
+                      <ComposerQuickInsert disabled={!loaded || cloud.authBusy} onInsert={insertComposerSnippet} />
+                      <span className={s.composerHint}>{enterSends ? "Enter 发送，Shift+Enter 换行" : "点发送按钮发出"}</span>
+                    </div>
                     <textarea
                       ref={composerInputRef}
                       aria-label="发送消息"
                       disabled={!loaded || cloud.authBusy}
-                      placeholder="输入消息 (Shift+Enter 换行)"
+                      placeholder="输入消息"
+                      enterKeyHint={enterSends ? "send" : "enter"}
                       value={draft}
                       maxLength={12000}
                       rows={1}
@@ -2161,22 +2796,24 @@ export default function TavernApp() {
                         if (
                           e.key === "Enter" &&
                           !e.shiftKey &&
-                          !e.nativeEvent.isComposing
+                          !e.nativeEvent.isComposing &&
+                          enterSends
                         ) {
                           e.preventDefault();
                           send();
                         }
                       }}
                     />
+                    <div className={s.composerSendRow}>
                     {busy ? (
                       <button
                         key="stop-generation"
-                        className={s.sendButton}
+                        className={`${s.sendButton} ${s.stopButton}`}
                         type="button"
-                        onClick={(e) => { e.preventDefault(); controller.current?.abort(); }}
+                        onClick={(e) => { e.preventDefault(); if (activeId) replyRequests.current.get(activeId)?.abort(); }}
                         aria-label="停止生成"
                       >
-                        <Icon name="stop" size={17} />
+                        停止
                       </button>
                     ) : (
                       <button
@@ -2186,17 +2823,19 @@ export default function TavernApp() {
                         disabled={!loaded || cloud.authBusy || !draft.trim()}
                         aria-label="发送"
                       >
-                        <Icon name="send" size={17} />
+                        发送
                       </button>
                     )}
+                    </div>
                   </form>
-                  <p className={s.composerNote}>AI 生成内容</p>
                 </div>
               </>
+            ) : active && pendingCharacterIds.has(active.characterId) ? (
+              <div className={s.empty} role="status"><p>正在读取角色…</p></div>
             ) : active ? (
               <UnavailableConversation key={`${profileUser.id}:${active.id}`} conversation={active} nickname={state.preferences.nickname}
                 onBack={() => {
-                  if (requestActive.current) { setNotice("正在停止当前回复，请稍候再返回。"); return; }
+                  if (activeReplyActive()) { setNotice("正在停止当前回复，请稍候再返回。"); return; }
                   setActiveId(null);
                 }} onExport={exportConversation} onDelete={removeActiveConversation}
                 onCopy={text => { void copyMessage(text); }} />
@@ -2226,17 +2865,19 @@ export default function TavernApp() {
         </main>
       )}
 
-      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? (cloud.user ? <GenerationStudio key={cloud.user.id} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>) : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
+      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? (cloud.user ? <GenerationStudio key={cloud.user.id} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} onBack={() => navigate("studio")} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>) : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
 
       {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
       {view === "app" && !detail && <InstallApp onBack={() => navigate("characters")} />}
+      {view === "checkin" && !detail && (cloud.user ? <DailyCheckin key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onBack={() => navigate("tasks")} onTasks={() => navigate("tasks")} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
       {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
       {view === "studio" && !detail && <CreatorCenter key={profileUser.id} section={creatorSection} user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("register")} onCatalogChanged={cloud.refreshCatalog} onRoute={openCreatorRoute} />}
       {(view === "live" || view === "voice") && !detail && performanceLibrary.error && <div className={s.error} role="alert">{performanceLibrary.error}<button onClick={performanceLibrary.refresh}>重试加载人物</button></div>}
-      {view === "live" && !detail && (liveMode === "phone"
-        ? <MiniCpmPhone key={`${profileUser.id}:${cloud.user?.isGuest}:${performanceCharacter?.key ?? "manual"}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} userName={playUserName} characters={callCharacters} initialCharacter={performanceCharacter} onPick={character => { const accountId = cloud.user?.id; if (accountId) setPerformanceSelection({ accountId, character }); }} onRequireAccount={() => openAccount("login")} onBack={() => navigate("characters")} onVideo={() => setLiveMode("video")} onBusyChange={(working) => { liveBusy.current = working; }} />
-        : <LiveStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} preferVideo userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} isSuper={cloud.user?.role === "super"} userName={playUserName} characters={callCharacters} sources={performanceLibrary.sources} initialCharacter={performanceCharacter} onVoice={(character) => performCharacter(character, "voice")} onRequireAccount={() => openAccount("login")} onBack={() => setLiveMode("phone")} onBusyChange={(working) => { liveBusy.current = working; }} />)}
-      {view === "voice" && !detail && <VoiceStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} characters={performanceLibrary.characters} initialCharacter={performanceCharacter} onRequireAccount={() => openAccount("login")} onBack={() => navigate("characters")} onBusyChange={(working) => { voiceBusy.current = working; }} />}
+      {view === "live" && !detail && (performanceCharacter ? (liveMode === "phone"
+        ? <MiniCpmPhone key={`${profileUser.id}:${cloud.user?.isGuest}:${performanceCharacter.key}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} userName={playUserName} initialCharacter={performanceCharacter} onRequireAccount={() => openAccount("login")} onBack={returnFromCall} onVideo={() => setLiveMode("video")} onBusyChange={(working) => { liveBusy.current = working; }} />
+        : <LiveStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} preferVideo userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} isSuper={cloud.user?.role === "super"} userName={playUserName} characters={[performanceCharacter]} sources={performanceLibrary.sources} initialCharacter={performanceCharacter} onVoice={(character) => performCharacter(character, "voice")} onRequireAccount={() => openAccount("login")} onBack={() => setLiveMode("phone")} onBusyChange={(working) => { liveBusy.current = working; }} />)
+        : <main className={s.profileEmpty}><p>打开一段聊天，再给对方打电话。</p><button className={s.secondary} onClick={() => navigate("chat", "chat/chats")}>去消息</button></main>)}
+      {view === "voice" && !detail && <VoiceStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} characters={performanceLibrary.characters} initialCharacter={performanceCharacter ?? undefined} onRequireAccount={() => openAccount("login")} onBack={() => navigate("characters")} onBusyChange={(working) => { voiceBusy.current = working; }} />}
       {view === "novels" && !detail && <NovelStudio key={`${profileUser.id}:${novelInitial.id ?? novelInitial.type ?? "library"}`} initialId={novelInitial.id} initialType={novelInitial.type} onNavigate={(id, type) => { novelRoute.current = id === null ? "novels" : id === "new" ? `novels/new/${type ?? "novel"}` : `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} onSaved={id => { novelRoute.current = `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} characters={characters} onPerformCharacter={performCharacter} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} onBack={() => navigate("studio")} onDirtyChange={(dirty) => { novelDirty.current = dirty; }} onBusyChange={(working) => { novelBusy.current = working; }} />}
       {view === "games" && !detail && <GameStudio key={`${profileUser.id}:${creatorInitial.id ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} onNavigate={id => { creatorRoute.current = id ? `studio/games/${encodeURIComponent(id)}` : "studio/games"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/games/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
       {view === "scenarios" && !detail && <ScenarioStudio key={`${profileUser.id}:${creatorInitial.id ?? creatorInitial.roomCode ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} initialRoomCode={creatorInitial.roomCode} onNavigate={id => { creatorRoute.current = id ? `studio/scenarios/${encodeURIComponent(id)}` : "studio/scenarios"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/scenarios/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRoom={code => { creatorRoute.current = `studio/room/${encodeURIComponent(code)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
@@ -2273,11 +2914,11 @@ export default function TavernApp() {
         </div>
       </>}
       {view === "invite" && !detail && <InviteCenter key={profileUser.id} user={cloud.user} onBack={() => navigate("profile")} onRegister={() => openAccount("register")} onWallet={() => navigate("profile")} />}
-      {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} />}
+      {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} onEmailBound={cloud.emailBound} />}
       {view === "presets" && !detail && <PresetLibrary key={profileUser.id} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} />}
-      {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={characters} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} /> : <main className={s.profileEmpty}><p>没有找到这位作者。</p><button className={s.secondary} onClick={() => navigate("characters")}>返回角色广场</button></main>)}
-      {view === "search" && !detail && <SearchResults query={query} characters={characters} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setGenre(tag); navigate("characters"); }} searchTopics={searchForumTopics} onTopic={(topic) => showForumPost(topic.id)} />}
-      {view === "forum" && !detail && <ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />}
+      {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={[...characters, ...publicShelf.characters]} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : publicShelf.loading ? <main className={s.profileEmpty}><p>正在加载作者…</p></main> : <main className={s.profileEmpty}><p>没有找到这位作者。</p><button className={s.secondary} onClick={() => navigate("characters")}>返回角色广场</button></main>)}
+      {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setGenre(tag); navigate("characters"); }} searchTopics={searchForumTopics} onTopic={(topic) => showForumPost(topic.id)} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
+      {view === "forum" && !detail && <ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={shelfList} onCharacter={showDetail} shelfMore={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, onLoad: publicShelf.loadMore }} />}
       {view === "admin" && !detail && <AdminDashboard key={`${cloud.user?.id}:${cloud.user?.role}`} user={cloud.user} onRequireAccount={() => openAccount("login")} onAccountChanged={() => setBillingRefresh(value => value + 1)}
         publishingReview={<PublishingCenter key={`review:${profileUser.id}`} admin user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("login")} onCatalogChanged={cloud.refreshCatalog} onNovels={() => navigate("novels")} />}
         forumModeration={<ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />} />}
@@ -2289,9 +2930,9 @@ export default function TavernApp() {
             key={n.view}
             onClick={(e) => {
               e.preventDefault();
-              navigate(n.view);
+              openNav(n.view);
             }}
-            className={view === n.view || (n.view === "characters" && view === "play-games") || (n.view === "studio" && ["studio-edit", "games", "scenarios", "novels"].includes(view)) ? s.navActive : ""}
+            className={navigationCurrent(n.view) ? s.navActive : ""}
           >
             <Icon name={n.icon} size={21} />
             <span>{n.label}</span>
@@ -2335,13 +2976,14 @@ export default function TavernApp() {
           favorites={state.favorites.includes(detail.id)}
           liked={likedForCurrentAccount.includes(detail.id)}
           likeCount={detail.likes}
-          related={characters.filter((c) => c.sourceKind === detail.sourceKind)}
+          related={relatedCards}
           onBack={closeDetail}
           onStart={(openingIndex, fresh) => startChat(detail, fresh ?? false, openingIndex ?? 0)}
           onLive={() => performCharacter(xumengPerformanceFromCard(detail), "live")}
           onVoice={() => performCharacter(xumengPerformanceFromCard(detail), "voice")}
           onFavorite={() => toggleFavorite(detail.id)}
           onLike={() => toggleLike(detail.id)}
+          onHide={isPublicRecommendationCharacter(detail) ? () => hideRecommendation(detail) : undefined}
           onExport={() => {
             try {
               download(`${detail.name}${detail.authoringDraft ? ".draft" : ""}.json`, detail.authoringDraft ? exportCharacterDraftJson(detail) : exportCharacterJson(detail));
@@ -2349,11 +2991,11 @@ export default function TavernApp() {
             } catch (failure) { setNotice(failure instanceof Error ? failure.message : "导出失败，请保留草稿后重试。"); }
           }}
           onEdit={() => openStudio(detail)}
-          onSelect={showDetail}
+          onSelect={(role) => showDetail(role, undefined, "related")}
           onNotice={setNotice}
           onTag={(tag) => { setTab("新手"); setGenre(tag); navigate("characters"); }}
-          onAuthor={() => showCharacterAuthor(detail)}
-          onFollow={() => toggleFollow(detail)}
+          onAuthor={resolveCharacterAuthorTarget(authors, detail).kind === "unsigned" ? undefined : () => showCharacterAuthor(detail)}
+          onFollow={resolveCharacterAuthorTarget(authors, detail).kind === "author" ? () => toggleFollow(detail) : undefined}
           galleryPaths={getDzmmCharacterMedia(detail)?.gallery.map((image) => image.path)}
           userName={playUserName}
           openingOrigin={getDzmmCharacterMedia(detail)?.opening?.origin}
@@ -2362,29 +3004,63 @@ export default function TavernApp() {
       )}
       {chatSettingsOpen && active && activeCharacter && <ChatSettings key={`${profileUser.id}:${active.id}`} conversation={active} preferences={state.preferences} onPreferences={savePreferences} onMemory={saveStoryMemory} onWorldClockMode={saveWorldClockMode} busy={busy} onClose={() => setChatSettingsOpen(false)} onRename={(title) => setState((previous) => ({ ...previous, conversations: previous.conversations.map((conversation) => conversation.id === active.id ? { ...conversation, title, updatedAt: Date.now() } : conversation) }))} onBranch={branchConversation} onDelete={removeActiveConversation} onExport={exportConversation} onPresets={() => navigate("presets")} />}
       {activeCharacter && editingMessage && editingMessage.accountId === activeAccount.current && editingMessage.conversationId === active?.id && view === "chat" &&
-        <ChatMessageEditor key={`${editingMessage.conversationId}:${editingMessage.messageId}`} content={splitXumengPanelTail(editingMessage.original).body} disabled={busy}
+        <ChatMessageEditor key={`${editingMessage.conversationId}:${editingMessage.messageId}`} content={splitXumengMomentTail(splitXumengPanelTail(editingMessage.original).body).body} disabled={busy}
           onSave={saveEditedMessage} onClose={() => setEditingMessage(null)} />}
-      {accountMode && <AccountModal mode={accountMode} initialReferralCode={pendingInvite} onModeChange={(mode) => { cloud.clearAuthError(); setAccountMode(mode); }} onClose={() => setAccountMode(null)} onSubmit={submitAccount} onEmailSubmit={async (values, signal) => { await cloud.authenticateEmailCode(values, signal); setAccountMode(null); }} onPasswordReset={async (values, signal) => { await cloud.resetPassword(values, signal); setAccountMode(null); }} onClearError={cloud.clearAuthError} submitting={cloud.authBusy} error={cloud.authError} />}
+      {accountMode && <AccountModal mode={accountMode} initialReferralCode={pendingInvite} onModeChange={(mode) => { cloud.clearAuthError(); setAccountMode(mode); }} onClose={() => { setAccountMode(null); setGuestGate(gate => gate?.stage === "account" ? null : gate); }} onSubmit={submitAccount} onEmailSubmit={async (values, signal) => { const registered = await cloud.authenticateEmailCode(values, signal); setAccountMode(null); finishGuestGate(registered); }} onPasswordReset={async (values, signal) => { await cloud.resetPassword(values, signal); setAccountMode(null); finishGuestGate(false); }} onClearError={cloud.clearAuthError} submitting={cloud.authBusy} error={cloud.authError} intro={guestGate?.stage === "account" ? `注册并领取新手 Credit 后，即可使用「${guestGate.character.name}」。` : undefined} />}
+      {guestGate?.stage === "welcome" && cloud.user && !cloud.user.isGuest && <SignupWelcome accountId={cloud.user.id} characterName={guestGate.character.name} onStart={() => setGuestGate({ ...guestGate, stage: "open" })} onTasks={() => { setGuestGate(null); navigate("tasks"); }} onClose={() => setGuestGate(null)} />}
 
     </div>
   );
 }
 
-function heatValue(text: string) {
-  const value = Number.parseFloat(text);
-  return Number.isFinite(value) ? value * (text.includes("万") ? 10000 : 1) : 0;
+type VirtualKeyboardHandle = {
+  overlaysContent: boolean;
+  readonly boundingRect: { readonly height: number };
+  addEventListener(type: "geometrychange", listener: EventListener): void;
+  removeEventListener(type: "geometrychange", listener: EventListener): void;
+};
+
+function readVirtualKeyboard(): VirtualKeyboardHandle | null {
+  const candidate = (navigator as Navigator & { virtualKeyboard?: VirtualKeyboardHandle }).virtualKeyboard;
+  if (!candidate || typeof candidate.addEventListener !== "function") return null;
+  return candidate;
 }
 
-function MessageText({ text, role = "assistant", characterName, userName }: {
+function setKeyboardOverlay(keyboard: VirtualKeyboardHandle | null, overlay: boolean) {
+  if (!keyboard) return;
+  try { keyboard.overlaysContent = overlay; } catch { /* This browser exposes the keyboard object but rejects the overlay switch. */ }
+}
+
+function keyboardInset(keyboard: VirtualKeyboardHandle | null): number {
+  if (!keyboard?.overlaysContent) return 0;
+  try { return Math.max(0, keyboard.boundingRect?.height ?? 0); } catch { return 0; }
+}
+
+function shelfRecommendationSurface(view: string, tab: string): RecommendationSurface | null {
+  if (view === "search") return "search";
+  if (view !== "characters") return null;
+  if (tab === "新手") return "home";
+  if (tab === "榜单") return "ranking";
+  if (tab === "分类") return "category";
+  return null;
+}
+
+function MessageText({ text, role = "assistant", characterName, userName, statusLabels = [], showPeeledStatus = true }: {
   text: string; role?: "user" | "assistant"; characterName?: string; userName?: string;
+  statusLabels?: readonly string[]; showPeeledStatus?: boolean;
 }) {
   const named = applyDzmmReaderNames(text, { characterName, userName });
   // Status presentation applies to character replies, never to the user's own text.
-  const presentation = role === "user" ? { body: named, status: null } : splitXumengMessagePresentation(splitXumengPanelTail(named).body);
-  if (!presentation.body && !presentation.status) return null;
+  const presentation = role === "user" ? { body: named, status: null } : splitXumengMessagePresentation(splitXumengMomentTail(splitXumengPanelTail(named).body).body);
+  const peeled = !presentation.status && statusLabels.length
+    ? peelXumengLabeledStatusTail(presentation.body, statusLabels) : null;
+  const body = peeled?.fields.length ? peeled.body : presentation.body;
+  const status = presentation.status ?? (showPeeledStatus && peeled?.fields.length
+    ? { title: "状态栏", fields: peeled.fields } : null);
+  if (!body && !status) return null;
   return <>
-    {presentation.body && <MessageTextBody text={presentation.body} />}
-    {presentation.status && <MessageStatus status={presentation.status} />}
+    {body && <MessageTextBody text={body} />}
+    {status && <MessageStatus status={status} />}
   </>;
 }
 
