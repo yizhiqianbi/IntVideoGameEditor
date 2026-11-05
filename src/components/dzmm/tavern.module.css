@@ -223,6 +223,24 @@
 .iconButton:hover {
   background: var(--soft);
 }
+.topEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.telegramTop {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--pink);
+  color: #fff;
+}
+.telegramTop:hover { filter: brightness(1.08); }
 .account {
   gap: 8px !important;
   font-size: 13px;
@@ -248,6 +266,33 @@
 .browseNav {
   padding: 0 20px;
   margin-top: 6px;
+}
+.browseHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.browseHead .tabs {
+  flex: 1;
+  min-width: 0;
+}
+.telegramHome {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+.telegramHome:hover {
+  border-color: var(--pink);
+  color: var(--pink);
 }
 .tabs {
   display: flex;
@@ -383,6 +428,8 @@
 .lookBar { display:flex; gap:8px; max-width:1240px; margin:8px auto 0; }
 .lookBar button { padding:6px 16px; border:0; border-radius:999px; background:var(--surface); color:var(--muted); font:inherit; font-size:13px; cursor:pointer; }
 .lookBar .lookActive { background:var(--pink); color:#fff; }
+.reason { display:block; margin-top:6px; color:var(--muted); font-size:11px; line-height:1.4; }
+.rankNote { max-width:1240px; margin:0 auto 12px; color:var(--muted); font-size:13px; }
 .rankingBar { display:flex; align-items:center; gap:8px; max-width:1240px; margin:0 auto 14px; padding:0; border:0; background:transparent; }
 .rankingBar button { padding:6px 12px; border-radius:999px; color:var(--text); font-size:12px; background:var(--surface); }
 .rankingBar button:hover,.rankingBar .rankActive { background:var(--pink); color:#fff; }
@@ -405,8 +452,6 @@
   animation: appear 0.35s both;
   transition: transform 0.3s;
   min-width: 0;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 320px;
 }
 .shelfMore {
   display: flex;
@@ -609,7 +654,8 @@
   font-size: 11px;
   color: var(--muted);
 }
-.footer button:hover {
+.footer button:hover,
+.footer a:hover {
   color: var(--pink);
 }
 .primary,
@@ -774,38 +820,6 @@
   display: flex;
   flex-direction: column;
   background: var(--im-sidebar);
-}
-.sidebarTools {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px;
-  padding: 8px 8px 2px;
-}
-.sidebarTools button {
-  min-width: 0;
-  height: auto;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: var(--muted);
-  flex-direction: column;
-  gap: 3px;
-  padding: 6px 0 4px;
-  font-size: 11px;
-}
-.sidebarTools button span {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.sidebarTools button:first-child {
-  color: var(--im-accent);
-}
-.sidebarTools button:hover {
-  background: var(--im-accent-soft);
-  color: var(--im-accent);
 }
 .sidebarTitle {
   padding: 8px 12px 18px;
@@ -1071,6 +1085,19 @@
   width: 32px;
   border-radius: 50%;
   color: var(--muted);
+}
+.callButton { position: relative; }
+.callLock {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 14px;
+  height: 14px;
+  padding: 1px;
+  border-radius: 50%;
+  background: var(--bg);
+  color: var(--muted);
+  pointer-events: none;
 }
 .modelPicker {
   position: relative;
@@ -1458,6 +1485,31 @@
 }
 .chatError button {
   flex-shrink: 0;
+}
+.balanceDialog {
+  width: min(420px, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 22px;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+}
+.balanceDialog h2 {
+  margin: 0;
+  font-size: 18px;
+}
+.balanceDialog p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.balanceActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .overlay {
   position: fixed;
@@ -2021,7 +2073,7 @@
   }
   .topbar {
     display: grid;
-    grid-template-columns: 40px minmax(0, 1fr) 40px;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
     grid-template-areas:
       "menu logo account"
       "search search search";
@@ -2062,8 +2114,12 @@
   .topbar > .localePicker,
   .topbar > .vipEntry,
   .topbar > .referralTopEntry { display: none !important; }
-  .account {
+  .topEnd {
     grid-area: account;
+    justify-self: end;
+    gap: 8px;
+  }
+  .account {
     justify-self: end;
     display: inline-flex !important;
     padding: 0;
@@ -2182,7 +2238,13 @@
     color: var(--muted);
     flex: 1;
     min-width: 0;
-    padding: 6px 3px;
+    padding: 6px 2px;
+  }
+  .mobileNav a span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .floatingChat {
     bottom: 77px;
@@ -2204,7 +2266,6 @@
     padding-bottom: 8px;
   }
   .chatPage > .topbar .search,
-  .chatPage .sidebarTools,
   .chatPage .conversationSearch {
     display: none;
   }
@@ -2493,6 +2554,9 @@
     padding: 8px 8px 5px;
   }
 }
+.videoMode {
+  background: #07060b;
+}
 @media (max-width: 767px) {
   .chatMode {
     position: fixed;
@@ -2509,6 +2573,16 @@
   }
   .chatMode > .topbar,
   .chatMode > .mobileNav {
+    display: none;
+  }
+  .videoMode {
+    background: #07060b;
+    height: 100svh;
+    min-height: 0;
+    padding-bottom: 0;
+    overflow: hidden;
+  }
+  .videoMode > .topbar {
     display: none;
   }
   .chatMode .chatLayout {
@@ -2773,6 +2847,7 @@
   .cardGrid:not(.singleLayout) .heat { top: 8px; left: 8px; font-size: 10px; }
   .composer textarea { font-size: 16px; }
   .browseNav { padding: 2px 12px 0; }
+  .telegramHome { height: 30px; padding: 0 10px; font-size: 11px; }
   .tabs {
     gap: 8px;
     height: auto;
@@ -2798,3 +2873,13 @@
   .discoveryControls:not(:has(.tagActive)) { display: none; }
 }
 .conversationGenerating { color: var(--pink); }
+.homeTags { display: flex; gap: 8px; max-width: 1240px; margin: 8px auto 0; overflow-x: auto; scrollbar-width: none; }
+.homeTags button { flex: 0 0 auto; padding: 6px 14px; border: 0; border-radius: 999px; background: var(--surface); color: var(--muted); font: inherit; font-size: 13px; cursor: pointer; }
+.homeTags button.tagActive { background: var(--pink); color: #fff; }
+.homeTags .tagConfirm { position: sticky; right: 0; border: 1px solid var(--pink); background: var(--surface); color: var(--pink); }
+.homeTags .tagConfirmReady { background: var(--pink); color: #fff; }
+.homeBanner { display: flex; flex-direction: column; gap: 4px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: inherit; text-decoration: none; }
+.homeBanner strong { font-size: 18px; }
+.homeBanner p { margin: 0; color: var(--muted); }
+.homeRails { display: flex; flex-direction: column; gap: 8px; }
+.cardAge { margin-left: 6px; color: var(--muted); font-size: 12px; font-weight: 500; }
