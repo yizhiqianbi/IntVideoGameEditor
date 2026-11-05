@@ -510,6 +510,7 @@ export default function TavernApp() {
   const liveRouteActive = useRef(false);
   const callReturnRoute = useRef("chat");
   const [liveMode, setLiveMode] = useState<"phone" | "video">("phone");
+  const requestedLiveMode = useRef<"phone" | "video">("phone");
   const activeAccount = useRef<string | null>(null);
   const detailRecommendSurface = useRef<RecommendationSurface | null>(null);
   const catalogRef = useRef<HTMLElement | null>(null);
@@ -680,7 +681,10 @@ export default function TavernApp() {
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
   const [performanceSelection, setPerformanceSelection] = useState<{ accountId: string; character: XumengPerformanceCharacter } | null>(null);
   useEffect(() => { if (view !== "live" && view !== "voice") setPerformanceSelection(null); }, [view]);
-  useEffect(() => { if (view !== "live") setLiveMode("phone"); }, [view]);
+  useEffect(() => {
+    if (view === "live") setLiveMode(requestedLiveMode.current);
+    else setLiveMode("phone");
+  }, [view]);
   useEffect(() => { if (view !== "chat") setGameRequest(null); }, [view]);
   const voiceBusy = useRef(false);
   const [systemDark, setSystemDark] = useState(false);
@@ -1609,15 +1613,20 @@ export default function TavernApp() {
     }
     setDetail(null); location.hash = route;
   }
-  function performCharacter(character: XumengPerformanceCharacter, target: "live" | "voice") {
+  function performCharacter(character: XumengPerformanceCharacter, target: "live" | "voice", mode: "phone" | "video" = "phone") {
     if (target === "live" && !XUMENG_CALLS_ENABLED) { setNotice(XUMENG_CALLS_LOCKED_MESSAGE); return; }
     const accountId = cloud.user?.id;
     if (!accountId || cloud.user?.isGuest || cloud.authBusy) { openAccount("login"); return; }
     if (target === "live") {
       const current = location.hash.replace(/^#/, "");
       callReturnRoute.current = current && current !== "live" ? current : "chat";
+      requestedLiveMode.current = mode;
     }
-    if (!navigate(target)) return;
+    if (!navigate(target)) {
+      if (target === "live") requestedLiveMode.current = "phone";
+      return;
+    }
+    if (target === "live") setLiveMode(mode);
     setPerformanceSelection({ accountId, character });
   }
   function returnFromCall() {
@@ -1625,17 +1634,24 @@ export default function TavernApp() {
     if (route.startsWith("chat/")) navigate("chat", route);
     else navigate("chat");
   }
-  function callCompanion(variant: "classic" | "intimate" | "qwen" | "sales") {
+  function callCompanion(variant: "classic" | "intimate" | "qwen" | "sales", mode: "phone" | "video" = "phone") {
     const person = CHAT_CALL_CHARACTERS.find(item => item.sourceId === variant);
-    if (person) performCharacter(person, "live");
+    if (person) performCharacter(person, "live", mode);
   }
-  function callCustomCompanion(profile: CompanionProfile) {
+  function callCustomCompanion(profile: CompanionProfile, mode: "phone" | "video" = "phone") {
     performCharacter({
       id: `chat-custom-${profile.id}`, key: `chat:custom:${profile.id}`, source: "character", sourceId: profile.id, sourceLabel: "聊天",
       name: profile.name, avatar: profile.cover, description: profile.introduction,
       personality: profile.style.personality, scenario: profile.situation, dialogue: "",
       liveVoice: "zh_female_liuchangnv_uranus_bigtts",
-    }, "live");
+    }, "live", mode);
+  }
+  function startCompanionCall(mode: "phone" | "video") {
+    if (companionVariant === "cast" && castCompanion) {
+      const character = CHAT_CALL_CHARACTERS.find(item => item.sourceId === castCompanion.id);
+      if (character) performCharacter(character, "live", mode);
+    } else if (companionVariant === "custom") callCustomCompanion(customCompanion ?? REALISTIC_COMPANION_PROFILES[0], mode);
+    else if (companionVariant === "intimate" || companionVariant === "classic" || companionVariant === "sales" || companionVariant === "qwen") callCompanion(companionVariant, mode);
   }
   function navigationCurrent(itemView: View) {
     return itemView === view
@@ -1643,10 +1659,10 @@ export default function TavernApp() {
       || (itemView === "chat" && view === "live")
       || (itemView === "studio" && (view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation"));
   }
-  function performActiveCharacter(target: "live" | "voice") {
+  function performActiveCharacter(target: "live" | "voice", mode: "phone" | "video" = "phone") {
     if (!activeCharacter || !active) return;
     performCharacter({ ...xumengPerformanceFromCard(activeCharacter),
-      scene: buildXumengLiveConversationHandoff(active.messages, active.worldState, Date.now(), active.worldClockMode ?? "story") }, target);
+      scene: buildXumengLiveConversationHandoff(active.messages, active.worldState, Date.now(), active.worldClockMode ?? "story") }, target, mode);
   }
   const performanceLibrary = usePerformanceCharacters(cloud.user?.id, cloud.user?.isGuest ?? true, characters, view === "live" || view === "voice", view === "live");
   const performanceCharacter = performanceSelection && performanceSelection.accountId === cloud.user?.id && !cloud.user?.isGuest
@@ -2996,8 +3012,8 @@ export default function TavernApp() {
               {companionInMain ? (
               <Deferred>
               {companionVariant === "qwen"
-                ? <QwenCompanion key={`${cloud.user?.id ?? "loading"}:qwen`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} avatar={CONTENT_PEOPLE.find(person => person.variant === "qwen")?.cover} onBack={leaveCompanion} onCall={() => callCompanion("qwen")}/>
-                : <CompanionPage key={`${cloud.user?.id ?? "loading"}:${companionVariant}:${companionVariant === "cast" ? castCompanion?.id ?? "" : customCompanion?.id ?? ""}`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} variant={companionVariant === "custom" ? "custom" : companionVariant} cast={companionVariant === "cast" ? castCompanion ?? undefined : undefined} profile={companionVariant === "custom" ? customCompanion ?? REALISTIC_COMPANION_PROFILES[0] : undefined} avatar={companionVariant === "cast" ? castCompanion?.cover : companionVariant === "custom" ? customCompanion?.cover : CONTENT_PEOPLE.find(person => person.variant === companionVariant)?.cover} onBack={leaveCompanion} onLogin={() => { openAccount("login"); }} onCall={() => { if (companionVariant === "cast" && castCompanion) { const character = CHAT_CALL_CHARACTERS.find(item => item.sourceId === castCompanion.id); if (character) performCharacter(character, "live"); } else if (companionVariant === "custom") callCustomCompanion(customCompanion ?? REALISTIC_COMPANION_PROFILES[0]); else if (companionVariant === "intimate" || companionVariant === "classic" || companionVariant === "sales") callCompanion(companionVariant); }}/>}
+                ? <QwenCompanion key={`${cloud.user?.id ?? "loading"}:qwen`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} avatar={CONTENT_PEOPLE.find(person => person.variant === "qwen")?.cover} onBack={leaveCompanion} onVoiceCall={() => callCompanion("qwen", "phone")} onVideoCall={() => callCompanion("qwen", "video")}/>
+                : <CompanionPage key={`${cloud.user?.id ?? "loading"}:${companionVariant}:${companionVariant === "cast" ? castCompanion?.id ?? "" : customCompanion?.id ?? ""}`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} variant={companionVariant === "custom" ? "custom" : companionVariant} cast={companionVariant === "cast" ? castCompanion ?? undefined : undefined} profile={companionVariant === "custom" ? customCompanion ?? REALISTIC_COMPANION_PROFILES[0] : undefined} avatar={companionVariant === "cast" ? castCompanion?.cover : companionVariant === "custom" ? customCompanion?.cover : CONTENT_PEOPLE.find(person => person.variant === companionVariant)?.cover} onBack={leaveCompanion} onLogin={() => { openAccount("login"); }} onVoiceCall={() => startCompanionCall("phone")} onVideoCall={() => startCompanionCall("video")}/>}
               </Deferred>
             ) : gameSelection ? (
               gameSelection.kind === "builtin"
@@ -3113,7 +3129,8 @@ export default function TavernApp() {
                     >
                       <Icon name="sliders" size={17} />
                     </button>
-                    <button className={`${s.iconButton} ${s.callButton}`} aria-label={XUMENG_CALLS_ENABLED ? "给当前角色打电话" : "语音通话暂时关闭"} title={XUMENG_CALLS_ENABLED ? "语音通话" : XUMENG_CALLS_LOCKED_MESSAGE} disabled={busy} onClick={() => performActiveCharacter("live")}><Icon name="phone" size={18} />{!XUMENG_CALLS_ENABLED && <Icon className={s.callLock} name="lock" size={12} />}</button>
+                    <button className={`${s.iconButton} ${s.callButton}`} aria-label={XUMENG_CALLS_ENABLED ? "给当前角色打语音电话" : "语音通话暂时关闭"} title={XUMENG_CALLS_ENABLED ? "语音通话" : XUMENG_CALLS_LOCKED_MESSAGE} disabled={busy} onClick={() => performActiveCharacter("live", "phone")}><Icon name="phone" size={18} />{!XUMENG_CALLS_ENABLED && <Icon className={s.callLock} name="lock" size={12} />}</button>
+                    <button className={`${s.iconButton} ${s.callButton}`} aria-label={XUMENG_CALLS_ENABLED ? "给当前角色打视频电话" : "视频通话暂时关闭"} title={XUMENG_CALLS_ENABLED ? "视频通话" : XUMENG_CALLS_LOCKED_MESSAGE} disabled={busy} onClick={() => performActiveCharacter("live", "video")}><Icon name="video" size={18} />{!XUMENG_CALLS_ENABLED && <Icon className={s.callLock} name="lock" size={12} />}</button>
                   </div>
                 </header>
                 <div className={s.messageScroll} ref={messageScrollRef} data-message-scroll="">

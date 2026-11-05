@@ -1,7 +1,7 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- Media URLs are emitted by the authenticated companion gateway. */
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import styles from "./companion.module.css";
 import { CompanionSender, CompanionTranscript, type CompanionSenderHandle, type CompanionTranscriptItem } from "./companion-thread";
 import { applyCompanionSession, mergeCompanionMessages, openingPreface, pickCompanionSession, type PrefaceLatch } from "./companion-thread-items";
@@ -314,7 +314,7 @@ function cachedConversation(accountId: string | undefined, lane: string, title: 
   return { id: cached.sessionId || `local:${lane}`, title, messages: cached.messages };
 }
 
-export default function CompanionPage({ onBack, onLogin, onCall, variant = "classic", avatar, profile, cast, accountId }: { onBack?: () => void; onLogin?: () => void; onCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast; accountId?: string }) {
+export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCall, variant = "classic", avatar, profile, cast, accountId }: { onBack?: () => void; onLogin?: () => void; onVoiceCall?: () => void; onVideoCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast; accountId?: string }) {
   const intimate = variant === "intimate";
   const sales = variant === "sales";
   const lane = cast ? `cast-${cast.id}` : sales ? "sales" : intimate ? "intimate" : "classic";
@@ -918,21 +918,26 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
   }
   const recovering = health?.reason === RECOVERY_REVIEW_CODE;
   const placeholder = health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : recovering ? "重建后才能继续说" : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…");
-  return <section className={styles.chat} aria-label={`与${name}聊天`}>
+  const stageStyle = { "--companion-cover": `url(${JSON.stringify(avatarUrl)})` } as CSSProperties;
+  return <section className={`${styles.chat} ${styles.chatStage}`} style={stageStyle} aria-label={`与${name}聊天`}>
         <header className={styles.chatHeader}>
           {onBack && <button className={styles.mobileBack} aria-label="返回聊天列表" onClick={onBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>}
           <div className={styles.identity}><h1>{name}</h1></div>
           <div className={styles.headerActions}>
+            {XUMENG_CALLS_ENABLED && onVoiceCall && <button type="button" className={styles.headerAction} aria-label={`和${name}语音通话`} onClick={onVoiceCall}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M8 3.8h2.2l1 2.5-1.5 1a12.5 12.5 0 0 0 5.5 5.5l1-1.5 2.5 1V18a1.6 1.6 0 0 1-1.7 1.6A15.2 15.2 0 0 1 4.4 6.5 1.6 1.6 0 0 1 6 4.8" strokeLinejoin="round" /></svg>
+              语音
+            </button>}
+            {XUMENG_CALLS_ENABLED && onVideoCall && <button type="button" className={styles.headerAction} aria-label={`和${name}视频通话`} onClick={onVideoCall}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3.5" y="6.5" width="11" height="11" rx="2" /><path d="m14.5 10.2 6-3.2v10l-6-3.2z" strokeLinejoin="round" /></svg>
+              视频
+            </button>}
             <button type="button" className={styles.headerAction} aria-pressed={mediaTrayOpen} onClick={() => setMediaTrayOpen(value => !value)}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="10" r="1.4" /><path d="m4 16 4.2-3.4a1 1 0 0 1 1.3.05L13 15.5l1.6-1.3a1 1 0 0 1 1.3.02L20.5 17" /></svg>
               相册
             </button>
-            {XUMENG_CALLS_ENABLED && onCall && <button type="button" className={styles.headerAction} onClick={onCall}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 10.5v3M7.5 8v8M11 5.5v13M14.5 8v8M18 10.5v3" strokeLinecap="round" /></svg>
-              听听
-            </button>}
           </div>
         </header>
         <CompanionTranscript
