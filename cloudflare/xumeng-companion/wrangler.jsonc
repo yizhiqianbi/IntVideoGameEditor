@@ -1,0 +1,70 @@
+{
+  "$schema": "../dzmm-web/node_modules/wrangler/config-schema.json",
+  "name": "xumeng-companion",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-18",
+  "workers_dev": false,
+  "preview_urls": false,
+  // Worker logs carry only boot timings (event "companion_boot"), never message text.
+  "observability": { "enabled": true, "head_sampling_rate": 1 },
+  "containers": [{
+    // Legacy: one container per account. Still used by accounts whose
+    // runtime is dirty at rollout time, until their next idle checkpoint.
+    "name": "xumeng-companion-native",
+    "class_name": "CompanionAccount",
+    "scheduling_policy": "default",
+    "max_instances": 20,
+    "instance_type": "standard-1",
+    "image": "../../output/xumeng/companion-release-20261025/container-context-pool-r8/Dockerfile",
+    "image_build_context": "../../output/xumeng/companion-release-20261025/container-context-pool-r8",
+    "observability": { "logs": { "enabled": false } }
+  }, {
+    // Shared: one warm container per shard, an isolated native process per account.
+    "name": "xumeng-companion-pool",
+    "class_name": "CompanionPool",
+    "scheduling_policy": "default",
+    "max_instances": 4,
+    "instance_type": "standard-4",
+    "image": "../../output/xumeng/companion-release-20261025/container-context-pool-r8/Dockerfile",
+    "image_build_context": "../../output/xumeng/companion-release-20261025/container-context-pool-r8",
+    "observability": { "logs": { "enabled": false } }
+  }],
+  "durable_objects": { "bindings": [
+    { "name": "COMPANIONS", "class_name": "CompanionAccount" },
+    { "name": "POOLS", "class_name": "CompanionPool" },
+    { "name": "DESK", "class_name": "CompanionDesk" }
+  ] },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["CompanionAccount"] },
+    { "tag": "v2", "new_sqlite_classes": ["CompanionPool"] },
+    { "tag": "v3", "new_sqlite_classes": ["CompanionDesk"] },
+    { "tag": "v4", "deleted_classes": ["CompanionAccount", "CompanionPool", "CompanionDesk"] },
+    { "tag": "v5", "new_sqlite_classes": ["CompanionAccount", "CompanionPool", "CompanionDesk"] },
+    { "tag": "v6", "deleted_classes": ["CompanionDesk"] },
+    { "tag": "v7", "new_sqlite_classes": ["CompanionDesk"] }
+  ],
+  "r2_buckets": [{ "binding": "MEMORY", "bucket_name": "xumeng-companion-memory" }],
+  "services": [{ "binding": "BILLING", "service": "dzmm-backend", "entrypoint": "BillingService" }],
+  // Same upstream agreements accepted by the operator on 2026-10-18; model key is a Cloudflare Secret.
+  "vars": {
+  "COMPANION_CHAT_MODEL": "deepseek/deepseek-v4.1-flash",
+  "COMPANION_FAST_MODEL": "deepseek/deepseek-v4.1-flash",
+  "COMPANION_EMBEDDING_MODEL": "qwen/qwen3-embedding-8b",
+  "COMPANION_EMBEDDING_DIMENSION": "4096",
+  "COMPANION_OPENROUTER_BASE_URL": "https://openrouter.ai/api/v1",
+  "COMPANION_IMAGE_MODEL": "x-ai/grok-imagine-image-2.0",
+  "COMPANION_IMAGE_RESOLUTION": "1K",
+  "COMPANION_IMAGE_QUALITY": "medium",
+  "COMPANION_TTS_MODEL": "x-ai/grok-voice-tts-1.0",
+  "COMPANION_TTS_VOICE": "ara",
+  "COMPANION_AGREEMENTS_ACCEPTED": "1",
+  "COMPANION_EULA_MD5": "8e6e7d647f7f82d6ea98456b73908656",
+  "COMPANION_PRIVACY_MD5": "91e5db7659c560bc3545e63859b6ebc0"
+  ,"COMPANION_BILLING_ENABLED": "true"
+  // Shared pool: accounts move in only when clean (no live runtime, nothing
+  // unsaved). Set to "false" to send newly starting accounts back to legacy.
+  ,"COMPANION_POOL_ENABLED": "true"
+  ,"COMPANION_POOL_SHARDS": "4"
+  ,"COMPANION_POOL_CAPACITY": "8"
+}
+}

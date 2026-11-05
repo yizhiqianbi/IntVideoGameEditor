@@ -5,6 +5,7 @@ import { uploadDzmmCover } from "../../../lib/dzmm-cloud";
 import { companionStillPrompt } from "../../../lib/companion-still-prompt";
 import { xumengImageUrl } from "../../../lib/xumeng-routes";
 import { requestKrea2Still } from "../../../lib/xumeng-krea2-bridge";
+import { rememberRelationshipStill } from "../../../lib/relationship-album";
 
 export type GirlfriendPhoto = { id: string; url: string; createdAt: string };
 const SAVED_PHOTO = /^\/api\/backend\/v1\/media\/[A-Za-z0-9-]+\/[a-f0-9-]+\.(?:png|jpe?g|webp)$/;
@@ -79,7 +80,7 @@ async function uploadable(blob: Blob): Promise<File> {
   return file;
 }
 
-export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string | null = null) {
+export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string | null = null, characterId: string | null = null) {
   const [photos, setPhotos] = useState<GirlfriendPhoto[]>([]);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState("");
@@ -112,6 +113,7 @@ export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string 
       const url = xumengImageUrl(await uploadDzmmCover(file));
       if (!SAVED_PHOTO.test(url)) throw new Error("图片存储返回的地址无效。");
       const photo = { id: crypto.randomUUID(), url, createdAt: new Date().toISOString() };
+      if (characterId) void rememberRelationshipStill(characterId, url).catch(() => undefined);
       setPhotos(current => {
         const next = [...current, photo].slice(-PHOTO_LIMIT);
         try { writeGirlfriendPhotos(storageKey, next); }

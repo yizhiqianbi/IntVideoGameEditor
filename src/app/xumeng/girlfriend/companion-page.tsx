@@ -1,18 +1,21 @@
 "use client";
 
 /* eslint-disable @next/next/no-img-element -- Media URLs are emitted by the authenticated companion gateway. */
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import styles from "./companion.module.css";
-import { companionClockLabel, companionClockVisible } from "./companion-clock";
-import { CLASSIC_STYLE, type CompanionStyle } from "./companion-style";
-import { INTIMATE_STYLE } from "./intimate-style";
-import { markChatSeen } from "./companion-inbox";
-import { SALES_CUES, SALES_NUDGE, SALES_OPEN, SALES_STYLE } from "./sales-style";
+import { CompanionSender, CompanionTranscript, type CompanionSenderHandle, type CompanionTranscriptItem } from "./companion-thread";
+import { applyCompanionSession, mergeCompanionMessages, openingPreface, pickCompanionSession, type PrefaceLatch } from "./companion-thread-items";
+import { CLASSIC_LINES, CLASSIC_STYLE, type CompanionStyle } from "./companion-style";
+import { INTIMATE_LINES, INTIMATE_STYLE } from "./intimate-style";
+import { clearPersonTranscript, dropUnscopedCompanionCache, markChatSeen, publishCompanionTranscript, readInbox, readPersonTranscript } from "./companion-inbox";
+import { SALES_CUES, SALES_LINES, SALES_NUDGE, SALES_OPEN, SALES_STYLE } from "./sales-style";
 import type { CompanionProfile } from "./companion-profiles";
 import type { GirlfriendCast } from "./cast";
 import { useGirlfriendPhotos } from "./companion-photos";
 import { companionVisualScene } from "./companion-moment";
+import { assistantRepliedAfter, generationStillOpen, nextCompanionPollDelay, nextHealthRetryDelay, nextSendRetryDelay, quietSessionPoll, REPLY_GRACE_MS, recoveryFacts, retryAfterMs, sendAttemptLimit, shouldWakeParked } from "./companion-poll";
 import { stripXumengMomentTails } from "../../../lib/xumeng-moment-status";
+import { XUMENG_CALLS_ENABLED } from "../../../lib/xumeng-feature-availability";
 import { STUDIO_STILL_CREDITS } from "../../../lib/xumeng-studio-still-billing";
 
 type MediaKind = "image" | "audio" | "emoji";
@@ -24,7 +27,7 @@ type Conversation = { id: string; title: string; messages?: Message[]; receipts?
 type Pending = { requestId: string; text: string; createdAt: string; state: "queued" | "sending" | "accepted" | "failed" | "uncertain" };
 type DisplayMessage = Message & { pendingState?: Pending["state"] };
 type BootPhase = "container" | "controller" | "restore" | "native";
-type Health = { runtime?: string; ready?: boolean; clientScope?: string; reason?: string; phase?: BootPhase };
+type Health = { runtime?: string; ready?: boolean; parked?: boolean; clientScope?: string; reason?: string; phase?: BootPhase; snapshotVerified?: boolean; deliveryAmbiguous?: boolean };
 type BillingOverview = { enabled: boolean; creditsPerMessage: 2; balance: number; reservedCredits: number };
 type CompanionVariant = "classic" | "intimate" | "custom" | "sales" | "cast";
 const API = "/api/xumeng/companion/api";
@@ -32,7 +35,11 @@ const INTIMATE_API = "/api/xumeng/companion-intimate/api";
 const SALES_API = "/api/xumeng/companion-sales/api";
 const SALES_COVER = "/assets/xumeng/exported-cards/foreverse-songzhixia-cover.png";
 const apiBase = { current: API };
-const PROACTIVE_IDLE_MS = 45_000;
+const REPLY_NUDGE_MS = REPLY_GRACE_MS;
+const RETRYABLE_SEND_CODES = new Set([
+  "ACCOUNT_UNAVAILABLE", "BILLING_UNAVAILABLE", "COMPANION_UNAVAILABLE", "CONTAINER_STARTING", "GATEWAY_ERROR",
+  "NATIVE_NOT_READY", "NATIVE_START_FAILED", "POOL_FULL", "SEND_RATE_LIMIT", "STYLE_UNAVAILABLE",
+]);
 const SALES_NUDGE_MS = 14_000;
 const SALES_NUDGE_CAP = 4;
 const BOOT_DEADLINE_MS = 180_000;
@@ -51,13 +58,21 @@ const LOGIN_REQUIRED_CODE = "LOGIN_REQUIRED";
 const PREVIEW_UNAVAILABLE_CODE = "PREVIEW_UNAVAILABLE";
 
 function stripStyle(value: string) {
-  return value.replace(/^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/, "");
+  return value
+    .replace(/^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/, "")
+    .replace(/\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g, "");
+}
+
+function recoveryNotice(health: Health | null): string {
+  if (health?.deliveryAmbiguous) return "有一条消息的送达还没确认。重新开始不会补回那一句，本机这段记录也会清掉。";
+  if (health?.snapshotVerified === false) return "这次中断没有留下可装回的存盘。重新开始会清掉中断标记，本机这段记录也会清掉。";
+  return "这段聊天中断了，重建后才能继续说。";
 }
 
 function displayTitle(title: string | undefined, person: string, intimate: boolean) {
   const value = title?.trim() || "";
   if (!value || value.includes("[XUMENG_PRIVATE_STYLE")) return `和${person}的聊天`;
-  if ((intimate || person !== "Yume") && (value === "和 Yume 的聊天" || value === "和Yume的聊天")) return `和${person}的聊天`;
+  if (["和 Yume 的聊天", "和Yume的聊天", "和晚宁的聊天", "和沈盼的聊天", "和乔晚的聊天", "和唐棠的聊天", "和裴婉的聊天"].includes(value)) return `和${person}的聊天`;
   return value;
 }
 
@@ -78,25 +93,6 @@ function rememberIntimateSession(scope: string, id: string) {
   const ids = readIntimateIds(scope);
   ids.add(id);
   localStorage.setItem(intimateIdsKey(scope), JSON.stringify([...ids]));
-}
-
-type ViewCache = { scope?: string; sessions: Conversation[]; active: string | null; conversation: Conversation | null };
-
-function viewCacheKey(lane: string) {
-  return `xumeng-companion-cache:${lane}`;
-}
-
-function readViewCache(lane: string): ViewCache | null {
-  try {
-    const value = JSON.parse(localStorage.getItem(viewCacheKey(lane)) || "null");
-    if (!value || typeof value !== "object") return null;
-    const sessions = Array.isArray(value.sessions) ? value.sessions.filter((item: Conversation) => item && typeof item.id === "string") : [];
-    const conversation = value.conversation && typeof value.conversation.id === "string" ? value.conversation as Conversation : null;
-    const active = typeof value.active === "string" ? value.active : conversation?.id ?? sessions[0]?.id ?? null;
-    return { scope: typeof value.scope === "string" ? value.scope : undefined, sessions, active, conversation };
-  } catch {
-    return null;
-  }
 }
 
 /** Keep media rendering deliberately narrow: the companion service must never
@@ -144,6 +140,12 @@ function mediaValue(value: unknown): MessageMedia | null {
     ...(typeof mimeType === "string" ? { mimeType: mimeType.slice(0, 80) } : {}),
     ...(typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? { durationMs: item.durationMs } : {}),
   };
+}
+
+function messageIsVisible(message: { role?: string; text?: string; media?: unknown[]; attachments?: unknown[]; segments?: unknown[] }): boolean {
+  if (message.role === "user" && SALES_CUES.has((message.text || "").trim())) return false;
+  const text = stripXumengMomentTails(stripStyle(message.text || "")).trim();
+  return Boolean(text) || normalizeMedia(message as Message).length > 0;
 }
 
 /** Accept the gateway's compact media array and native rich segments. Keeping
@@ -197,7 +199,7 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
   }
   if (item.kind === "image") {
     return <figure className={styles.picture}>
-      <img src={item.url} alt={item.alt || item.label || "Yume 发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      <img src={item.url} alt={item.alt || item.label || "她发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
       {item.label && <figcaption>{item.label}</figcaption>}
     </figure>;
   }
@@ -205,8 +207,8 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
     return <span className={styles.sticker}><img src={item.url} alt={item.alt || item.label || "表情包"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /></span>;
   }
   return <div className={styles.voice}>
-    <div className={styles.voiceTitle}><span aria-hidden="true">♫</span><span>{item.label || "Yume 的语音"}</span></div>
-    <audio ref={audio} src={item.url} controls preload="metadata" aria-label={item.label || "Yume 的语音消息"}
+    <div className={styles.voiceTitle}><span aria-hidden="true">♫</span><span>{item.label || "她的语音"}</span></div>
+    <audio ref={audio} src={item.url} controls preload="metadata" aria-label={item.label || "她的语音消息"}
       onPlay={() => { setFailed(false); document.dispatchEvent(new CustomEvent("xumeng-companion-audio-play", { detail: mediaId })); }}
       onError={() => setFailed(true)} />
     <PauseOtherAudio audioRef={audio} mediaId={mediaId} />
@@ -249,6 +251,8 @@ function aborted(value: unknown) {
   return value instanceof Error && value.name === "AbortError";
 }
 
+function ignoreReplyNudge() {}
+
 async function request<T>(path: string, body?: unknown, signal?: AbortSignal, method: "POST" | "PUT" = "POST"): Promise<T> {
   let response: Response;
   try {
@@ -260,23 +264,24 @@ async function request<T>(path: string, body?: unknown, signal?: AbortSignal, me
     if (signal?.aborted || aborted(failure)) throw failure;
     throw Object.assign(new Error("聊天服务暂时不可用，请稍后重试。"), { code: "COMPANION_UNAVAILABLE" });
   }
-  let data: { error?: string; code?: string; phase?: BootPhase } | null = null;
+  let data: { error?: string; code?: string; phase?: BootPhase; snapshotVerified?: boolean; deliveryAmbiguous?: boolean } | null = null;
   try { data = await response.json(); }
   catch (failure) {
     if (signal?.aborted || aborted(failure)) throw failure;
     throw Object.assign(new Error("聊天服务暂时不可用，请稍后重试。"), { code: "COMPANION_UNAVAILABLE" });
   }
-  if (!response.ok) throw Object.assign(new Error(data?.error || "暂时连接不上，请稍后重试。"), { code: data?.code, phase: data?.phase });
+  if (!response.ok) throw Object.assign(new Error(data?.error || "暂时连接不上，请稍后重试。"), { code: data?.code, phase: data?.phase, status: response.status, retryAfterMs: retryAfterMs(response.headers.get("retry-after")), ...recoveryFacts(data) });
   return data as T;
 }
 
-function holdKey(lane: string) {
-  return `xumeng-companion-hold:${lane}`;
+function holdKey(accountId: string, lane: string) {
+  return `xumeng-companion-hold:${accountId}:${lane}`;
 }
 
-function readHold(lane: string): { draft: string; queued: Pending[] } {
+function readHold(accountId: string | undefined, lane: string): { draft: string; queued: Pending[] } {
+  if (!accountId) return { draft: "", queued: [] };
   try {
-    const value = JSON.parse(localStorage.getItem(holdKey(lane)) || "null");
+    const value = JSON.parse(localStorage.getItem(holdKey(accountId, lane)) || "null");
     const queued = Array.isArray(value?.queued) ? restorePendingItems(value.queued) : [];
     const draft = typeof value?.draft === "string" ? value.draft.slice(0, 4000) : "";
     return { draft, queued };
@@ -285,8 +290,9 @@ function readHold(lane: string): { draft: string; queued: Pending[] } {
   }
 }
 
-function writeHold(lane: string, hold: { draft: string; queued: Pending[] }) {
-  localStorage.setItem(holdKey(lane), JSON.stringify({ draft: hold.draft, queued: hold.queued }));
+function writeHold(accountId: string | undefined, lane: string, hold: { draft: string; queued: Pending[] }) {
+  if (!accountId) return;
+  localStorage.setItem(holdKey(accountId, lane), JSON.stringify({ draft: hold.draft, queued: hold.queued }));
 }
 
 function restorePendingItems(value: unknown): Pending[] {
@@ -301,48 +307,76 @@ function restorePendingItems(value: unknown): Pending[] {
   });
 }
 
-export default function CompanionPage({ onBack, onLogin, onCall, variant = "classic", avatar, profile, cast }: { onBack?: () => void; onLogin?: () => void; onCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast }) {
+function cachedConversation(accountId: string | undefined, lane: string, title: string): Conversation | null {
+  if (!accountId) return null;
+  const cached = readPersonTranscript(accountId, lane);
+  if (!cached.messages.length) return null;
+  return { id: cached.sessionId || `local:${lane}`, title, messages: cached.messages };
+}
+
+export default function CompanionPage({ onBack, onLogin, onCall, variant = "classic", avatar, profile, cast, accountId }: { onBack?: () => void; onLogin?: () => void; onCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast; accountId?: string }) {
   const intimate = variant === "intimate";
   const sales = variant === "sales";
   const lane = cast ? `cast-${cast.id}` : sales ? "sales" : intimate ? "intimate" : "classic";
-  const name = cast?.name || profile?.name || (sales ? "沈盼" : intimate ? "晚宁" : "Yume");
+  const name = cast?.name || profile?.name || (sales ? "Eva" : intimate ? "宁宁" : "林幺");
+  const reservedLines = cast?.lines ?? (sales ? SALES_LINES : intimate ? INTIMATE_LINES : profile ? undefined : CLASSIC_LINES);
   const avatarUrl = avatar || cast?.cover || profile?.cover || (sales ? SALES_COVER : intimate ? "/assets/xumeng/content-covers/wanning.jpg" : "/assets/xumeng/content-covers/yume.jpg");
   apiBase.current = cast ? `/api/xumeng/companion-cast/${cast.id}/api` : sales ? SALES_API : intimate ? INTIMATE_API : API;
-  const cachedView = useRef(readViewCache(lane));
   const [health, setHealth] = useState<Health | null>(null);
-  const [sessions, setSessions] = useState<Conversation[]>(() => cachedView.current?.sessions ?? []);
-  const [active, setActive] = useState<string | null>(() => cachedView.current?.active ?? null);
-  const [conversation, setConversation] = useState<Conversation | null>(() => cachedView.current?.conversation ?? null);
-  const [draft, setDraft] = useState(() => readHold(lane).draft);
-  const [held, setHeld] = useState<Pending[]>(() => readHold(lane).queued);
-  const [idleTyping, setIdleTyping] = useState(false);
+  const [pollPaused, setPollPaused] = useState(false);
+  const [sessions, setSessions] = useState<Conversation[]>([]);
+  const [active, setActive] = useState<string | null>(null);
+  const [conversation, setConversation] = useState<Conversation | null>(null);
+  useLayoutEffect(() => {
+    const cached = cachedConversation(accountId, lane, name);
+    if (!cached) return;
+    setConversation(previous => previous?.messages?.length ? previous : cached);
+  }, [accountId, lane, name]);
+  const [draft, setDraft] = useState(() => readHold(accountId, lane).draft);
+  const [held, setHeld] = useState<Pending[]>(() => readHold(accountId, lane).queued);
   const [pending, setPending] = useState<Record<string, Pending[]>>({});
   const [error, setError] = useState("");
   const [syncError, setSyncError] = useState("");
   const [creating, setCreating] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const presetStyle = cast?.style || (sales ? SALES_STYLE : profile?.style || (intimate ? INTIMATE_STYLE : CLASSIC_STYLE));
   const openingSales = useRef(false);
   const nudgeFails = useRef(0);
   const [billing, setBilling] = useState<BillingOverview | null>(null);
   const [boot, setBoot] = useState(0);
+  const [sessionsKnown, setSessionsKnown] = useState(false);
   const [resetting, setResetting] = useState(false);
   const [mediaTrayOpen, setMediaTrayOpen] = useState(false);
+  const prefaceLatch = useRef<PrefaceLatch | null>(null);
+  const prefaceAnchor = useRef(0);
+  const prefaceLines = useRef<readonly string[]>([]);
+  const [laneHasHistory, setLaneHasHistory] = useState(true);
   const [, setBootStartedAt] = useState<number | null>(null);
   const inFlight = useRef(new Set<string>());
+  const sendRetries = useRef(new Map<string, number>());
+  const retryableSends = useRef(new Map<string, string>());
+  const retryTimers = useRef(new Map<string, number>());
+  const unansweredRef = useRef(false);
   const pendingRef = useRef<Record<string, Pending[]>>({});
-  const log = useRef<HTMLDivElement>(null);
-  const bottom = useRef<HTMLDivElement>(null);
-  const composer = useRef<HTMLTextAreaElement>(null);
-  const followBottom = useRef(true);
-  // The cached scope lets drafts and queued messages work while she is still waking up.
-  const scope = health?.clientScope ?? cachedView.current?.scope;
+  const senderRef = useRef<CompanionSenderHandle>(null);
+  const wakeStarted = useRef(false);
+  const wakeContainer = useCallback(() => {
+    if (!shouldWakeParked(health?.parked, wakeStarted.current)) return;
+    wakeStarted.current = true;
+    setHealth(current => current?.parked ? { ...current, parked: false } : current);
+    // Reopening the existing session starts the engine and does not send a line.
+    void request("/sessions", { characterId: "yume" }).catch(() => {});
+  }, [health?.parked]);
+  // Drafts wait for the signed-in account. The transcript itself comes from the companion service.
+  const scope = health?.clientScope;
   const storage = scope ? `xumeng-maibot:${scope}` : null;
   const ready = health?.ready === true;
   const pendingKey = active && storage ? `${storage}:${active}` : null;
 
   const updatePending = useCallback((key: string, update: (items: Pending[]) => Pending[]) => {
-    const next = update(pendingRef.current[key] || []);
+    const current = pendingRef.current[key] || [];
+    const next = update(current);
+    const same = current.length === next.length && current.every((item, index) => item.requestId === next[index]?.requestId && item.state === next[index]?.state && item.text === next[index]?.text && item.createdAt === next[index]?.createdAt);
+    if (same) return true;
     try {
       // Persist before clearing a draft or submitting a request, so a refresh
       // never destroys an unsent segment. Keys include both owner and session.
@@ -358,9 +392,11 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
 
   useEffect(() => {
     setBootStartedAt(Date.now());
+    setSessionsKnown(false);
     const controller = new AbortController();
     (async () => {
       const deadline = Date.now() + BOOT_DEADLINE_MS;
+      let healthAttempt = 0;
       try {
         for (;;) {
           try {
@@ -370,29 +406,46 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
               if (Date.now() > deadline) throw Object.assign(new Error("聊天服务启动时间过长，请稍后重试。"), { code: "CONTAINER_STARTING" });
               setHealth({ ...status, reason: status.reason || "starting" });
               setError("");
-              await sleep(1000, controller.signal);
+              healthAttempt += 1;
+              await sleep(nextHealthRetryDelay(healthAttempt), controller.signal);
               continue;
             }
-            setHealth(status);
-            setBootStartedAt(null);
             setError("");
             const [overview, result] = await Promise.all([
               request<BillingOverview>("/billing", undefined, controller.signal).catch(() => null),
               request<{ sessions: Conversation[] }>("/sessions", undefined, controller.signal),
             ]);
             if (overview) setBilling(overview);
-            const cached = readViewCache(lane);
-            if (cached?.scope && status.clientScope && cached.scope !== status.clientScope) {
-              localStorage.removeItem(viewCacheKey(lane));
-              setConversation(null);
-            }
+            dropUnscopedCompanionCache(lane);
             if (intimate && status.clientScope) for (const item of result.sessions) rememberIntimateSession(status.clientScope, item.id);
-            setSessions(result.sessions);
             const saved = localStorage.getItem(`xumeng-maibot:${status.clientScope}:${intimate ? "intimate-active" : "active"}`);
-            const chosen = result.sessions.some(item => item.id === saved) ? saved : result.sessions[0]?.id ?? null;
-            const chosenSession = result.sessions.find(item => item.id === chosen);
-            setActive(chosen);
-            if (chosenSession?.messages?.length) setConversation(previous => previous?.id === chosen && (previous.messages?.length || 0) >= chosenSession.messages!.length ? previous : chosenSession);
+            // The list can describe a session before its native record is open.
+            // Read the recent ones so a short new chat does not hide the longer record.
+            const ranked = result.sessions.slice(0, 6);
+            const opened = await Promise.all(ranked.map(async item => {
+              try {
+                const full = await request<{ session: Conversation }>(`/sessions/${item.id}`, undefined, AbortSignal.any([controller.signal, AbortSignal.timeout(12_000)]));
+                return full.session?.id ? { ...item, ...full.session, messages: full.session.messages ?? item.messages } : item;
+              } catch { return item; }
+            }));
+            const openedById = new Map(opened.map(item => [item.id, item]));
+            if (controller.signal.aborted) return;
+            const cachedMessages = accountId ? readPersonTranscript(accountId, lane).messages : [];
+            const sessions = result.sessions.map(item => {
+              const opened = openedById.get(item.id) ?? item;
+              if (!cachedMessages.length) return opened;
+              return { ...opened, messages: mergeCompanionMessages<Message>(cachedMessages, opened.messages ?? []) };
+            });
+            const chosenSession = pickCompanionSession(sessions, saved);
+            // Ready and the session list have to land together. Marking the
+            // service ready before the list arrives rendered an empty chat,
+            // and the auto-create effect then opened a new session on every visit.
+            setSessions(sessions);
+            setActive(chosenSession?.id ?? null);
+            if (chosenSession) setConversation(previous => applyCompanionSession(previous ?? cachedConversation(accountId, lane, name), { ...chosenSession, messages: chosenSession.messages ?? [] }));
+            setSessionsKnown(true);
+            setHealth(status);
+            setBootStartedAt(null);
             setError("");
             break;
           } catch (failure) {
@@ -400,7 +453,8 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
             if (!controller.signal.aborted && code && TRANSIENT_HEALTH_CODES.has(code) && Date.now() < deadline) {
               setHealth({ ready: false, reason: "starting", phase: bootPhase(failure) });
               setError("");
-              await sleep(1000, controller.signal);
+              healthAttempt += 1;
+              await sleep(nextHealthRetryDelay(healthAttempt), controller.signal);
               continue;
             }
             throw failure;
@@ -410,12 +464,12 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
         if (!controller.signal.aborted) {
           setBootStartedAt(previous => previous ?? Date.now());
           const code = errorCode(failure);
-          setHealth({ ready: false, reason: code || "unavailable" });
+          setHealth({ ready: false, reason: code || "unavailable", ...recoveryFacts(failure) });
         }
       }
     })();
     return () => controller.abort();
-  }, [boot, lane]);
+  }, [accountId, boot, lane]);
 
   useEffect(() => {
     if (!active || !storage) return;
@@ -423,13 +477,13 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
     try {
       localStorage.setItem(intimate ? `${storage}:intimate-active` : `${storage}:active`, active);
       if (!pendingRef.current[key]) updatePending(key, () => restorePending(key));
-      const heldNow = readHold(lane);
+      const heldNow = readHold(accountId, lane);
       if (heldNow.queued.length) {
         updatePending(key, items => {
           const ids = new Set(items.map(item => item.requestId));
           return [...items, ...heldNow.queued.filter(item => !ids.has(item.requestId))];
         });
-        writeHold(lane, { draft: "", queued: [] });
+        writeHold(accountId, lane, { draft: "", queued: [] });
         setHeld([]);
       }
       setDraft(localStorage.getItem(`${key}:draft`) || heldNow.draft);
@@ -438,26 +492,40 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
     }
     // A failed health check must not wipe the transcript already stored on this device.
     if (!ready) return;
-    setConversation(previous => previous?.id === active ? previous : null);
+    setConversation(previous => {
+      const cached = accountId ? readPersonTranscript(accountId, lane).messages : [];
+      if (previous?.id === active && (previous.messages?.length || !cached.length)) return previous;
+      if (previous?.messages?.length) return { ...previous, id: active, messages: mergeCompanionMessages(previous.messages, cached) };
+      return cached.length ? { id: active, title: name, messages: cached } : null;
+    });
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout>;
+    let failures = 0;
+    let retryHint: number | undefined;
     const poll = async () => {
+      let thinking = false;
       try {
         const result = await request<{ session: Conversation }>(`/sessions/${active}`, undefined, controller.signal);
+        thinking = result.session.status === "thinking";
+        failures = 0;
+        retryHint = undefined;
         if (!controller.signal.aborted) {
-          setConversation(result.session);
+          setPollPaused(previous => previous ? false : previous);
+          setConversation(previous => applyCompanionSession(previous, result.session));
           setSyncError("");
-          setSessions(previous => previous.map(item => item.id === active ? { ...item, title: displayTitle(result.session.title, name, intimate) } : item));
+          setSessions(previous => {
+            const title = displayTitle(result.session.title, name, intimate);
+            const current = previous.find(item => item.id === active);
+            if (!current || current.title === title) return previous;
+            return previous.map(item => item.id === active ? { ...item, title } : item);
+          });
           updatePending(key, items => items.flatMap(item => {
-            if (result.session.messages?.some(message => message.id === item.requestId || message.requestId === item.requestId)) return [];
+            const messages = result.session.messages ?? [];
+            // The user line landing is not the reply. Drop the wait only after
+            // an assistant message follows it, so a slow generation is not nudged twice.
+            if (assistantRepliedAfter(messages, item.requestId)) return [];
             const receipt = result.session.receipts?.find(value => value.requestId === item.requestId);
-            // Session polling also performs the host's read-only durable
-            // receipt reconciliation.  Once the host has positive evidence,
-            // remove the optimistic bubble instead of leaving the composer
-            // locked in "同步记录中".  The transcript now owns the message;
-            // no retry or second Credit hold is involved.
-            if (receipt?.status === "complete" || receipt?.confirmed) return [];
-            if (receipt?.status === "accepted") return [{ ...item, state: "accepted" }];
+            if (receipt?.status === "accepted" || receipt?.status === "complete" || receipt?.confirmed) return [{ ...item, state: "accepted" }];
             if (receipt?.status === "uncertain") return [{ ...item, state: "uncertain" }];
             return [item];
           }));
@@ -465,31 +533,28 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
           if (!stillUncertain) setError(current => current.includes("送达") ? "" : current);
         }
       } catch (failure) {
-        if (!controller.signal.aborted) setSyncError(failure instanceof Error ? failure.message : "读取消息失败。");
+        if (!controller.signal.aborted && !aborted(failure)) {
+          failures += 1;
+          const hinted = failure && typeof failure === "object" && "retryAfterMs" in failure ? failure.retryAfterMs : undefined;
+          retryHint = typeof hinted === "number" ? hinted : undefined;
+          if (quietSessionPoll(errorCode(failure))) {
+            setSyncError("");
+          } else {
+            setPollPaused(true);
+            setSyncError(failure instanceof Error ? failure.message : "读取消息失败。");
+          }
+        }
       } finally {
-        if (!controller.signal.aborted) timer = setTimeout(poll, document.visibilityState === "visible" ? 1000 : 5000);
+        const pendingLeft = (pendingRef.current[key] || []).some(item => item.state === "sending" || item.state === "accepted" || item.state === "uncertain");
+        const followUp = pendingLeft || thinking || unansweredRef.current;
+        if (!controller.signal.aborted) timer = setTimeout(poll, nextCompanionPollDelay({
+          failures, followUp, visible: document.visibilityState === "visible", retryAfterMs: failures > 0 ? retryHint : undefined,
+        }));
       }
     };
     void poll();
     return () => { controller.abort(); clearTimeout(timer); };
-  }, [active, intimate, lane, ready, storage, updatePending]);
-
-  useEffect(() => {
-    if (!health?.clientScope || (!sessions.length && !conversation)) return;
-    try {
-      const savedConversation = conversation ? {
-        ...conversation,
-        messages: (conversation.messages || []).slice(-80).map(({ media, attachments, segments, ...message }) => message),
-      } : null;
-      localStorage.setItem(viewCacheKey(lane), JSON.stringify({
-        scope: health.clientScope,
-        sessions: sessions.map(item => ({ id: item.id, title: displayTitle(item.title, name, intimate) })),
-        active,
-        conversation: savedConversation,
-      } satisfies ViewCache));
-      markChatSeen(lane);
-    } catch { /* A full disk must not block the open transcript. */ }
-  }, [active, conversation, health?.clientScope, lane, name, sessions]);
+  }, [accountId, active, intimate, lane, name, ready, storage, updatePending]);
 
   const pendingItems = useMemo(() => {
     const stored = pendingKey ? pending[pendingKey] || [] : [];
@@ -517,29 +582,20 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
     });
   }, [conversation?.messages, pendingItems]);
 
-  const latestUser = useMemo(() => [...visibleMessages].reverse().find(message => message.role === "user" && !message.pendingState), [visibleMessages]);
-  const lanePhotoKey = `xumeng-companion-photos:${lane}`;
-  const photoKey = pendingKey ? `${pendingKey}:photos` : lanePhotoKey;
-  const photos = useGirlfriendPhotos(photoKey, pendingKey ? lanePhotoKey : null);
-  useEffect(() => { markChatSeen(lane); }, [lane, photos.photos]);
-  const scene = companionVisualScene({ situation: cast?.situation || profile?.situation, messages: visibleMessages });
-  const latestUserId = latestUser?.id || null;
-
   useEffect(() => {
-    if (sales || !active || !health?.ready || pendingItems.length > 0) return;
-    const nudge = () => {
-      void request(`/sessions/${active}/proactive`, {
-        ...(latestUserId ? { userMessageId: latestUserId } : {}),
-        intent: intimate
-          ? "用户在上一轮之后停住了。请查看最近聊天，判断这次是否值得自然主动开口；没有新鲜内容就保持安静。若主动，只发一条符合当前恋人私聊和已发生关系的消息，可以想他、接上一句，或轻轻把话题往亲近处带，但不要突然开始未发生的性行为，不要质问，不要重复上一轮。对方刚说过停、忙、晚安或不想，就保持安静。"
-          : "用户在上一轮之后停住了。请查看最近聊天和关系状态，判断这次是否值得自然主动开口；如果没有新鲜且合适的内容就保持安静。若主动，只发一条带新信息的分享、想念、轻撒娇或对上一句的自然延续，不要质问，不要使用‘你怎么不理我’，不要重复上一轮，也要尊重用户刚说过的忙、晚安或需要空间。",
-        reason: "private_chat_quiet_window",
-        metadata: { sessionId: active, source: "xumeng-girlfriend" },
-      }).catch(() => { /* A failed native nudge must never surface as a fake message. */ });
-    };
-    const timer = window.setInterval(nudge, PROACTIVE_IDLE_MS);
-    return () => window.clearInterval(timer);
-  }, [active, health?.ready, intimate, pendingItems.length, latestUserId, sales]);
+    if (!accountId || !active) return;
+    publishCompanionTranscript(accountId, lane, active, visibleMessages.flatMap(message => (
+      message.id && message.createdAt && (message.role === "user" || message.role === "assistant") && message.text?.trim()
+        ? [{ id: message.id, role: message.role, text: message.text, createdAt: message.createdAt }]
+        : []
+    )));
+  }, [accountId, active, lane, visibleMessages]);
+
+  const lanePhotoKey = accountId ? `xumeng-companion-photos:${accountId}:${lane}` : `xumeng-companion-photos:unsigned:${lane}`;
+  const photoKey = pendingKey ? `${pendingKey}:photos` : lanePhotoKey;
+  const photos = useGirlfriendPhotos(photoKey, pendingKey ? lanePhotoKey : null, "yume");
+  useEffect(() => { markChatSeen(accountId, lane); }, [accountId, lane, photos.photos]);
+  const scene = companionVisualScene({ situation: cast?.situation || profile?.situation, messages: visibleMessages });
 
   const deskOn = Boolean(health) && health?.reason !== LOGIN_REQUIRED_CODE;
   useEffect(() => {
@@ -555,51 +611,110 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
     return () => { window.clearInterval(timer); document.removeEventListener("visibilitychange", onShow); };
   }, [deskOn, lane]);
 
-  const waitingReply = ready && pendingItems.some(item => item.state === "sending" || item.state === "accepted");
-  const waitingReplyRef = useRef(false);
-  waitingReplyRef.current = waitingReply;
-  const showTyping = ready && (waitingReply || idleTyping);
-  useEffect(() => {
-    if (!ready) { setIdleTyping(false); return; }
-    let cancelled = false;
-    let waitTimer = 0;
-    let showTimer = 0;
-    const schedule = (first = false) => {
-      waitTimer = window.setTimeout(() => {
-        if (cancelled) return;
-        if (document.visibilityState !== "visible" || waitingReplyRef.current || Math.random() > 0.6) { schedule(); return; }
-        setIdleTyping(true);
-        showTimer = window.setTimeout(() => {
-          if (!cancelled) setIdleTyping(false);
-          schedule();
-        }, 1500 + Math.random() * 1200);
-      }, (first ? 7000 : 18000) + Math.random() * (first ? 5000 : 16000));
-    };
-    schedule(true);
-    return () => { cancelled = true; window.clearTimeout(waitTimer); window.clearTimeout(showTimer); };
-  }, [ready, active]);
-  useEffect(() => {
-    if (followBottom.current) bottom.current?.scrollIntoView({ block: "end" });
-  }, [conversation?.messages?.length, active, pendingCount, photos.photos.length, showTyping]);
-
+  const latestVisible = visibleMessages[visibleMessages.length - 1];
+  const unanswered = Boolean(ready && latestVisible?.role === "user" && latestVisible.pendingState !== "queued" && latestVisible.pendingState !== "sending" && latestVisible.pendingState !== "failed" && latestVisible.pendingState !== "uncertain");
+  unansweredRef.current = unanswered;
   const send = useCallback(async (sessionId: string, item: Pending, key: string): Promise<boolean> => {
     if (inFlight.current.has(item.requestId)) return false;
     if (!updatePending(key, items => items.map(existing => existing.requestId === item.requestId ? { ...existing, state: "sending" } : existing))) return false;
     inFlight.current.add(item.requestId);
     try {
-      await request(`/sessions/${sessionId}/messages`, { text: item.text, requestId: item.requestId });
+      await request(`/sessions/${sessionId}/messages`, {
+        text: item.text,
+        requestId: item.requestId,
+        ...(prefaceLines.current.length ? { opening: [...prefaceLines.current] } : {}),
+      });
+      retryableSends.current.delete(item.requestId);
+      const pendingTimer = retryTimers.current.get(item.requestId);
+      if (pendingTimer) window.clearTimeout(pendingTimer);
+      retryTimers.current.delete(item.requestId);
       if (updatePending(key, items => items.map(existing => existing.requestId === item.requestId ? { ...existing, state: "accepted" } : existing))) setError("");
       return true;
       // Keep the optimistic bubble until native history has the original ID.
       // A timeout never automatically resends a possibly accepted message.
     } catch (failure) {
       const code = failure && typeof failure === "object" && "code" in failure ? failure.code : undefined;
+      const codeText = typeof code === "string" ? code : undefined;
+      const attempts = sendRetries.current.get(item.requestId) || 0;
       const uncertain = !code || ["DELIVERY_UNCERTAIN", "NATIVE_ACK_TIMEOUT", "NATIVE_OFFLINE"].includes(String(code));
-      updatePending(key, items => items.map(existing => existing.requestId === item.requestId ? { ...existing, state: uncertain ? "uncertain" : "failed" } : existing));
-      setError(failure instanceof Error ? failure.message : "消息没能送达。");
+      const starting = codeText === "CONTAINER_STARTING" || codeText === "NATIVE_NOT_READY";
+      const retryable = Boolean(codeText && RETRYABLE_SEND_CODES.has(codeText) && attempts < sendAttemptLimit(codeText));
+      if (retryable && codeText) retryableSends.current.set(item.requestId, codeText);
+      else {
+        retryableSends.current.delete(item.requestId);
+        if (!uncertain) sendRetries.current.set(item.requestId, sendAttemptLimit(codeText));
+      }
+      if (retryable && starting && codeText) {
+        const pendingTimer = retryTimers.current.get(item.requestId);
+        if (pendingTimer) window.clearTimeout(pendingTimer);
+        retryTimers.current.set(item.requestId, window.setTimeout(() => {
+          retryTimers.current.delete(item.requestId);
+          if (retryableSends.current.get(item.requestId) !== codeText) return;
+          sendRetries.current.set(item.requestId, attempts + 1);
+          void send(sessionId, item, key);
+        }, nextSendRetryDelay(codeText, attempts)));
+      }
+      // A booting engine has not accepted the line. Keep it pending instead of
+      // showing a failure while the next attempt is already scheduled.
+      updatePending(key, items => items.map(existing => existing.requestId === item.requestId ? { ...existing, state: uncertain ? "uncertain" : retryable && starting ? "sending" : "failed" } : existing));
+      if (!retryable) setError(failure instanceof Error ? failure.message : "消息没能送达。");
       return false;
     } finally { inFlight.current.delete(item.requestId); }
   }, [updatePending]);
+
+  useEffect(() => {
+    if (sales || !ready || !active || !pendingKey) return;
+    const failed = pendingItems.filter(item => {
+      if (item.state !== "failed") return false;
+      const attempts = sendRetries.current.get(item.requestId) || 0;
+      if (attempts >= sendAttemptLimit(retryableSends.current.get(item.requestId))) return false;
+      return retryableSends.current.has(item.requestId) || !sendRetries.current.has(item.requestId);
+    });
+    if (!failed.length) return;
+    const delay = Math.min(...failed.map(item => nextSendRetryDelay(retryableSends.current.get(item.requestId), sendRetries.current.get(item.requestId) || 0)));
+    const timer = window.setTimeout(() => {
+      for (const item of failed) {
+        sendRetries.current.set(item.requestId, (sendRetries.current.get(item.requestId) || 0) + 1);
+        void send(active, item, pendingKey);
+      }
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [active, pendingItems, pendingKey, ready, sales, send]);
+
+  useEffect(() => () => {
+    for (const timer of retryTimers.current.values()) window.clearTimeout(timer);
+  }, []);
+
+  const nudgeAttempts = useRef(new Map<string, number>());
+  useEffect(() => {
+    if (sales || pollPaused || !ready || !active || !unanswered || !latestVisible?.id || conversation?.status === "thinking") return;
+    if (generationStillOpen(pendingItems, Date.now())) return;
+    const messageId = latestVisible.id;
+    if ((nudgeAttempts.current.get(messageId) || 0) >= 1) return;
+    const age = Date.now() - Date.parse(latestVisible.createdAt);
+    const wait = Math.max(0, REPLY_NUDGE_MS - (Number.isFinite(age) ? age : 0));
+    let cancelled = false;
+    let retryTimer: number | undefined;
+    const nudge = () => request(`/sessions/${active}/proactive`, {
+      userMessageId: messageId,
+      intent: "用户刚发的一句还没有回复。请只接这一句，按你现在的说话习惯回一条短消息，不要重复上一轮，不要质问。",
+      reason: "private_chat_reply_missing",
+      metadata: { sessionId: active, source: "xumeng-girlfriend" },
+    });
+    const timer = window.setTimeout(() => {
+      if (cancelled) return;
+      nudgeAttempts.current.set(messageId, 1);
+      void nudge().catch(() => {
+        if (cancelled) return;
+        retryTimer = window.setTimeout(() => {
+          if (cancelled || (nudgeAttempts.current.get(messageId) || 0) >= 2) return;
+          nudgeAttempts.current.set(messageId, 2);
+          void nudge().catch(() => {});
+        }, 60_000);
+      });
+    }, wait);
+    return () => { cancelled = true; window.clearTimeout(timer); window.clearTimeout(retryTimer); };
+  }, [active, conversation?.status, latestVisible?.createdAt, latestVisible?.id, pendingItems, pollPaused, ready, sales, unanswered]);
 
   useEffect(() => {
     if (!sales || !active || !ready || !pendingKey || deliveryBlocked) return;
@@ -669,7 +784,7 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
       // Refresh the transcript after the receipt read so a completed request
       // appears as a normal message instead of a stale optimistic bubble.
       const result = await request<{ session: Conversation }>(`/sessions/${sessionId}`);
-      setConversation(result.session);
+      setConversation(previous => applyCompanionSession(previous, result.session));
       setSyncError("");
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : "聊天记录暂时无法读取，请稍后再检查。");
@@ -681,26 +796,28 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
     try {
       const result = await request<{ session: Conversation }>("/sessions", { characterId: "yume", requestId: crypto.randomUUID(), style: presetStyle });
       if (intimate && health?.clientScope) rememberIntimateSession(health.clientScope, result.session.id);
-      setSessions(previous => [result.session, ...previous]);
-      followBottom.current = true;
-      setActive(result.session.id); setError(""); setMenuOpen(false);
-      composer.current?.focus();
+      setSessions([result.session]);
+      setActive(result.session.id);
+      setConversation(previous => applyCompanionSession(previous, { ...result.session, messages: result.session.messages ?? [] }));
+      setError("");
+      senderRef.current?.focus();
     } catch (failure) { setError(failure instanceof Error ? failure.message : "暂时无法开始聊天。"); }
     finally { setCreating(false); }
   }
 
   useEffect(() => {
-    if (!ready || active || sessions.length || creating || openingSales.current) return;
+    if (!sessionsKnown || !ready || active || sessions.length || creating || openingSales.current) return;
     if (health?.reason === LOGIN_REQUIRED_CODE || health?.reason === RECOVERY_REVIEW_CODE || health?.reason === PREVIEW_UNAVAILABLE_CODE) return;
     openingSales.current = true;
     void createConversation();
-  }, [active, creating, health?.reason, ready, sessions.length]);
+  }, [active, creating, health?.reason, ready, sessions.length, sessionsKnown]);
 
   async function abandonAndRebuild() {
     if (!window.confirm(`这会放弃当前异常的${name}实例并开始一段空白聊天。旧审计记录会保留，但当前聊天内容不会自动恢复。继续吗？`)) return;
     setResetting(true); setError("");
     try {
       await request("/reset", { confirmation: "discard-current-instance" });
+      if (accountId) clearPersonTranscript(accountId, lane);
       setSessions([]); setActive(null); setConversation(null); setHealth({ ready: false, reason: "starting" });
       setBoot(value => value + 1);
     } catch (failure) {
@@ -710,115 +827,126 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
 
   function queueLocally(text: string) {
     const item: Pending = { requestId: crypto.randomUUID(), text, createdAt: new Date().toISOString(), state: "queued" };
-    const next = [...readHold(lane).queued, item];
-    try { writeHold(lane, { draft: "", queued: next }); }
+    const next = [...readHold(accountId, lane).queued, item];
+    try { writeHold(accountId, lane, { draft: "", queued: next }); }
     catch { setError("这条消息暂时无法保存在本机，请保留输入内容后重试。"); return; }
     setHeld(next);
-    followBottom.current = true;
     setDraft("");
-    composer.current?.focus();
+    senderRef.current?.focus();
   }
 
-  function submit() {
+  function submit(next = draft) {
     if (health?.reason === LOGIN_REQUIRED_CODE) { onLogin?.(); return; }
-    if (!draft.trim() || deliveryBlocked || health?.reason === RECOVERY_REVIEW_CODE) {
+    if (!next.trim() || deliveryBlocked || health?.reason === RECOVERY_REVIEW_CODE) {
       if (deliveryBlocked) setError("已有消息的送达结果尚未确认，请先检查聊天记录，暂勿重复发送。");
       return;
     }
-    const text = draft.trim();
+    const text = next.trim();
     if (!active || !pendingKey) { queueLocally(text); return; }
     // While she is waking up the message waits locally; it has never left the
     // browser, so sending it later cannot duplicate a delivery.
     const item: Pending = { requestId: crypto.randomUUID(), text, createdAt: new Date().toISOString(), state: ready ? "sending" : "queued" };
     if (!updatePending(pendingKey, items => [...items, item])) return;
-    followBottom.current = true;
     setDraft("");
     if (storage) localStorage.removeItem(`${storage}:${active}:draft`);
     if (ready) void send(active, item, pendingKey);
-    composer.current?.focus();
+    senderRef.current?.focus();
   }
 
-  const busy = !ready && health?.reason !== LOGIN_REQUIRED_CODE;
-  const presence = showTyping ? "对方正在输入" : busy ? "忙碌中" : "";
-  const openingLine = cast?.situation || profile?.situation || (sales ? "她会先发一条。" : "想说的，直接发给她。");
+  useEffect(() => {
+    setLaneHasHistory(accountId ? readInbox(accountId, lane).at !== null : false);
+  }, [accountId, lane]);
+
+  if (!prefaceAnchor.current) prefaceAnchor.current = Date.now();
+  const loadedSession = active && conversation?.id === active ? conversation : null;
+  const prefaceDecision = openingPreface(
+    reservedLines,
+    active,
+    loadedSession,
+    sessionsKnown || !laneHasHistory,
+    prefaceLatch.current,
+    prefaceAnchor.current,
+    messageIsVisible,
+  );
+  prefaceLatch.current = prefaceDecision.latch;
+  prefaceLines.current = prefaceDecision.lines;
+
+  const transcriptItems = useMemo<CompanionTranscriptItem[]>(() => {
+    const items: CompanionTranscriptItem[] = [];
+    for (const message of visibleMessages) {
+      if (message.role === "user" && SALES_CUES.has((message.text || "").trim())) continue;
+      const text = stripXumengMomentTails(stripStyle(message.text || "")).trim();
+      const media = normalizeMedia(message);
+      if (!text && media.length === 0) continue;
+      const pendingItem = message.pendingState && message.requestId && typeof message.text === "string"
+        ? { requestId: message.requestId, text: message.text, createdAt: message.createdAt, state: message.pendingState } satisfies Pending
+        : null;
+      items.push({
+        id: message.id,
+        createdAt: message.createdAt,
+        kind: "message",
+        bubble: message.role === "user" ? "user" : "assistant",
+        pending: Boolean(message.pendingState && message.pendingState !== "uncertain" && message.pendingState !== "failed"),
+        content: <div>
+          {text && <p className={styles.bubbleText}>{text}</p>}
+          {media.length > 0 && <MessageMediaView items={media} />}
+          {(message.pendingState === "uncertain" || message.pendingState === "failed") && active && <small className={styles.delivery}>{message.pendingState === "uncertain"
+            ? <button type="button" disabled={!pendingItem} onClick={() => pendingKey && pendingItem && void checkDelivery(active, pendingItem, pendingKey)}>送达待确认 · 检查记录</button>
+            : <button type="button" disabled={!pendingItem} onClick={() => pendingKey && pendingItem && void send(active, pendingItem, pendingKey)}>发送失败 · 重试</button>}</small>}
+        </div>,
+      });
+    }
+    for (const photo of photos.photos) {
+      items.push({
+        id: photo.id,
+        createdAt: photo.createdAt,
+        kind: "photo",
+        bubble: "assistant",
+        content: <figure className={styles.picture}><img src={photo.url} alt={`${name}发来的照片`} /></figure>,
+      });
+    }
+    items.sort((left, right) => (Date.parse(left.createdAt) || 0) - (Date.parse(right.createdAt) || 0) || left.id.localeCompare(right.id));
+    return items;
+  }, [active, checkDelivery, name, pendingKey, photos.photos, send, visibleMessages]);
+  function rememberDraft(value: string) {
+    setDraft(value);
+    if (storage && active) localStorage.setItem(`${storage}:${active}:draft`, value);
+    else {
+      const current = readHold(accountId, lane);
+      try { writeHold(accountId, lane, { ...current, draft: value }); } catch { /* A full disk still leaves the draft on screen. */ }
+    }
+  }
+  const recovering = health?.reason === RECOVERY_REVIEW_CODE;
+  const placeholder = health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : recovering ? "重建后才能继续说" : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…");
   return <section className={styles.chat} aria-label={`与${name}聊天`}>
         <header className={styles.chatHeader}>
           {onBack && <button className={styles.mobileBack} aria-label="返回聊天列表" onClick={onBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
           </button>}
-          <div className={styles.identity}><h1>{name}</h1>{presence && <p className={styles.presence}>{presence}</p>}</div>
-          <div className={styles.menuWrap}>
-            <button type="button" className={styles.menuButton} aria-label="更多" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}>
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" strokeLinecap="round" /></svg>
-            </button>
-            {menuOpen && <><button type="button" className={styles.menuBackdrop} aria-label="关闭菜单" onClick={() => setMenuOpen(false)} /><div className={styles.menuPanel}>
-              <select className={styles.historySelect} aria-label={`选择与${name}的历史对话`} value={active || ""} disabled={!sessions.length} onChange={event => { followBottom.current = true; setActive(event.target.value); setMenuOpen(false); }}>
-                {!active && <option value="">聊天记录</option>}
-                {sessions.map(item => <option key={item.id} value={item.id}>{displayTitle(item.title, name, intimate)}</option>)}
-              </select>
-              <button type="button" className={styles.menuItem} disabled={!health?.ready || creating} onClick={() => void createConversation()}>{creating ? "正在开始…" : "新聊天"}</button>
-              {health?.reason === RECOVERY_REVIEW_CODE && <button type="button" className={styles.menuItem} disabled={resetting} onClick={() => void abandonAndRebuild()}>{resetting ? "正在重建…" : "放弃这段异常聊天"}</button>}
-            </div></>}
-          </div>
-        </header>
-        <div ref={log} className={styles.timeline} role="log" aria-label="聊天消息" aria-live="polite" onScroll={event => { const element = event.currentTarget; followBottom.current = element.scrollHeight - element.scrollTop - element.clientHeight < 90; }}>
-          <figure className={styles.coverCard}><img src={avatarUrl} alt="" /></figure>
-          {!visibleMessages.length && !photos.photos.length && <p className={styles.startNote}>{openingLine}</p>}
-            {[
-              ...visibleMessages.filter(message => !(message.role === "user" && SALES_CUES.has((message.text || "").trim()))).map(message => ({ kind: "message" as const, id: message.id, at: Date.parse(message.createdAt) || 0, message })),
-              ...photos.photos.map(photo => ({ kind: "photo" as const, id: photo.id, at: Date.parse(photo.createdAt) || 0, photo })),
-            ].sort((left, right) => left.at - right.at || left.id.localeCompare(right.id)).map((entry, index, shown) => {
-              const previous = shown[index - 1];
-              const previousAt = previous ? (previous.kind === "photo" ? previous.photo.createdAt : previous.message.createdAt) : undefined;
-              const createdAt = entry.kind === "photo" ? entry.photo.createdAt : entry.message.createdAt;
-              const stamp = companionClockVisible(createdAt, previousAt) ? companionClockLabel(createdAt) : "";
-              if (entry.kind === "photo") {
-                return <Fragment key={entry.id}>
-                  {stamp && <p className={styles.stamp}><time dateTime={createdAt}>{stamp}</time></p>}
-                  <article className={`${styles.message} ${styles.hers}`} aria-label={`${name}发来的照片`}>
-                    <span className={styles.smallAvatar} aria-hidden="true"><img src={avatarUrl} alt="" /></span>
-                    <div><figure className={styles.picture}><img src={entry.photo.url} alt={`${name}发来的照片`} /></figure></div>
-                  </article>
-                </Fragment>;
-              }
-              const message = entry.message;
-              const media = normalizeMedia(message);
-              const pendingItem = message.pendingState && message.requestId && typeof message.text === "string"
-                ? { requestId: message.requestId, text: message.text, createdAt: message.createdAt, state: message.pendingState } satisfies Pending
-                : null;
-              return <Fragment key={message.id}>
-                {stamp && <p className={styles.stamp}><time dateTime={createdAt}>{stamp}</time></p>}
-                <article className={`${styles.message} ${message.role === "user" ? styles.mine : styles.hers}${message.pendingState && message.pendingState !== "uncertain" && message.pendingState !== "failed" ? ` ${styles.pending}` : ""}`} aria-label={message.role === "user" ? "你的消息" : `${name}的回复`}>
-                  {message.role === "assistant" && <span className={styles.smallAvatar} aria-hidden="true"><img src={avatarUrl} alt="" /></span>}
-                  <div>{message.text && <p>{stripXumengMomentTails(stripStyle(message.text))}</p>}{media.length > 0 && <MessageMediaView items={media} />}{(message.pendingState === "uncertain" || message.pendingState === "failed") && active && <small className={styles.delivery}>{message.pendingState === "uncertain"
-                    ? <button disabled={!pendingItem} onClick={() => pendingKey && pendingItem && void checkDelivery(active, pendingItem, pendingKey)}>送达待确认 · 检查记录</button>
-                    : <button disabled={!pendingItem} onClick={() => pendingKey && pendingItem && void send(active, pendingItem, pendingKey)}>发送失败 · 重试</button>}</small>}</div>
-                </article>
-              </Fragment>;
-            })}
-            {showTyping && <article className={`${styles.message} ${styles.hers}`} aria-label="对方正在输入">
-              <span className={styles.smallAvatar} aria-hidden="true"><img src={avatarUrl} alt="" /></span>
-              <div><p className={styles.typingBubble}><span /><span /><span /></p></div>
-            </article>}
-            {conversation?.error && <div className={styles.error} role="alert">{conversation.error}</div>}
-          <div ref={bottom} />
-        </div>
-        {(syncError || (error && (health?.ready || Boolean(conversation?.messages?.length)))) && <div className={styles.error} role="alert">{error || syncError}<button aria-label="关闭提示" onClick={() => { setError(""); setSyncError(""); }}>×</button></div>}
-        <>
-          <div className={styles.dock}>
-            <button type="button" aria-pressed={mediaTrayOpen} onClick={() => setMediaTrayOpen(value => !value)}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="10" r="1.4" /><path d="m4 16 4.2-3.4a1 1 0 0 1 1.3.05L13 15.5l1.6-1.3a1 1 0 0 1 1.3.02L20.5 17" /></svg>
+          <div className={styles.identity}><h1>{name}</h1></div>
+          <div className={styles.headerActions}>
+            <button type="button" className={styles.headerAction} aria-pressed={mediaTrayOpen} onClick={() => setMediaTrayOpen(value => !value)}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="2" /><circle cx="9" cy="10" r="1.4" /><path d="m4 16 4.2-3.4a1 1 0 0 1 1.3.05L13 15.5l1.6-1.3a1 1 0 0 1 1.3.02L20.5 17" /></svg>
               相册
             </button>
-            <button type="button" disabled={!onCall} onClick={onCall}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 10.5v3M7.5 8v8M11 5.5v13M14.5 8v8M18 10.5v3" strokeLinecap="round" /></svg>
+            {XUMENG_CALLS_ENABLED && onCall && <button type="button" className={styles.headerAction} onClick={onCall}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><path d="M4 10.5v3M7.5 8v8M11 5.5v13M14.5 8v8M18 10.5v3" strokeLinecap="round" /></svg>
               听听
-            </button>
-            <button type="button" onClick={() => log.current?.scrollTo({ top: 0, behavior: "smooth" })}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><circle cx="12" cy="8" r="3" /><path d="M5.5 19.5c1.2-3 3.5-4.5 6.5-4.5s5.3 1.5 6.5 4.5" strokeLinecap="round" /></svg>
-              个人
-            </button>
+            </button>}
           </div>
+        </header>
+        <CompanionTranscript
+          items={transcriptItems}
+          name={name}
+          avatarUrl={avatarUrl}
+          typing={conversation?.status === "thinking" || generationStillOpen(pendingItems, Date.now())}
+          stalled={false}
+          emptyText={cast?.emptyDetail || profile?.situation || "想说的，直接发给她。"}
+          onNudge={ignoreReplyNudge}
+        />
+        {conversation?.error && <div className={styles.error} role="alert">{conversation.error}</div>}
+        {(syncError || (error && (health?.ready || Boolean(conversation?.messages?.length)))) && <div className={styles.error} role="alert">{error || syncError}<button aria-label="关闭提示" onClick={() => { setError(""); setSyncError(""); }}>×</button></div>}
+        <>
           {mediaTrayOpen && <div className={styles.mediaTray} role="status">
             <div className={styles.mediaTrayHead}><strong>相册</strong><span>按她现在的状态出一张，用封面当参考。一张 {STUDIO_STILL_CREDITS} Credit。</span></div>
             {photos.photos.length > 0 && <div className={styles.stillGrid}>{photos.photos.map(photo => <img key={photo.id} src={photo.url} alt={`${name}发来的照片`} />)}</div>}
@@ -828,17 +956,22 @@ export default function CompanionPage({ onBack, onLogin, onCall, variant = "clas
               <button type="button" onClick={() => setMediaTrayOpen(false)}>收起</button>
             </div>
           </div>}
-          <form className={styles.composer} onSubmit={event => { event.preventDefault(); submit(); }}>
-            <div className={styles.composerBox}><textarea ref={composer} aria-label="消息" placeholder={health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : health?.reason === RECOVERY_REVIEW_CODE ? "她这会儿忙" : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…")} maxLength={4000} rows={1} value={draft} disabled={health?.reason === RECOVERY_REVIEW_CODE}
-              onChange={event => {
-                setDraft(event.target.value);
-                if (storage && active) localStorage.setItem(`${storage}:${active}:draft`, event.target.value);
-                else { const current = readHold(lane); try { writeHold(lane, { ...current, draft: event.target.value }); } catch { /* A full disk still leaves the draft on screen. */ } }
-              }}
-              onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} />
-            <button className={styles.send} type="submit" disabled={health?.reason === LOGIN_REQUIRED_CODE ? false : !draft.trim() || deliveryBlocked || health?.reason === RECOVERY_REVIEW_CODE}>{health?.reason === LOGIN_REQUIRED_CODE ? "登录" : deliveryBlocked ? "待确认" : "发送"}</button></div>
-            {deliveryBlocked && <div className={styles.composerHint}><span>有一条消息的送达结果待确认，请先检查记录</span></div>}
-          </form>
+          {recovering && <div className={styles.recovery} role="status">
+            <p>{recoveryNotice(health)}</p>
+            <button type="button" disabled={resetting} onClick={() => void abandonAndRebuild()}>{resetting ? "正在重建…" : "重新开始"}</button>
+          </div>}
+          <CompanionSender
+            ref={senderRef}
+            value={draft}
+            placeholder={placeholder}
+            disabled={recovering}
+            login={health?.reason === LOGIN_REQUIRED_CODE}
+            onChange={rememberDraft}
+            onSubmit={submit}
+            onFocus={wakeContainer}
+            onLogin={onLogin}
+          />
+          {deliveryBlocked && <div className={styles.composerHint}><span>有一条消息的送达结果待确认，请先检查记录</span></div>}
         </>
       </section>;
 }

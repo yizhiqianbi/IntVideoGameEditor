@@ -1,0 +1,11 @@
+{
+  "name": "xumeng-companion-cloudflare",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "../dzmm-web/node_modules/.bin/tsc --noEmit -p tsconfig.json",
+    "test": "../dzmm-web/node_modules/.bin/tsx --test test/*.test.mts",
+    "deploy": "../dzmm-web/node_modules/.bin/wrangler deploy --config wrangler.jsonc"
+  }
+}

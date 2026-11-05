@@ -11,6 +11,7 @@ export type InboxEntry = { id: string; role: "user" | "assistant" | "photo"; tex
 export type InboxView = { preview: string; at: number | null; unread: number };
 
 const STYLE_BLOCK = /^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/;
+const OPENING_BLOCK = /\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g;
 
 export function companionLane(person: { variant: string; castId?: string }) {
   return person.variant === "cast" && person.castId ? `cast-${person.castId}` : person.variant;
@@ -29,7 +30,7 @@ export function chatListStamp(at: number, now = Date.now()): string {
 }
 
 function visibleText(value: string) {
-  return value.replace(STYLE_BLOCK, "").replace(/\s+/g, " ").trim();
+  return value.replace(STYLE_BLOCK, "").replace(OPENING_BLOCK, "").replace(/\s+/g, " ").trim();
 }
 
 /** Messages and photos in send order, with hidden sales cues left out. */
@@ -60,20 +61,82 @@ export function inboxView(entries: readonly InboxEntry[], seenId: string | null)
   return { preview: last.text, at: last.at, unread };
 }
 
-function seenKey(lane: string) {
-  return `xumeng-chat-seen:${lane}`;
+function seenKey(accountId: string, lane: string) {
+  return `xumeng-chat-seen:${accountId}:${lane}`;
 }
 
-function readJson(key: string): unknown {
+function previewKey(accountId: string, lane: string) {
+  return `xumeng-companion-preview:${accountId}:${lane}`;
+}
+
+function transcriptKey(accountId: string, lane: string, sessionId: string) {
+  return `xumeng-companion-transcript:${accountId}:${lane}:${sessionId}`;
+}
+
+function personKey(accountId: string, lane: string) {
+  return `xumeng-companion-person:${accountId}:${lane}`;
+}
+
+type BrowserStore = Pick<Storage, "getItem" | "setItem" | "removeItem" | "key" | "length">;
+
+function browserStore(store?: BrowserStore): BrowserStore | null {
+  if (store) return store;
   try {
-    return JSON.parse(localStorage.getItem(key) || "null");
+    return typeof localStorage === "undefined" ? null : localStorage;
   } catch {
     return null;
   }
 }
 
-function readPhotos(key: string): InboxSourcePhoto[] {
-  const value = readJson(key);
+const TRANSCRIPT_LIMIT = 200;
+
+export type StoredChatMessage = { id: string; role: "user" | "assistant"; text: string; createdAt: string };
+
+/** The lines worth keeping: real user and assistant text, style blocks removed, newest last. */
+export function clipCompanionTranscript(messages: readonly InboxSourceMessage[]): StoredChatMessage[] {
+  const seen = new Set<string>();
+  const cleaned: StoredChatMessage[] = [];
+  for (const message of messages) {
+    if ((message.role !== "user" && message.role !== "assistant") || !message.id || seen.has(message.id)) continue;
+    const text = visibleText(message.text || "");
+    if (!text || !Number.isFinite(Date.parse(message.createdAt))) continue;
+    seen.add(message.id);
+    cleaned.push({ id: message.id, role: message.role, text, createdAt: message.createdAt });
+  }
+  return cleaned
+    .sort((left, right) => Date.parse(left.createdAt) - Date.parse(right.createdAt) || left.id.localeCompare(right.id))
+    .slice(-TRANSCRIPT_LIMIT);
+}
+
+/** Drop browser copies that were not tied to an account. The account transcript stays. */
+export function dropUnscopedCompanionCache(lane: string) {
+  if (typeof localStorage === "undefined") return;
+  for (const key of [
+    `xumeng-companion-cache:${lane}`,
+    `xumeng-companion-hold:${lane}`,
+    `xumeng-companion-photos:${lane}`,
+    `xumeng-chat-seen:${lane}`,
+  ]) {
+    try { localStorage.removeItem(key); } catch { /* A locked store must not block the account-scoped list. */ }
+  }
+  if (lane === "qwen") {
+    try {
+      localStorage.removeItem("xumeng-qwen-transcript");
+      localStorage.removeItem("xumeng-qwen-photos");
+    } catch { /* Same as above. */ }
+  }
+}
+
+function readJson(store: BrowserStore, key: string): unknown {
+  try {
+    return JSON.parse(store.getItem(key) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function readPhotos(store: BrowserStore, key: string): InboxSourcePhoto[] {
+  const value = readJson(store, key);
   if (!Array.isArray(value)) return [];
   return value.flatMap(item => {
     if (!item || typeof item !== "object") return [];
@@ -83,48 +146,131 @@ function readPhotos(key: string): InboxSourcePhoto[] {
   });
 }
 
-function readMessages(lane: string): InboxSourceMessage[] {
-  if (lane === "qwen") {
-    const value = readJson("xumeng-qwen-transcript");
-    return Array.isArray(value) ? value as InboxSourceMessage[] : [];
+export type PersonTranscript = { sessionId: string | null; messages: StoredChatMessage[] };
+
+function parseTranscript(value: unknown): PersonTranscript {
+  if (!value || typeof value !== "object") return { sessionId: null, messages: [] };
+  const sessionId = "sessionId" in value && typeof value.sessionId === "string" ? value.sessionId : null;
+  if ("messages" in value && Array.isArray(value.messages)) return { sessionId, messages: clipCompanionTranscript(value.messages as InboxSourceMessage[]) };
+  if ("id" in value && "role" in value && "createdAt" in value) return { sessionId, messages: clipCompanionTranscript([value as InboxSourceMessage]) };
+  return { sessionId, messages: [] };
+}
+
+function combineTranscripts(groups: readonly StoredChatMessage[][]): StoredChatMessage[] {
+  const byId = new Map<string, StoredChatMessage>();
+  for (const group of groups) for (const message of group) byId.set(message.id, message);
+  return clipCompanionTranscript([...byId.values()]);
+}
+
+function legacyTranscripts(store: BrowserStore, accountId: string, lane: string): PersonTranscript[] {
+  const prefix = `xumeng-companion-transcript:${accountId}:${lane}:`;
+  const found: PersonTranscript[] = [];
+  for (let index = 0; index < store.length; index += 1) {
+    const key = store.key(index);
+    if (!key?.startsWith(prefix)) continue;
+    const parsed = parseTranscript(readJson(store, key));
+    found.push({ sessionId: parsed.sessionId || key.slice(prefix.length) || null, messages: parsed.messages });
   }
-  const value = readJson(`xumeng-companion-cache:${lane}`);
-  if (!value || typeof value !== "object" || !("conversation" in value)) return [];
-  const conversation = value.conversation;
-  if (!conversation || typeof conversation !== "object" || !("messages" in conversation) || !Array.isArray(conversation.messages)) return [];
-  return conversation.messages as InboxSourceMessage[];
+  return found;
 }
 
-export function readInboxEntries(lane: string): InboxEntry[] {
-  if (typeof localStorage === "undefined") return [];
-  const cache = lane === "qwen" ? null : readJson(`xumeng-companion-cache:${lane}`);
-  const active = cache && typeof cache === "object" && "active" in cache && typeof cache.active === "string" ? cache.active : "";
+/** One person's saved dialogue. Older session copies and the list preview fill in anything the person record does not have. */
+export function readPersonTranscript(accountId: string, lane: string, store?: BrowserStore): PersonTranscript {
+  const memory = browserStore(store);
+  if (!accountId || !memory) return { sessionId: null, messages: [] };
+  const person = parseTranscript(readJson(memory, personKey(accountId, lane)));
+  const preview = parseTranscript(readJson(memory, lane === "qwen" ? `xumeng-qwen-transcript:${accountId}` : previewKey(accountId, lane)));
+  const legacy = legacyTranscripts(memory, accountId, lane);
+  const sessionId = person.sessionId || preview.sessionId || (legacy.length === 1 ? legacy[0]?.sessionId ?? null : null);
+  return {
+    sessionId,
+    messages: combineTranscripts([legacy.flatMap(item => item.messages), preview.messages, person.messages]),
+  };
+}
+
+function readMessages(store: BrowserStore, accountId: string, lane: string): InboxSourceMessage[] {
+  return readPersonTranscript(accountId, lane, store).messages;
+}
+
+export function readInboxEntries(accountId: string, lane: string, store?: BrowserStore): InboxEntry[] {
+  const memory = browserStore(store);
+  if (!accountId || !memory) return [];
   const photos = [
-    ...readPhotos(`xumeng-companion-photos:${lane}`),
-    ...(active ? readPhotos(`xumeng-companion-cache:${lane}:${active}:photos`) : []),
-    ...(lane === "qwen" ? readPhotos("xumeng-qwen-photos") : []),
+    ...readPhotos(memory, `xumeng-companion-photos:${accountId}:${lane}`),
+    ...(lane === "qwen" ? readPhotos(memory, `xumeng-qwen-photos:${accountId}`) : []),
   ];
-  return inboxEntries(readMessages(lane), photos);
+  return inboxEntries(readMessages(memory, accountId, lane), photos);
 }
 
-export function readInbox(lane: string): InboxView {
-  if (typeof localStorage === "undefined") return { preview: "", at: null, unread: 0 };
+export function readInbox(accountId: string, lane: string): InboxView {
+  if (!accountId || typeof localStorage === "undefined") return { preview: "", at: null, unread: 0 };
   let seen: string | null = null;
-  try { seen = localStorage.getItem(seenKey(lane)); } catch { /* Private mode keeps the list usable. */ }
-  return inboxView(readInboxEntries(lane), seen);
+  try { seen = localStorage.getItem(seenKey(accountId, lane)); } catch { /* Private mode keeps the list usable. */ }
+  return inboxView(readInboxEntries(accountId, lane), seen);
 }
 
 function notifyInbox() {
   if (typeof window !== "undefined") window.dispatchEvent(new Event(CHAT_INBOX_EVENT));
 }
 
+export function readCompanionTranscript(accountId: string, lane: string, sessionId: string, store?: BrowserStore): StoredChatMessage[] {
+  const memory = browserStore(store);
+  if (!accountId || !sessionId || !memory) return [];
+  return parseTranscript(readJson(memory, transcriptKey(accountId, lane, sessionId))).messages;
+}
+
+/** Write this person's dialogue, and point the list at that same record. */
+export function publishCompanionTranscript(accountId: string, lane: string, sessionId: string, messages: readonly InboxSourceMessage[], store?: BrowserStore) {
+  const memory = browserStore(store);
+  if (!accountId || !sessionId || !memory) return;
+  const cleaned = clipCompanionTranscript(messages);
+  if (!cleaned.length) return;
+  const payload = JSON.stringify({ sessionId, messages: cleaned });
+  let changed = false;
+  try {
+    for (const key of [personKey(accountId, lane), transcriptKey(accountId, lane, sessionId), previewKey(accountId, lane)]) {
+      if (memory.getItem(key) !== payload) { memory.setItem(key, payload); changed = true; }
+    }
+    if (changed) dropUnscopedCompanionCache(lane);
+  } catch { /* A full disk must not block the open transcript. */ }
+  if (changed) notifyInbox();
+  markChatSeen(accountId, lane);
+}
+
+/** Drop one person's saved dialogue after she explicitly starts a blank chat. */
+export function clearPersonTranscript(accountId: string, lane: string, store?: BrowserStore) {
+  const memory = browserStore(store);
+  if (!accountId || !memory) return;
+  const prefix = `xumeng-companion-transcript:${accountId}:${lane}:`;
+  const doomed = [personKey(accountId, lane), previewKey(accountId, lane)];
+  for (let index = 0; index < memory.length; index += 1) {
+    const key = memory.key(index);
+    if (key?.startsWith(prefix)) doomed.push(key);
+  }
+  try {
+    for (const key of doomed) memory.removeItem(key);
+  } catch { /* A locked store still leaves the blank chat on screen. */ }
+  notifyInbox();
+}
+
+export function publishCompanionPreview(accountId: string, lane: string, message: InboxSourceMessage) {
+  if (!accountId || typeof localStorage === "undefined" || !message.id || !message.createdAt) return;
+  try {
+    localStorage.setItem(previewKey(accountId, lane), JSON.stringify({
+      id: message.id, role: message.role, text: message.text || "", createdAt: message.createdAt,
+    }));
+    dropUnscopedCompanionCache(lane);
+  } catch { /* A full disk must not block the open transcript. */ }
+  markChatSeen(accountId, lane);
+}
+
 /** Remember the latest line so older history does not light up as unread. */
-export function baselineChatSeen(lane: string) {
-  if (typeof localStorage === "undefined") return false;
-  const key = seenKey(lane);
+export function baselineChatSeen(accountId: string, lane: string) {
+  if (!accountId || typeof localStorage === "undefined") return false;
+  const key = seenKey(accountId, lane);
   try {
     if (localStorage.getItem(key)) return false;
-    const last = readInboxEntries(lane).at(-1);
+    const last = readInboxEntries(accountId, lane).at(-1);
     if (!last) return false;
     localStorage.setItem(key, last.id);
     return true;
@@ -134,28 +280,29 @@ export function baselineChatSeen(lane: string) {
 }
 
 /** The open chat has been looked at, so its new lines are not unread. */
-export function markChatSeen(lane: string) {
-  if (typeof localStorage === "undefined") return;
-  const last = readInboxEntries(lane).at(-1);
+export function markChatSeen(accountId: string | undefined, lane: string) {
+  if (!accountId || typeof localStorage === "undefined") return;
+  const last = readInboxEntries(accountId, lane).at(-1);
   if (!last) return;
   try {
-    if (localStorage.getItem(seenKey(lane)) === last.id) return;
-    localStorage.setItem(seenKey(lane), last.id);
+    if (localStorage.getItem(seenKey(accountId, lane)) === last.id) return;
+    localStorage.setItem(seenKey(accountId, lane), last.id);
   } catch { return; }
   notifyInbox();
 }
 
-export function publishQwenTranscript(messages: readonly InboxSourceMessage[]) {
-  if (typeof localStorage === "undefined") return;
+export function publishQwenTranscript(accountId: string | undefined, messages: readonly InboxSourceMessage[]) {
+  if (!accountId || typeof localStorage === "undefined") return;
+  const cleaned = clipCompanionTranscript(messages);
   try {
-    localStorage.setItem("xumeng-qwen-transcript", JSON.stringify(messages.map(message => ({
-      id: message.id, role: message.role, text: message.text || "", createdAt: message.createdAt,
-    }))));
+    localStorage.removeItem("xumeng-qwen-transcript");
+    if (!cleaned.length) localStorage.removeItem(`xumeng-qwen-transcript:${accountId}`);
+    else localStorage.setItem(`xumeng-qwen-transcript:${accountId}`, JSON.stringify({ sessionId: "qwen", messages: cleaned }));
   } catch { /* A full disk must not block the open transcript. */ }
-  markChatSeen("qwen");
+  if (cleaned.length) markChatSeen(accountId, "qwen");
 }
 
-export function useCompanionInbox(lanes: readonly string[]) {
+export function useCompanionInbox(lanes: readonly string[], accountId: string | null) {
   const [version, setVersion] = useState(0);
   const key = lanes.join("\0");
   useEffect(() => {
@@ -168,12 +315,16 @@ export function useCompanionInbox(lanes: readonly string[]) {
     };
   }, []);
   useEffect(() => {
+    for (const lane of key.split("\0").filter(Boolean)) dropUnscopedCompanionCache(lane);
+  }, [key]);
+  useEffect(() => {
+    if (!accountId) return;
     const names = key.split("\0").filter(Boolean);
-    if (names.some(lane => baselineChatSeen(lane))) setVersion(current => current + 1);
-  }, [key, version]);
+    if (names.some(lane => baselineChatSeen(accountId, lane))) setVersion(current => current + 1);
+  }, [accountId, key, version]);
   return useMemo(() => {
     const views = new Map<string, InboxView>();
-    for (const lane of key.split("\0").filter(Boolean)) views.set(lane, readInbox(lane));
+    for (const lane of key.split("\0").filter(Boolean)) views.set(lane, accountId ? readInbox(accountId, lane) : { preview: "", at: null, unread: 0 });
     return views;
-  }, [key, version]);
+  }, [accountId, key, version]);
 }

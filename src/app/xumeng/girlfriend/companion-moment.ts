@@ -1,9 +1,10 @@
 import { currentXumengMomentStatus, stripXumengMomentTails } from "../../../lib/xumeng-moment-status";
 
 const STYLE = /^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/;
+const OPENING = /\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g;
 
 function clean(value: string) {
-  return value.replace(STYLE, "").replace(/\s+/g, " ").trim();
+  return value.replace(STYLE, "").replace(OPENING, "").replace(/\s+/g, " ").trim();
 }
 
 /** A still is drawn from her reported moment, otherwise from the latest reply or her current situation. */

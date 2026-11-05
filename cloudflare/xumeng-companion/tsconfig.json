@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "typeRoots": ["../dzmm-web/node_modules/@types", "../dzmm-web/node_modules/@cloudflare"],
+    "types": ["workers-types", "node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.mts"],
+  "exclude": ["node_modules", ".wrangler", "dist", "container"]
+}

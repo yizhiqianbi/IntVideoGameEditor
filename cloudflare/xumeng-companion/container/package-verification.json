@@ -1,0 +1,13 @@
+{
+  "context": "/private/tmp/xumeng-companion-build-context-final-r5-20261018",
+  "fileCount": 785,
+  "pythonFilesParsed": 603,
+  "manifestSha256": "bb1ca6759f8f6a60836830a056a09837e9756f92a4b2306cb18b6939cb376148",
+  "runtimeSha256": {
+    "control.mjs": "ee1f4cd3335b96df4779ecc3858a9c41abc90debecd3f698470d614c92d52f62",
+    "lifecycle.mjs": "b61a49056ddff4e281aa095dee7dc8746b921b33f9f343bbd33e66f24dfdc24e",
+    "archive.py": "2aff7d1dfe8f8d4ceebc253a0fa9db42954c9f28cc424549a0b675cc8503f519",
+    "prepare-instance.py": "b2bb126ffd10e1f32493102174f225acce0d0339cc3a5f6c8584a7c0f8e1ea55"
+  },
+  "prepareContextSha256": "ae4127a6c7d1322d73b4571efd87fc0b4aa74f6f53f215fff97fc219a6302394"
+}
