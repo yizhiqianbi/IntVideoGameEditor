@@ -34,7 +34,7 @@ export function buildCompanionThreadRows(
   return rows;
 }
 
-type SessionMessage = { id: string; role?: string; text?: string };
+type SessionMessage = { id: string; role?: string; text?: string; createdAt?: string; requestId?: string; media?: unknown };
 type SessionReceipt = { requestId: string; status: string; confirmed?: boolean };
 type SessionSnapshot = {
   id: string;
@@ -100,7 +100,7 @@ function sameSnapshot(previous: SessionSnapshot, next: SessionSnapshot) {
   for (let index = 0; index < previousMessages.length; index += 1) {
     const left = previousMessages[index];
     const right = nextMessages[index];
-    if (!left || !right || left.id !== right.id || left.role !== right.role || left.text !== right.text) return false;
+    if (!left || !right || left.id !== right.id || left.role !== right.role || left.text !== right.text || mediaKey(left) !== mediaKey(right)) return false;
   }
   const previousReceipts = previous.receipts ?? [];
   const nextReceipts = next.receipts ?? [];
@@ -113,12 +113,63 @@ function sameSnapshot(previous: SessionSnapshot, next: SessionSnapshot) {
   return true;
 }
 
-type MergeMessage = { id: string; createdAt?: string; requestId?: string };
+type MergeMessage = { id: string; role?: string; text?: string; createdAt?: string; requestId?: string; media?: unknown };
+
+/** A second copy of the same line, written when a chat is reopened, lands within this window. */
+export const COMPANION_UTTERANCE_WINDOW_MS = 8_000;
+export const COMPANION_MEDIA_PLACEHOLDER = /^\[(?:表情包|表情|图片|照片|语音)(?:\s*x\d+)?\]$/;
+
+type Utterance = { role?: string; text?: string; createdAt?: string; requestId?: string; media?: unknown };
+
+export function companionLine(value: string | undefined) {
+  return (value || "").replace(/\s+/g, " ").trim();
+}
+
+function mediaKey(message: { media?: unknown }) {
+  return JSON.stringify(Array.isArray(message.media) ? message.media : []);
+}
+
+function mediaScore(media: unknown) {
+  if (!Array.isArray(media)) return 0;
+  return media.reduce((score, item) => {
+    if (!item || typeof item !== "object") return score;
+    const url = "url" in item && typeof item.url === "string" ? item.url : "";
+    if (!url || url.startsWith("blob:")) return score + (url ? 0 : 1);
+    return score + 2;
+  }, 0);
+}
+
+function keptMedia(existing: MergeMessage, incoming: MergeMessage): unknown[] | undefined {
+  const incomingMedia = Array.isArray(incoming.media) ? incoming.media : [];
+  const existingMedia = Array.isArray(existing.media) ? existing.media : [];
+  const incomingScore = mediaScore(incomingMedia);
+  const existingScore = mediaScore(existingMedia);
+  const chosen = incomingScore > existingScore || (incomingScore === existingScore && incomingMedia.length > 0) ? incomingMedia : existingMedia;
+  return chosen.length ? chosen : undefined;
+}
+
+/** Same words said again much later stay. A copy made by reopening the chat does not. Two different sends from the user stay. */
+export function sameCompanionUtterance(left: Utterance, right: Utterance) {
+  if (!left.role || left.role !== right.role) return false;
+  const leftAt = Date.parse(left.createdAt || "");
+  const rightAt = Date.parse(right.createdAt || "");
+  if (!Number.isFinite(leftAt) || !Number.isFinite(rightAt) || Math.abs(leftAt - rightAt) > COMPANION_UTTERANCE_WINDOW_MS) return false;
+  if (left.role === "user" && left.requestId && right.requestId && left.requestId !== right.requestId) return false;
+  const leftText = companionLine(left.text);
+  const rightText = companionLine(right.text);
+  if (leftText && rightText && leftText === rightText) return true;
+  const leftMedia = Array.isArray(left.media) && left.media.length > 0;
+  const rightMedia = Array.isArray(right.media) && right.media.length > 0;
+  const leftBlank = !leftText || COMPANION_MEDIA_PLACEHOLDER.test(leftText);
+  const rightBlank = !rightText || COMPANION_MEDIA_PLACEHOLDER.test(rightText);
+  return (leftBlank && !leftMedia && rightMedia) || (rightBlank && !rightMedia && leftMedia);
+}
 
 function sameTranscriptMessage(left: MergeMessage, right: MergeMessage) {
   return left.id === right.id
     || Boolean(left.requestId && (left.requestId === right.requestId || left.requestId === right.id))
-    || Boolean(right.requestId && (right.requestId === left.requestId || right.requestId === left.id));
+    || Boolean(right.requestId && (right.requestId === left.requestId || right.requestId === left.id))
+    || sameCompanionUtterance(left, right);
 }
 
 /** Local lines stay until the cloud copy of the same send arrives. The cloud copy then replaces the local one. */
@@ -127,7 +178,23 @@ export function mergeCompanionMessages<T extends MergeMessage>(current: readonly
   const place = (item: T, preferIncoming: boolean) => {
     const index = merged.findIndex(existing => sameTranscriptMessage(existing, item));
     if (index < 0) merged.push(item);
-    else if (preferIncoming) merged[index] = { ...merged[index], ...item, requestId: item.requestId || merged[index].requestId };
+    else if (preferIncoming) {
+      const media = keptMedia(merged[index], item);
+      const text = companionLine(item.text) ? item.text : merged[index].text;
+      const rest = { ...item };
+      delete rest.media;
+      const next = { ...merged[index], ...rest, ...(text ? { text } : {}), requestId: item.requestId || merged[index].requestId };
+      if (media) next.media = media;
+      else delete next.media;
+      merged[index] = next;
+    } else {
+      const media = keptMedia(merged[index], item);
+      const text = companionLine(merged[index].text) ? merged[index].text : item.text;
+      if (!media && !text) return;
+      const next = { ...merged[index], ...(text ? { text } : {}) };
+      if (media) next.media = media;
+      merged[index] = next;
+    }
   };
   for (const item of current) place(item, false);
   for (const item of incoming) place(item, true);

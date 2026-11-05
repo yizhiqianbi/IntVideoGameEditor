@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import styles from "./companion.module.css";
 import { CompanionSender, CompanionTranscript, type CompanionSenderHandle, type CompanionTranscriptItem } from "./companion-thread";
-import { applyCompanionSession, mergeCompanionMessages, openingPreface, pickCompanionSession, type PrefaceLatch } from "./companion-thread-items";
+import { applyCompanionSession, COMPANION_MEDIA_PLACEHOLDER, mergeCompanionMessages, openingPreface, pickCompanionSession, type PrefaceLatch } from "./companion-thread-items";
 import { CLASSIC_LINES, CLASSIC_STYLE, type CompanionStyle } from "./companion-style";
 import { INTIMATE_LINES, INTIMATE_STYLE } from "./intimate-style";
 import { clearPersonTranscript, dropUnscopedCompanionCache, markChatSeen, publishCompanionTranscript, readInbox, readPersonTranscript } from "./companion-inbox";
@@ -191,20 +191,20 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
   const mediaId = `${item.kind}:${item.url || item.text || index}`;
   const audio = useRef<HTMLAudioElement>(null);
   const [failed, setFailed] = useState(false);
-  if (item.kind === "emoji" && !item.url) {
-    return <span className={styles.emoji} role="img" aria-label={item.label || "表情"}>{item.text || "🙂"}</span>;
+  if (item.kind === "emoji" && (!item.url || failed) && item.text) {
+    return <span className={styles.emoji} role="img" aria-label={item.label || "表情"}>{item.text}</span>;
   }
   if (!item.url || failed) {
     return <span className={styles.mediaUnavailable} role="status">{item.kind === "audio" ? "语音暂时无法播放" : item.kind === "image" ? "图片暂时无法显示" : "表情暂时无法显示"}</span>;
   }
   if (item.kind === "image") {
     return <figure className={styles.picture}>
-      <img src={item.url} alt={item.alt || item.label || "她发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} />
+      <img src={item.url} alt={item.alt || item.label || "她发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); }} />
       {item.label && <figcaption>{item.label}</figcaption>}
     </figure>;
   }
   if (item.kind === "emoji") {
-    return <span className={styles.sticker}><img src={item.url} alt={item.alt || item.label || "表情包"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} /></span>;
+    return <span className={styles.sticker}><img src={item.url} alt={item.alt || item.label || item.text || "表情包"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); }} /></span>;
   }
   return <div className={styles.voice}>
     <div className={styles.voiceTitle}><span aria-hidden="true">♫</span><span>{item.label || "她的语音"}</span></div>
@@ -584,11 +584,19 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
 
   useEffect(() => {
     if (!accountId || !active) return;
-    publishCompanionTranscript(accountId, lane, active, visibleMessages.flatMap(message => (
-      message.id && message.createdAt && (message.role === "user" || message.role === "assistant") && message.text?.trim()
-        ? [{ id: message.id, role: message.role, text: message.text, createdAt: message.createdAt }]
-        : []
-    )));
+    publishCompanionTranscript(accountId, lane, active, visibleMessages.flatMap(message => {
+      if (!message.id || !message.createdAt || (message.role !== "user" && message.role !== "assistant")) return [];
+      const media = normalizeMedia(message);
+      if (!message.text?.trim() && !media.length) return [];
+      return [{
+        id: message.id,
+        role: message.role,
+        text: message.text || "",
+        createdAt: message.createdAt,
+        ...(message.requestId ? { requestId: message.requestId } : {}),
+        ...(media.length ? { media } : {}),
+      }];
+    }));
   }, [accountId, active, lane, visibleMessages]);
 
   const lanePhotoKey = accountId ? `xumeng-companion-photos:${accountId}:${lane}` : `xumeng-companion-photos:unsigned:${lane}`;
@@ -877,7 +885,8 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
       if (message.role === "user" && SALES_CUES.has((message.text || "").trim())) continue;
       const text = stripXumengMomentTails(stripStyle(message.text || "")).trim();
       const media = normalizeMedia(message);
-      if (!text && media.length === 0) continue;
+      const spoken = media.length > 0 && COMPANION_MEDIA_PLACEHOLDER.test(text) ? "" : text;
+      if (!spoken && media.length === 0) continue;
       const pendingItem = message.pendingState && message.requestId && typeof message.text === "string"
         ? { requestId: message.requestId, text: message.text, createdAt: message.createdAt, state: message.pendingState } satisfies Pending
         : null;
@@ -888,7 +897,7 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
         bubble: message.role === "user" ? "user" : "assistant",
         pending: Boolean(message.pendingState && message.pendingState !== "uncertain" && message.pendingState !== "failed"),
         content: <div>
-          {text && <p className={styles.bubbleText}>{text}</p>}
+          {spoken && <p className={styles.bubbleText}>{spoken}</p>}
           {media.length > 0 && <MessageMediaView items={media} />}
           {(message.pendingState === "uncertain" || message.pendingState === "failed") && active && <small className={styles.delivery}>{message.pendingState === "uncertain"
             ? <button type="button" disabled={!pendingItem} onClick={() => pendingKey && pendingItem && void checkDelivery(active, pendingItem, pendingKey)}>送达待确认 · 检查记录</button>

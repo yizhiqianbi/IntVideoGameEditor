@@ -103,6 +103,28 @@ test("a new cloud session keeps the cached lines and lets the cloud copy replace
   assert.equal(covered.messages?.[0]?.text, "今晚先坐近一点。");
 });
 
+test("reopening the chat collapses a copied line and keeps the voice that arrived with it", () => {
+  const at = later;
+  const local = { id: "a", role: "assistant" as const, text: "坏老公，人家哪有没理你呀", createdAt: at };
+  const copy = { id: "b", role: "assistant" as const, text: "坏老公，人家哪有没理你呀", createdAt: at };
+  assert.deepEqual(mergeCompanionMessages([local, copy], []).map(item => item.id), ["a"]);
+  const again = { id: "c", role: "assistant" as const, text: "坏老公，人家哪有没理你呀", createdAt: new Date(Date.parse(at) + 10 * 60_000).toISOString() };
+  assert.deepEqual(mergeCompanionMessages([local], [again]).map(item => item.id), ["a", "c"]);
+  const voice = { id: "v", role: "assistant" as const, text: "[语音]", createdAt: at, media: [{ kind: "audio", url: "https://cdn.example/voice.mp3", mimeType: "audio/mpeg" }] };
+  const placeholder = { id: "p", role: "assistant" as const, text: "[语音]", createdAt: at };
+  const folded = mergeCompanionMessages([placeholder], [voice]);
+  assert.equal(folded.length, 1);
+  assert.equal(folded[0]?.media?.[0]?.url, "https://cdn.example/voice.mp3");
+  const kept = applyCompanionSession(
+    { id: "chat", status: "idle", messages: [voice] },
+    { id: "chat", status: "idle", messages: [{ id: "v", role: "assistant", text: "", createdAt: at }] },
+  );
+  assert.equal(kept.messages?.[0]?.media?.[0]?.url, "https://cdn.example/voice.mp3");
+  const first = { id: "r1", role: "user" as const, text: "嗯", createdAt: at, requestId: "r1" };
+  const second = { id: "r2", role: "user" as const, text: "嗯", createdAt: new Date(Date.parse(at) + 2_000).toISOString(), requestId: "r2" };
+  assert.deepEqual(mergeCompanionMessages([first], [second]).map(item => item.id), ["r1", "r2"]);
+});
+
 test("a shorter refresh keeps messages already on screen and skips an identical read", () => {
   const previous = { id: "chat", status: "idle", messages: [{ id: "a", role: "user", text: "嗯" }, { id: "b", role: "assistant", text: "在" }] };
   const identical = applyCompanionSession(previous, { ...previous, messages: [...previous.messages] });
