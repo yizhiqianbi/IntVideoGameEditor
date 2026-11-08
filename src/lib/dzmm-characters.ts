@@ -7,6 +7,7 @@ import { compileDzmmPrivateWorldBook, type DzmmCharacterAuthoringDraft } from ".
 import { XUMENG_EXPORTED_SHELF_RECORDS, XUMENG_USER_PROVIDED_SHELF_RECORDS, readXumengCardProvenance } from "./xumeng-card-shelf";
 import { xumengHomepageStat } from "./xumeng-homepage-stats";
 import { fillCustomShelfTags } from "./xumeng-shelf-tags";
+import { XUMENG_DEFAULT_SPEECH_VOICE } from "./xumeng-voices";
 import retiredCards from "./xumeng-retired-cards.json";
 
 export const DEFAULT_DZMM_CHARACTER_COVER = "/dzmm/brand/xumeng-character-placeholder.svg";
@@ -501,6 +502,9 @@ export function parseCharacterImport(input: unknown, id?: string): Character {
     createdAt: new Date().toISOString(),
     ...parseDzmmCharacterContext(card),
   };
+  // An uploaded card that never picked a voice still gets the tavern default,
+  // so the new character can speak as soon as it is created.
+  if (!character.speechVoice) character.speechVoice = XUMENG_DEFAULT_SPEECH_VOICE;
   if (new TextEncoder().encode(exportCharacterJson(character)).byteLength > IMPORT_MAX_LENGTH) throw new Error("角色卡总量不能超过 5 MB，请减少扩展设定。");
   return character;
 }

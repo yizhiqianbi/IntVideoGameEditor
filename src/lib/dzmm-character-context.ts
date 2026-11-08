@@ -1,5 +1,5 @@
 import { projectDzmmOpeningMessage, splitDzmmCharacterPresentation } from "./dzmm-character-presentation";
-import { getXumengSpeechVoice, type XumengSpeechVoiceId } from "./xumeng-voices";
+import { getXumengSpeechVoice, XUMENG_DEFAULT_SPEECH_VOICE, type XumengSpeechVoiceId } from "./xumeng-voices";
 import { parseXumengInteractionTemplate, type XumengInteractionTemplate } from "./xumeng-interaction-panels";
 
 export type DzmmOpeningMessage = { role: "user" | "assistant"; content: string };
@@ -169,10 +169,11 @@ export function parseDzmmCharacterContext(value: Record<string, unknown>): DzmmC
   if (typeof interactionSettings === "string" && interactionSettings.trim()) context.interactionSettings = text(interactionSettings, "互动设置", 8000);
   const sourceChannel = supplied(value, "sourceChannel", "source_channel");
   if (typeof sourceChannel === "string" && sourceChannel.trim()) context.sourceChannel = text(sourceChannel, "来源渠道", 40);
+  // A card may name no voice, or a voice from a catalog we do not ship. Store
+  // the tavern default instead of rejecting the card over an unusable voice.
   if (value.speechVoice !== undefined) {
     const voice = getXumengSpeechVoice(value.speechVoice);
-    if (!voice) throw new Error("角色声优无效，请重新选择。");
-    context.speechVoice = voice.id;
+    context.speechVoice = voice ? voice.id : XUMENG_DEFAULT_SPEECH_VOICE;
   }
   if (new TextEncoder().encode(JSON.stringify(context)).byteLength > DZMM_CHARACTER_CARD_MAX_BYTES) throw new Error("角色扩展设定总量不能超过 5 MB。");
   return context;
