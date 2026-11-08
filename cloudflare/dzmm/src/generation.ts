@@ -4,8 +4,9 @@ import type { Env, UserRecord } from './types';
 import { findReference, handleGenerationReferences, referenceDataUrl, referenceSnapshot } from './generation-references';
 import { handleStudioStillBilling } from './studio-still-billing';
 import { handleCanvasGenerationBilling } from './canvas-generation-billing';
+import { generateSeedreamFlash } from '../../../src/lib/xumeng-seedream';
 import { GENERATION_MODELS, OPENROUTER_ORIGIN, ProviderRejected, assetType, boundedBytes, freezeGenerationPolicy,
-  generationCharge, generationFx, imageBytes, providerCost, providerJson, readGenerationPolicy,
+  generationCharge, generationFx, providerCost, providerJson, readGenerationPolicy,
   type FrozenGenerationPolicy, type GenerationFetch, type GenerationKind, type GenerationModel } from './generation-provider';
 
 type GenerationEnv=Env&{GENERATION_ENABLED?:string;GENERATION_OPENROUTER_API_KEY?:string;GENERATION_USD_TO_CNY?:string};
@@ -126,9 +127,13 @@ async function create(request:Request,env:GenerationEnv,user:UserRecord,now:numb
       if(parsed.kind==='image')payload.input_references=[{type:'image_url',image_url:{url:parsed.referenceDataUrl}}];
       else payload.frame_images=[{type:'image_url',image_url:{url:parsed.referenceDataUrl},frame_type:'first_frame'}];
     }
-    const output=await providerJson(fetcher,env.GENERATION_OPENROUTER_API_KEY!,parsed.kind==='image'?'images':'videos',payload);
-    if(parsed.kind==='image')await save(env,row,await imageBytes(output,fetcher),providerCost(output),now);
-    else{
+    if(parsed.kind==='image'){
+      const apiKey=env.WHATSTOKEN_API_KEY?.trim();
+      if(!apiKey)throw new Error('Image provider is not configured');
+      const still=await generateSeedreamFlash({apiKey,prompt:parsed.prompt,image:parsed.referenceDataUrl,ratio:parsed.aspectRatio,fetchImpl:fetcher});
+      await save(env,row,still.bytes,undefined,now);
+    }else{
+      const output=await providerJson(fetcher,env.GENERATION_OPENROUTER_API_KEY!, 'videos',payload);
       const providerId=output.id;if(typeof providerId!=='string'||!/^[A-Za-z0-9_-]{1,200}$/.test(providerId))throw new Error('Invalid provider video id');
       await env.DB.prepare(`UPDATE generation_jobs SET provider_job_id=?,status='processing',updated_at=MAX(updated_at,?) WHERE id=? AND user_id=? AND processing_token=? AND finalized_at IS NULL`)
         .bind(providerId,now,row.id,user.id,token).run();

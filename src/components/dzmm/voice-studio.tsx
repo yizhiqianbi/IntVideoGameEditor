@@ -134,7 +134,7 @@ function VoiceStudioSession({ userId, isGuest, characters, initialCharacter, onR
         <div className={s.fieldHead}><label htmlFor="voice-text">朗读台词</label><span className={chars > 800 ? s.overLimit : ""}>{chars} / 800 字</span></div>
         <textarea id="voice-text" value={text} onChange={event => setText(event.target.value)} disabled={busy} rows={12} placeholder="输入人物要说的话，只会朗读这里的正文。" aria-describedby="voice-text-help" />
         <p className={s.help} id="voice-text-help">可编辑载入的台词。超过 800 字时请分段；链接和排版标记会在朗读时省略。</p>
-        <div className={s.actions}><button className={s.primary} type="submit" disabled={busy || (!canGenerate && Boolean(userId && !isGuest))}>{busy ? "正在生成朗读…" : !userId || isGuest ? "登录后生成朗读" : "生成朗读"}</button>
+        <div className={s.actions}><button className={s.primary} type="submit" disabled={busy || (!canGenerate && Boolean(userId && !isGuest))}>{busy ? "正在生成朗读…" : !userId || isGuest ? "登录后生成朗读" : "生成朗读 · 20 Credit"}</button>
           <button type="button" className={s.secondary} disabled={busy || loading || !userId || isGuest} onClick={() => { setLoading(true); setError(""); void refresh().catch(failure => { if (mounted.current) setError(message(failure)); }).finally(() => { if (mounted.current) setLoading(false); }); }}>刷新状态</button>
           <span>相同人物、台词与音色复用已有音频</span></div></form>
         <section className={s.output} aria-labelledby="voice-result-title"><h2 id="voice-result-title">朗读结果</h2>

@@ -1,0 +1,62 @@
+.studio {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  padding: 18px 16px 32px;
+  color: inherit;
+}
+.header, .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.header h1, .copy h2, .persona h2 { margin: 0; font-size: 22px; }
+.eyebrow, .status, .copy p, .persona p { margin: 4px 0 0; color: var(--muted, #9a9088); font-size: 13px; }
+.actions, .photoActions { display: flex; gap: 8px; flex-wrap: wrap; }
+.actions button, .photoActions button, .card button, .quiet {
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 14px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 18%, transparent);
+  cursor: pointer;
+}
+.primary { background: #ed1763; color: white; box-shadow: none; }
+.back { width: 36px; height: 36px; padding: 0; }
+.layout { display: grid; grid-template-columns: minmax(220px, 320px) minmax(0, 1fr); gap: 18px; margin-top: 18px; }
+.photos, .persona, .library { border-radius: 18px; padding: 14px; background: color-mix(in srgb, currentColor 4%, transparent); }
+.cover { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 16px; background: #2a2420; }
+.coverEmpty { display: grid; place-items: center; color: var(--muted, #9a9088); }
+.album { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+.album figure { position: relative; margin: 0; }
+.album img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 10px; }
+.album button { position: absolute; top: 4px; right: 4px; width: 22px; height: 22px; padding: 0; border-radius: 50%; background: rgba(0, 0, 0, .55); color: white; box-shadow: none; }
+.fields { display: grid; gap: 10px; margin-top: 12px; }
+.fields label { display: grid; gap: 6px; font-size: 13px; }
+.fields input, .fields textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: color-mix(in srgb, Canvas 88%, transparent);
+  color: inherit;
+  font: inherit;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 14%, transparent);
+}
+.fields textarea { min-height: 74px; resize: vertical; }
+.fields small { color: var(--muted, #9a9088); }
+.split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.error, .notice { margin: 12px 0 0; }
+.error { color: #d64545; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-top: 16px; }
+.card { display: grid; gap: 8px; text-align: left; }
+.card img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; border-radius: 16px; }
+.card strong, .card span { display: block; }
+.card span { color: var(--muted, #9a9088); font-size: 13px; }
+@media (max-width: 800px) {
+  .layout, .split { grid-template-columns: 1fr; }
+}

@@ -54,7 +54,7 @@ export async function requestKrea2Still(input: Krea2StillRequest, signal?: Abort
     body: JSON.stringify({ templateId: input.templateId, prompt: input.prompt, image: input.image, style: input.style ?? "photo" }),
     signal,
   });
-  if (!response.ok || !response.headers.get("Content-Type")?.includes("image/png")) {
+  if (!response.ok || !response.headers.get("Content-Type")?.startsWith("image/")) {
     const payload = await response.json().catch(() => null) as { error?: unknown } | null;
     throw new Error(typeof payload?.error === "string" ? payload.error : "出图没有完成。");
   }

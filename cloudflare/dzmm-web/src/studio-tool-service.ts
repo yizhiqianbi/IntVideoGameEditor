@@ -1,5 +1,5 @@
 import { WorkerEntrypoint } from "cloudflare:workers";
-import { renderKrea2Still } from "../../../src/lib/xumeng-krea2-bridge";
+import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { writeCanvasAgent, type CanvasAgentNode } from "./canvas-agent";
 import { writeGeminiImagePrompt } from "./gemini-image-prompt";
 import { h3CanvasSize, runH3CanvasVideo } from "./h3-r2v";
@@ -22,6 +22,7 @@ interface StudioToolEnv {
   SEALION_BASE_URL?: string;
   GLM_API_KEY?: string;
   GLM_BASE_URL?: string;
+  WHATSTOKEN_API_KEY?: string;
 }
 
 /** Internal tool entrypoint. Public HTTP on xumengchat.top does not reach this class. */
@@ -41,13 +42,14 @@ export class StudioToolService extends WorkerEntrypoint<StudioToolEnv> {
     const list = (value: unknown) => Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
     if (path === "/image") {
       const ratio = typeof record.ratio === "string" ? record.ratio : undefined;
-      return renderKrea2Still(this.env.KREA2_ACTIONS_URL ?? "", {
-        templateId: "krea2-free",
-        prompt,
-        image,
-        style: "photo",
-        ...(ratio ? { ratio } : {}),
-      }, fetch, "", { textOnly: true });
+      const apiKey = this.env.WHATSTOKEN_API_KEY?.trim();
+      if (!apiKey) return json({ error: "出图服务还没接上。" }, 503);
+      try {
+        const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio });
+        return new Response(still.bytes, { headers: { "Content-Type": still.mime, "Cache-Control": "no-store" } });
+      } catch {
+        return json({ error: "出图没有完成。" }, 502);
+      }
     }
     if (path === "/video") {
       const seconds = typeof record.seconds === "number" ? record.seconds : undefined;

@@ -77,7 +77,8 @@ export default function CreatorCenter({ user, drafts, section = "home", onCreate
       <small>我的创作</small>
       <button className={section === "roles" ? s.active : ""} onClick={() => onRoute("studio/roles")}><Icon name="user"/>角色与投稿</button>
       <button onClick={() => onRoute("novels")}><Icon name="book"/>小说与故事</button>
-      <button onClick={() => onRoute("studio/games")}><Icon name="play"/>游戏开发</button>
+      <button onClick={() => onRoute("studio/girlfriends/new")}><Icon name="upload"/>上传女友</button>
+      <button onClick={() => onRoute("studio/games")}><Icon name="play"/>上传游戏</button>
       <button onClick={() => onRoute("studio/scenarios")}><Icon name="users"/>团本</button>
       {XUMENG_GENERATION_WORKSPACE_ENABLED && <button onClick={() => onRoute("generation")}><Icon name="image"/>生成</button>}
       <small>创作工具</small><button onClick={() => onRoute("presets")}><Icon name="sliders"/>模型与预设</button>
@@ -89,7 +90,8 @@ export default function CreatorCenter({ user, drafts, section = "home", onCreate
         <section className={s.starts} aria-label="开始创作">
           <button className={s.primaryStart} onClick={onCreate}><Icon name="user" size={26}/><strong>{createLabel}</strong><span>人设、开场与世界书</span><Icon name="plus" size={18}/></button>
           <button onClick={() => start("novels/new/novel")}><Icon name="book" size={26}/><strong>小说与故事</strong><span>人物、大纲与章节</span><Icon name="plus" size={18}/></button>
-          <button onClick={() => start("studio/games/new")}><Icon name="play" size={26}/><strong>开发游戏</strong><span>编写、导入与试玩</span><Icon name="plus" size={18}/></button>
+          <button onClick={() => onRoute("studio/girlfriends/new")}><Icon name="upload" size={26}/><strong>上传女友</strong><span>封面、相册和人设</span><Icon name="plus" size={18}/></button>
+          <button onClick={() => onRoute("studio/games")}><Icon name="play" size={26}/><strong>上传游戏</strong><span>导入 HTML、压缩包或备份</span><Icon name="plus" size={18}/></button>
           <button onClick={() => start("studio/scenarios/new")}><Icon name="users" size={26}/><strong>创建团本</strong><span>编写剧本，组队推进</span><Icon name="plus" size={18}/></button>
           {XUMENG_GENERATION_WORKSPACE_ENABLED && <button onClick={() => onRoute("generation")}><Icon name="image" size={26}/><strong>生成</strong><span>图片、视频和模板</span><Icon name="plus" size={18}/></button>}
         </section>

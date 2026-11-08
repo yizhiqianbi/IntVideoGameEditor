@@ -125,9 +125,12 @@ function displayStats(body: Record<string, unknown>): { heat: number; likes: num
   };
   return { heat: read(body.displayHeat ?? 0), likes: read(body.displayLikes ?? 0) };
 }
+const PRIVATE_PLAY_FIELDS = ["systemPrompt", "postHistoryInstructions", "messageExamples", "characterBook"] as const;
+
 function publicCharacter(row: SubmissionRow): DzmmPublishedCharacter {
   const card = submissionCharacter(row.snapshot_json);
-  const { systemPrompt: _systemPrompt, ...visible } = card;
+  const visible = { ...card };
+  for (const field of PRIVATE_PLAY_FIELDS) delete visible[field];
   const media = JSON.parse(row.published_media_json) as MediaMap;
   return { ...visible, id: row.publication_id, author: card.author?.trim() || row.nickname, heat: displayCount(Number(row.display_heat) || 0), likes: String(Number(row.display_likes) || 0),
     sourceKind: "original", promptOrigin: "original", sourceUrl: "", createdAt: new Date(row.reviewed_at ?? row.created_at).toISOString(),
@@ -286,6 +289,20 @@ export async function readPublishedCharacter(env: Env, id: string): Promise<Dzmm
   return row ? publicCharacter(row) : null;
 }
 /** Logged-in chat may read the author instruction. Public catalog responses omit it. */
+export async function readPublishedPlayMaterials(env: Env, id: string): Promise<Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar"> | null> {
+  const row = await env.DB.prepare(`SELECT s.snapshot_json FROM character_publications p JOIN character_submissions s ON s.publication_id=p.id
+    WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision`).bind(id).first<{ snapshot_json: string }>();
+  if (!row) return null;
+  const card = submissionCharacter(row.snapshot_json);
+  return {
+    systemPrompt: card.systemPrompt ?? "",
+    postHistoryInstructions: card.postHistoryInstructions ?? "",
+    messageExamples: card.messageExamples ?? "",
+    ...(card.characterBook ? { characterBook: card.characterBook } : {}),
+    ...(card.interactionTemplate ? { interactionTemplate: card.interactionTemplate } : {}),
+    ...(card.statusBar ? { statusBar: card.statusBar } : {}),
+  };
+}
 export async function readPublishedPlayPrompt(env: Env, id: string): Promise<string | null> {
   const row = await env.DB.prepare(`${SUBMISSIONS} WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision`).bind(id).first<SubmissionRow>();
   if (!row) return null;
@@ -584,9 +601,9 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     if (request.method !== "GET") throw new ApiError(405, "角色扮演指令仅支持 GET。");
     const user = suppliedUser ?? await requireUser(request, env);
     await rateLimit(request, env, "play-prompt", 120, user.id);
-    const systemPrompt = await readPublishedPlayPrompt(env, publicationId(playPrompt[1]));
-    if (systemPrompt === null) throw new ApiError(404, "角色尚未发布或已下架。");
-    return json({ systemPrompt });
+    const play = await readPublishedPlayMaterials(env, publicationId(playPrompt[1]));
+    if (!play) throw new ApiError(404, "角色尚未发布或已下架。");
+    return json(play);
   }
   const publicCard = /^\/catalog\/([^/]+)$/.exec(path);
   if (publicCard) {

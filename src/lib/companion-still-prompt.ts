@@ -1,6 +1,6 @@
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
 const INSTRUCTION = /忽略之前|系统提示|提示词|\bignore previous\b|\bsystem prompt\b/i;
-const PREFIX = "参考图中的同一名自愿成年人，年满二十一岁。脸、发型和肤色保持不变。衣着完整。这一刻：";
+const PREFIX = "第一人称主观视角，镜头就是你的眼睛。参考图一中的角色看着你，脸、发型和肤色保持不变。不要画出你的脸。衣着和身体按当下状态直接画。这一刻：";
 const SUFFIX = "。无文字、无水印、无未成年人、无幼态面孔、无校服。";
 
 /** Scene text for a girlfriend still. Identity stays on the reference photo. */

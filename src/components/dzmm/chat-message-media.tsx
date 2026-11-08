@@ -312,7 +312,7 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   const audioShort = !audio && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.audio;
   const imageShort = !image && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.image;
   const audioDisabled = mediaDisabled || audioPending || audioUnconfirmed || audioShort;
-  const imageDisabled = mediaDisabled || imagePending || imageUnconfirmed || imageShort;
+  const imageDisabled = mutationDisabled || imagePending || imageUnconfirmed || imageShort || !message.content.trim();
   const audioAction = generating === "audio" || audioPending ? "生成语音中…" : audio ? "播放语音" : audioUnconfirmed ? "语音结果待确认" : "生成语音";
   const imageAction = generating === "image" || imagePending ? "生成图片中…" : image ? "查看图片" : imageUnconfirmed ? "图片结果待确认" : "生成图片";
   const showImageAction = XUMENG_GENERATION_WORKSPACE_ENABLED || Boolean(image || imagePending || imageUnconfirmed);

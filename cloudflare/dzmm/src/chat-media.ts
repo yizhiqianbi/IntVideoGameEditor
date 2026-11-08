@@ -1,5 +1,7 @@
 import { breezeSpeechFor, type BreezeSpeechRoute } from "../../../src/lib/xumeng-breeze-voices";
 import { splitXumengMessagePresentation } from "../../../src/lib/xumeng-message-presentation";
+import { statusStillScene } from "../../../src/lib/xumeng-status-still";
+import { xumengStatusBarLabels } from "../../../src/lib/xumeng-character-status";
 import { getXumengSpeechVoice, XUMENG_DEFAULT_SPEECH_VOICE } from "../../../src/lib/xumeng-voices";
 import { digest, tokenFrom } from "./auth";
 import { breezeVoiceConfigured, generateBreezeCharacterVoice } from "./breeze-character-voice";
@@ -11,6 +13,7 @@ import { composeDzmmIllustration, parseDzmmIllustrationDraft } from "../../../sr
 import { chatMediaSourceHash, parseChatMediaDirectoryRequest, readChatMediaDirectory } from "./chat-media-directory";
 
 export { chatMediaSourceHash };
+import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { rememberChatImage } from "./relationship-album";
 
 type Kind = "audio" | "image";
@@ -48,17 +51,8 @@ function configured(env: Env): boolean { return env.CHAT_MEDIA_ENABLED === "true
 function audioConfigured(env: Env): boolean {
   return env.CHAT_MEDIA_ENABLED === "true" && !!env.MEDIA && (!!env.AI || breezeVoiceConfigured(env));
 }
-function qwenUrl(env: Env, path: string): string | null {
-  const raw = env.QWEN_IMAGE_URL?.trim();
-  if (!raw) return null;
-  let url: URL;
-  try { url = new URL(raw); } catch { return null; }
-  if ((url.protocol !== "https:" && url.protocol !== "http:") || url.username || url.password) return null;
-  const root = `${url.origin}${url.pathname.endsWith("/") ? url.pathname : `${url.pathname}/`}`;
-  return new URL(path, root).href;
-}
 function imageGenerationAllowed(env: Env): boolean {
-  return env.CHAT_MEDIA_ENABLED === "true" && !!env.MEDIA && !!qwenUrl(env, "generate") && env.GENERATION_ENABLED !== "false";
+  return env.CHAT_MEDIA_ENABLED === "true" && !!env.MEDIA && Boolean(env.WHATSTOKEN_API_KEY?.trim()) && env.GENERATION_ENABLED !== "false";
 }
 function publicAsset(row: AssetRow): ChatMediaAsset {
   return { id: row.id, conversationId: row.conversation_id, messageId: row.message_id, kind: row.kind,
@@ -93,7 +87,24 @@ async function conversationSpeechVoice(env: Env, userId: string, conversationId:
     return fallback;
   }
 }
-/** Only a complete, saved template prefix is author prose, never arbitrary chat history. */
+async function statusLabels(env: Env, userId: string, conversationId: string): Promise<string[]> {
+  const row = await env.DB.prepare(`SELECT c.context_json AS context_json FROM conversations v
+    JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string }>();
+  if (!row?.context_json) return [];
+  try {
+    const parsed = JSON.parse(row.context_json) as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown } };
+    const bar = parsed.statusBar;
+    if (!bar || typeof bar !== "object") return [];
+    return xumengStatusBarLabels({
+      template: typeof bar.template === "string" ? bar.template : "",
+      initialState: typeof bar.initialState === "string" ? bar.initialState : "",
+      updateRules: typeof bar.updateRules === "string" ? bar.updateRules : "",
+    });
+  } catch {
+    return [];
+  }
+}
 async function mediaNarrative(env: Env, userId: string, conversationId: string, messageId: string, source: MessageRow): Promise<string> {
   const conversation = await env.DB.prepare("SELECT opening_json FROM conversations WHERE user_id=? AND id=?")
     .bind(userId, conversationId).first<{ opening_json: string | null }>();
@@ -216,8 +227,8 @@ export function chatScenePrompt(content: string): string {
   return prefix + visual.slice(0, 2048 - prefix.length).replace(/[\ud800-\udbff]$/, "");
 }
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
-const STILL_PREFIX = "参考图中的同一名自愿成年人，年满二十一岁。脸、发型和肤色保持不变。这一刻：";
-const TEXT_STILL_PREFIX = "一名自愿成年人，年满二十一岁。这一刻：";
+const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。参考图一中的角色看着你，脸、发型和肤色保持不变。不要画出你的脸。这一刻：";
+const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。这一刻：";
 const STILL_SUFFIX = "。无文字、无水印、无未成年人、无幼态面孔、无校服。";
 function stillPrompt(scene: string, reference: boolean): string {
   const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
@@ -328,33 +339,17 @@ function bytesToBase64(bytes: Uint8Array): string {
   return btoa(binary);
 }
 async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null, signal: AbortSignal, options: ChatMediaOptions): Promise<Uint8Array> {
-  const generateUrl = qwenUrl(env, "generate");
-  if (!generateUrl) throw new ApiError(503, "出图服务还没接上。");
-  const fetcher = options.fetch ?? fetch;
-  let generated: Response;
+  const apiKey = env.WHATSTOKEN_API_KEY?.trim();
+  if (!apiKey) throw new ApiError(503, "出图服务还没接上。");
+  const png = reference && reference.length >= 8 && reference[0] === 0x89 && reference[1] === 0x50;
+  const image = reference?.byteLength ? `data:${png ? "image/png" : "image/jpeg"};base64,${bytesToBase64(reference)}` : undefined;
   try {
-    generated = await fetcher(generateUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateId: "krea2-free", prompt, style: "photo", ...(reference?.byteLength ? { image: bytesToBase64(reference) } : {}) }),
-      redirect: "manual",
-      signal,
-    });
-  } catch {
-    throw new ApiError(signal.aborted ? 504 : 502, signal.aborted ? "生成超时，请稍后重试。" : "素材生成失败，请稍后重试。");
+    const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio: "3:4", signal, fetchImpl: options.fetch });
+    return still.bytes;
+  } catch (error) {
+    if (signal.aborted) throw new ApiError(504, "生成超时，请稍后重试。");
+    throw new ApiError(502, error instanceof Error && error.message ? error.message : "素材生成失败，请稍后重试。");
   }
-  if (generated.status >= 300 && generated.status < 400) throw new ApiError(502, "素材生成失败，请稍后重试。");
-  const payload = await generated.json().catch(() => null) as { file?: unknown } | null;
-  const file = generated.ok && typeof payload?.file === "string" && /^krea2-free-\d{1,10}\.png$/.test(payload.file) ? payload.file : "";
-  const imageUrl = file ? qwenUrl(env, `output/${file}`) : null;
-  if (!imageUrl) throw new ApiError(502, "素材生成失败，请稍后重试。");
-  let rendered: Response;
-  try { rendered = await fetcher(imageUrl, { redirect: "manual", signal }); }
-  catch { throw new ApiError(signal.aborted ? 504 : 502, signal.aborted ? "生成超时，请稍后重试。" : "素材生成失败，请稍后重试。"); }
-  if (!rendered.ok || (rendered.status >= 300 && rendered.status < 400) || rendered.redirected) throw new ApiError(502, "素材生成失败，请稍后重试。");
-  const bytes = new Uint8Array(await rendered.arrayBuffer());
-  if (!bytes.byteLength || bytes.byteLength > MAX_BYTES.image) throw new ApiError(502, "生成结果大小无效，请稍后重试。");
-  return bytes;
 }
 function base64Bytes(value: unknown, maximum: number): Uint8Array {
   if (typeof value !== "string" || !value || value.length > Math.ceil(maximum / 3) * 4 + 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value))
@@ -500,17 +495,21 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   }
   if (existing?.status === "pending") throw new ApiError(409,"这条消息的素材正在生成，请稍后查看。",{retryAfter:3});
   // Existing results and in-flight receipts remain recoverable while new images are paused.
-  let stillPrompt = "", reference: Uint8Array | null = null;
+  let imagePrompt = "", reference: Uint8Array | null = null;
   if (kind === "image") {
     if (env.GENERATION_ENABLED === "false") throw new ApiError(503,"图片与视频生成已暂停开放。",{code:"media_generation_paused"});
-    if (!qwenUrl(env, "generate")) throw new ApiError(503,"出图服务还没接上。");
+    if (!env.WHATSTOKEN_API_KEY?.trim()) throw new ApiError(503,"出图服务还没接上。");
     const cover = await characterReference(env, user.id, conversationId, options);
-    const built = stillOverride === null ? chatStillPrompt(narrative, cover !== null) : illustrationStillPrompt(stillOverride, cover !== null);
+    const fromStatus = stillOverride === null ? statusStillScene(source.content, await statusLabels(env, user.id, conversationId)) : null;
+    const blocked = Boolean(fromStatus && "blocked" in fromStatus);
+    const built = blocked ? null
+      : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null)
+      : stillOverride === null ? chatStillPrompt(narrative, cover !== null) : illustrationStillPrompt(stillOverride, cover !== null);
     const minor = MINOR_SCENE.test(stillOverride ?? text);
     if (!built) throw new ApiError(400, stillOverride === null
-      ? (minor ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
+      ? ((minor || blocked) ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
       : (minor ? "这条画面不能生成图片。" : "这条画面没有可生成的正文。"));
-    stillPrompt = built;
+    imagePrompt = built;
     reference = cover;
   }
   await minuteLimit(env,user.id,now);
@@ -568,7 +567,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
         return outputBytes(output,kind,streamAbort.signal);
       }
       stage = "provider";
-      return qwenStill(env, stillPrompt, reference, streamAbort.signal, options);
+      return qwenStill(env, imagePrompt, reference, streamAbort.signal, options);
     })(),timeout,() => streamAbort.abort());
     const mimeType = outputType(bytes,kind);
     stage = "storage";

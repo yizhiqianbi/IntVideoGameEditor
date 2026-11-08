@@ -55,10 +55,21 @@ export function fetchDzmmPublicCharacters(query: number | DzmmCatalogRequest = 0
   if (input.look) params.set("look", input.look);
   return request<DzmmPublishingPage<{ characters: DzmmPublishedCharacter[] }>>(`/catalog?${params}`);
 }
+export async function fetchDzmmPlayMaterials(id: string, signal?: AbortSignal): Promise<Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar">> {
+  const result = await request<Record<string, unknown>>(`/catalog/${encodeURIComponent(id)}/prompt`, "GET", undefined, signal);
+  if (!result || typeof result.systemPrompt !== "string") throw new DzmmPublishingError(502, "角色扮演指令无效，请稍后重试。");
+  const play: Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar"> = {
+    systemPrompt: result.systemPrompt,
+  };
+  if (typeof result.postHistoryInstructions === "string") play.postHistoryInstructions = result.postHistoryInstructions;
+  if (typeof result.messageExamples === "string") play.messageExamples = result.messageExamples;
+  if (result.characterBook && typeof result.characterBook === "object") play.characterBook = result.characterBook as Character["characterBook"];
+  if (result.interactionTemplate && typeof result.interactionTemplate === "object") play.interactionTemplate = result.interactionTemplate as Character["interactionTemplate"];
+  if (result.statusBar && typeof result.statusBar === "object") play.statusBar = result.statusBar as Character["statusBar"];
+  return play;
+}
 export async function fetchDzmmPlayPrompt(id: string, signal?: AbortSignal): Promise<string> {
-  const result = await request<{ systemPrompt?: unknown }>(`/catalog/${encodeURIComponent(id)}/prompt`, "GET", undefined, signal);
-  if (typeof result?.systemPrompt !== "string") throw new DzmmPublishingError(502, "角色扮演指令无效，请稍后重试。");
-  return result.systemPrompt;
+  return (await fetchDzmmPlayMaterials(id, signal)).systemPrompt ?? "";
 }
 export async function fetchDzmmPublicCharacter(id: string, signal?: AbortSignal) {
   const result = await request<{ character: DzmmPublishedCharacter }>(`/catalog/${encodeURIComponent(id)}`, "GET", undefined, signal);

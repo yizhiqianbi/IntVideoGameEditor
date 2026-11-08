@@ -39,6 +39,12 @@ export async function handleBillingApi(request: Request, env: Env, suppliedUser?
       UNION ALL
       SELECT 'still:' || id, 'still', credits, created_at FROM studio_still_charges
         WHERE user_id=? AND status='charged' AND credits>0
+      UNION ALL
+      SELECT 'canvas:' || id, kind, credits, created_at FROM canvas_generation_charges
+        WHERE user_id=? AND status='charged' AND credits>0 AND kind IN ('image','video')
+      UNION ALL
+      SELECT 'call:' || id, CASE kind WHEN 'phone' THEN 'phone' ELSE 'live' END, credits, created_at FROM call_charges
+        WHERE user_id=? AND status='charged' AND credits>0
     ) ORDER BY created_at DESC, id DESC LIMIT 20`;
   const results = await env.DB.batch([
     creditUsageBalanceStatement(env, user.id),
@@ -47,7 +53,7 @@ export async function handleBillingApi(request: Request, env: Env, suppliedUser?
       WHERE user_id=? AND id IN (SELECT id FROM usage_page WHERE exempt=0)`).bind(...pageBindings, user.id),
     env.DB.prepare(`WITH usage_page AS (${pageQuery}) SELECT * FROM super_generation_usage
       WHERE user_id=? AND id IN (SELECT id FROM usage_page WHERE exempt=1)`).bind(...pageBindings, user.id),
-    env.DB.prepare(activityQuery).bind(user.id, user.id, user.id),
+    env.DB.prepare(activityQuery).bind(user.id, user.id, user.id, user.id, user.id),
   ]);
   const balance = results[0].results[0] as { balance: number; reserved_credits: number; total_spent: number; debt_credits: number } | undefined;
   if (!balance) throw new ApiError(401, "账户已失效，请重新登录。");
@@ -63,9 +69,9 @@ export async function handleBillingApi(request: Request, env: Env, suppliedUser?
     return ref.exempt ? superUsageReceipt(row) : creditUsageReceipt(row);
   });
   const activity = (results[4].results as { id: unknown; kind: unknown; credits: unknown; created_at: unknown }[]).flatMap(row => {
-    if (typeof row.id !== "string" || row.id.length > 80 || !["audio", "image", "companion", "still"].includes(String(row.kind))) return [];
+    if (typeof row.id !== "string" || row.id.length > 80 || !["audio", "image", "companion", "still", "video", "phone", "live"].includes(String(row.kind))) return [];
     if (!Number.isSafeInteger(row.credits) || Number(row.credits) <= 0 || !Number.isSafeInteger(row.created_at) || Number(row.created_at) < 0) return [];
-    return [{ id: row.id, kind: row.kind as "audio" | "image" | "companion" | "still", credits: Number(row.credits), createdAt: Number(row.created_at) }];
+    return [{ id: row.id, kind: row.kind as "audio" | "image" | "companion" | "still" | "video" | "phone" | "live", credits: Number(row.credits), createdAt: Number(row.created_at) }];
   });
   return json({ accountId: user.id, creditUnlimited: false, billingExempt: false, availableBalance: balance.balance, reservedCredits: balance.reserved_credits,
     totalSpent: balance.total_spent, debtCredits: balance.debt_credits, items, activity,

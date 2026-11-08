@@ -22,7 +22,7 @@ import { handleMiniCpmPhone, type MiniCpmPhoneEnvironment } from "./minicpm-phon
 import { handleCompanionGateway, type CompanionGatewayEnvironment } from "./companion-gateway";
 import { renderXumengCommunityGuidelines, XUMENG_COMMUNITY_GUIDELINES_DESCRIPTION, XUMENG_COMMUNITY_GUIDELINES_PATH, XUMENG_COMMUNITY_GUIDELINES_TITLE } from "../../../src/lib/xumeng-community-guidelines";
 import { getXumengPaymentInfoPage, renderXumengPaymentInfoPage, XUMENG_PAYMENT_INFO_DRAFT } from "../../../src/lib/xumeng-payment-info";
-import { renderKrea2Still } from "../../../src/lib/xumeng-krea2-bridge";
+import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { AiapiError, runAiapiJob, sniffAiapiBytes } from "../../../src/lib/aiapi-channel";
 import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availability";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
@@ -55,6 +55,7 @@ export interface Env extends LiveGatewayEnvironment, MiniCpmPhoneEnvironment, Co
   DZMM_PROVIDER_MAX_INPUT_USD_PER_MILLION?: string;
   DZMM_PROVIDER_MAX_OUTPUT_USD_PER_MILLION?: string;
   KREA2_ACTIONS_URL?: string;
+  WHATSTOKEN_API_KEY?: string;
   H3_COMFY_URL?: string;
   H3_COMFY_TOKEN?: string;
   MEDIA?: R2Bucket;
@@ -294,7 +295,7 @@ async function storeAlbumStill(request: Request, env: Env, image: Response): Pro
   const bytes = await image.arrayBuffer();
   if (bytes.byteLength > 5 * 1024 * 1024) return json({ error: "相册图片不能超过 5 MB，这次没有扣 Credit。" }, 413);
   const headers = backendHeaders(request);
-  headers.set("content-type", "image/png");
+  headers.set("content-type", image.headers.get("Content-Type")?.includes("jpeg") ? "image/jpeg" : image.headers.get("Content-Type")?.includes("webp") ? "image/webp" : "image/png");
   headers.set("x-xumeng-media-purpose", "album");
   const stored = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/media`, {
     method: "POST", headers, body: bytes, redirect: "manual",
@@ -1180,6 +1181,7 @@ export async function fetchRequest(
         .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
         .on('script[type="application/ld+json"]', { element: element => { element.setInnerContent(communityGuidelinesJsonLd()); } })
         .on("noscript#xumeng-public-fallback", { element: element => { element.remove(); } })
+        .on('script[type="module"]', { element: element => { element.remove(); } })
         .on("#root", { element: element => { element.setInnerContent(renderXumengCommunityGuidelines(), { html: true }); } })
         .transform(shell);
       const headers = new Headers(rewritten.headers);
@@ -1252,12 +1254,19 @@ export async function fetchRequest(
         if (hold instanceof Response) return hold;
         let image: Response;
         try {
-          image = await renderKrea2Still(env.KREA2_ACTIONS_URL ?? "", body, fetch, templateImage);
+          const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown; ratio?: unknown } : {};
+          const prompt = typeof record.prompt === "string" ? record.prompt : "";
+          const reference = templateImage || (typeof record.image === "string" ? record.image : "");
+          const ratio = typeof record.ratio === "string" ? record.ratio : undefined;
+          const apiKey = env.WHATSTOKEN_API_KEY?.trim();
+          if (!apiKey) throw new Error("出图服务还没接上。");
+          const still = await generateSeedreamFlash({ apiKey, prompt, image: reference, ratio });
+          image = new Response(still.bytes, { headers: { "Content-Type": still.mime, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
         } catch {
           await settleStudioStill(request, env, hold, "release");
           return json({ error: "出图没有完成，这次没有扣 Credit。" }, 502);
         }
-        if (!image.ok || !image.headers.get("Content-Type")?.includes("image/png")) {
+        if (!image.ok || !image.headers.get("Content-Type")?.startsWith("image/")) {
           await settleStudioStill(request, env, hold, "release");
           return image;
         }

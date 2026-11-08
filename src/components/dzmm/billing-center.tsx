@@ -107,8 +107,8 @@ export function BillingCenter({ userId, isGuest, modelBillingLinked, refreshKey,
       <div className={s.itemAmount}><strong>{item.billingExempt ? "历史免扣" : item.status === "settled" ? `−${points(item.chargedCredits)}` : item.status === "released" ? "0" : `${expired ? "历史预留" : "预留"} ${points(item.reservedCredits)}`}<small> Credit</small></strong><span>{expired ? "已到期，预留已解除" : status[item.status]}{item.returnedCredits > 0 ? ` · 返还 ${points(item.returnedCredits)}` : ""}</span></div>
     </li>;
     })}</ul> : <p className={s.empty}>{loading ? "正在读取消费记录…" : usageError ? "暂时无法读取消费记录。" : "还没有聊天消费记录。"}</p>}
-    {currentUsage?.activity?.length ? <ul className={s.list} aria-label="语音、图片、陪伴和画面消费">{currentUsage.activity.map(item => {
-      const label = item.kind === "audio" ? "语音" : item.kind === "image" ? "剧情图片" : item.kind === "companion" ? "陪伴对话" : "画面";
+    {currentUsage?.activity?.length ? <ul className={s.list} aria-label="语音、图片、视频、陪伴和画面消费">{currentUsage.activity.map(item => {
+      const label = item.kind === "audio" ? "语音" : item.kind === "phone" ? "语音通话" : item.kind === "live" ? "视频通话" : item.kind === "image" ? "剧情图片" : item.kind === "video" ? "视频" : item.kind === "companion" ? "陪伴对话" : "画面";
       return <li className={s.item} key={item.id}><div className={s.itemMain}><strong>{label}</strong><time dateTime={new Date(item.createdAt).toISOString()}>{date(item.createdAt)}</time></div><div className={s.itemAmount}><strong>−{points(item.credits)}<small> Credit</small></strong><span>已结算</span></div></li>;
     })}</ul> : null}
     {usageError && <div className={s.error} role="status"><p>{usageError}</p>{usageRefreshFailed && <button type="button" className={s.outline} disabled={loading || loadingMore} onClick={() => void refresh()}>重新刷新消费</button>}</div>}

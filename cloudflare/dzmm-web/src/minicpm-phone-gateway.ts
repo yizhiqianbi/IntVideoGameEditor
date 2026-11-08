@@ -5,6 +5,8 @@
  * authenticates the existing XUMENG session and opens the upstream realtime
  * socket with the server-side key, then forwards protocol frames unchanged.
  */
+import { reserveCall, settleCall } from "./call-hold";
+
 type ServiceFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
 
 export interface MiniCpmPhoneEnvironment {
@@ -61,6 +63,8 @@ export async function handleMiniCpmPhone(request: Request, env: MiniCpmPhoneEnvi
   const user = await account(request, env);
   if (!user) return json({ error: "请先登录正式账号，再使用电话。" }, 401);
   if (!configured(env)) return json({ error: "MiniCPM 电话服务尚未配置。" }, 503);
+  const hold = await reserveCall(env, request, "phone");
+  if (hold instanceof Response) return hold;
 
   const upstreamUrl = env.MINICPM_REALTIME_URL || DEFAULT_REALTIME_URL;
   // Do not attach the page request signal. In workerd that signal aborts the
@@ -89,8 +93,13 @@ export async function handleMiniCpmPhone(request: Request, env: MiniCpmPhoneEnvi
   let socket: WebSocket;
   try { socket = await connectUpstream(); }
   catch (error) {
+    await settleCall(env, request, hold, "release");
     console.log(JSON.stringify({ phone: "handshake", error: error instanceof Error ? `${error.name}:${error.message}`.slice(0, 180) : "failed" }));
     return json({ error: error instanceof Error && error.message.startsWith("upstream ") ? "MiniCPM 实时服务未接受连接。" : "MiniCPM 实时服务暂时无法连接。" }, 503);
+  }
+  if (!await settleCall(env, request, hold, "charge")) {
+    try { socket.close(); } catch { /* The unused upstream can close on its own. */ }
+    return json({ error: "扣费没有完成，电话没有接通。" }, 502);
   }
 
   const pair = new WebSocketPair();

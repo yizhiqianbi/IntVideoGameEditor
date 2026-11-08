@@ -29,8 +29,11 @@ export const CANVAS_TOKEN_VIDEOS = {
   "vidu-q4": { name: "Vidu Q4", creditsPerSecond: 103 },
 } as const;
 
-/** WhatsToken stills. Per-image sale USD × ¥7.2 × 1.5, one charge per picture. */
+/** WhatsToken stills. Per-image sale USD × ¥7.2 × 1.5, one charge per picture.
+ * Flash NSFW is not on the public price board. 20 Credit uses the official
+ * $0.018 output price with no unpublished discount: 0.018 × 7.2 × 1.5 = ¥0.1944. */
 export const CANVAS_TOKEN_IMAGES = {
+  "seedream-5-flash": { name: "Seedream 5 Flash", credits: 20 },
   "seedream-4.5": { name: "Seedream 4.5", credits: 40 },
   "seedream-5.0": { name: "Seedream 5.0", credits: 35 },
   "gpt-image-flare": { name: "GPT Image Flare", credits: 34 },

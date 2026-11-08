@@ -8,7 +8,7 @@ import type { DzmmTaskCenter, DzmmTaskClaim, DzmmTaskClaimResult, DzmmTaskId } f
 const DAY = 24 * 60 * 60 * 1000;
 const REWARD_VALIDITY = 30 * DAY;
 const TASKS: Array<{ id: DzmmTaskId; title: string; description: string; points: number; target: number }> = [
-  { id: "daily_checkin", title: "每日签到", description: "每天回来签到领取 5 Credit，北京时间 08:00 重置。", points: 5, target: 1 },
+  { id: "daily_checkin", title: "每日签到", description: "每天回来签到领取 Credit，北京时间 0 点重置。", points: 5, target: 1 },
   { id: "first_conversation", title: "和角色说第一句话", description: "选一个喜欢的角色，发送第一句话并保存对话。", points: 5, target: 1 },
   { id: "publish_character", title: "发布你的第一个角色", description: "创建一个原创角色，审核通过并上架后领取奖励。", points: 20, target: 1 },
   { id: "follow_authors", title: "关注五位作者", description: "在角色广场关注 5 位作者，解锁更多故事。", points: 5, target: 5 },

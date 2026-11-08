@@ -8,7 +8,7 @@ import { breezeVoiceConfigured, generateBreezeCharacterVoice } from "./breeze-ch
 import type { Env, UserRecord } from "./types";
 
 export const CHARACTER_VOICE_MODEL = "@cf/myshell-ai/melotts";
-const LIMIT = 20, MAX_CHARS = 800, TIMEOUT = 90_000;
+const LIMIT = 20, MAX_CHARS = 800, TIMEOUT = 90_000, VOICE_CREDITS = 20;
 const SQL_NOW = "CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
 export type CharacterVoiceOptions = { now?: () => number; audioTimeoutMs?: number; fetch?: typeof fetch };
 type Row = {
@@ -110,15 +110,16 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   const id = existing?.id ?? crypto.randomUUID(), token = crypto.randomUUID(), objectKey = `character-voice/${user.id}/${id}/${token}.audio`;
   const timeout = Math.max(1, Math.min(TIMEOUT, options.audioTimeoutMs ?? TIMEOUT));
   const reserved = await env.DB.batch([
-    env.DB.prepare(`INSERT INTO chat_media_usage(id,user_id,asset_id,kind,day_key,status,created_at,expires_at)
-      SELECT ?1,?2,?3,'audio',?4,'pending',?5,?6
+    env.DB.prepare(`INSERT INTO chat_media_usage(id,user_id,asset_id,kind,day_key,status,created_at,expires_at,credits)
+      SELECT ?1,?2,?3,'audio',?4,'pending',?5,?6,?10
       WHERE (EXISTS(SELECT 1 FROM users WHERE id=?2 AND is_guest=0 AND role='super') OR
         (SELECT COUNT(*) FROM chat_media_usage WHERE user_id=?2 AND day_key=?4 AND kind='audio' AND status IN ('pending','ready'))<?7)
       AND EXISTS(SELECT 1 FROM users WHERE id=?2 AND is_guest=0 AND (role='super' OR EXISTS(
         SELECT 1 FROM subscription_periods WHERE user_id=?2 AND revoked_at IS NULL AND starts_at<=?5 AND expires_at>?5)))
+      AND EXISTS(SELECT 1 FROM credit_usage_balances WHERE user_id=?2 AND balance>=?10)
       AND EXISTS(SELECT 1 FROM sessions WHERE user_id=?2 AND token_hash=?9 AND expires_at>MAX(?5,${SQL_NOW}))
       AND NOT EXISTS(SELECT 1 FROM character_voice_assets WHERE user_id=?2 AND source_hash=?8 AND status IN ('pending','ready'))`)
-      .bind(token, user.id, id, chatMediaDayKey(now), now, now + timeout + 30_000, LIMIT, sourceHash, sessionHash),
+      .bind(token, user.id, id, chatMediaDayKey(now), now, now + timeout + 30_000, LIMIT, sourceHash, sessionHash, VOICE_CREDITS),
     env.DB.prepare(`INSERT INTO character_voice_assets(id,user_id,name,source_key,source_text,source_hash,model,status,processing_token,object_key,created_at,updated_at,voice_id)
       SELECT ?1,?2,?3,?4,?5,?6,?7,'pending',?8,?9,?10,?10,?11 WHERE EXISTS(SELECT 1 FROM chat_media_usage WHERE id=?8 AND status='pending')
       ON CONFLICT(user_id,source_hash) DO UPDATE SET status='pending',processing_token=excluded.processing_token,object_key=excluded.object_key,
@@ -130,6 +131,8 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     const winner = await lookup();
     if (winner?.status === "ready") return readyResponse(env, winner, now);
     if (winner?.status === "pending") throw new ApiError(409, "这段台词正在朗读，请稍后重试。", { retryAfter: 3 });
+    const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
+    if (!wallet || Number(wallet.balance) < VOICE_CREDITS) throw new ApiError(402, "当前可用 Credit 不足，角色朗读需要 20 Credit。", { code: "insufficient_credits", requiredCredits: VOICE_CREDITS, availableCredits: Number(wallet?.balance ?? 0) });
     const rights = await chatMediaMembership(env, user, now);
     if (!rights.active && !rights.adminPreview) throw new ApiError(403, "角色朗读需要有效 VIP 会员。");
     throw new ApiError(429, "今日语音额度已用完，明天再试。", { code: "voice_daily_quota", usage: await chatMediaUsage(env, user.id, now) });

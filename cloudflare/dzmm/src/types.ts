@@ -23,6 +23,7 @@ export type Env = {
   AI?: Ai;
   /** Same image service as the studio stills tool (Qwen Image 2.1). */
   QWEN_IMAGE_URL?: string;
+  WHATSTOKEN_API_KEY?: string;
   VIDU_VOICE?: ViduVoiceServiceBinding;
   BREEZE_API_KEY?: string;
   ELEVENLABS_API_KEY?: string;

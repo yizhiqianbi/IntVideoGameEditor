@@ -288,8 +288,6 @@ async function createGuest(request: Request, env: Env) {
   const currentToken = tokenFrom(request);
   if (existing && currentToken)
     return json({ user: existing, authenticated: !existing.isGuest }, 200, authCookies(request, currentToken));
-  if (hasKnownBrowser(request))
-    return json({ error: "登录已过期，请重新登录。", recognized: true }, 401);
   await rateLimit(request, env, "guest", 60);
   const user: UserRecord = {
     id: crypto.randomUUID(),

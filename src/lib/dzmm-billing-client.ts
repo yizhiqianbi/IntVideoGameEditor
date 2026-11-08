@@ -21,7 +21,7 @@ export type DzmmBillingUsageItem = {
   billingExempt?: boolean;
 };
 export type DzmmBillingActivity = {
-  id: string; kind: "audio" | "image" | "companion" | "still"; credits: number; createdAt: number;
+  id: string; kind: "audio" | "image" | "companion" | "still" | "video" | "phone" | "live"; credits: number; createdAt: number;
 };
 export type DzmmBillingUsage = {
   accountId: string; availableBalance: number; reservedCredits: number; totalSpent: number; debtCredits: number;
@@ -117,7 +117,7 @@ function parseBillingActivity(value: unknown): DzmmBillingActivity[] {
   const rows = value.map(item => {
     if (!record(item)) throw malformed();
     keys(item, ["id", "kind", "credits", "createdAt"]);
-    if (!text(item.id, 80) || !["audio", "image", "companion", "still"].includes(item.kind as string)
+    if (!text(item.id, 80) || !["audio", "image", "companion", "still", "video", "phone", "live"].includes(item.kind as string)
       || !positive(item.credits, 1_000_000_000) || !timestamp(item.createdAt)) throw malformed();
     return { id: item.id, kind: item.kind as DzmmBillingActivity["kind"], credits: item.credits, createdAt: item.createdAt };
   });

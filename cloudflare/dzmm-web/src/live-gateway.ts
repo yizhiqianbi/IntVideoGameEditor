@@ -1,4 +1,5 @@
 import { viduStudioLeasePrefix, viduStudioOwnerPrefix, type LiveStudiosBinding } from "./vidu-live-studio";
+import { reserveCall, settleCall } from "./call-hold";
 type ServiceFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
 type ServiceRateLimiter = { limit(input: { key: string }): Promise<{ success: boolean }> };
 /** Authenticate every operation before delegating to a private studio. */
@@ -87,12 +88,24 @@ export async function handleLiveGateway(request: Request, env: LiveGatewayEnviro
   if ((tail === "/leases" || action === "start" || action === "generate") && env.LIVE_RATE_LIMITER) {
     if (!(await env.LIVE_RATE_LIMITER.limit({ key: `live:${user.id}` })).success) return reply(429, { error: "操作较频繁，请稍后重试。" });
   }
+  const callHold = action === "start" ? await reserveCall(env, request, "video") : null;
+  if (callHold instanceof Response) return callHold;
+  async function finishCall(response: Response): Promise<Response> {
+    if (!callHold) return response;
+    if (response.status >= 400) {
+      await settleCall(env, request, callHold, "release");
+      return response;
+    }
+    if (await settleCall(env, request, callHold, "charge")) return response;
+    await settleCall(env, request, callHold, "release");
+    return reply(502, { error: "扣费没有完成，视频通话没有接通。" });
+  }
   // Caller-controlled headers never cross the binding trust boundary. The
   // namespace has no public endpoint and receives only the D1 identity above.
   if (env.LIVE_STUDIOS && env.VIDU_API_KEY) {
     try {
       const prefix = route ? viduStudioLeasePrefix(route[1]) : await viduStudioOwnerPrefix(user.id);
-      if (route && !cleanupOnly && prefix !== await viduStudioOwnerPrefix(user.id)) return reply(404, { error: "当前账号没有这个工作台。" });
+      if (route && !cleanupOnly && prefix !== await viduStudioOwnerPrefix(user.id)) return finishCall(reply(404, { error: "当前账号没有这个工作台。" }));
       const studio = env.LIVE_STUDIOS.get(env.LIVE_STUDIOS.idFromName(`account:${prefix}`));
       const headers = new Headers({ "X-Xumeng-Live-User": user.id, "X-Xumeng-Live-Role": user.role, "Accept": "application/json" });
       if (request.method !== "GET") headers.set("Content-Type", "application/json");
@@ -101,8 +114,8 @@ export async function handleLiveGateway(request: Request, env: LiveGatewayEnviro
       }));
       const value: unknown = await upstream.json();
       if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid studio response");
-      return reply(upstream.status, { ...value, accountId: user.id, ...(isStatus ? { realAllowed: true } : {}) });
-    } catch { return isStatus ? reply(200, unavailable) : reply(503, { error: "实时影像结果尚未确认，请刷新状态后核对，避免重复开播。" }); }
+      return finishCall(reply(upstream.status, { ...value, accountId: user.id, ...(isStatus ? { realAllowed: true } : {}) }));
+    } catch { if (callHold) await settleCall(env, request, callHold, "release"); return isStatus ? reply(200, unavailable) : reply(503, { error: "实时影像结果尚未确认，请刷新状态后核对，避免重复开播。" }); }
   }
   let base: URL;
   try {
@@ -124,6 +137,6 @@ export async function handleLiveGateway(request: Request, env: LiveGatewayEnviro
     const value = await upstream.json() as Record<string, unknown>;
     if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid bridge JSON");
     delete value.csrf;
-    return reply(upstream.status, { ...value, accountId: user.id, ...(isStatus ? { realAllowed: true } : {}) });
-  } catch { return isStatus ? reply(200, unavailable) : reply(503, { error: "实时影像服务连接失败；请核对状态后重试，避免重复创建。" }); }
+    return finishCall(reply(upstream.status, { ...value, accountId: user.id, ...(isStatus ? { realAllowed: true } : {}) }));
+  } catch { if (callHold) await settleCall(env, request, callHold, "release"); return isStatus ? reply(200, unavailable) : reply(503, { error: "实时影像服务连接失败；请核对状态后重试，避免重复创建。" }); }
 }

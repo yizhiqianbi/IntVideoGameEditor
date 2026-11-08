@@ -92,8 +92,9 @@ export default function ReplySuggestions({ contextKey, accountId, automatic, lab
       setSending(false);
     }
   }
+  if (historical) return null;
   return <section className={s.root} aria-label={`${label}的行动建议`}>
-    <button type="button" className={s.trigger} aria-label={`${label}帮我想想`} disabled={disabled || current?.pending || sending}
+    <button type="button" className={s.trigger} aria-label={`${label}帮我想想，按聊天费率结算`} disabled={disabled || current?.pending || sending}
       aria-expanded={visible && Boolean(current)} onClick={() => { if (current?.options) setExpanded(!visible); else void generate(); }}>
       <Icon name="sparkles" size={13} />{current?.pending ? "正在想下一步…" : "帮我想想"}
     </button>

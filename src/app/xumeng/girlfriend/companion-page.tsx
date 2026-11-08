@@ -296,10 +296,10 @@ function cachedConversation(accountId: string | undefined, lane: string, title: 
   return { id: cached.sessionId || `local:${lane}`, title, messages: cached.messages };
 }
 
-export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCall, variant = "classic", avatar, profile, cast, accountId }: { onBack?: () => void; onLogin?: () => void; onVoiceCall?: () => void; onVideoCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast; accountId?: string }) {
+export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCall, variant = "classic", avatar, profile, cast, accountId, lane: laneOverride, album = [] }: { onBack?: () => void; onLogin?: () => void; onVoiceCall?: () => void; onVideoCall?: () => void; variant?: CompanionVariant; avatar?: string; profile?: CompanionProfile; cast?: GirlfriendCast; accountId?: string; lane?: string; album?: readonly { id: string; url: string }[] }) {
   const intimate = variant === "intimate";
   const sales = variant === "sales";
-  const lane = cast ? `cast-${cast.id}` : sales ? "sales" : intimate ? "intimate" : "classic";
+  const lane = laneOverride || (cast ? `cast-${cast.id}` : sales ? "sales" : intimate ? "intimate" : "classic");
   const name = cast?.name || profile?.name || (sales ? "Eva" : intimate ? "宁宁" : "林幺");
   const reservedLines = cast?.lines ?? (sales ? SALES_LINES : intimate ? INTIMATE_LINES : profile ? undefined : CLASSIC_LINES);
   const avatarUrl = avatar || cast?.cover || profile?.cover || (sales ? SALES_COVER : intimate ? "/assets/xumeng/content-covers/wanning.jpg" : "/assets/xumeng/content-covers/yume.jpg");
@@ -943,7 +943,8 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
         {(syncError || (error && (health?.ready || Boolean(conversation?.messages?.length)))) && <div className={styles.error} role="alert">{error || syncError}<button aria-label="关闭提示" onClick={() => { setError(""); setSyncError(""); }}>×</button></div>}
         <>
           {mediaTrayOpen && <div className={styles.mediaTray} role="status">
-            <div className={styles.mediaTrayHead}><strong>相册</strong><span>按她现在的状态出一张，用封面当参考。一张 {STUDIO_STILL_CREDITS} Credit。</span></div>
+            <div className={styles.mediaTrayHead}><strong>相册</strong><span>{album.length ? "这里有你给她的照片。" : "按她现在的状态出一张，用封面当参考。"}一张 {STUDIO_STILL_CREDITS} Credit。</span></div>
+            {album.length > 0 && <div className={styles.stillGrid}>{album.map(photo => <img key={photo.id} src={photo.url} alt={`${name}的照片`} />)}</div>}
             {photos.photos.length > 0 && <div className={styles.stillGrid}>{photos.photos.map(photo => <img key={photo.id} src={photo.url} alt={`${name}发来的照片`} />)}</div>}
             {photos.note && <p>{photos.note}</p>}
             <div className={styles.mediaTrayActions}>
