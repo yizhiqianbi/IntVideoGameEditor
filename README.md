@@ -1,5 +1,9 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Female-oriented Xumeng preview
+
+The isolated women-oriented experience is available at `/xumeng/female`. It keeps the existing `/xumeng` surface unchanged and uses only in-memory React state: no chat API, account data, `localStorage`, `sessionStorage`, or cloud history is used. Refreshing the page clears the temporary conversation.
+
 ## Getting Started
 
 First, run the development server:
