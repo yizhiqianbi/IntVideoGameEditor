@@ -8,6 +8,7 @@ import { handleCanvasUserMedia } from "./canvas-user-media";
 import { handleGeneration } from "./generation";
 import { handleMedia } from "./media";
 import { handleCallBilling } from "./call-billing";
+import { handleChatMedia } from "./chat-media";
 import { handleRelationshipAlbum } from "./relationship-album";
 import { handleCharacterVoice } from "./character-voice";
 import { handleForum } from "./forum";
@@ -97,6 +98,13 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
       }
     }
   } catch (error) {
+    // Unexpected failures are otherwise indistinguishable at the edge; log the
+    // route, the error name and the top stack frames only.
+    if (!(error instanceof ApiError)) console.error("request_failed", {
+      path: new URL(request.url).pathname,
+      error: error instanceof Error ? `${error.name}: ${error.message}`.slice(0, 300) : typeof error,
+      frame: error instanceof Error ? (error.stack ?? "").split("\n").slice(1, 3).join(" | ").slice(0, 300) : "",
+    });
     response = error instanceof ApiError
       ? json({ error: error.message, ...error.details }, error.status)
       : json({ error: "服务暂时不可用，请稍后重试。" }, 500);
