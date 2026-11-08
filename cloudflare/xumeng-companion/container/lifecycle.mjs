@@ -90,7 +90,11 @@ export function defaultRuntime({ env = process.env, instance, source, packageDir
       });
     },
     async snapshot(path, account) { await command('archive.py', ['snapshot', '--instance', instance, '--archive', path, '--account', account]); },
-    async restore(path, account) { await command('archive.py', ['restore', '--instance', instance, '--archive', path, '--account', account]); },
+    async restore(path, account, template) {
+      const args = ['restore', '--instance', instance, '--archive', path, '--account', account];
+      if (template) args.push('--template', template);
+      await command('archive.py', args);
+    },
   };
 }
 
@@ -235,16 +239,16 @@ export class CompanionLifecycle {
       return { size: (await stat(path)).size, sha256: hash.digest('hex') };
     });
   }
-  async restore(path) {
+  async restore(path, template) {
     return this.exclusive(async () => {
       if (this.state !== 'stopped' || !this.cleanStop) throw lifecycleError('RESTORE_REQUIRES_STOP', 409);
       if (!uuid.test(this.account)) throw lifecycleError('TRIAL_ACCOUNT_NOT_CONFIGURED');
       this.state = 'restoring';
       const startedAt = this.now();
-      try { await this.runtime.restore(path, this.account); }
+      try { await this.runtime.restore(path, this.account, template); }
       finally { this.state = 'stopped'; }
       this.timings.restoreMs = this.now() - startedAt;
-      return { restored: true, ...this.health() };
+      return { restored: true, template: template || undefined, ...this.health() };
     });
   }
 }

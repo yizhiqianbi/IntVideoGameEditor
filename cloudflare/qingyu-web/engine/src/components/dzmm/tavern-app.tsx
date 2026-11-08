@@ -92,7 +92,7 @@ import { Recharge } from "./recharge";
 import { ChatMediaProvider, ChatMessageMedia } from "./chat-message-media";
 import ChatMessageEditor from "./chat-message-editor";
 import { ChatBillingStatus } from "./chat-billing-status";
-import { splitXumengMessagePresentation } from "@/lib/xumeng-message-presentation";
+import { plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengStatusPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
 import { canRegenerateDzmmMessage, createDzmmRegenerationBranch, createDzmmReplySuggestionBranch, editDzmmConversationMessage } from "@/lib/dzmm-message-actions";
 import { dzmmReplySuggestionPrefixKeys, dzmmReplySuggestionSettingsKey, fetchDzmmReplySuggestions, prepareDzmmReplySuggestionsRequest,
   insertDzmmReplySuggestion, type DzmmReplySuggestionInsertion } from "@/lib/dzmm-reply-suggestions-client";
@@ -117,6 +117,11 @@ function formatDirectTime(at: number): string {
   return `${date.getMonth() + 1}/${date.getDate()}`;
 }
 const CHAT_SECTION_ROUTES: Record<ChatSection, string> = { stories: "chat", chats: "chat/chats", games: "chat/games" };
+const DIRECT_CHARACTER_CHATS = {
+  "chat/girlfriend": { id: "qy-shiyu", lines: ["今天排练结束得早。你呢？"] },
+  "chat/girlfriend-intimate": { id: "qy-shen", lines: ["嗯。到家说一声。"] },
+  "chat/girlfriend-qwen": { id: "qy-linchuan", lines: ["这边信号一格，你先说。"] },
+} as const;
 const TABS = ["关注", "最新", "猜你喜欢", "新手", "榜单", "分类"];
 const MODEL_MODES = DZMM_OFFERED_MODEL_OPTIONS;
 const AUTHORS: DzmmAuthor[] = authorsData;
@@ -278,7 +283,7 @@ export default function TavernApp() {
   const [conversationType, setConversationType] = useState<ChatSection>("stories");
   const [companionOpen, setCompanionOpen] = useState(false);
   const [companionVariant, setCompanionVariant] = useState<"classic" | "intimate" | "qwen">("classic");
-  const [wideChat, setWideChat] = useState(false);
+  const startDirectRef = useRef<(character: Character, lines: string[]) => void>(() => {});
   const [gameRequest, setGameRequest] = useState<(GamePlaySelection & {accountId: string}) | null>(null);
   const gameSelection = gameRequest?.accountId === cloud.user?.id ? gameRequest : null;
   const gameLibrary = useGamePlayLibrary(cloud.user?.id, cloud.user?.isGuest ?? true, view === "chat" || view === "characters" || view === "play-games", gameSelection);
@@ -296,7 +301,6 @@ export default function TavernApp() {
   const [automaticSuggestions, setAutomaticSuggestions] = useState<Set<string>>(() => new Set());
   const suggestionRequests = useRef(new Set<AbortController>());
   const draft = activeId ? composerDrafts[activeId]?.text ?? "" : "";
-  const failedDrafts = activeId ? composerDrafts[activeId]?.failed ?? [] : [];
   const pendingDraft = activeId ? composerDrafts[activeId]?.pending : undefined;
   function setDraft(text: string) {
     if (activeId) setComposerDrafts(previous => ({ ...previous, [activeId]: { ...previous[activeId], text, failed: previous[activeId]?.failed ?? [] } }));
@@ -364,12 +368,6 @@ export default function TavernApp() {
     update(); media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
-  useEffect(() => {
-    const media = window.matchMedia("(min-width: 768px)");
-    const update = () => setWideChat(media.matches);
-    update(); media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
   const dark = state.preferences.theme === "system" ? systemDark : state.preferences.theme ? state.preferences.theme === "dark" : state.preferences.dark;
   useEffect(() => {
     const background = dark ? "#15121c" : "#fcfafb";
@@ -401,6 +399,16 @@ export default function TavernApp() {
     invitePrompted.current = true;
     setAccountMode("register");
   }, [pendingInvite, loaded, cloud.authBusy, cloud.user?.isGuest]);
+  useEffect(() => {
+    if (!loaded || cloud.authBusy || typeof localStorage === "undefined") return;
+    const key = `qingyu-model-gemma31:${cloud.user?.id ?? "offline"}`;
+    try { if (localStorage.getItem(key) === "1") return; localStorage.setItem(key, "1"); } catch { return; }
+    setState(previous => {
+      const model = previous.preferences.model;
+      if (model !== "qwen" && model !== "fast" && model !== "balanced" && model !== "story") return previous;
+      return { ...previous, preferences: { ...previous.preferences, model: "gemma31" } };
+    });
+  }, [loaded, cloud.authBusy, cloud.user?.id, setState]);
   useEffect(() => {
     if (!loaded || cloud.authBusy || state.preferences.locale || typeof navigator === "undefined") return;
     const detected = resolveXumengLocale(undefined, navigator.languages);
@@ -652,16 +660,19 @@ export default function TavernApp() {
       }
       if (requestActive.current && target !== "chat") { setNotice("请先停止当前回复，再离开聊天。"); if (target.startsWith("chat/")) window.history.replaceState(null, "", "#chat"); return; }
       // Catalog/state updates rerun this effect; only a new route/account or actual traversal restores input.
-      const restoreHistory = Boolean(event) || lastResolvedRoute.current?.accountId !== accountId || lastResolvedRoute.current?.route !== target;
+      const routeChanged = lastResolvedRoute.current?.accountId !== accountId || lastResolvedRoute.current?.route !== target;
+      const restoreHistory = Boolean(event) || routeChanged;
       if (target === "chat/girlfriend" || target === "chat/girlfriend-intimate" || target === "chat/girlfriend-qwen") {
-        setConversationType("chats");
-        setCompanionOpen(true);
-        setCompanionVariant(target === "chat/girlfriend-intimate" ? "intimate" : target === "chat/girlfriend-qwen" ? "qwen" : "classic");
-        setGameRequest(null); setActiveId(null); setDetail(null); setView("chat");
+        const spec = DIRECT_CHARACTER_CHATS[target];
+        const character = conversationCharacters.find(item => item.id === spec.id);
+        if (!character) return;
+        startDirectRef.current(character, [...spec.lines]);
+        lastResolvedRoute.current = { accountId, route: "chat/chats" };
+        return;
       } else if (target === "chat/chats" || target === "chat/games") {
         setCompanionVariant("classic");
         setConversationType(target === "chat/chats" ? "chats" : "games");
-        setGameRequest(null); setActiveId(null); setDetail(null); setView("chat");
+        setGameRequest(null); if (routeChanged) setActiveId(null); setDetail(null); setView("chat");
       } else if (target.startsWith("chat/game/")) {
         const segments = target.split("/");
         let id = ""; try { id = decodeURIComponent(segments[3] ?? ""); parseXumengGameId(id); } catch { setNotice("游戏入口无效，请从游玩列表重新选择。"); return; }
@@ -737,7 +748,7 @@ export default function TavernApp() {
     window.addEventListener("hashchange", readHash);
     window.addEventListener("popstate", readHash);
     return () => { window.removeEventListener("hashchange", readHash); window.removeEventListener("popstate", readHash); };
-  }, [characters, loaded, state.custom, cloud.user?.id, cloud.authBusy]);
+  }, [characters, conversationCharacters, loaded, state.custom, cloud.user?.id, cloud.authBusy]);
 
   function navigate(target: View, route: string = target): boolean {
     if (view === "voice" && target !== "voice" && voiceBusy.current) { setNotice("语音正在生成，请等待完成后离开。"); return false; }
@@ -767,7 +778,7 @@ export default function TavernApp() {
     } else if (target !== "live" && target !== "voice") setPerformanceSelection(null);
     setDetail(null);
     const companionRoute = route === "chat/girlfriend" || route === "chat/girlfriend-intimate" || route === "chat/girlfriend-qwen";
-    setCompanionOpen(target === "chat" && companionRoute);
+    setCompanionOpen(false);
     setCompanionVariant(route === "chat/girlfriend-intimate" ? "intimate" : route === "chat/girlfriend-qwen" ? "qwen" : "classic");
     if (target === "chat") setConversationType(route === "chat/chats" || companionRoute ? "chats" : route === "chat/games" || route.startsWith("chat/game/") ? "games" : "stories");
     if (target === "studio") setCreatorSection("home");
@@ -797,11 +808,6 @@ export default function TavernApp() {
     setError("");
     navigate("chat", "chat/chats");
     setNotice("探险记录已保留，可以继续聊天。");
-  }
-  function openCompanion(variant: "classic" | "intimate" | "qwen" = "classic") {
-    if (!loaded || cloud.authBusy || !cloud.user) { setNotice("正在加载账户，请稍候再打开聊天。"); return; }
-    if (!navigate("chat", variant === "intimate" ? "chat/girlfriend-intimate" : variant === "qwen" ? "chat/girlfriend-qwen" : "chat/girlfriend")) return;
-    setGameRequest(null); setActiveId(null); setError("");
   }
   function leaveCompanion() {
     setActiveId(null); setGameRequest(null); navigate("chat", "chat/chats");
@@ -1174,6 +1180,7 @@ export default function TavernApp() {
     setDetail(null); setError(""); setGameRequest(null); setCompanionOpen(false);
     setActiveId(id ?? null);
   }
+  startDirectRef.current = startDirect;
   function selectConversation(c: Conversation) {
     if (requestActive.current) {
       setNotice("请先停止当前回复，再切换会话。");
@@ -1476,7 +1483,7 @@ export default function TavernApp() {
   }
 
   const paymentReturn = typeof window === "undefined" ? null : new URLSearchParams(window.location.search);
-  const companionInMain = companionOpen || (conversationType === "chats" && wideChat && !directChat && loaded && !cloud.authBusy && Boolean(cloud.user));
+  const companionInMain = companionOpen;
 
   return (
     <div
@@ -1658,7 +1665,8 @@ export default function TavernApp() {
                 ["qwen", "qy-linchuan", "季临川", "这边信号一格，你先说。", qwenMatchesSearch],
               ] as const).filter(([, id, , , visible]) => visible && !chatConversations.some(c => c.characterId === id)).map(([variant, id, name, preview]) => {
                 const ch = conversationCharacters.find(x => x.id === id);
-                return <button key={`companion:${variant}`} className={`${s.conversation} ${companionInMain && companionVariant === variant ? s.conversationActive : ""}`} aria-current={companionInMain && companionVariant === variant ? "page" : undefined} onClick={() => openCompanion(variant)}>
+                const selected = active?.characterId === id && active.phase === "chat";
+                return <button key={`companion:${variant}`} className={`${s.conversation} ${selected ? s.conversationActive : ""}`} aria-current={selected ? "page" : undefined} onClick={() => ch ? startDirect(ch, [preview]) : setNotice("这个人物还在加载，请稍后再试。")}>
                   {ch ? <Cover character={ch} /> : <span className={gameNavigation.companionAvatar} aria-hidden="true"><Icon name="heart" size={20}/></span>}
                   <span><strong>{name}</strong><small>{preview}</small></span>
                 </button>;
@@ -1847,9 +1855,11 @@ export default function TavernApp() {
                             onCopy={() => { void copyMessage(m.content); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
                           {directChat ? <div className={s.dmStack} data-message-text>
-                            {splitQingyuDirectMessage(m.content).map((part, partIndex) => part.aside
-                              ? <div key={partIndex} className={s.dmAside}>{part.text}</div>
-                              : <div key={partIndex} className={s.dmBubble}><MessageText text={part.text} role={m.role} characterName={activeCharacter.name} userName={playUserName} /></div>)}
+                            {(() => {
+                              const parts = splitQingyuDirectMessage(m.content);
+                              const lines = parts.some(part => !part.aside) ? parts.filter(part => !part.aside) : parts;
+                              return lines.map((part, partIndex) => <div key={partIndex} className={s.dmBubble}><MessageText text={part.text} role={m.role} characterName={activeCharacter.name} userName={playUserName} showStatus={false} /></div>);
+                            })()}
                             {!m.content.trim() && busy && <div className={`${s.dmBubble} ${s.dmTyping}`} aria-label="对方正在输入"><span /><span /><span /></div>}
                           </div> : <>
                           <span className={s.messageName}>
@@ -1883,12 +1893,9 @@ export default function TavernApp() {
                           </div>
                           </>}
                           </ChatMessageMedia>
-                          {m.role === "assistant" && m.content.trim() && (!directChat || index === active.messages.length - 1) && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
+                          {!directChat && m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
                             contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
-                            accountId={profileUser.id} onAutomaticStart={() => setAutomaticSuggestions(previous => {
-                              const next = new Set(previous); next.delete(`${profileUser.id}:${active.id}:${m.id}`); return next;
-                            })} automatic={!directChat && index === active.messages.length - 1 && automaticSuggestions.has(`${profileUser.id}:${active.id}:${m.id}`)
-                              && Boolean(billingConfig) && (!billingConfig?.enabled || !cloud.user?.isGuest)}
+                            accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false}
                             label={`第 ${index + 1} 条回复`} disabled={busy || cloud.authBusy} billed={Boolean(billingConfig?.enabled)}
                             historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
                             onChoose={reply => chooseReplySuggestion(m.id, reply)} />}
@@ -1941,31 +1948,21 @@ export default function TavernApp() {
                   )}
                   {rechargeNeeded && !busy && <p className={s.chatError}><span>当前余额不足以覆盖上下文与最短回复。可减少上下文，或等其他请求的预留结算后重试；未使用的预留会返还。{!XUMENG_PAYMENTS_ENABLED && "收款暂时关闭。"}</span><button type="button" onClick={() => navigate("recharge")}>{XUMENG_PAYMENTS_ENABLED ? "去充值" : "查看余额"}</button></p>}
                     {composerStorageWarning && <div className={s.chatError} role="alert"><p>{composerStorageWarning}</p><button type="button" className={s.secondary} onClick={() => download("输入草稿.json", JSON.stringify({ version: 1, accountId: cloud.user?.id, drafts: composerDrafts, ...(composerOriginalCache !== undefined ? { originalCache: composerOriginalCache } : {}) }, null, 2))}>导出输入草稿</button></div>}
-                    {pendingDraft && !busy && <details className={s.chatError}><summary>上次回复尚未确认，发送原文已保留</summary><p>先查看会话结果，再决定是否重发；恢复到输入框不会自动发送。</p><p style={{ whiteSpace: "pre-wrap" }}>{pendingDraft.text}</p><button type="button" onClick={() => {
+                    {pendingDraft && !busy && <details className={s.chatError}><summary>上次发送的内容</summary><p style={{ whiteSpace: "pre-wrap" }}>{pendingDraft.text}</p><button type="button" onClick={() => {
                       const combined = draft ? `${draft}\n${pendingDraft.text}` : pendingDraft.text;
                       if (combined.length > 12000) { setNotice("合并后超过输入上限，请先导出或发送当前输入，再恢复原文。"); return; }
                       if (activeId) setComposerDrafts(previous => ({ ...previous, [activeId]: { text: combined, failed: previous[activeId]?.failed ?? [] } }));
-                    }}>恢复上次发送原文</button><button type="button" onClick={() => {
+                    }}>恢复到输入框</button><button type="button" onClick={() => {
                       if (activeId) setComposerDrafts(previous => {
                         const current = previous[activeId]; if (!current) return previous;
                         const { pending: confirmed, ...rest } = current; void confirmed;
                         return { ...previous, [activeId]: rest };
                       });
-                    }}>已核对会话，移除待确认原文</button></details>}
-                    {failedDrafts.length > 0 && <details className={s.chatError}>
-                    <summary>有 {failedDrafts.length} 条未发送的原消息，新的输入已保留</summary>
-                    {failedDrafts.map((content, index) => <div key={index}><p style={{ whiteSpace: "pre-wrap" }}>{content}</p>
-                      <button type="button" aria-label={`恢复第${index + 1}条未发送消息`} onClick={() => {
-                        const combined = draft ? `${draft}\n${content}` : content;
-                        if (combined.length > 12000) { setNotice("合并后超过输入上限，请先保存或发送当前草稿，再恢复原消息。"); return; }
-                        if (activeId) setComposerDrafts(previous => ({ ...previous, [activeId]: { ...previous[activeId], text: combined,
-                          failed: (previous[activeId]?.failed ?? []).filter((_, position) => position !== index) } }));
-                      }}>恢复到输入框</button></div>)}
-                  </details>}
+                    }}>移除</button></details>}
                   <ChatBillingStatus key={cloud.user?.id ?? "offline"} accountId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true}
                     enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onRequireAccount={() => openAccount("login")} onRecharge={() => navigate("recharge")} />
                   {activeId && suggestionInsertions.current[activeId]?.after === draft && <p className={s.composerNote}>
-                    建议已填入，可以修改后发送。<button type="button" onClick={() => {
+                    <button type="button" onClick={() => {
                       const insertion = suggestionInsertions.current[activeId];
                       if (insertion?.after !== draft) return;
                       delete suggestionInsertions.current[activeId]; setDraft(insertion.before);
@@ -1991,7 +1988,7 @@ export default function TavernApp() {
                       ref={composerInputRef}
                       aria-label="发送消息"
                       disabled={!loaded || cloud.authBusy}
-                      placeholder={directChat ? `发消息给${activeCharacter.name}…` : "输入消息 (Shift+Enter 换行)"}
+                      placeholder={directChat ? `发消息给${activeCharacter.name}…` : "写一条消息"}
                       value={draft}
                       maxLength={12000}
                       rows={1}
@@ -2029,10 +2026,6 @@ export default function TavernApp() {
                       </button>
                     )}
                   </form>
-                  {!directChat && <p className={s.composerNote}>{active.phase === "adventure" ? "探险记录会保留到聊天" : "聊天记录自动保存"}</p>}
-                  {billingConfig?.enabled && <p className={s.composerNote}>
-                    {billingConfig.memoryBilled ? "聊天和剧情记忆会按服务器实际用量扣除 Credit" : "聊天会按服务器实际用量扣除 Credit"}，发送前会暂时预留，完成后返还未使用部分 · <a href="#recharge" onClick={event => { event.preventDefault(); navigate("recharge"); }}>余额与消费明细</a>
-                  </p>}
                 </div>
               </>
             ) : active ? (
@@ -2051,7 +2044,12 @@ export default function TavernApp() {
                 <p>{conversationType === "chats" ? "从左边选一个人，慢慢认识彼此。" : conversationType === "games" ? "你的游戏作品都在左侧列表。" : state.conversations.length ? "从列表继续剧情，或遇见一个新的角色。" : "去找一个心仪的角色吧"}</p>
                 {conversationType !== "games" && <button
                   className={s.primary}
-                  onClick={() => conversationType === "chats" ? openCompanion() : navigate("characters")}
+                  onClick={() => {
+                    if (conversationType !== "chats") { navigate("characters"); return; }
+                    const character = conversationCharacters.find(item => item.id === DIRECT_CHARACTER_CHATS["chat/girlfriend"].id);
+                    if (!character) { setNotice("这个人物还在加载，请稍后再试。"); return; }
+                    startDirect(character, [...DIRECT_CHARACTER_CHATS["chat/girlfriend"].lines]);
+                  }}
                 >
                   {conversationType === "chats" ? "开始聊天" : "选择角色"} <Icon name="chevron" size={16} />
                 </button>}
@@ -2217,37 +2215,42 @@ function heatValue(text: string) {
   return Number.isFinite(value) ? value * (text.includes("万") ? 10000 : 1) : 0;
 }
 
-function MessageText({ text, role = "assistant", characterName, userName }: {
-  text: string; role?: "user" | "assistant"; characterName?: string; userName?: string;
+function MessageText({ text, role = "assistant", characterName, userName, showStatus = true }: {
+  text: string; role?: "user" | "assistant"; characterName?: string; userName?: string; showStatus?: boolean;
 }) {
-  // Status presentation applies to character replies, never to the user's own text.
-  const visible = role === "user" ? text : splitXumengMessagePresentation(text).body;
-  const body = applyDzmmReaderNames(visible, { characterName, userName });
-  return body ? <MessageTextBody text={body} /> : null;
+  const named = applyDzmmReaderNames(text, { characterName, userName });
+  const presentation = role === "user" ? { body: named, status: null } : splitXumengMessagePresentation(named);
+  if (!presentation.body && !(showStatus && presentation.status)) return null;
+  return <>
+    {presentation.body && <MessageTextBody text={presentation.body} />}
+    {showStatus && presentation.status && <MessageStatus status={presentation.status} />}
+  </>;
 }
 
 function MessageTextBody({ text }: { text: string }) {
   if (hasCharacterMarkup(text)) return <CharacterRichText text={text} />;
-  return text
+  return plainXumengStoryText(text)
     .split("\n")
     .map((line, index) => (
       <div key={index}>
-        {line ? (
-          line
-            .split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g)
-            .map((part, j) =>
-              part.startsWith("**") && part.endsWith("**") ? (
-                <strong key={j}>{part.slice(2, -2)}</strong>
-              ) : part.startsWith("*") && part.endsWith("*") ? (
-                <em key={j}>{part.slice(1, -1)}</em>
-              ) : (
-                part
-              ),
-            )
-        ) : (
-          <br />
-        )}
+        {line ? splitXumengSpeech(line).map((part, j) => part.speech
+          ? <span key={j} className={s.speech}>{part.text}</span> : part.text) : <br />}
       </div>
     ));
+}
+
+function MessageStatus({ status }: { status: NonNullable<XumengMessagePresentation["status"]> }) {
+  const sections = status.sections ?? [{ title: "", fields: status.fields, notes: [] }];
+  const preview = xumengStatusPreview(status.fields) || sections.find(section => section.notes.length)?.notes[0]?.slice(0, 60) || "";
+  return <details className={s.visibleStatus}>
+    <summary>{status.title}{preview && <small>{preview}</small>}</summary>
+    {sections.map((section, index) => <section key={index} className={s.statusSection}>
+      {section.title && <h4>{section.title}</h4>}
+      {section.notes.map((note, j) => <p key={j}>{note}</p>)}
+      {section.fields.length > 0 && <dl>{section.fields.map((field, j) => <div key={j} className={field.value.length > 24 ? s.statusWide : undefined}>
+        <dt>{field.label}</dt><dd>{field.value}</dd>
+      </div>)}</dl>}
+    </section>)}
+  </details>;
 }
 

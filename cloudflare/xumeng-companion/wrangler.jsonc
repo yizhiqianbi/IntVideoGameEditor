@@ -15,8 +15,8 @@
     "scheduling_policy": "default",
     "max_instances": 20,
     "instance_type": "standard-1",
-    "image": "../../output/xumeng/companion-release-20261025/container-context-pool-r8/Dockerfile",
-    "image_build_context": "../../output/xumeng/companion-release-20261025/container-context-pool-r8",
+    "image": "../../output/xumeng/companion-release-20261106/container-context-breeze/Dockerfile",
+    "image_build_context": "../../output/xumeng/companion-release-20261106/container-context-breeze",
     "observability": { "logs": { "enabled": false } }
   }, {
     // Shared: one warm container per shard, an isolated native process per account.
@@ -25,8 +25,8 @@
     "scheduling_policy": "default",
     "max_instances": 4,
     "instance_type": "standard-4",
-    "image": "../../output/xumeng/companion-release-20261025/container-context-pool-r8/Dockerfile",
-    "image_build_context": "../../output/xumeng/companion-release-20261025/container-context-pool-r8",
+    "image": "../../output/xumeng/companion-release-20261106/container-context-breeze/Dockerfile",
+    "image_build_context": "../../output/xumeng/companion-release-20261106/container-context-breeze",
     "observability": { "logs": { "enabled": false } }
   }],
   "durable_objects": { "bindings": [

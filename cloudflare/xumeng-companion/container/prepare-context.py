@@ -95,6 +95,12 @@ def prepare(destination, workspace):
             write(stage, name, (package / name).read_bytes())
         for name in ("control.mjs", "lifecycle.mjs", "prepare-instance.py", "archive.py", "personas.json"):
             write(stage, "runtime/" + name, (package / name).read_bytes())
+        templates = package / "templates"
+        for name in ("classic", "intimate", "sales", "cast-qiaowan", "cast-tangtang", "cast-peiwan"):
+            disk = templates / f"{name}.tar.gz"
+            if not disk.is_file():
+                raise ValueError("Persona template disk is missing")
+            write(stage, f"runtime/templates/{name}.tar.gz", disk.read_bytes())
         gateway_data = gateway.read_bytes()
         write(stage, "runtime/gateway.mjs", gateway_data)
         files = {}

@@ -26,6 +26,7 @@ import { renderKrea2Still } from "../../../src/lib/xumeng-krea2-bridge";
 import { AiapiError, runAiapiJob, sniffAiapiBytes } from "../../../src/lib/aiapi-channel";
 import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availability";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
+import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
 import { sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
@@ -253,6 +254,57 @@ async function settleStudioStill(request: Request, env: Env, hold: { id: string;
   if (outcome === "release") return true;
   const payload = await upstream.json().catch(() => null) as { status?: unknown; credits?: unknown } | null;
   return payload?.status === "charged" && payload.credits === STUDIO_STILL_CREDITS;
+}
+
+async function reserveCanvasVideo(request: Request, env: Env, seconds: number): Promise<{ id: string; claimToken: string; credits: number } | Response> {
+  let credits = 0;
+  try { credits = canvasTokenVideoCreditsFor(seconds, "minimax-h3"); }
+  catch { return json({ error: "视频时长需要在 2 到 15 秒之间。" }, 400); }
+  const upstream = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/generation/canvas`, {
+    method: "POST",
+    headers: backendHeaders(request),
+    body: JSON.stringify({ kind: "video", requestId: crypto.randomUUID(), seconds, model: "minimax-h3" }),
+    redirect: "manual",
+  }));
+  const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
+  if (upstream.status === 401) return json({ error: "请先登录后再生成视频。" }, 401);
+  if (upstream.status === 403) return json({ error: "请先登录正式账户后再生成视频。" }, 403);
+  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `可用 Credit 不足，这次视频需要 ${credits} Credit。`, code: "insufficient_credits" }, 402);
+  if (upstream.status === 429) return json({ error: typeof payload?.error === "string" ? payload.error : "正在生成的任务过多，请先等待完成。" }, 429);
+  if (!upstream.ok || payload?.credits !== credits || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
+    return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
+  }
+  return { id: payload.reservationId, claimToken: payload.claimToken, credits };
+}
+
+async function settleCanvasVideo(request: Request, env: Env, hold: { id: string; claimToken: string; credits: number }, outcome: "charge" | "release"): Promise<boolean> {
+  const upstream = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/generation/canvas/${hold.id}/${outcome}`, {
+    method: "POST",
+    headers: backendHeaders(request),
+    body: JSON.stringify({ claimToken: hold.claimToken }),
+    redirect: "manual",
+  })).catch(() => null);
+  if (!upstream?.ok) return false;
+  if (outcome === "release") return true;
+  const payload = await upstream.json().catch(() => null) as { status?: unknown; credits?: unknown } | null;
+  return payload?.status === "charged" && payload.credits === hold.credits;
+}
+
+async function storeAlbumStill(request: Request, env: Env, image: Response): Promise<string | Response> {
+  const bytes = await image.arrayBuffer();
+  if (bytes.byteLength > 5 * 1024 * 1024) return json({ error: "相册图片不能超过 5 MB，这次没有扣 Credit。" }, 413);
+  const headers = backendHeaders(request);
+  headers.set("content-type", "image/png");
+  headers.set("x-xumeng-media-purpose", "album");
+  const stored = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/media`, {
+    method: "POST", headers, body: bytes, redirect: "manual",
+  }));
+  const payload = await stored.json().catch(() => null) as { error?: unknown; url?: unknown } | null;
+  if (!stored.ok || typeof payload?.url !== "string") {
+    const message = typeof payload?.error === "string" && payload.error.includes("相册") ? payload.error : "相册保存失败，这次没有扣 Credit。";
+    return json({ error: message }, stored.status === 401 || stored.status === 403 || stored.status === 429 ? stored.status : 502);
+  }
+  return payload.url;
 }
 
 function backendHeaders(request: Request): Headers {
@@ -557,7 +609,10 @@ async function proxyBackend(request: Request, env: Env, prefix: string): Promise
   const upstreamCache = upstream.headers.get("Cache-Control") ?? "";
   const publicCard = /^\/v1\/publishing\/media\/published-[a-f0-9-]+\/\d+\/(?:cover|gallery-\d+)-card$/.test(target.pathname)
     && /^public,\s*max-age=\d+/.test(upstreamCache);
-  if (!publicCard) headers.set("Cache-Control", "no-store");
+  const reusableChatMedia = request.method === "GET"
+    && /^\/v1\/chat-media\/assets\/[A-Za-z0-9_-]{1,128}$/.test(target.pathname)
+    && /^private,\s*max-age=\d+/.test(upstreamCache);
+  if (!publicCard && !reusableChatMedia) headers.set("Cache-Control", "no-store");
   return new Response(upstream.body, {
     status: upstream.status,
     statusText: upstream.statusText,
@@ -671,6 +726,8 @@ async function aiapiVideo(request: Request, env: Env): Promise<Response> {
   const prompt = typeof record.prompt === "string" ? record.prompt : "";
   const image = referenceBytes(record.image);
   if (image instanceof Response) return image;
+  const hold = await reserveCanvasVideo(request, env, 8);
+  if (hold instanceof Response) return hold;
   try {
     const hosted = await publishChannelImage(env, image.bytes, image.type);
     const rendered = await runAiapiJob(
@@ -684,11 +741,17 @@ async function aiapiVideo(request: Request, env: Env): Promise<Response> {
         ratio,
       },
     );
+    const charged = await settleCanvasVideo(request, env, hold, "charge");
+    if (!charged) {
+      await settleCanvasVideo(request, env, hold, "release");
+      return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
+    }
     return new Response(rendered.bytes, {
       status: 200,
-      headers: { "Content-Type": "video/mp4", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+      headers: { "Content-Type": "video/mp4", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "X-Charged-Credits": String(hold.credits) },
     });
   } catch (error) {
+    await settleCanvasVideo(request, env, hold, "release");
     return channelFailure(error);
   }
 }
@@ -712,13 +775,31 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   if (!limit.success) return json({ error: "视频请求太频繁，请稍后再试。" }, 429);
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "请求格式无效。" }, 400); }
-  const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown } : {};
-  return runH3CanvasVideo({
+  const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown; seconds?: unknown } : {};
+  const seconds = typeof record.seconds === "number" ? record.seconds : 5;
+  const hold = await reserveCanvasVideo(request, env, seconds);
+  if (hold instanceof Response) return hold;
+  const video = await runH3CanvasVideo({
     base: env.H3_COMFY_URL ?? "",
     token: env.H3_COMFY_TOKEN ?? "",
     prompt: typeof record.prompt === "string" ? record.prompt : "",
     image: typeof record.image === "string" ? record.image : "",
+    seconds,
   });
+  if (!video.ok) {
+    await video.body?.cancel();
+    await settleCanvasVideo(request, env, hold, "release");
+    return video;
+  }
+  const charged = await settleCanvasVideo(request, env, hold, "charge");
+  if (!charged) {
+    await video.body?.cancel();
+    await settleCanvasVideo(request, env, hold, "release");
+    return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
+  }
+  const headers = new Headers(video.headers);
+  headers.set("X-Charged-Credits", String(hold.credits));
+  return new Response(video.body, { status: video.status, headers });
 }
 
 async function h3ReferenceVideo(request: Request, env: Env): Promise<Response> {
@@ -746,7 +827,9 @@ async function h3ReferenceVideo(request: Request, env: Env): Promise<Response> {
   const asset = await env.ASSETS.fetch(new Request(new URL(`/assets/xumeng/h3-actions/${templateId}.mp4`, request.url), { method: "GET" }));
   if (!asset.ok) { await asset.body?.cancel(); return json({ error: "这个动作模板没有参考视频。" }, 502); }
   const templateVideo = new Uint8Array(await asset.arrayBuffer());
-  return runH3ReferenceVideo({
+  const hold = await reserveCanvasVideo(request, env, 5);
+  if (hold instanceof Response) return hold;
+  const video = await runH3ReferenceVideo({
     base: env.H3_COMFY_URL ?? "",
     token: env.H3_COMFY_TOKEN ?? "",
     templateId,
@@ -754,6 +837,20 @@ async function h3ReferenceVideo(request: Request, env: Env): Promise<Response> {
     image: typeof record.image === "string" ? record.image : "",
     templateVideo,
   });
+  if (!video.ok) {
+    await video.body?.cancel();
+    await settleCanvasVideo(request, env, hold, "release");
+    return video;
+  }
+  const charged = await settleCanvasVideo(request, env, hold, "charge");
+  if (!charged) {
+    await video.body?.cancel();
+    await settleCanvasVideo(request, env, hold, "release");
+    return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
+  }
+  const headers = new Headers(video.headers);
+  headers.set("X-Charged-Credits", String(hold.credits));
+  return new Response(video.body, { status: video.status, headers });
 }
 
 async function h3Channel(request: Request, env: Env, path: string): Promise<Response> {
@@ -972,7 +1069,7 @@ async function chat(request: Request, env: Env, options: DzmmChatHandlerOptions,
   const handlerOptions = { ...options, billing };
   const response = await (memory ? handleDzmmMemoryPost(request, chatEnvironment(env), handlerOptions)
     : novel ? handleDzmmNovelPost(request, chatEnvironment(env), handlerOptions)
-      : illustrations ? handleDzmmIllustrationsPost(request, chatEnvironment(env), options)
+      : illustrations ? handleDzmmIllustrationsPost(request, chatEnvironment(env), handlerOptions)
         : suggestions ? handleDzmmReplySuggestionsPost(request, chatEnvironment(env), handlerOptions) : handleDzmmChatPost(request, chatEnvironment(env), handlerOptions));
   const headers = new Headers(response.headers);
   headers.set("X-Xumeng-Request-Id", requestId);
@@ -1053,7 +1150,7 @@ export async function fetchRequest(
         .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
         .on('meta[name="robots"], meta[name="googlebot"], meta[name="bingbot"]', { element: element => { if (XUMENG_PAYMENT_INFO_DRAFT) element.setAttribute("content", "noindex, nofollow"); } })
         .on('script[type="application/ld+json"]', { element: element => { element.remove(); } })
-        .on("noscript", { element: element => { element.remove(); } })
+        .on("noscript#xumeng-public-fallback", { element: element => { element.remove(); } })
         .on("#root", { element: element => { element.setInnerContent(renderXumengPaymentInfoPage(paymentInfoPage), { html: true }); } })
         .transform(shell);
       const headers = new Headers(rewritten.headers);
@@ -1082,7 +1179,7 @@ export async function fetchRequest(
         .on('link[hreflang]', { element: element => { element.setAttribute("href", canonical); } })
         .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
         .on('script[type="application/ld+json"]', { element: element => { element.setInnerContent(communityGuidelinesJsonLd()); } })
-        .on("noscript", { element: element => { element.remove(); } })
+        .on("noscript#xumeng-public-fallback", { element: element => { element.remove(); } })
         .on("#root", { element: element => { element.setInnerContent(renderXumengCommunityGuidelines(), { html: true }); } })
         .transform(shell);
       const headers = new Headers(rewritten.headers);
@@ -1150,6 +1247,7 @@ export async function fetchRequest(
         const posterTemplate = templateId !== "krea2-free" && /^krea2-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(templateId);
         const templateImage = posterTemplate ? await loadKrea2Poster(request, env, templateId) : "";
         if (posterTemplate && !templateImage) return json({ error: "这个画面模板没有参考图。" }, 502);
+        const album = request.headers.get("x-xumeng-album") === "1";
         const hold = await reserveStudioStill(request, env, templateId);
         if (hold instanceof Response) return hold;
         let image: Response;
@@ -1162,6 +1260,19 @@ export async function fetchRequest(
         if (!image.ok || !image.headers.get("Content-Type")?.includes("image/png")) {
           await settleStudioStill(request, env, hold, "release");
           return image;
+        }
+        if (album) {
+          const stored = await storeAlbumStill(request, env, image);
+          if (stored instanceof Response) {
+            await settleStudioStill(request, env, hold, "release");
+            return stored;
+          }
+          const charged = await settleStudioStill(request, env, hold, "charge");
+          if (!charged) {
+            await settleStudioStill(request, env, hold, "release");
+            return json({ error: "扣费没有完成，这次没有扣 Credit。" }, 502);
+          }
+          return json({ url: stored, chargedCredits: STUDIO_STILL_CREDITS });
         }
         const charged = await settleStudioStill(request, env, hold, "charge");
         if (!charged) {

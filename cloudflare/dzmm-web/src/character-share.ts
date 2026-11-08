@@ -1,5 +1,6 @@
 import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
 import { CHARACTER_SHARE_INDEX, type CharacterShareRecord } from "./character-share-index";
+import { gtmBodyHtml, gtmHeadHtml } from "./gtm";
 
 const SITE = "https://xumengchat.top";
 const BACKEND = "https://dzmm-backend.850587960.workers.dev";
@@ -167,8 +168,10 @@ export function renderCharacterSharePage(card: ShareCard): string {
       img { display: block; width: 100%; height: auto; }
     </style>
     <script type="application/ld+json">${jsonLd}</script>
+    ${gtmHeadHtml}
   </head>
   <body>
+    ${gtmBodyHtml}
     <main>
       <a href="${open}"><img src="${image}" alt="${title}" width="${card.width}" height="${card.height}" /></a>
       <div style="padding:24px 20px;max-width:760px;margin:0 auto">${characterSummary(card)}</div>
@@ -229,7 +232,7 @@ export function applyCharacterShareTags(html: string, card: ShareCard): string {
     ["name", "robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"],
   ] as const) next = setMeta(next, attribute, key, content);
   next = next.replace(/\s*<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/gi, "");
-  next = next.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, "");
+  next = next.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, block => block.includes("googletagmanager.com") ? block : "");
   next = next.replace("</head>", `    <script type="application/ld+json">${jsonLd}</script>\n  </head>`);
   const fallback = `<noscript><main style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif">${characterSummary(card)}</main></noscript>`;
   next = next.replace("</body>", `${fallback}\n  </body>`);

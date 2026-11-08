@@ -22,6 +22,8 @@ export interface HostEnv {
   COMPANION_IMAGE_QUALITY?: string;
   COMPANION_TTS_MODEL?: string;
   COMPANION_TTS_VOICE?: string;
+  COMPANION_BREEZE_API_KEY?: string;
+  COMPANION_BREEZE_VOICE?: string;
   COMPANION_AGREEMENTS_ACCEPTED?: string;
   COMPANION_EULA_MD5?: string;
   COMPANION_PRIVACY_MD5?: string;
@@ -71,7 +73,7 @@ export class PoolFullError extends Error {}
 interface RuntimeState {
   accountId: string; profile?: Exclude<HostProfile, 'classic'>; token: string; phase: 'new' | 'starting' | 'running' | 'stopped';
   dirty: boolean; bootId?: string; snapshot?: Snapshot; lastActivity: number;
-  blocked?: string; checkpointError?: boolean; checkpointFailure?: string; restoreRequired?: boolean; transcriptParked?: boolean;
+  blocked?: string; checkpointError?: boolean; checkpointFailure?: string; restoreRequired?: boolean; restoreTemplate?: HostProfile; transcriptParked?: boolean;
   runtime?: 'pool'; tenant?: string; poolShard?: number;
 }
 type BootPhase = 'container' | 'controller' | 'restore' | 'native';
@@ -95,7 +97,7 @@ const BOOT_METRICS_LIMIT = 20;
 const SHARED_ENV_KEYS = ['COMPANION_OPENROUTER_API_KEY', 'COMPANION_CHAT_MODEL', 'COMPANION_EMBEDDING_MODEL',
   'COMPANION_EMBEDDING_DIMENSION', 'COMPANION_AGREEMENTS_ACCEPTED', 'COMPANION_EULA_MD5', 'COMPANION_PRIVACY_MD5'] as const;
 const OPTIONAL_ENV_KEYS = ['COMPANION_FAST_MODEL', 'COMPANION_OPENROUTER_BASE_URL', 'COMPANION_IMAGE_MODEL', 'COMPANION_IMAGE_RESOLUTION',
-  'COMPANION_IMAGE_QUALITY', 'COMPANION_TTS_MODEL', 'COMPANION_TTS_VOICE'] as const;
+  'COMPANION_IMAGE_QUALITY', 'COMPANION_TTS_MODEL', 'COMPANION_TTS_VOICE', 'COMPANION_BREEZE_API_KEY', 'COMPANION_BREEZE_VOICE'] as const;
 /** Provider configuration shared by every runtime; contains no account identity. */
 export function sharedEnvironment(source: HostEnv): Record<string, string> {
   const env: Record<string, string> = {};
@@ -482,9 +484,14 @@ export class CompanionHost {
   private async releaseLostContainer(state: RuntimeState): Promise<boolean> {
     if (await this.ambiguousReceipt() || !(await this.verifiedSnapshot(state))) return false;
     state.blocked = undefined; state.dirty = false; state.phase = 'stopped'; state.restoreRequired = true;
-    delete state.checkpointError; delete state.checkpointFailure; state.lastActivity = this.now();
+    delete state.checkpointError; delete state.checkpointFailure; delete state.restoreTemplate; state.lastActivity = this.now();
     await this.save(state);
     return true;
+  }
+  /** No verified personal disk. Keep journals and receipts, and start from this character's empty factory disk. */
+  private adoptTemplate(state: RuntimeState): void {
+    delete state.snapshot; delete state.blocked; delete state.checkpointError; delete state.checkpointFailure; delete state.restoreRequired;
+    state.dirty = false; state.phase = 'stopped'; state.restoreTemplate = state.profile ?? 'classic'; state.lastActivity = this.now();
   }
   private async health(state: RuntimeState, timeout = 5_000): Promise<ControllerHealth> {
     const response = await this.call(state, '/health', {}, timeout);
@@ -526,14 +533,22 @@ export class CompanionHost {
         // the same outcome as container loss: the unsaved delta left with the
         // process. A verified snapshot can resume when no delivery is ambiguous.
         const loss = ['unexpected-container-loss', 'unexpected-native-stop', 'unexpected-controller-restart'].includes(state.blocked || '');
-        const resumed = loss && !(await this.rt(state).isRunning()) && await this.releaseLostContainer(state);
+        const running = await this.rt(state).isRunning();
+        const resumed = loss && !running && await this.releaseLostContainer(state);
         if (!resumed && !(await this.resetEmptyLostInstance(state))) {
-          throw new HostError(503, 'RECOVERY_REVIEW_REQUIRED', '聊天恢复需要核查，暂时不能发送新消息。', {
-            recovery: state.blocked || 'unspecified',
-            containerRunning: await this.rt(state).isRunning(),
-            deliveryAmbiguous: await this.ambiguousReceipt(),
-            snapshotVerified: await this.verifiedSnapshot(state),
-          });
+          const ambiguous = await this.ambiguousReceipt();
+          const verified = await this.verifiedSnapshot(state);
+          if (loss && !running && !ambiguous && !verified) {
+            this.adoptTemplate(state);
+            await this.save(state);
+          } else {
+            throw new HostError(503, 'RECOVERY_REVIEW_REQUIRED', '聊天恢复需要核查，暂时不能发送新消息。', {
+              recovery: state.blocked || 'unspecified',
+              containerRunning: running,
+              deliveryAmbiguous: ambiguous,
+              snapshotVerified: verified,
+            });
+          }
         }
       }
     }
@@ -553,7 +568,11 @@ export class CompanionHost {
       // Never silently roll back while a send is still ambiguous, and never resend it.
       // If the container is already gone, the uncheckpointed delta is gone with it:
       // resume the last verified snapshot instead of blocking every future open.
-      if (state.dirty && !(await this.releaseLostContainer(state))) return this.blocked(state, 'unexpected-container-loss');
+      if (state.dirty && !(await this.releaseLostContainer(state))) {
+        if (await this.ambiguousReceipt() || await this.verifiedSnapshot(state)) return this.blocked(state, 'unexpected-container-loss');
+        this.adoptTemplate(state);
+        await this.save(state);
+      }
       await this.chooseRuntime(state);
       const env = this.environment(state);
       // A fresh process can diverge from the parked transcript immediately.
@@ -590,17 +609,34 @@ export class CompanionHost {
     if (state.restoreRequired && state.snapshot) {
       tracker.enter('restore');
       const pointer = state.snapshot;
-      if (!pointer.key.startsWith(`${this.archiveRoot(state)}/snapshots/`)) return this.blocked(state, 'invalid-snapshot-owner');
-      const saved = await this.memory.get(pointer.key);
-      if (!saved || saved.metadata.accountId !== state.accountId || saved.size !== pointer.size
-        || saved.etag !== pointer.etag || saved.sha256 !== pointer.sha256) return this.blocked(state, 'snapshot-missing-or-mismatched');
-      const restored = await this.call(state, '/internal/restore', { method: 'POST', body: saved.body,
-        headers: { 'content-type': 'application/gzip', 'content-length': String(pointer.size), 'x-snapshot-sha256': pointer.sha256 } }, 90_000);
-      // 409 means the controller is still busy with a restore begun by an
-      // earlier object incarnation; that is not evidence of a bad snapshot.
-      if (restored.status === 409) throw new HostError(503, 'CONTAINER_STARTING', '聊天服务正在启动，请稍后查看。');
-      if (!restored.ok) return this.blocked(state, 'snapshot-restore-failed');
-      state.restoreRequired = false; await this.save(state);
+      const owned = pointer.key.startsWith(`${this.archiveRoot(state)}/snapshots/`);
+      const saved = owned ? await this.memory.get(pointer.key) : null;
+      const matches = Boolean(saved) && saved!.metadata.accountId === state.accountId && saved!.size === pointer.size
+        && saved!.etag === pointer.etag && saved!.sha256 === pointer.sha256;
+      if (!matches) {
+        if (saved) await saved.body.cancel();
+        if (await this.ambiguousReceipt()) return this.blocked(state, owned ? 'snapshot-missing-or-mismatched' : 'invalid-snapshot-owner');
+        this.adoptTemplate(state);
+        await this.save(state);
+        tracker.leave('restore');
+      } else {
+        const restored = await this.call(state, '/internal/restore', { method: 'POST', body: saved!.body,
+          headers: { 'content-type': 'application/gzip', 'content-length': String(pointer.size), 'x-snapshot-sha256': pointer.sha256 } }, 90_000);
+        // 409 means the controller is still busy with a restore begun by an
+        // earlier object incarnation; that is not evidence of a bad snapshot.
+        if (restored.status === 409) throw new HostError(503, 'CONTAINER_STARTING', '聊天服务正在启动，请稍后查看。');
+        if (!restored.ok) return this.blocked(state, 'snapshot-restore-failed');
+        state.restoreRequired = false; await this.save(state);
+        tracker.leave('restore');
+      }
+    }
+    if (state.restoreTemplate) {
+      tracker.enter('restore');
+      const persona = state.restoreTemplate;
+      const restored = await this.call(state, '/internal/restore-template', { method: 'POST',
+        body: JSON.stringify({ persona }), headers: { 'content-type': 'application/json' } }, 90_000);
+      delete state.restoreTemplate; await this.save(state);
+      if (!restored.ok) await restored.body?.cancel();
       tracker.leave('restore');
     }
     // Persist the conservative dirty marker before allowing any native process to run.

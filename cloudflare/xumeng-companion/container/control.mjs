@@ -93,6 +93,12 @@ async function handleInstance(request, response, lifecycle, path) {
       await archiveUpload(request, archive);
       return send(200, await lifecycle.restore(archive));
     }
+    if (request.method === 'POST' && path === '/internal/restore-template') {
+      let input;
+      try { input = JSON.parse((await body(request)).toString() || '{}'); } catch { throw lifecycleError('INVALID_JSON', 400); }
+      if (!input || typeof input.persona !== 'string' || !PERSONAS.has(input.persona)) throw lifecycleError('INVALID_TEMPLATE', 400);
+      return send(200, await lifecycle.restore(join(PACKAGE_DIR, 'templates', `${input.persona}.tar.gz`), input.persona));
+    }
     if (permitted(path, request.method)) {
       if (request.method === 'POST' && !/^application\/json(?:\s*;|$)/i.test(request.headers['content-type'] || '')) throw lifecycleError('JSON_REQUIRED', 415);
       const bytes = request.method === 'POST' ? await body(request) : undefined;

@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "canvas": {
+    "width": 800,
+    "height": 520,
+    "viewBox": "0 0 800 520"
+  },
+  "provenance": {
+    "kind": "original-svg-illustration",
+    "method": "Hand-authored vector code",
+    "modelOutput": false,
+    "thirdPartyAssets": false
+  },
+  "assets": [
+    {
+      "id": "character",
+      "path": "/dzmm/generation-templates/character.svg",
+      "sha256": "75bc9b1edc409f5217a10ea6a10b9be324a4f58947bbdb38d5ecbdc03870b29c",
+      "provenance": "original-svg-illustration",
+      "subject": "Fully clothed adult traveler with a backpack and map in the mountains"
+    },
+    {
+      "id": "scene",
+      "path": "/dzmm/generation-templates/scene.svg",
+      "sha256": "65991604bebd984392a5c48ac6623cf699028d7cf7cf1c976629a4cc5976b808",
+      "provenance": "original-svg-illustration",
+      "subject": "Layered coastal mountains, forest, harbor village and sailboat"
+    },
+    {
+      "id": "cover",
+      "path": "/dzmm/generation-templates/cover.svg",
+      "sha256": "895d8995efb9857217c4067ef961dbfa519cc990f2a7e28456b1dd64f5710e16",
+      "provenance": "original-svg-illustration",
+      "subject": "Open book, moonlight, stars and botanical motifs"
+    },
+    {
+      "id": "product",
+      "path": "/dzmm/generation-templates/product.svg",
+      "sha256": "9510b5139d05dc32d195dbca9975a993d175957b4d662b16370f6c5f7a6dc42e",
+      "provenance": "original-svg-illustration",
+      "subject": "Ceramic coffee cup and glass botanical bottle on a stone pedestal"
+    },
+    {
+      "id": "short-film",
+      "path": "/dzmm/generation-templates/short-film.svg",
+      "sha256": "01bf44d971c9abf1281950e6ce38d48b7319a9747c5e43cc5da15217fc522c54",
+      "provenance": "original-svg-illustration",
+      "subject": "Dawn coastal street with a lighthouse and cinematic perspective"
+    }
+  ]
+}

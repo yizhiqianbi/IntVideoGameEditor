@@ -47,6 +47,7 @@ test("discovery documents cite the same public facts and stay inside the privacy
   }
   assert.doesNotMatch(`${llms}\n${full}\n${publicAtomFeed()}`, /性虐|性奴|色情|\/api\/|\/health/);
   assert.match(full, /公开角色地址以 https:\/\/xumengchat\.top\/sitemap\.xml 为准，地图包含当前已上架的公开角色。精选可引用角色：8。/);
+  assert.match(llms, /https:\/\/video\.xumengchat\.top\/sitemap\.xml/);
   assert.match(full, new RegExp(GEO_UPDATED));
   for (const item of geoAnswers()) {
     assert.match(full, new RegExp(item.question.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
@@ -96,17 +97,17 @@ test("sitemap adds listed publication urls and keeps their covers off /api/", ()
   const second = "published-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
   assert.equal(publishedSitemapCharacters({ user: { id: first } }), null);
   assert.deepEqual(publishedSitemapCharacters({ characters: [
-    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png" },
-    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png" },
+    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png", title: "港口夜航" },
+    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png", title: "港口夜航" },
     { id: "not-a-publication", updatedAt: 1, revision: 1, coverExtension: "jpg" },
-    { id: second, updatedAt: Date.UTC(2026, 10, 4), revision: 1, coverExtension: "webp" },
+    { id: second, updatedAt: Date.UTC(2026, 10, 4), revision: 1, coverExtension: "webp", title: "  " },
   ] }), [
-    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png" },
+    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png", title: "港口夜航 - AI角色聊天" },
     { id: second, updatedAt: Date.UTC(2026, 10, 4), revision: 1, coverExtension: null },
   ]);
   const xml = publicSitemapXml([
-    { id: second, updatedAt: Date.UTC(2026, 10, 4), revision: 1, coverExtension: null },
-    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png" },
+    { id: second, updatedAt: Date.UTC(2026, 10, 4), revision: 1, coverExtension: null, title: "无封面样本 - AI角色聊天" },
+    { id: first, updatedAt: Date.UTC(2026, 10, 3), revision: 2, coverExtension: "png", title: "港口夜航 - AI角色聊天" },
     { id: "xumeng-foreverse-peiyu", updatedAt: Date.UTC(2026, 10, 3), revision: 1, coverExtension: "jpg" },
   ]);
   const locs = pageLocs(xml);
@@ -114,8 +115,9 @@ test("sitemap adds listed publication urls and keeps their covers off /api/", ()
   assert.ok(locs.indexOf(`${ORIGIN}/c/${first}`) < locs.indexOf(`${ORIGIN}/c/${second}`));
   assert.match(xml, new RegExp(`<loc>${ORIGIN}/c/${first}</loc><lastmod>2026-11-03</lastmod>`));
   assert.match(xml, new RegExp(`/assets/xumeng/share/${first}-2\\.png`));
+  assert.match(xml, new RegExp(`<image:title>港口夜航 - AI角色聊天</image:title>`));
   const bare = xml.match(new RegExp(`<url><loc>${ORIGIN}/c/${second}</loc>.*?</url>`))?.[0] ?? "";
-  assert.doesNotMatch(bare, /image:loc/);
+  assert.doesNotMatch(bare, /image:loc|image:title/);
   assert.doesNotMatch(xml, /\/api\/|#|nsfw|porn/);
 });
 
@@ -187,7 +189,7 @@ test("homepage html repeats the citable definition and featured catalog", async 
   const html = await readFile(resolve(root, "../index.html"), "utf8");
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1] ?? "";
   const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
-  assert.equal(title, "叙梦 · 角色与故事｜AI 角色卡与互动故事");
+  assert.equal(title, "叙梦官网｜AI 角色卡与互动故事");
   assert.ok(title.length >= 10 && title.length <= 65);
   assert.equal(description, GEO_META_DESCRIPTION);
   assert.ok(description.length >= 40 && description.length <= 180);
@@ -197,6 +199,7 @@ test("homepage html repeats the citable definition and featured catalog", async 
   assert.ok(html.includes(GEO_BOUNDARY));
   assert.match(html, /href="\/llms-full\.txt"/);
   assert.match(html, /href="\/feed\.xml"/);
+  assert.match(html, /href="\/sitemap\.xml"/);
   assert.match(html, /href="https:\/\/huangguo\.chat\/"/);
   assert.match(html, /href="https:\/\/candy\.ai\/"/);
   assert.match(html, />角色卡</);

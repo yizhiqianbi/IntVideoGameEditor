@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getDzmmCharacterCardBlurb } from "@/lib/dzmm-character-presentation";
 import type { Character } from "@/lib/dzmm-characters";
 import { coverShelfTags } from "@/lib/xumeng-shelf-tags";
-import { RECOMMENDATION_REASON_LABELS, type RecommendationReason } from "@/lib/xumeng-recommendations";
+import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import type { DzmmPreferences } from "@/lib/dzmm-storage";
 import {
   DZMM_DISCOVERY_CATEGORIES, filterDzmmCharacters, findCharacterAuthor, isDzmmCharacterBlocked,
@@ -36,7 +36,7 @@ function CharacterCards({ characters, authors, favorites, likes = [], onCharacte
       const liked = likes.includes(character.id);
       const painted = coverShelfTags(character.tags, 2);
       const reason = reasons?.[character.id];
-      const reasonLabel = reason && reason !== "ranking" ? RECOMMENDATION_REASON_LABELS[reason] : "";
+      const reasonLabel = recommendationReasonText(reason);
       return <article className={s.card} key={character.id} data-recommend-id={trackRecommendations ? character.id : undefined} data-recommend-position={trackRecommendations ? index : undefined}>
         <CoverReel className={s.coverButton} character={character} count="corner" onOpen={() => onCharacter(character)}>
           <span className={s.heat}><Icon name="flame" size={14} />{character.heat || "—"}</span>

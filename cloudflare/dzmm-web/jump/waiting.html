@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex" />
+    <meta name="theme-color" content="#07070b" />
+    <title>她已经在等你了 · 叙梦</title>
+    <meta name="description" content="自定义角色 · 无限制剧情 · 越聊越入戏" />
+    <link rel="canonical" href="https://xumengchat.top/go/waiting" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://xumengchat.top/go/waiting" />
+    <meta property="og:title" content="她已经在等你了" />
+    <meta property="og:description" content="自定义角色 · 无限制剧情 · 越聊越入戏" />
+    <meta property="og:image" content="https://xumengchat.top/jump/waiting-share.jpg?v=2" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="她已经在等你了" />
+    <meta name="twitter:description" content="自定义角色 · 无限制剧情 · 越聊越入戏" />
+    <meta name="twitter:image" content="https://xumengchat.top/jump/waiting-share.jpg?v=2" />
+    <style>
+      html, body { margin: 0; height: 100%; background: #07070b; }
+      a { display: block; height: 100svh; overflow: hidden; }
+      img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: center 36%; }
+      @media (min-width: 760px) {
+        a { display: flex; align-items: center; justify-content: center; }
+        img { width: auto; height: 100svh; max-width: 100%; object-position: center; }
+      }
+    </style>
+  </head>
+  <body>
+    <a id="xumeng-enter" href="/?from=poster&poster=waiting"><img src="/jump/waiting.jpg" alt="她已经在等你了。开始聊天，进入叙梦" width="576" height="1024" /></a>
+    <script>
+      (function () {
+        var params = new URLSearchParams(location.search);
+        var invite = (params.get("invite") || "").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 32);
+        var next = new URLSearchParams();
+        if (invite.length >= 6) next.set("invite", invite);
+        next.set("from", "poster");
+        next.set("poster", "waiting");
+        var link = document.getElementById("xumeng-enter");
+        if (link) link.setAttribute("href", "/?" + next.toString());
+      })();
+    </script>
+  </body>
+</html>

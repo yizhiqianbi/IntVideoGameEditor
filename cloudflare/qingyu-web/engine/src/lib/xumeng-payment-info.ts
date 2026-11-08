@@ -1,6 +1,5 @@
 /** Public review copy only. This module never reads an account or enables checkout. */
 export const XUMENG_PAYMENT_INFO_DRAFT = true;
-export const XUMENG_PAYMENT_SUPPORT_EMAIL = "850587960@qq.com";
 export const XUMENG_PAYMENT_INFO_UPDATED = "2026-10-15";
 
 export type XumengPaymentInfoPath = "/pricing" | "/terms" | "/privacy" | "/refund-policy" | "/support";
@@ -42,7 +41,7 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
       { id: "availability", title: "当前支付状态与交付", paragraphs: [
         "Waffo 正式收款审核尚未通过，人民币月卡尚不能付款。收款入口可显示套餐，但不表示订单已创建、已付款或会员已开通。审核通过并恢复可付款状态后，网站会更新提示；请勿为此向客服个人转账。",
         "开放后，网站以服务端核验的支付结果确认权益。进入收银台、扫描二维码、点击返回或提供截图，都不能单独认定支付成功。",
-        `如已扣款但账号没有对应权益，请联系 ${XUMENG_PAYMENT_SUPPORT_EMAIL}，提供账号邮箱、订单编号及脱敏付款凭据，我们会核对处理。`,
+        "如已扣款但账号没有对应权益，请保留账号邮箱、订单编号及脱敏付款凭据。公开联系邮箱尚未设置，请勿向个人转账。",
       ] },
       { id: "history", title: "历史订单与其他套餐", paragraphs: [
         "历史套餐按购买时保存的订单权益执行。本页不把旧套餐的每日 500 Credit 或 USDT 季卡权益套用到当前人民币月卡。",
@@ -58,8 +57,7 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
       { id: "service", title: "服务与经营者", paragraphs: [
         "晴屿（Xumeng）提供 AI 角色聊天、故事与角色创作、创作素材生成，以及在浏览器内运行用户私人 HTML 游戏的功能。电话功能可结合用户选择的人物资料、故事背景与相关上下文；对话对象是 AI，不是真人客服、真人陪聊或公共电话服务。",
         "功能开放范围以页面实际可用状态为准。游戏功能目前是承载私人 HTML 游戏的容器，不承诺统一自动存档、任意外部游戏兼容或与站内钱包互通。图片、视频与语音为 AI 生成，参考素材和动作示例不构成对最终效果的保证。",
-        "经营者法律名称与主体说明待经营者确认，本草稿不填写或公开未经确认的姓名。版本为审阅稿，生效日期在确认并正式发布时填写。",
-        `联系邮箱：${XUMENG_PAYMENT_SUPPORT_EMAIL}。`,
+        "经营者法律名称与主体说明待经营者确认，本草稿不填写或公开未经确认的姓名。版本为审阅稿，生效日期在确认并正式发布时填写。公开联系邮箱尚未设置。",
       ] },
       { id: "account", title: "账号与使用资格", paragraphs: [
         "晴屿面向年满 18 周岁的用户。请提供可使用的账号资料，妥善保管密码与验证码，不向他人提供登录凭据。发现疑似账号被盗或异常交易时，可通过支持邮箱联系，我们将核验身份并处理相关请求。",
@@ -77,7 +75,7 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
         "当前 Waffo 正式收款尚未通过审核，暂不可付款。恢复后由 Waffo Pancake 提供支付流程，用户也需查看收银台展示的支付服务条款。晴屿不会要求用户向站点客服提供银行卡密码或钱包私钥。",
       ] },
       { id: "refunds", title: "退款与取消", paragraphs: [
-        `拟采用人工退款政策，不表示网站已实现自动退款。发生重复扣款、付款成功但权益未交付、服务与购买时说明明显不符或其他支付错误时，可通过 ${XUMENG_PAYMENT_SUPPORT_EMAIL} 申请核查。`,
+        "拟采用人工退款政策，不表示网站已实现自动退款。发生重复扣款、付款成功但权益未交付、服务与购买时说明明显不符或其他支付错误时，可申请核查。公开联系邮箱尚未设置。",
         "我们核对订单、实际付款、权益交付和使用情况，并与支付服务方协调。根据事实、适用法律和渠道规则，处理可能包括补发应有权益、修正账务、全额或部分退款；已领取或使用部分权益的情况结合实际核实，不以数字服务一律不退排除法定救济。",
         "未发生真实扣款的失败或待支付请求，不作已付款退款处理。退款获准不等于已经到账，不承诺固定审核天数、无条件退款或自动即时到账。完整申请资料与核对方式见退款政策页面；本条不要求用户放弃向支付服务方或法定渠道求助的权利。",
       ] },
@@ -126,7 +124,7 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
       ] },
       { id: "requests", title: "用户选择与人工权利请求", paragraphs: [
         "可使用页面已有的编辑、导出、删除和偏好设置功能管理内容。麦克风权限由用户决定，可在浏览器设置中关闭；关闭后需要麦克风的交互无法继续。停止使用 AI 功能可停止新的该类请求，但不会自动撤销已经发出的处理或删除已保存记录。",
-        `需要访问、更正、导出、删除个人数据，撤回适用授权或注销账号时，请写信至 ${XUMENG_PAYMENT_SUPPORT_EMAIL}，说明账号邮箱、请求种类及内容范围。我们核验身份后，按请求范围、实际保存状态与适用法律人工办理。`,
+        "需要访问、更正、导出、删除个人数据，撤回适用授权或注销账号时，请说明账号邮箱、请求种类及内容范围。公开联系邮箱尚未设置。我们核验身份后，按请求范围、实际保存状态与适用法律人工办理。",
         "核验不会要求账号密码、登录验证码、钱包私钥或无关证件。因安全调查、履约争议或法定义务需要保留的部分，应与可删除内容区别处理；处理结果及依法不能立即完成的原因会通过人工回复说明，不承诺所有历史数据立即清空或固定完成时限。",
       ] },
       { id: "safety", title: "安全、未成年人和政策更新", paragraphs: [
@@ -146,7 +144,7 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
         "月卡一次性购买、手动续购，不自动续费，无需取消自动扣款。停止购买下一期即可停止续购；退出登录或停止使用不自动发起退款。",
       ] },
       { id: "contact", title: "如何申请核查", paragraphs: [
-        `如果发生重复扣款、付款成功但服务权益未交付、服务与购买时说明明显不符或其他支付错误，请通过 ${XUMENG_PAYMENT_SUPPORT_EMAIL} 申请核查。`,
+        "如果发生重复扣款、付款成功但服务权益未交付、服务与购买时说明明显不符或其他支付错误，可申请核查。公开联系邮箱尚未设置。",
         "请提供账号邮箱、订单编号、购买日期、问题描述，以及必要的脱敏凭据。我们核对订单、实际付款、权益交付和使用情况，并与支付服务方协调处理。",
         "不要发送完整银行卡资料、支付密码、短信验证码、钱包私钥或助记词。需要凭证时请先遮挡无关个人信息。",
       ] },
@@ -166,9 +164,9 @@ export const XUMENG_PAYMENT_INFO_PAGES: readonly XumengPaymentInfoPage[] = [
     description: "联系晴屿，反馈功能、账号、权益与支付问题。",
     lead: "说明遇到的情况，我们才能一起定位问题。",
     sections: [
-      { id: "email", title: "联系邮箱", paragraphs: [
-        `客服、订单、退款与隐私联系邮箱：${XUMENG_PAYMENT_SUPPORT_EMAIL}。`,
-        "可联系咨询功能故障、账号访问、权益显示、支付订单及隐私相关问题。发现疑似账号被盗、异常交易或对内容处理有异议时，也可通过该邮箱说明情况。",
+      { id: "email", title: "联系方式", paragraphs: [
+        "客服、订单、退款与隐私的公开联系邮箱尚未设置。",
+        "功能故障、账号访问、权益显示、支付订单及隐私问题，先不要把密码、验证码或付款凭据发给个人。",
       ] },
       { id: "details", title: "建议提供的信息", paragraphs: [
         "功能问题请描述所在页面、操作步骤、预期结果和实际结果。截图请先遮挡个人信息，无需提供私人故事或聊天全文。",
@@ -204,5 +202,5 @@ export function renderXumengPaymentInfoPage(page: XumengPaymentInfoPage): string
   const contents = page.sections.map((section, index) => `<a href="#${escapeHtml(section.id)}"><span>${String(index + 1).padStart(2, "0")}</span>${escapeHtml(section.title)}</a>`).join("");
   const sections = page.sections.map((section, index) => `<section class="community-rule" id="${escapeHtml(section.id)}" tabindex="-1" aria-labelledby="${escapeHtml(section.id)}-title"><div class="community-rule-number">${String(index + 1).padStart(2, "0")}</div><div><h2 id="${escapeHtml(section.id)}-title">${escapeHtml(section.title)}</h2>${section.paragraphs.map(paragraph => `<p class="payment-info-paragraph">${escapeHtml(paragraph)}</p>`).join("")}${section.items ? `<ul>${section.items.map(item => `<li>${escapeHtml(item)}</li>`).join("")}</ul>` : ""}</div></section>`).join("");
   const pageLinks = XUMENG_PAYMENT_INFO_PAGES.map(item => `<a href="${item.path}"${item.path === page.path ? ' aria-current="page"' : ""}>${escapeHtml(item.label)}</a>`).join("");
-  return `<style>.payment-info-page .payment-info-draft{padding:14px 18px;margin-top:25px;border:1px solid #66502a;border-radius:10px;background:#221c12;color:#f4ddb1;font-size:14px;line-height:1.8}.payment-info-page .payment-info-paragraph{font-size:15px;line-height:1.9;margin:0 0 16px;overflow-wrap:anywhere}.payment-info-page .payment-info-contact{overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:4px}.payment-info-page .payment-info-footer-nav{display:flex;flex-wrap:wrap;gap:4px 20px}.payment-info-page .payment-info-footer-nav a{min-height:44px;display:inline-flex;align-items:center}.payment-info-page [aria-current=page]{color:var(--community-accent)}.payment-info-page .community-footer{align-items:flex-start}.payment-info-page .payment-info-footer-nav{width:100%}@media(max-width:700px){.payment-info-page .payment-info-paragraph{font-size:14px}.payment-info-page .community-topbar nav{gap:12px}.payment-info-page .community-rule{grid-template-columns:20px minmax(0,1fr)}} </style><div class="community-page payment-info-page"><a class="community-skip" href="#payment-info-content">跳到正文</a><header class="community-topbar"><a class="community-brand" href="/#characters" aria-label="返回晴屿角色广场"><img src="/assets/qingyu/brand/qingyu-mark.svg" alt="" width="34" height="34"><span>晴屿<small>XUMENG</small></span></a><nav aria-label="服务页面导航"><a href="/pricing">方案与价格</a><a href="/support">支持与联系</a></nav></header><main class="community-document" id="payment-info-content" tabindex="-1"><div class="community-intro"><p class="community-eyebrow">晴屿 · 服务说明</p><h1>${escapeHtml(page.label)}</h1><p class="community-lead">${escapeHtml(page.lead)}</p><p class="community-version">审核草稿<span aria-hidden="true"> · </span><time datetime="${XUMENG_PAYMENT_INFO_UPDATED}">${XUMENG_PAYMENT_INFO_UPDATED}</time></p><p class="payment-info-draft" role="note"><strong>草稿 · 待确认</strong><br>本页用于本地审核准备，内容尚待确认。Waffo 正式收款审核尚未通过，人民币月卡尚不能付款。</p></div><div class="community-body"><aside class="community-index"><nav aria-label="本页目录">${contents}</nav><p>一次性购买 · 手动续购<br>不自动续费</p></aside><div class="community-rules">${sections}<section class="community-closing" aria-labelledby="payment-info-help"><h2 id="payment-info-help">需要帮助？</h2><p>请通过支持邮箱联系，并避免发送敏感凭据。</p><a class="community-primary payment-info-contact" href="mailto:${XUMENG_PAYMENT_SUPPORT_EMAIL}">${XUMENG_PAYMENT_SUPPORT_EMAIL}</a></section></div></div></main><footer class="community-footer"><span>晴屿 · 服务说明草稿</span><nav class="payment-info-footer-nav" aria-label="服务与政策">${pageLinks}<a href="/community-guidelines">社区公约</a><a href="/#characters">返回晴屿</a></nav></footer></div>`;
+  return `<style>.payment-info-page .payment-info-draft{padding:14px 18px;margin-top:25px;border:1px solid #66502a;border-radius:10px;background:#221c12;color:#f4ddb1;font-size:14px;line-height:1.8}.payment-info-page .payment-info-paragraph{font-size:15px;line-height:1.9;margin:0 0 16px;overflow-wrap:anywhere}.payment-info-page .payment-info-contact{overflow-wrap:anywhere;text-decoration:underline;text-underline-offset:4px}.payment-info-page .payment-info-footer-nav{display:flex;flex-wrap:wrap;gap:4px 20px}.payment-info-page .payment-info-footer-nav a{min-height:44px;display:inline-flex;align-items:center}.payment-info-page [aria-current=page]{color:var(--community-accent)}.payment-info-page .community-footer{align-items:flex-start}.payment-info-page .payment-info-footer-nav{width:100%}@media(max-width:700px){.payment-info-page .payment-info-paragraph{font-size:14px}.payment-info-page .community-topbar nav{gap:12px}.payment-info-page .community-rule{grid-template-columns:20px minmax(0,1fr)}} </style><div class="community-page payment-info-page"><a class="community-skip" href="#payment-info-content">跳到正文</a><header class="community-topbar"><a class="community-brand" href="/#characters" aria-label="返回晴屿角色广场"><img src="/assets/qingyu/brand/qingyu-mark.svg" alt="" width="34" height="34"><span>晴屿<small>XUMENG</small></span></a><nav aria-label="服务页面导航"><a href="/pricing">方案与价格</a><a href="/support">支持与联系</a></nav></header><main class="community-document" id="payment-info-content" tabindex="-1"><div class="community-intro"><p class="community-eyebrow">晴屿 · 服务说明</p><h1>${escapeHtml(page.label)}</h1><p class="community-lead">${escapeHtml(page.lead)}</p><p class="community-version">审核草稿<span aria-hidden="true"> · </span><time datetime="${XUMENG_PAYMENT_INFO_UPDATED}">${XUMENG_PAYMENT_INFO_UPDATED}</time></p><p class="payment-info-draft" role="note"><strong>草稿 · 待确认</strong><br>本页用于本地审核准备，内容尚待确认。Waffo 正式收款审核尚未通过，人民币月卡尚不能付款。</p></div><div class="community-body"><aside class="community-index"><nav aria-label="本页目录">${contents}</nav><p>一次性购买 · 手动续购<br>不自动续费</p></aside><div class="community-rules">${sections}<section class="community-closing" aria-labelledby="payment-info-help"><h2 id="payment-info-help">需要帮助？</h2><p>公开联系邮箱尚未设置。请勿向个人转账，也不要发送密码、验证码或完整付款凭据。</p></section></div></div></main><footer class="community-footer"><span>晴屿 · 服务说明草稿</span><nav class="payment-info-footer-nav" aria-label="服务与政策">${pageLinks}<a href="/community-guidelines">社区公约</a><a href="/#characters">返回晴屿</a></nav></footer></div>`;
 }

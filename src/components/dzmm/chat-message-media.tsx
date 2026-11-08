@@ -2,17 +2,32 @@
 
 /* eslint-disable @next/next/no-img-element -- Private generated media is served by the authenticated Worker. */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { fetchDzmmChatMedia, fingerprintDzmmMediaText, generateDzmmChatIllustration, generateDzmmChatMedia, resolveDzmmChatMediaResult, DzmmChatMediaError,
+import { fetchDzmmChatMedia, fingerprintDzmmChatMedia, generateDzmmChatIllustration, generateDzmmChatMedia, resolveDzmmChatMediaResult, DzmmChatMediaError,
   type DzmmChatMediaAsset, type DzmmChatMediaKind, type DzmmChatMediaOverview, type DzmmChatMediaTarget } from "../../lib/dzmm-chat-media";
 import type { DzmmIllustrationDraft } from "../../lib/dzmm-illustration";
+import { dzmmCloudRequest } from "../../lib/dzmm-cloud";
 import { fetchDzmmPaymentWallet } from "../../lib/dzmm-payments";
 import type { DzmmSavedMessage } from "../../lib/dzmm-storage";
 import Icon from "./icons";
 import s from "./chat-message-media.module.css";
 import { XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
-import XumengMomentStatusCard, { type MomentField } from "./xumeng-moment-status";
+import XumengMomentStatusCard, { type MomentField, type MomentSection } from "./xumeng-moment-status";
+import { VoiceNote } from "./voice-note";
 
-const MEDIA_CREDIT_COST = { audio: 5, image: 100 } as const;
+const MEDIA_CREDIT_COST = { audio: 20, image: 100 } as const;
+const mediaOverviewCache = new Map<string, DzmmChatMediaOverview>();
+const mediaOverviewKey = (accountId: string, conversationId: string) => `${accountId}\n${conversationId}`;
+function rememberMediaOverview(accountId: string, conversationId: string, value: DzmmChatMediaOverview) {
+  if (value.accountId !== accountId || value.conversationId !== conversationId) return;
+  const key = mediaOverviewKey(accountId, conversationId);
+  mediaOverviewCache.delete(key);
+  mediaOverviewCache.set(key, value);
+  while (mediaOverviewCache.size > 20) {
+    const oldest = mediaOverviewCache.keys().next().value;
+    if (oldest === undefined) break;
+    mediaOverviewCache.delete(oldest);
+  }
+}
 
 type MediaContext = {
   overview: DzmmChatMediaOverview | null;
@@ -29,11 +44,12 @@ type MediaContext = {
 };
 const Context = createContext<MediaContext | null>(null);
 
-export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow, onRequireAccount, onRecharge, children }: {
+export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow, onRequireAccount, onRecharge, onCharged, children }: {
   accountId?: string; conversationId: string; isGuest: boolean; saveNow: () => Promise<void>;
-  onRequireAccount: () => void; onRecharge: () => void; children: ReactNode;
+  onRequireAccount: () => void; onRecharge: () => void; onCharged?: () => void; children: ReactNode;
 }) {
-  const [overview, setOverview] = useState<DzmmChatMediaOverview | null>(null);
+  const [overview, setOverview] = useState<DzmmChatMediaOverview | null>(() =>
+    accountId ? mediaOverviewCache.get(mediaOverviewKey(accountId, conversationId)) ?? null : null);
   const [credits, setCredits] = useState<number | null>(null);
   const creditsRef = useRef<number | null>(null);
   const [generation, setGeneration] = useState<MediaContext["generation"]>(null);
@@ -50,6 +66,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
   scope.current = { accountId, conversationId };
 
   const acceptOverview = useCallback((value: DzmmChatMediaOverview) => {
+    if (accountId) rememberMediaOverview(accountId, conversationId, value);
     setOverview(value);
     setReadError(null);
     setUnconfirmed(previous => previous.filter(target => resolveDzmmChatMediaResult(value, target).state === "unknown"));
@@ -60,7 +77,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
       return result.state === "absent" && previous.recovery
         ? { ...previous, text: "没有找到已完成或进行中的素材，可以重新生成。", recovery: false } : previous;
     });
-  }, []);
+  }, [accountId, conversationId]);
 
   const read = useCallback(async (ignoreUnsaved = false) => {
     if (!accountId || generating.current) return false;
@@ -89,7 +106,8 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
   }, [accountId, conversationId, acceptOverview]);
   const reload = useCallback(() => read(), [read]);
   useEffect(() => {
-    setOverview(null); setError(null); setUnconfirmed([]); setGeneration(null);
+    setOverview(accountId ? mediaOverviewCache.get(mediaOverviewKey(accountId, conversationId)) ?? null : null);
+    setError(null); setUnconfirmed([]); setGeneration(null);
     generating.current = false;
     void read(true);
     return () => { initialRead.current?.abort(); controller.current?.abort(); operation.current++; readSequence.current++; };
@@ -127,7 +145,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
     setError(null);
     setGeneration({ messageId, kind });
     try {
-      target = { messageId, kind, sourceHash: await fingerprintDzmmMediaText(sourceText) };
+      target = { messageId, kind, sourceHash: await fingerprintDzmmChatMedia(sourceText, kind) };
       if (!active()) return;
       const cost = MEDIA_CREDIT_COST[kind];
       let available = creditsRef.current;
@@ -143,7 +161,13 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
         setError({ ...target, text: `当前可用 ${available} Credit，${kind === "audio" ? "生成语音" : "生成图片"}需要 ${cost} Credit。`, credits: true });
         return;
       }
-      await saveNow();
+      try {
+        await saveNow();
+      } catch (syncError) {
+        const stored = await dzmmCloudRequest<{ conversation?: { messages?: { id?: string; content?: string }[] } }>(`/conversations/${encodeURIComponent(conversationId)}`).catch(() => null);
+        const same = stored?.conversation?.messages?.some(item => item.id === messageId && item.content === sourceText) ?? false;
+        if (!same) throw syncError;
+      }
       if (!active()) return;
       const current = await fetchDzmmChatMedia(accountId, conversationId, abort.signal);
       if (!active()) return;
@@ -165,7 +189,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
       const updated = await fetchDzmmChatMedia(accountId, conversationId, abort.signal).catch(() => null);
       if (updated && active()) acceptOverview(updated);
       const wallet = await fetchDzmmPaymentWallet(abort.signal).catch(() => null);
-      if (wallet && active() && wallet.accountId === accountId) { creditsRef.current = wallet.balance; setCredits(wallet.balance); }
+      if (wallet && active() && wallet.accountId === accountId) { creditsRef.current = wallet.balance; setCredits(wallet.balance); onCharged?.(); }
     } catch (failure) {
       if (!active() || !target) return;
       const failedTarget = target;
@@ -190,7 +214,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
       if (operation.current === serial) generating.current = false;
       if (active()) setGeneration(null);
     }
-  }, [accountId, conversationId, isGuest, onRequireAccount, saveNow, acceptOverview]);
+  }, [accountId, conversationId, isGuest, onRequireAccount, onCharged, saveNow, acceptOverview]);
 
   return <Context.Provider value={{ overview, credits, generation, error, unconfirmed, reading, readError, reload, generate, requireAccount, onRecharge }}>
     {readError && <div className={`${s.feedback} ${s.readNotice}`} role="alert"><p>{readError}</p>
@@ -204,36 +228,20 @@ const sameTarget = (left: DzmmChatMediaTarget, right: DzmmChatMediaTarget) => le
   && left.kind === right.kind && left.sourceHash === right.sourceHash;
 
 function MessageAudio({ asset, reload, busy }: { asset: DzmmChatMediaAsset; reload: () => Promise<boolean>; busy: boolean }) {
-  const ref = useRef<HTMLAudioElement>(null);
-  const [playing, setPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
-  useEffect(() => {
-    const audio = ref.current;
-    return () => { audio?.pause(); };
-  }, [asset.id]);
+  const [attempt, setAttempt] = useState(0);
   const partial = asset.audioTextChars !== undefined && asset.totalTextChars !== undefined && asset.audioTextChars < asset.totalTextChars;
   return <div className={s.voice}>
-    <div className={s.voiceTop}><Icon name="volume" size={16} /><span>角色语音</span>
-      <small>{duration ? `${Math.floor(duration / 60)}:${String(Math.floor(duration % 60)).padStart(2, "0")}` : "中文朗读"}</small></div>
-    <div className={s.voiceControls}><button type="button" className={s.play} aria-label={playing ? "暂停角色语音" : "播放角色语音"}
-      onClick={() => { const audio = ref.current; if (!audio) return; if (audio.paused) { if (failed) audio.load(); void audio.play().catch(() => setFailed(true)); } else audio.pause(); }}>
-      <Icon name={playing ? "pause" : "play"} size={17} /></button>
-      <audio ref={ref} src={asset.url} controls preload="none" aria-label="角色语音播放器"
-        onPlay={() => { setPlaying(true); setFailed(false); document.dispatchEvent(new CustomEvent("xumeng-audio-play", { detail: asset.id })); }}
-        onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)} onError={() => { setPlaying(false); setFailed(true); }}
-        onLoadedMetadata={() => { setFailed(false); if (ref.current && Number.isFinite(ref.current.duration)) setDuration(ref.current.duration); }} />
-    </div>
+    <VoiceNote key={attempt} src={asset.url} label="角色语音" assetId={asset.id} onError={() => setFailed(true)} />
     {partial && <small className={s.partial}>本段朗读前 {asset.audioTextChars?.toLocaleString("zh-CN")} 字</small>}
     {failed && <div className={s.feedback} role="alert"><p className={s.error}>语音加载失败。</p>
       {busy && <p>正在生成素材，完成后可重新加载。</p>}
       <button type="button" disabled={retrying || busy} onClick={() => {
         setRetrying(true);
-        void reload().then(loaded => { if (loaded && ref.current) { setPlaying(false); ref.current.preload = "metadata"; ref.current.load(); } })
+        void reload().then(loaded => { if (loaded) { setFailed(false); setAttempt(value => value + 1); } })
           .finally(() => setRetrying(false));
       }}>{retrying ? "正在重新加载…" : "重新加载语音"}</button></div>}
-    <PauseOtherAudio audioRef={ref} assetId={asset.id} />
   </div>;
 }
 
@@ -255,22 +263,13 @@ function MessagePicture({ asset, reload, onExpand, busy }: {
   return onExpand ? <button type="button" aria-label="放大剧情图片" onClick={onExpand}>{picture}</button> : picture;
 }
 
-function PauseOtherAudio({ audioRef, assetId }: { audioRef: { current: HTMLAudioElement | null }; assetId: string }) {
-  useEffect(() => {
-    const pause = (event: Event) => { if ((event as CustomEvent).detail !== assetId) audioRef.current?.pause(); };
-    document.addEventListener("xumeng-audio-play", pause);
-    return () => document.removeEventListener("xumeng-audio-play", pause);
-  }, [audioRef, assetId]);
-  return null;
-}
-
 export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, children, label, moment }: {
   message: DzmmSavedMessage; disabled: boolean; onCopy: () => void; onEdit: () => void;
   onRegenerate?: () => void; children: ReactNode; label: string;
-  moment?: { name: string; fields: MomentField[] };
+  moment?: { name: string; fields: MomentField[]; sections?: MomentSection[] };
 }) {
   const media = useContext(Context);
-  const [fingerprint, setFingerprint] = useState<{ text: string; hash: string } | null>(null);
+  const [fingerprint, setFingerprint] = useState<{ text: string; audio: string; image: string } | null>(null);
   const [expanded, setExpanded] = useState<DzmmChatMediaAsset | null>(null);
   const wrapper = useRef<HTMLDivElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
@@ -280,12 +279,15 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   const mutationDisabled = disabled || Boolean(media?.generation);
   useEffect(() => {
     if (expanded && media?.overview && !media.reading && !media.readError && fingerprint?.text === message.content
-      && !media.overview.assets.some(asset => asset.id === expanded.id && asset.sourceHash === fingerprint.hash)) setExpanded(null);
+      && !media.overview.assets.some(asset => asset.id === expanded.id && asset.sourceHash === fingerprint.image)) setExpanded(null);
   }, [expanded, media?.overview, media?.reading, media?.readError, fingerprint, message.content]);
   useEffect(() => {
     if (!hasRecord) return;
     let active = true;
-    void fingerprintDzmmMediaText(message.content).then(hash => { if (active) setFingerprint({ text: message.content, hash }); }).catch(() => {});
+    void Promise.all([
+      fingerprintDzmmChatMedia(message.content, "audio"),
+      fingerprintDzmmChatMedia(message.content, "image"),
+    ]).then(([audio, image]) => { if (active) setFingerprint({ text: message.content, audio, image }); }).catch(() => {});
     return () => { active = false; };
   }, [message.content, hasRecord]);
   useEffect(() => {
@@ -294,20 +296,23 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
     current?.showModal();
     return () => { current?.close(); };
   }, [expanded]);
-  const assets = fingerprint?.text === message.content ? media?.overview?.assets.filter(asset => asset.messageId === message.id && asset.sourceHash === fingerprint.hash) ?? [] : [];
-  const pending = fingerprint?.text === message.content ? media?.overview?.pending?.filter(item => item.messageId === message.id && item.sourceHash === fingerprint.hash) ?? [] : [];
-  const unconfirmed = fingerprint?.text === message.content ? media?.unconfirmed.filter(item => item.messageId === message.id && item.sourceHash === fingerprint.hash) ?? [] : [];
+  const sameSource = (item: { messageId: string; kind: DzmmChatMediaKind; sourceHash: string }) => {
+    if (!fingerprint || fingerprint.text !== message.content) return false;
+    return item.messageId === message.id && item.sourceHash === (item.kind === "audio" ? fingerprint.audio : fingerprint.image);
+  };
+  const assets = fingerprint ? media?.overview?.assets.filter(sameSource) ?? [] : [];
+  const pending = fingerprint ? media?.overview?.pending?.filter(sameSource) ?? [] : [];
+  const unconfirmed = fingerprint ? media?.unconfirmed.filter(sameSource) ?? [] : [];
   const audio = assets.find(asset => asset.kind === "audio"), image = assets.find(asset => asset.kind === "image");
   const audioPending = !audio && pending.some(item => item.kind === "audio"), imagePending = !image && pending.some(item => item.kind === "image");
   const audioUnconfirmed = !audio && unconfirmed.some(item => item.kind === "audio"), imageUnconfirmed = !image && unconfirmed.some(item => item.kind === "image");
   const generating = media?.generation?.messageId === message.id ? media.generation.kind : null;
-  const error = media?.error?.messageId === message.id && fingerprint?.text === message.content
-    && media.error.sourceHash === fingerprint.hash ? media.error : null;
+  const error = media?.error && fingerprint && sameSource(media.error) ? media.error : null;
   const mediaDisabled = mutationDisabled || Boolean(media?.reading || media?.readError) || !message.content.trim();
   const audioShort = !audio && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.audio;
   const imageShort = !image && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.image;
   const audioDisabled = mediaDisabled || audioPending || audioUnconfirmed || audioShort;
-  const imageDisabled = mediaDisabled || imagePending || imageUnconfirmed;
+  const imageDisabled = mediaDisabled || imagePending || imageUnconfirmed || imageShort;
   const audioAction = generating === "audio" || audioPending ? "生成语音中…" : audio ? "播放语音" : audioUnconfirmed ? "语音结果待确认" : "生成语音";
   const imageAction = generating === "image" || imagePending ? "生成图片中…" : image ? "查看图片" : imageUnconfirmed ? "图片结果待确认" : "生成图片";
   const showImageAction = XUMENG_GENERATION_WORKSPACE_ENABLED || Boolean(image || imagePending || imageUnconfirmed);
@@ -321,10 +326,12 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   }
   return <div ref={wrapper} className={s.message} tabIndex={0} aria-label={label}>
     {children}
-    {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields}
+    {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields} sections={moment.sections}
       imageLabel={image ? "查看此刻画面" : imageAction === "生成图片" ? "解锁此刻画面" : imageAction}
       imageHint={image ? "这一轮剧情已经画好" : imageShort ? `可用 Credit 不足，解锁需要 ${MEDIA_CREDIT_COST.image} Credit` : "根据这一轮剧情生成 · 100 Credit"}
-      disabled={!showImageAction || imageDisabled} onImage={handleImage} />}
+      disabled={!showImageAction || imageDisabled} onImage={handleImage}
+      slot={image && media ? <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} /></figure>
+        : generating === "image" ? <div className={s.progress} role="status"><span className={s.loader} />正在绘制这一幕…</div> : null} />}
     <div className={s.tools}>
       <button type="button" className={s.action} aria-label={`复制${label}`} onClick={onCopy}>
         <Icon name="copy" size={15} /><span>复制</span></button>
@@ -336,14 +343,14 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
         <button type="button" className={s.action} disabled={audioDisabled} onClick={handleAudio}
           title={audioShort ? `可用 Credit 不足，生成语音需要 ${MEDIA_CREDIT_COST.audio} Credit` : undefined}
           aria-label={`${label}${audioAction}`}>
-          <Icon name="volume" size={15} /><span>{audioAction}</span>{!audio && <small>5 Credit</small>}</button>
+          <Icon name="volume" size={15} /><span>{audioAction}</span>{!audio && <small>20 Credit</small>}</button>
         {showImageAction && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={handleImage}
           title={imageShort ? `可用 Credit 不足，生成图片需要 ${MEDIA_CREDIT_COST.image} Credit` : undefined}
           aria-label={`${label}${imageAction}`}>
           <Icon name="image" size={15} /><span>{imageAction}</span>{!image && <small>100 Credit</small>}</button>}
       </>}
     </div>
-    {generating && <div className={s.progress} role="status"><span className={s.loader} />{generating === "audio" ? "正在生成角色语音…" : "正在绘制这一幕…"}</div>}
+    {generating && !(moment && generating === "image") && <div className={s.progress} role="status"><span className={s.loader} />{generating === "audio" ? "正在生成角色语音…" : "正在绘制这一幕…"}</div>}
     {needsCheck && media && <div className={s.feedback} role="status">
       {(audioPending || imagePending) && <p>{audioPending && imagePending ? "语音和图片正在生成。" : audioPending ? "角色语音正在生成。" : "剧情图片正在生成。"}稍后可检查结果。</p>}
       {(audioUnconfirmed || imageUnconfirmed) && !error && <p>生成结果暂未确认，请先检查结果。</p>}
@@ -351,7 +358,7 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
         {media.reading ? "正在检查…" : "检查生成结果"}</button>
     </div>}
     {audio && media && <MessageAudio key={`${audio.id}:${audio.createdAt}`} asset={audio} reload={media.reload} busy={Boolean(media.generation)} />}
-    {image && media && <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} />
+    {image && media && !moment && <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} />
       <figcaption><Icon name="image" size={13} />这一幕 · AI 生成</figcaption></figure>}
     {error && media && <div className={s.feedback} role="status"><p>{error.text}</p>{error.credits && XUMENG_PAYMENTS_ENABLED && <button type="button" onClick={media.onRecharge}>充值 Credit<Icon name="chevron" size={14} /></button>}</div>}
     {expanded && media && <dialog ref={dialog} className={s.lightbox} aria-label="剧情图片预览" onClose={() => setExpanded(null)}

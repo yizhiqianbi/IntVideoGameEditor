@@ -1,0 +1,400 @@
+.shell {
+  height: calc(100svh - 64px);
+  display: flex;
+  flex-direction: column;
+  background: #07060b;
+  color: #fff;
+  position: relative;
+  overflow: hidden;
+}
+.stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  background: #000;
+  overflow: hidden;
+  touch-action: none;
+}
+.reel {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 112px;
+  overflow: hidden;
+  touch-action: none;
+  z-index: 1;
+}
+.track {
+  position: absolute;
+  inset: 0;
+  will-change: transform;
+}
+.panel {
+  position: absolute;
+  inset: 0;
+  background: #000;
+}
+.panel[data-place="prev"] { transform: translate3d(0, -100%, 0); }
+.panel[data-place="next"] { transform: translate3d(0, 100%, 0); }
+.poster,
+.video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #000;
+  pointer-events: none;
+}
+.video {
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 80ms linear;
+}
+.shade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 28%;
+  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.55));
+  pointer-events: none;
+}
+.top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: calc(8px + env(safe-area-inset-top)) 8px 8px;
+}
+.topSide,
+.searchBox button,
+.full,
+.rail button,
+.watchAll,
+.play,
+.unmute,
+.sheet header button,
+.episodeGrid button,
+.results button,
+.composer button {
+  font: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.topSide {
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.searchBox {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  height: 36px;
+  padding: 0 8px 0 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.12);
+}
+.searchBox input,
+.composer input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+}
+.searchBox button { flex: none; color: rgba(255, 255, 255, 0.8); }
+.results {
+  position: absolute;
+  z-index: 5;
+  touch-action: pan-y;
+  top: calc(52px + env(safe-area-inset-top));
+  left: 0;
+  right: 0;
+  bottom: 0;
+  overflow: auto;
+  background: rgba(7, 6, 11, 0.96);
+  padding: 8px 14px 20px;
+}
+.results p {
+  margin: 28px 16px;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.72);
+}
+.status {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  margin: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 14px;
+}
+.results button {
+  width: 100%;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  text-align: left;
+  padding: 8px 0;
+}
+.results strong { display: block; font-size: 14px; font-weight: 650; }
+.results small { color: rgba(255, 255, 255, 0.62); font-size: 12px; }
+.full {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  bottom: 166px;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.45);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: 13px;
+}
+.scrub {
+  position: absolute;
+  z-index: 5;
+  left: 0;
+  right: 64px;
+  bottom: 112px;
+  height: 28px;
+  display: flex;
+  align-items: flex-end;
+  touch-action: none;
+  cursor: pointer;
+}
+.scrub i {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.32) var(--played, 0%), rgba(255, 255, 255, 0.1) var(--played, 0%));
+  pointer-events: none;
+}
+.scrub[data-dragging] i,
+.scrub:focus-visible i {
+  height: 3px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.88) var(--played, 0%), rgba(255, 255, 255, 0.22) var(--played, 0%));
+}
+.scrub:focus-visible { outline: none; }
+.full svg,
+.rail svg { width: 18px; height: 18px; display: block; }
+.rail svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+.rail {
+  position: absolute;
+  z-index: 3;
+  right: 6px;
+  bottom: 128px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+.rail button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 44px;
+}
+.rail button span { font-size: 11px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6); }
+.railOn { color: #f5c451; }
+.caption {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  min-height: 112px;
+  box-sizing: border-box;
+  padding: 8px 12px 10px;
+  background: #07060b;
+}
+.copy { padding-right: 68px; }
+.copy h1 {
+  margin: 0 0 6px;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.synopsis,
+.synopsisOpen {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.88);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.synopsis {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.synopsis span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.synopsis button,
+.synopsisOpen button {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.episodeList {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+}
+.watchAll {
+  width: 100%;
+  margin-top: 12px;
+  height: 36px;
+  padding: 0 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 13px;
+}
+.play {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 46%;
+  width: 64px;
+  height: 64px;
+  transform: translate(-50%, -50%);
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 0, 0, 0.35);
+}
+.unmute {
+  position: absolute;
+  z-index: 3;
+  left: 50%;
+  top: 18%;
+  transform: translateX(-50%);
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.55);
+  font-size: 12px;
+}
+.mask {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-end;
+}
+.sheet {
+  width: 100%;
+  max-height: 72%;
+  overflow: auto;
+  touch-action: pan-y;
+  padding: 14px 14px 18px;
+  border-radius: 16px 16px 0 0;
+  background: #16161c;
+}
+.sheet header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sheet header strong { font-size: 16px; }
+.sheet > p { margin: 6px 0 12px; color: rgba(255, 255, 255, 0.62); font-size: 12px; }
+.episodeGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.episodeGrid button {
+  height: 36px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 13px;
+}
+.episodeGrid button[aria-pressed="true"] {
+  color: #1a1408;
+  background: #f5c451;
+}
+.noteList { display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
+.noteList p { margin: 24px 0; text-align: center; color: rgba(255, 255, 255, 0.62); }
+.noteList article { display: flex; flex-direction: column; gap: 4px; }
+.noteList b { font-size: 12px; color: #f5c451; }
+.noteList span { font-size: 14px; line-height: 1.5; }
+.composer {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.composer input {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.08);
+}
+.composer button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #f5c451;
+  color: #1a1408;
+}
+.toast {
+  position: absolute;
+  z-index: 7;
+  left: 50%;
+  top: 72px;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 16px;
+  background: rgba(0, 0, 0, 0.78);
+  font-size: 13px;
+}
+@media (max-width: 767px) {
+  .shell {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 60px;
+    height: auto;
+    z-index: 16;
+  }
+}

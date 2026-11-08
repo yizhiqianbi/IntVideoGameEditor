@@ -1,4 +1,4 @@
-import { DZMM_MODEL_OPTIONS, isDzmmModelPreset, type DzmmModelPreset } from "./dzmm-models";
+import { DZMM_DEFAULT_MODEL, DZMM_MODEL_OPTIONS, isDzmmModelPreset, type DzmmModelPreset } from "./dzmm-models";
 export type { DzmmModelPreset } from "./dzmm-models";
 import { projectDzmmSourceOpeningHistory, projectDzmmStoryCharacter } from "./dzmm-character-presentation";
 import {
@@ -291,7 +291,7 @@ export function readDzmmProviderConfig(env: Record<string, string | undefined> =
   const baseUrl = (env.DZMM_BASE_URL?.trim() || env.OPENROUTER_BASE_URL?.trim()
     || "https://openrouter.ai/api/v1").replace(/\/+$/, "");
   const defaultModel = env.DZMM_MODEL?.trim() || env.OPENROUTER_MODEL?.trim()
-    || DZMM_MODEL_OPTIONS.find(option => option.id === "qwen")!.providerModel;
+    || DZMM_MODEL_OPTIONS.find(option => option.id === DZMM_DEFAULT_MODEL)!.providerModel;
   const namedModels = Object.fromEntries(DZMM_MODEL_OPTIONS.map(option => [option.id, option.providerModel])) as Record<import("./dzmm-models").DzmmSelectableModelId, string>;
   const models: Record<DzmmModelPreset, string> = {
     ...namedModels,

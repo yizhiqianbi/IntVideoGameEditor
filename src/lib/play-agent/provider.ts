@@ -14,7 +14,7 @@ export type PlayAgentProviderConfig = {
 const DEFAULT_GLM_BASE_URL = "https://open.bigmodel.cn/api/coding/paas/v4";
 const DEFAULT_GLM_MODEL = "glm-4.7";
 const DEFAULT_OPENROUTER_BASE_URL = "https://openrouter.ai/api/v1";
-const DEFAULT_OPENROUTER_MODEL = "deepseek/deepseek-v3.2";
+const DEFAULT_OPENROUTER_MODEL = "x-ai/grok-4.6";
 
 export function readPlayAgentProviderConfig(): PlayAgentProviderConfig {
   const requestedProvider = process.env.PLAY_AGENT_PROVIDER;

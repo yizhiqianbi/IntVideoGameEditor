@@ -44,7 +44,7 @@ test('model migration preserves every old preference byte and permits authentica
     const untouchedId = owners[1].id, untouched = before.find(row => row.user_id === untouchedId);
     for (const owner of [owners[0], await account(DB, '全新模型账号')]) {
       let loaded = await readState(DB, owner);
-      if (owner.id !== owners[0].id) assert.equal(loaded.state.preferences.model, 'qwen');
+      if (owner.id !== owners[0].id) assert.equal(loaded.state.preferences.model, 'gemma31');
       for (const model of [...DZMM_MODEL_OPTIONS.map(option => option.id), 'fast', 'balanced', 'story']) {
         const response = await fetchRequest(new Request('https://models.example.test/v1/preferences', { method: 'PATCH',
           headers: { 'Content-Type': 'application/json', Origin:'https://models.example.test', Cookie:cookies.get(owner.id) }, body: JSON.stringify({ preferences: { model, nickname: `选择-${model}` }, version: loaded.version }) }), { DB, APP_ORIGINS:'https://models.example.test' });
@@ -55,7 +55,7 @@ test('model migration preserves every old preference byte and permits authentica
       const next = structuredClone(DZMM_INITIAL_STATE); next.preferences.nickname = owner.nickname;
       const saved = await fetchRequest(new Request('https://models.example.test/v1/state', { method: 'PUT', headers: { 'Content-Type': 'application/json', Origin:'https://models.example.test', Cookie:cookies.get(owner.id) },
         body: JSON.stringify({ accountId: owner.id, version: loaded.version, state: next }) }), { DB, APP_ORIGINS:'https://models.example.test' });
-      assert.equal(saved.status, 200); assert.equal((await saved.json()).state.preferences.model, 'qwen');
+      assert.equal(saved.status, 200); assert.equal((await saved.json()).state.preferences.model, 'gemma31');
     }
     assert.deepEqual(await DB.prepare('SELECT * FROM preferences WHERE user_id=?').bind(untouchedId).first(), untouched);
     await assert.rejects(DB.prepare('UPDATE preferences SET model=? WHERE user_id=?').bind('untrusted/arbitrary-model', owners[0].id).run());

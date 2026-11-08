@@ -8,3 +8,12 @@ node_modules
 .next
 coverage
 *.log
+output
+*.zip
+.worktrees
+.claire
+scripts/gpu
+experiments/maibot-native/upstream
+experiments/maibot-native/instance
+experiments/maibot-native/.data
+短剧样片-第1集.md

@@ -1,0 +1,13 @@
+.section{margin-top:28px;padding-top:25px;border-top:1px solid var(--line)}
+.heading{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-bottom:16px}
+.heading h2{font-size:17px;font-weight:600;margin:0}.heading p{color:var(--muted);font-size:12px;line-height:1.6;margin:6px 0 0}
+.outline{display:inline-flex;justify-content:center;align-items:center;gap:7px;border:1px solid var(--line);border-radius:8px;padding:9px 12px;background:var(--surface);color:var(--text);font-size:12px;white-space:nowrap;cursor:pointer}
+.outline:disabled{opacity:.55;cursor:default}.outline:focus-visible{outline:2px solid var(--pink);outline-offset:3px}
+.rules{padding:16px 18px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}.rules>strong{font-size:13px}.rules p,.notice{font-size:12px;line-height:1.8;color:var(--muted);margin:8px 0 0}
+.metrics{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-size:12px;color:var(--muted)}.metrics strong{font-weight:500;color:var(--text);margin-left:5px}
+.list{list-style:none;max-height:22rem;overflow:auto;padding:0;margin:8px 0 16px}.item{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:17px 0;border-bottom:1px solid var(--line)}.itemMain{min-width:0}.itemMain>strong{font-size:13px;font-weight:550}.itemMain>strong span{color:var(--muted);font-weight:400;font-size:11px}.itemMain time,.itemMain p{display:block;font-size:11px;color:var(--muted);line-height:1.6;margin:5px 0 0;overflow-wrap:anywhere}
+.itemAmount{text-align:right;flex-shrink:0}.itemAmount>strong{font-size:15px;font-weight:550;font-variant-numeric:tabular-nums}.itemAmount small{font-size:11px;font-weight:400}.itemAmount>span{display:block;font-size:11px;color:var(--muted);margin-top:6px}
+.guest{display:flex;align-items:center;justify-content:space-between;gap:18px;margin-top:17px}.guest p,.empty{font-size:12px;color:var(--muted);line-height:1.7}.empty{margin:18px 0}.error{font-size:12px;line-height:1.7;color:var(--pink);background:var(--pink-soft);border-radius:8px;padding:10px 13px;margin:12px 0;overflow-wrap:anywhere}
+.error>p{margin:0}.error>.outline{margin-top:10px}
+@media(max-width:650px){.heading{align-items:flex-start;gap:12px}.item{align-items:flex-start;gap:14px}.itemAmount{max-width:45%}.metrics{gap:9px 18px}.rules{padding:13px 14px}}
+@media(max-width:360px){.heading,.guest,.item{flex-direction:column}.itemAmount{text-align:left;max-width:100%}}

@@ -24,7 +24,9 @@ import {
   isDzmmListedCharacter,
   parseCharacterImport,
   parseCharacterDraftImport,
-  decodeDzmmCharacterImportBytes,
+  DZMM_CHARACTER_CARD_MAX_BYTES,
+  readDzmmCharacterImportText,
+  dzmmPngCharacterFile,
   exportCharacterJson,
   exportCharacterDraftJson,
   type Character,
@@ -52,8 +54,8 @@ import {
   type DzmmSavedMessage,
   type DzmmPreferences,
 } from "@/lib/dzmm-storage";
-import { dzmmCloudRequest, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
-import { fetchDzmmPublicCharacter } from "@/lib/dzmm-publishing";
+import { dzmmCloudRequest, uploadDzmmCover, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
+import { fetchDzmmPlayPrompt, fetchDzmmPublicCharacter } from "@/lib/dzmm-publishing";
 import { isDzmmListPreview, orderDzmmShelfByTime, xumengPlayCatalogSort, xumengPlaySortSelection, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
 import { dzmmBundledPlayableCharacter } from "@/lib/load-dzmm-bundled-cards";
 import { dzmmDeferredIntroductionCharacter } from "@/lib/load-dzmm-public-introductions";
@@ -74,7 +76,7 @@ import AccountModal from "./account-modal";
 import authorsData from "@/lib/dzmm-authors.json";
 import { DZMM_DISCOVERY_CATEGORIES, dzmmDiscoveryCutoff, findCharacterAuthor, isDzmmCharacterBlocked, resolveCharacterAuthorTarget, type DzmmAuthor, type DzmmForumTopic } from "@/lib/dzmm-discovery";
 import { characterMatchesShelfTags, coverShelfTags } from "@/lib/xumeng-shelf-tags";
-import { isPublicRecommendationCharacter, QUALIFIED_USER_MESSAGES, RECOMMENDATION_REASON_LABELS, type RecommendationReason, type RecommendationSurface } from "@/lib/xumeng-recommendations";
+import { isPublicRecommendationCharacter, QUALIFIED_USER_MESSAGES, recommendationReasonText, type RecommendationReason, type RecommendationSurface } from "@/lib/xumeng-recommendations";
 import {
   fetchXumengRecommendations, recommendationRequestAborted, recordXumengRecommendationEvents,
   type XumengRecommendationEvent, type XumengRecommendationPage, type XumengRecommendationQuery,
@@ -96,8 +98,9 @@ import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@
 import { useGamePlayLibrary, type GamePlaySelection } from "./use-game-play-library";
 import { parseXumengGameId, XUMENG_BUILTIN_GAMES, xumengBuiltinGame } from "@/lib/xumeng-games";
 import gameNavigation from "./game-play-navigation.module.css";
-import { xumengStatusBarFields, xumengStatusBarLabels } from "@/lib/xumeng-character-status";
+import { xumengStatusBarLabels, xumengStatusBarSections } from "@/lib/xumeng-character-status";
 import { XUMENG_PAYMENT_INFO_DRAFT, XUMENG_PAYMENT_INFO_PAGES } from "@/lib/xumeng-payment-info";
+import { girlfriendLiveVoice } from "@/app/xumeng/girlfriend/companion-voices";
 import { REALISTIC_COMPANION_PROFILES, type CompanionProfile } from "@/app/xumeng/girlfriend/companion-profiles";
 import { GIRLFRIEND_CAST, girlfriendCastById, type GirlfriendCast } from "@/app/xumeng/girlfriend/cast";
 import { chatListStamp, companionLane, useCompanionInbox } from "@/app/xumeng/girlfriend/companion-inbox";
@@ -109,9 +112,10 @@ import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_FORUM_ENABLED
 import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
 import { SignupWelcome } from "./signup-welcome";
 import { ChatMediaProvider, ChatMessageMedia } from "./chat-message-media";
+import { XumengStatusCard, type MomentSection } from "./xumeng-moment-status";
 import ChatMessageEditor from "./chat-message-editor";
 import { ChatBillingStatus } from "./chat-billing-status";
-import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, xumengStatusPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
+import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
 import { canRegenerateDzmmMessage, createDzmmRegenerationBranch, createDzmmReplySuggestionBranch, editDzmmConversationMessage } from "@/lib/dzmm-message-actions";
 import { dzmmReplySuggestionPrefixKeys, dzmmReplySuggestionSettingsKey, fetchDzmmReplySuggestions, prepareDzmmReplySuggestionsRequest } from "@/lib/dzmm-reply-suggestions-client";
 import { DZMM_REPLY_SUGGESTIONS_PROMPT_VERSION } from "@/lib/dzmm-reply-suggestions";
@@ -324,7 +328,7 @@ function companionVariantFromRoute(route: string): CompanionVariant {
 const CHAT_CALL_CHARACTERS: XumengPerformanceCharacter[] = CONTENT_PEOPLE.map(person => ({
   id: `chat-${person.castId || person.variant}`, key: `chat:${person.castId || person.variant}`, source: "character" as const, sourceId: person.castId || person.variant, sourceLabel: "聊天",
   name: person.name, avatar: person.cover, description: person.description, personality: person.personality, scenario: person.situation, dialogue: "",
-  liveVoice: "zh_female_liuchangnv_uranus_bigtts" as const,
+  liveVoice: girlfriendLiveVoice(person.castId || person.variant),
 }));
 function gameHeat(id: string): number {
   let hash = 0;
@@ -514,6 +518,21 @@ export default function TavernApp() {
   const activeAccount = useRef<string | null>(null);
   const detailRecommendSurface = useRef<RecommendationSurface | null>(null);
   const catalogRef = useRef<HTMLElement | null>(null);
+  const tabsRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const wrap = tabsRef.current;
+    const node = wrap?.querySelector("nav");
+    if (!wrap || !node) return;
+    const update = () => wrap.toggleAttribute("data-more", node.scrollWidth - node.clientWidth - node.scrollLeft > 12);
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(node);
+    node.addEventListener("scroll", update, { passive: true });
+    return () => {
+      node.removeEventListener("scroll", update);
+      observer.disconnect();
+    };
+  }, [view, tab, appliedTags]);
   const shelfMoreRef = useRef<HTMLDivElement | null>(null);
   const resolvedAttempt = useRef(new Set<string>());
   const impressed = useRef(new Set<string>());
@@ -528,6 +547,18 @@ export default function TavernApp() {
   const selectedConversationAccount = useRef<string | null>(null);
   const [conversationQuery, setConversationQuery] = useState("");
   const [conversationType, setConversationType] = useState<ChatSection>("stories");
+  const [chatListOpen, setChatListOpen] = useState(() => {
+    try { return sessionStorage.getItem("xumeng-chat-list") !== "closed"; }
+    catch { return true; }
+  });
+  function toggleChatList() {
+    setChatListOpen(open => {
+      const next = !open;
+      try { sessionStorage.setItem("xumeng-chat-list", next ? "open" : "closed"); }
+      catch { /* The list still toggles for this visit. */ }
+      return next;
+    });
+  }
   const [companionOpen, setCompanionOpen] = useState(false);
   const [companionVariant, setCompanionVariant] = useState<CompanionVariant>("classic");
   const [customCompanion, setCustomCompanion] = useState<CompanionProfile | null>(null);
@@ -567,7 +598,9 @@ export default function TavernApp() {
   const [error, setError] = useState("");
   const [billingConfig, setBillingConfig] = useState<DzmmBillingConfig | null>(null);
   const [billingRefresh, setBillingRefresh] = useState(0);
+  const [chatBalance, setChatBalance] = useState<number | null>(null);
   const [rechargeNeeded, setRechargeNeeded] = useState(false);
+  const [rechargeMessage, setRechargeMessage] = useState("");
   const [editingMessage, setEditingMessage] = useState<{ accountId: string | null; conversationId: string; messageId: string; original: string } | null>(null);
   const detailReturn = useRef<View>("characters");
   const detailReturnHash = useRef("characters");
@@ -1258,15 +1291,20 @@ export default function TavernApp() {
   const panelTemplate = activeCharacter?.interactionTemplate;
   const panelState = useMemo(() => panelTemplate && active ? currentXumengPanelState(panelTemplate, active.messages) : null, [panelTemplate, active]);
   const statusBarLabels = useMemo(() => activeCharacter?.statusBar ? xumengStatusBarLabels(activeCharacter.statusBar) : [], [activeCharacter?.statusBar]);
-  const statusFields = useMemo(() => !panelTemplate && activeCharacter?.statusBar
-    ? xumengStatusBarFields(activeCharacter.statusBar, active?.messages ?? [])
-    : [], [panelTemplate, activeCharacter?.statusBar, active?.messages]);
-  const momentFields = panelTemplate && panelState ? panelTemplate.panels.flatMap(panel => panel.fields.map(field => ({
-    key: `${panel.id}:${field.name}`,
-    label: field.name,
-    type: field.type,
-    value: panelState.panels[panel.title]?.[field.name] ?? field.initial,
-  }))) : statusFields;
+  const momentSections = useMemo((): MomentSection[] => {
+    if (panelTemplate && panelState) return panelTemplate.panels.map(panel => ({
+      title: panel.title,
+      fields: panel.fields.map(field => ({
+        key: `${panel.id}:${field.name}`,
+        label: field.name,
+        type: field.type,
+        value: panelState.panels[panel.title]?.[field.name] ?? field.initial,
+      })),
+    }));
+    if (activeCharacter?.statusBar) return xumengStatusBarSections(activeCharacter.statusBar, active?.messages ?? []);
+    return [];
+  }, [panelTemplate, panelState, activeCharacter?.statusBar, active?.messages]);
+  const momentFields = momentSections.flatMap(section => section.fields);
   const momentMessageId = [...(active?.messages ?? [])].reverse().find(message => message.role === "assistant" && message.content.trim())?.id;
   useEffect(() => {
     if (!activeId || activeCharacter) return;
@@ -1540,6 +1578,7 @@ export default function TavernApp() {
     novelRouteActive.current = target === "novels";
     liveRouteActive.current = target === "live";
     location.hash = route;
+    window.scrollTo({ top: 0, behavior: "instant" });
     return true;
   }
   function openMessages(): boolean {
@@ -1643,7 +1682,7 @@ export default function TavernApp() {
       id: `chat-custom-${profile.id}`, key: `chat:custom:${profile.id}`, source: "character", sourceId: profile.id, sourceLabel: "聊天",
       name: profile.name, avatar: profile.cover, description: profile.introduction,
       personality: profile.style.personality, scenario: profile.situation, dialogue: "",
-      liveVoice: "zh_female_liuchangnv_uranus_bigtts",
+      liveVoice: girlfriendLiveVoice(profile.id),
     }, "live", mode);
   }
   function startCompanionCall(mode: "phone" | "video") {
@@ -2066,6 +2105,7 @@ export default function TavernApp() {
     setConversationType("stories"); setCompanionOpen(false); setGameRequest(null); window.history.replaceState(null, "", "#chat");
     setActiveId(c.id);
     setError("");
+    window.scrollTo({ top: 0, behavior: "instant" });
   }
   function removeActiveConversation() {
     if (!active || activeReplyActive()) return;
@@ -2144,6 +2184,11 @@ export default function TavernApp() {
       return false;
     if (!regenerate && composerDrafts[conversation.id]?.pending) { setError("上次回复尚未确认，请先检查会话并恢复或移除待确认原文，再发送新消息。"); return false; }
     if (!allowBilledConversation()) return false;
+    if (billingConfig?.enabled && cloud.user && !cloud.user.isGuest && chatBalance === 0) {
+      setRechargeMessage("当前可用 0 Credit，这条消息还没发出去。");
+      setRechargeNeeded(true);
+      return false;
+    }
     if (activeCharacter.authoringDraft) { setError("这个角色的世界书还有未完成项，请在创作中心完善后继续对话。"); return false; }
     let replyCharacter = activeCharacter;
     if (activeCharacter.introductionDeferred || activeCharacter.contextDeferred) {
@@ -2181,8 +2226,12 @@ export default function TavernApp() {
     setRechargeNeeded(false);
     // The typed draft stays until the reply is accepted. A suggestion never replaces it.
     try {
-      const worldRuntime = resolveDzmmWorldRuntime(conversation.worldState, submitted, Date.now(), conversation.worldClockMode ?? "story");
-      const { request } = await prepareDzmmRememberedRequest({ character: applyDzmmConversationOpening(replyCharacter, { ...conversation, messages: submitted }), messages: submitted,
+        const worldRuntime = resolveDzmmWorldRuntime(conversation.worldState, submitted, Date.now(), conversation.worldClockMode ?? "story");
+        if (replyCharacter.publication && !replyCharacter.systemPrompt?.trim()) {
+          const systemPrompt = await fetchDzmmPlayPrompt(replyCharacter.id, abort.signal);
+          replyCharacter = { ...replyCharacter, systemPrompt };
+        }
+        const { request } = await prepareDzmmRememberedRequest({ character: applyDzmmConversationOpening(replyCharacter, { ...conversation, messages: submitted }), messages: submitted,
         world: { clockMode: conversation.worldClockMode ?? "story", ...(worldRuntime ? { state: worldRuntime.state,
           recordedAt: worldRuntime.recordedAt, previousClockMode: worldRuntime.clockMode } : {}) },
         memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: resolveDzmmConversationPersona(state.preferences, conversationId),
@@ -2207,7 +2256,11 @@ export default function TavernApp() {
       });
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        if (response.status === 402) { insufficient = true; setRechargeNeeded(true); }
+        if (response.status === 402) {
+          insufficient = true;
+          setRechargeMessage(typeof body?.error === "string" && body.error.trim() ? body.error : "余额不够，这条消息还没发出去。");
+          setRechargeNeeded(true);
+        }
         if ((response.status === 401 || response.status === 403) && billingConfig?.enabled && (!cloud.user || cloud.user.isGuest)) openAccount("login");
         throw new Error(body?.error || "回复失败，请稍后重试。");
       }
@@ -2239,7 +2292,11 @@ export default function TavernApp() {
     } catch (e) {
       if (activeAccount.current !== owner) return false;
       const hasValidAnswer = Boolean(answer.trim());
-      if (e instanceof DzmmMemoryRequestError && e.status === 402) { insufficient = true; setRechargeNeeded(true); }
+      if (e instanceof DzmmMemoryRequestError && e.status === 402) {
+        insufficient = true;
+        setRechargeMessage(e.message || "余额不够，这条消息还没发出去。");
+        setRechargeNeeded(true);
+      }
       if (e instanceof DzmmMemoryRequestError && (e.status === 401 || e.status === 403) && billingConfig?.enabled && (!cloud.user || cloud.user.isGuest)) openAccount("login");
       if (!insufficient && e instanceof Error && e.name !== "AbortError")
         showError(hasValidAnswer ? "回复中断，已保留收到的内容。可以重新生成。" : e.message);
@@ -2271,10 +2328,11 @@ export default function TavernApp() {
   }
 
   const shelfList = useMemo(() => {
+    const rankedFeed = Boolean(rankQuery) && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢");
     const hideRanked = tab === "新手" || tab === "猜你喜欢" || tab === "榜单" || tab === "分类" || view === "search";
-    const remote = publicShelf.characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id)));
+    const remote = (rankedFeed && rankWaiting ? [] : publicShelf.characters).filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id)));
     const seen = new Set<string>();
-    const pinLocal = view === "characters" && tab === "新手";
+    const pinLocal = view === "characters" && tab === "新手" && !rankedFeed;
     const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
       && !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && characterMatchesShelfTags(character.tags, selectedShelfTags(genres))) : [];
     const followed = new Set(state.preferences.followedAuthors ?? []);
@@ -2283,14 +2341,17 @@ export default function TavernApp() {
       return !character.publication && author ? followed.has(author.id) : false;
     }) : [];
     const orderedRemote = tab === "最新" ? orderDzmmShelfByTime(remote) : remote;
-    return [...followedLocal, ...pinned, ...orderedRemote].filter((character) => {
+    const visible = [...followedLocal, ...pinned, ...orderedRemote].filter((character) => {
       if (!character.cover || character.cover.includes("placeholder")) return false;
       if (look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
       if (seen.has(character.id)) return false;
       seen.add(character.id);
       return true;
     });
-  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look]);
+    if (!rankedFeed || !rankReady) return visible;
+    const order = new Map(recommendation.ids.map((id, index) => [id, index]));
+    return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
+  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, recommendation.ids, sortMode]);
   const relatedCards = useMemo(() => {
     if (!detail || relatedRank.status !== "ready") return [];
     const byId = new Map(characters.map((character) => [character.id, character]));
@@ -2340,8 +2401,9 @@ export default function TavernApp() {
     return () => { observer.disconnect(); window.clearTimeout(timer); flush(); };
   }, [rankReady, serverSurface, view, detail, shelfKey, cloud.user?.id]);
 
-  const showFeatured = tab === "新手" && sortMode === "recommended" && genres.length === 0;
-  const showBuiltinShelf = tab !== "关注" && tab !== "榜单" && tab !== "猜你喜欢" && tab !== "最新" && genres.length === 0 && !query.trim() && view !== "search";
+  const directRank = Boolean(rankQuery) && sortMode === "recommended" && tab === "新手";
+  const showFeatured = !directRank && tab === "新手" && sortMode === "recommended" && genres.length === 0;
+  const showBuiltinShelf = !directRank && tab !== "关注" && tab !== "榜单" && tab !== "猜你喜欢" && tab !== "最新" && genres.length === 0 && !query.trim() && view !== "search";
   const builtinShelfItems = useMemo<ContentShelfItem[]>(() => showBuiltinShelf ? XUMENG_BUILTIN_GAMES.map(game => ({ kind: "game", key: `builtin:${game.id}`, game })) : [], [showBuiltinShelf]);
   const featured = useMemo<ContentShelfItem[]>(() => {
     if (!showFeatured) return [];
@@ -2379,16 +2441,28 @@ export default function TavernApp() {
   async function importRole(file?: File) {
     if (!file) return;
     try {
-      if (file.size > 262_144) throw new Error("角色卡文件不能超过 256 KB。");
+      if (file.size > DZMM_CHARACTER_CARD_MAX_BYTES) throw new Error("角色卡文件不能超过 5 MB。");
       const owner = activeAccount.current;
-      const character = parseCharacterDraftImport(decodeDzmmCharacterImportBytes(await file.arrayBuffer()));
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const source = readDzmmCharacterImportText(bytes);
+      const character = parseCharacterDraftImport(source.text);
       if (activeAccount.current !== owner || cloud.authBusy) throw new Error("账号已切换，请在当前账号重新导入角色卡。");
       if (!owner || !loaded) throw new Error("账号尚未加载，请稍候再导入角色卡。");
       cloud.assertAccount(owner);
       if (studioDirty.current || studioBusy.current) throw new Error("角色草稿尚未保存，请先在创作工作台保存，再导入新角色卡。");
+      let coverNote = "";
+      if (source.embeddedPng) {
+        try {
+          character.cover = await uploadDzmmCover(dzmmPngCharacterFile(file, bytes));
+          coverNote = "封面已使用这张图片。";
+        } catch (error) {
+          coverNote = error instanceof Error ? `封面未上传：${error.message}` : "封面未上传。";
+        }
+        if (activeAccount.current !== owner || cloud.authBusy) throw new Error("账号已切换，请在当前账号重新导入角色卡。");
+      }
       setState((p) => ({ ...p, custom: [character, ...p.custom] }));
       if (character.authoringDraft) openStudio(character); else showDetail(character);
-      setNotice(character.authoringDraft ? "私人创作草稿已导入，可继续完善世界书。" : "角色卡已导入。");
+      setNotice(`${character.authoringDraft ? "私人创作草稿已导入，可继续完善世界书。" : "角色卡已导入。"}${coverNote}`);
     } catch (e) {
       setNotice(e instanceof Error ? e.message : "导入失败。");
     }
@@ -2663,7 +2737,7 @@ export default function TavernApp() {
                       >
                         <h2>{item.character.name}</h2>
                         <p>{getDzmmCharacterCardBlurb(item.character, playUserName)}</p>
-                        {showRecommendationReasons && recommendation.reasons[item.character.id] && recommendation.reasons[item.character.id] !== "ranking" && <span className={s.reason}>{RECOMMENDATION_REASON_LABELS[recommendation.reasons[item.character.id]]}</span>}
+                        {showRecommendationReasons && recommendationReasonText(recommendation.reasons[item.character.id]) && <span className={s.reason}>{recommendationReasonText(recommendation.reasons[item.character.id])}</span>}
                       </button>
                       <div className={s.cardFooter}>
                         {characterAuthorControl(item.character)}
@@ -2824,6 +2898,7 @@ export default function TavernApp() {
         <>
           <div className={s.browseNav}>
             <div className={s.browseHead}>
+            <div className={s.tabScroll} ref={tabsRef}>
             <nav className={s.tabs} aria-label="浏览">
               {TABS.map((tabKey) => (
                 <button
@@ -2844,27 +2919,23 @@ export default function TavernApp() {
               ))}
             </nav>
             </div>
+            <label className={s.sortSelect}><span>排序</span><select aria-label="排序" value={xumengPlaySortSelection(tab, sortMode)} onChange={event => setSortMode(event.target.value as typeof sortMode)}><option value="recommended">推荐</option><option value="heat">热度</option><option value="likes">点赞</option><option value="updated">最近更新</option><option value="name">名称</option></select></label>
+            </div>
           </div>
           <DiscoveryTagPicker open={tagPickerOpen} onClose={() => setTagPickerOpen(false)} options={browseTagChoices} selected={appliedTags} limit={BROWSE_TAG_LIMIT} onToggle={toggleBrowseTag} onClear={() => setAppliedTags([])} />
           <>
           <main className={s.catalog} ref={catalogRef}>
-            <div className={s.discoveryControls}>
-              <label className={s.sortSelect}><span>排序</span><select value={xumengPlaySortSelection(tab, sortMode)} onChange={event => setSortMode(event.target.value as typeof sortMode)}><option value="recommended">推荐</option><option value="heat">热度</option><option value="likes">点赞</option><option value="updated">最近更新</option><option value="name">名称</option></select></label>
-            </div>
             {tab === "榜单" && <div className={s.rankingBar} role="tablist" aria-label="榜单周期">{([ ["day", "日榜"], ["week", "周榜"], ["all", "总榜"] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>}
-            {tab === "猜你喜欢" && rankReady && !recommendation.personalized && <p className={s.rankNote}>再和 3 位角色认真聊过，这里会按你的喜好排。</p>}
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label="首页横幅"><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
-            {featured.length > 0 && <section className={s.featuredShelf} aria-label="优秀作品"><h2>优秀作品</h2><div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>{featured.map(renderShelfItem)}</div></section>}
-            {featured.length > 0 && shelf.length > 0 && <h2 className={s.shelfHeading}>更多推荐</h2>}
-            {(publicShelf.loading || rankWaiting) && shelfList.length === 0 ? (
+            {((rankWaiting && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢")) || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
               <div className={s.empty} role="status"><h2>正在加载角色</h2><p>马上就好。</p></div>
-            ) : shelf.length ? (
+            ) : featured.length || shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
-                {shelf.map(renderShelfItem)}
+                {(featured.length ? [...featured, ...shelf] : shelf).map(renderShelfItem)}
               </div>
-            ) : featured.length ? null : (
+            ) : (
               <div className={s.empty}>
                 <Icon name={tab === "关注" ? "heart" : tab === "榜单" ? "trophy" : "search"} size={38} />
                 <h2>
@@ -2911,7 +2982,7 @@ export default function TavernApp() {
             >
               内容来源
             </button>
-            <button onClick={() => importRef.current?.click()}>
+            <button title="JSON 或带有角色卡的 PNG" onClick={() => importRef.current?.click()}>
               导入角色卡
             </button>
             <button onClick={() => navigate("presets")}>模型与预设</button>
@@ -2923,8 +2994,9 @@ export default function TavernApp() {
       )}
 
       {view === "chat" && !detail && (
-        <main className={s.chatLayout}>
+        <main className={s.chatLayout} data-list={chatListOpen ? "open" : "closed"}>
           <aside
+            id="xumeng-chat-list"
             className={`${s.chatSidebar} ${active || gameSelection || companionInMain ? s.hasActive : ""}`}
           >
             <label className={s.conversationSearch}>
@@ -2971,20 +3043,19 @@ export default function TavernApp() {
               {conversationType === "chats" && !chatPeople.length && <p className={s.sidebarEmpty} role="status">没有找到匹配的聊天对象</p>}
               {conversationType === "stories" && visibleConversations.map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
+                const unread = activeId === c.id ? 0 : storyUnread(c.messages, storySeen[c.id]);
                 return (
                   <button
                     key={c.id}
                     className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""}`}
+                    aria-label={chatListOpen ? undefined : `${c.title}${unread ? `，${unread}条未读` : ""}`}
                     onClick={() => selectConversation(c)}
                   >
-                    {(() => {
-                      const unread = activeId === c.id ? 0 : storyUnread(c.messages, storySeen[c.id]);
-                      return <span className={s.conversationAvatar}>
-                        {ch ? <Cover character={ch} /> : <div className={s.unavailableAvatar} aria-hidden="true"><Icon name="chat" size={20} /></div>}
-                        {unread > 0 && <b className={s.unreadBadge} aria-label={`${unread}条未读`}>{unread > 99 ? "99+" : unread}</b>}
-                      </span>;
-                    })()}
-                    <span>
+                    <span className={s.conversationAvatar}>
+                      {ch ? <Cover character={ch} /> : <div className={s.unavailableAvatar} aria-hidden="true"><Icon name="chat" size={20} /></div>}
+                      {unread > 0 && <b className={s.unreadBadge} aria-label={`${unread}条未读`}>{unread > 99 ? "99+" : unread}</b>}
+                    </span>
+                    <span className={s.conversationMeta}>
                       <strong>{c.title}</strong>
                       <time className={s.conversationTime}>{formatConversationStamp(c.updatedAt)}</time>
                       <small>
@@ -3008,6 +3079,16 @@ export default function TavernApp() {
               导入会话
             </button>}
           </aside>
+          <button
+            type="button"
+            className={s.chatListToggle}
+            aria-expanded={chatListOpen}
+            aria-controls="xumeng-chat-list"
+            aria-label={chatListOpen ? "收起会话列表" : "展开会话列表"}
+            onClick={toggleChatList}
+          >
+            <Icon name="chevron" size={16} />
+          </button>
           <section className={s.chatMain} style={chatMainStyle}>
               {companionInMain ? (
               <Deferred>
@@ -3137,6 +3218,7 @@ export default function TavernApp() {
                   <ChatMediaProvider key={`${cloud.user?.id ?? "offline"}:${active.id}`} accountId={cloud.user?.id}
                     conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} saveNow={cloud.saveNow}
                     onRequireAccount={() => openAccount("login")}
+                    onCharged={() => setBillingRefresh(value => value + 1)}
                     onRecharge={() => navigate("recharge")}>
                   <div className={s.messageList}>
                     {active.messages.map((m, index) => (
@@ -3158,7 +3240,7 @@ export default function TavernApp() {
                             <small className={s.openingTag}>{activeOpening.kind === "background" ? "故事背景" : activeOpening.kind === "welcome" ? "故事起点" : "开场白"}</small>
                           )}
                           <ChatMessageMedia message={m} disabled={busy} label={`第 ${index + 1} 条消息`}
-                            moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: momentFields } : undefined}
+                            moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: momentFields, sections: momentSections } : undefined}
                             onCopy={() => { void copyMessage(splitXumengMomentTail(splitXumengPanelTail(m.content).body).body); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
                           <div className={s.messageBubble} data-message-text>
@@ -3173,7 +3255,7 @@ export default function TavernApp() {
                           {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
                             contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
                             accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false}
-                            label={`第 ${index + 1} 条回复`} disabled={busy || cloud.authBusy} billed={Boolean(billingConfig?.enabled)}
+                            label={`第 ${index + 1} 条回复`} disabled={busy || cloud.authBusy}
                             historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
                             onChoose={reply => chooseReplySuggestion(m.id, reply)} />}
                         </div>
@@ -3228,7 +3310,8 @@ export default function TavernApp() {
                       });
                     }}>移除</button></details>}
                   <ChatBillingStatus key={cloud.user?.id ?? "offline"} accountId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true}
-                    enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onRequireAccount={() => openAccount("login")} onRecharge={() => navigate("recharge")} />
+                    enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onUsage={usage => setChatBalance(usage ? usage.availableBalance : null)}
+                    onRequireAccount={() => openAccount("login")} onRecharge={() => navigate("recharge")} />
                   <form
                     className={s.composer}
                     onSubmit={(e) => {
@@ -3278,7 +3361,7 @@ export default function TavernApp() {
                         key="send-message"
                         className={s.sendButton}
                         type="submit"
-                        disabled={!loaded || cloud.authBusy || !draft.trim()}
+                        disabled={!loaded || cloud.authBusy || !draft.trim() || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
                         aria-label="发送"
                       >
                         发送
@@ -3420,7 +3503,7 @@ export default function TavernApp() {
       <input
         ref={importRef}
         type="file"
-        accept=".json,application/json"
+        accept=".json,application/json,.png,image/png"
         hidden
         onChange={(e) => importRole(e.target.files?.[0])}
       />
@@ -3478,7 +3561,7 @@ export default function TavernApp() {
       {rechargeNeeded && <div className={s.overlay} role="presentation" onClick={() => setRechargeNeeded(false)}>
         <div className={s.balanceDialog} role="dialog" aria-modal="true" aria-labelledby="balance-gate-title" onClick={event => event.stopPropagation()}>
           <h2 id="balance-gate-title">余额不够</h2>
-          <p>这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。</p>
+          <p>{rechargeMessage || "这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。"}</p>
           <div className={s.balanceActions}>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}>去邀请</button>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("checkin"); }}>去签到</button>
@@ -3560,16 +3643,15 @@ function MessageTextBody({ text }: { text: string }) {
 
 function MessageStatus({ status }: { status: NonNullable<XumengMessagePresentation["status"]> }) {
   const sections = status.sections ?? [{ title: "", fields: status.fields, notes: [] }];
-  const preview = xumengStatusPreview(status.fields) || sections.find(section => section.notes.length)?.notes[0]?.slice(0, 60) || "";
-  return <details className={s.visibleStatus}>
-    <summary>{status.title}{preview && <small>{preview}</small>}</summary>
-    {sections.map((section, index) => <section key={index} className={s.statusSection}>
-      {section.title && <h4>{section.title}</h4>}
-      {section.notes.map((note, j) => <p key={j}>{note}</p>)}
-      {section.fields.length > 0 && <dl>{section.fields.map((field, j) => <div key={j} className={field.value.length > 24 ? s.statusWide : undefined}>
-        <dt>{field.label}</dt><dd>{field.value}</dd>
-      </div>)}</dl>}
-    </section>)}
-  </details>;
+  return <XumengStatusCard name={status.title || "状态"} sections={sections.map((section, index) => ({
+    title: section.title,
+    notes: section.notes,
+    fields: section.fields.map((field, fieldIndex) => ({
+      key: `${index}:${fieldIndex}:${field.label}`,
+      label: field.label,
+      type: "text" as const,
+      value: field.value,
+    })),
+  }))} />;
 }
 

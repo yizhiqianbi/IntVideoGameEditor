@@ -1,0 +1,64 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dzmm-backend",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "ai": {
+    "binding": "AI"
+  },
+  "services": [
+    {
+      "binding": "VIDU_VOICE",
+      "service": "dzmm-web",
+      "entrypoint": "ViduVoiceService"
+    }
+  ],
+  "vars": {
+    "GENERATION_ENABLED": "true",
+    "APP_ORIGINS": "http://127.0.0.1:3010,http://localhost:3010",
+    "STRIPE_PAYMENT_MODE": "live",
+    "STRIPE_LIVE_ACCOUNT_ID": "acct_1UM3rVGsmSdUNsEh",
+    "PAYMENT_PROVIDER": "guagua",
+    "PAYMENTS_ACCEPTING_ENABLED": "true",
+    "GUAGUA_ENABLED": "true",
+    "NOWPAYMENTS_ENABLED": "false",
+    "NOWPAYMENTS_PAY_CURRENCY": "usdttrc20",
+    "ZPAY_ENABLED": "false",
+    "CREDIT_BILLING_ENABLED": "true",
+    "CREDIT_BILLING_RATES_JSON": "{\"revision\":1,\"inputCreditsPer1000\":4.022753,\"outputCreditsPer1000\":12.068258}",
+    "CREDIT_BILLING_COST_POLICY_JSON": "{\"version\":1,\"multiplier\":3,\"usdToCny\":6.704588,\"creditsPerCny\":100,\"inputUsdPerMillion\":2,\"outputUsdPerMillion\":6,\"maxInputUsdPerMillion\":4.4,\"maxOutputUsdPerMillion\":13.2}",
+    "COMPANION_BILLING_ENABLED": "true",
+    "CHAT_MEDIA_ENABLED": "true",
+    "SUBSCRIPTION_ENABLED": "true",
+    "SUBSCRIPTION_PLANS_JSON": "[{\"id\":\"vip_monthly\",\"label\":\"叙梦 VIP\",\"revision\":3,\"amountMinor\":2800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":300,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\"}]",
+    "PAYMENTS_RETURN_ORIGIN": "https://xumengchat.top",
+    "EMAIL_AUTH_ENABLED": "true",
+    "EMAIL_PROVIDER": "cloudflare",
+    "EMAIL_FROM": "noreply@auth.xumengchat.top"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dzmm-db",
+      "database_id": "c466b70a-1d70-4e98-9a22-c5e19e20bb06",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MEDIA",
+      "bucket_name": "dzmm-media"
+    }
+  ],
+  "images": {
+    "binding": "IMAGES"
+  },
+  "send_email": [
+    {
+      "name": "EMAIL",
+      "allowed_sender_addresses": ["noreply@auth.xumengchat.top"]
+    }
+  ]
+}

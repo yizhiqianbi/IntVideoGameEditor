@@ -23,18 +23,19 @@
     "cards:export": "tsx scripts/export-qingyu-cards.ts"
   },
   "dependencies": {
+    "@elevenlabs/elevenlabs-js": "^2.76.0",
     "react": "19.2.3",
     "react-dom": "19.2.3"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
     "@types/node": "^25.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "6.1.1",
+    "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "8.3.2",
-    "tsx": "^4.23.15",
-    "wrangler": "^4.146.0",
-    "@cloudflare/workers-types": "^5.20261002.1"
+    "wrangler": "^4.146.0"
   }
 }

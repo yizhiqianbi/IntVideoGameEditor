@@ -1,16 +1,14 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { uploadDzmmCover } from "../../../lib/dzmm-cloud";
 import { companionStillPrompt } from "../../../lib/companion-still-prompt";
 import { xumengImageUrl } from "../../../lib/xumeng-routes";
-import { requestKrea2Still } from "../../../lib/xumeng-krea2-bridge";
+import { requestCompanionAlbumStill } from "../../../lib/xumeng-krea2-bridge";
 import { rememberRelationshipStill } from "../../../lib/relationship-album";
 
 export type GirlfriendPhoto = { id: string; url: string; createdAt: string };
 const SAVED_PHOTO = /^\/api\/backend\/v1\/media\/[A-Za-z0-9-]+\/[a-f0-9-]+\.(?:png|jpe?g|webp)$/;
 const PHOTO_LIMIT = 24;
-const UPLOAD_LIMIT = 5 * 1024 * 1024;
 
 export function readGirlfriendPhotos(key: string): GirlfriendPhoto[] {
   try {
@@ -62,24 +60,6 @@ async function referenceBase64(url: string): Promise<string> {
   return blobToBase64(encoded);
 }
 
-async function uploadable(blob: Blob): Promise<File> {
-  let file = new File([blob], "still.png", { type: "image/png" });
-  if (file.size <= UPLOAD_LIMIT) return file;
-  const bitmap = await createImageBitmap(blob);
-  const scale = Math.min(1, Math.sqrt(UPLOAD_LIMIT / file.size) * 0.85);
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  const context = canvas.getContext("2d");
-  if (!context) throw new Error("这张图太大，没有存进相册。");
-  context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-  const jpeg = await new Promise<Blob>((resolve, reject) => canvas.toBlob(value => value ? resolve(value) : reject(new Error("这张图太大，没有存进相册。")), "image/jpeg", 0.82));
-  file = new File([jpeg], "still.jpg", { type: "image/jpeg" });
-  if (file.size > UPLOAD_LIMIT) throw new Error("这张图太大，没有存进相册。");
-  return file;
-}
-
 export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string | null = null, characterId: string | null = null) {
   const [photos, setPhotos] = useState<GirlfriendPhoto[]>([]);
   const [busy, setBusy] = useState(false);
@@ -108,10 +88,9 @@ export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string 
     setNote("");
     try {
       const image = await referenceBase64(coverUrl);
-      const still = await requestKrea2Still({ templateId: "krea2-free", prompt, image, style: "photo" });
-      const file = await uploadable(still.image);
-      const url = xumengImageUrl(await uploadDzmmCover(file));
-      if (!SAVED_PHOTO.test(url)) throw new Error("图片存储返回的地址无效。");
+      const still = await requestCompanionAlbumStill({ templateId: "krea2-free", prompt, image, style: "photo" });
+      const url = xumengImageUrl(still.url);
+      if (!SAVED_PHOTO.test(url)) throw new Error("相册保存失败，这次没有扣 Credit。");
       const photo = { id: crypto.randomUUID(), url, createdAt: new Date().toISOString() };
       if (characterId) void rememberRelationshipStill(characterId, url).catch(() => undefined);
       setPhotos(current => {

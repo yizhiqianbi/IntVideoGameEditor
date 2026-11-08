@@ -53,13 +53,13 @@ test("resolves openrouter provider when env is configured", () => {
 
   process.env.PLAY_AGENT_PROVIDER = "openrouter";
   process.env.OPENROUTER_API_KEY = "sk-or-local-test";
-  process.env.OPENROUTER_MODEL = "deepseek/deepseek-v3.2";
+  process.env.OPENROUTER_MODEL = "x-ai/grok-4.6";
 
   const config = readPlayAgentProviderConfig();
   const adapter = resolvePlayAgentProviderAdapter();
 
   assert.equal(config.providerId, "openrouter");
-  assert.equal(config.model, "deepseek/deepseek-v3.2");
+  assert.equal(config.model, "x-ai/grok-4.6");
   assert.equal(adapter.name, "openrouter");
 
   process.env.PLAY_AGENT_PROVIDER = previousProvider;

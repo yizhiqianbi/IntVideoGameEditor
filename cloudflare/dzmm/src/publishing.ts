@@ -1,8 +1,9 @@
 import { MAX_MIRROR_BYTES, pendingRemoteSlots, sniffStoredImage } from "./cover-mirror";
 import { readCardDerivative, washCardDerivative } from "./cover-rendition";
 import { publishedMediaSlot } from "../../../src/lib/xumeng-cover-rendition";
-import { DEFAULT_DZMM_CHARACTER_COVER, DZMM_CHARACTERS, isDzmmListedCharacter, parseCharacterImport, type Character } from "../../../src/lib/dzmm-characters";
+import { DEFAULT_DZMM_CHARACTER_COVER, DZMM_CHARACTER_CARD_MAX_BYTES, DZMM_CHARACTERS, isDzmmListedCharacter, parseCharacterImport, type Character } from "../../../src/lib/dzmm-characters";
 import { DZMM_PUBLIC_INTRODUCTION_IDS } from "../../../src/lib/dzmm-public-introduction-ids";
+import { dzmmLocalLook } from "../../../src/lib/dzmm-local-looks";
 import { parseDzmmCatalogQuery, toDzmmCatalogCard, type DzmmCatalogSort } from "../../../src/lib/dzmm-public-shelf";
 import type { DzmmPublication, DzmmPublishingSubmission, DzmmPublishedCharacter, DzmmSubmissionStatus } from "../../../src/lib/dzmm-publishing";
 import { requireUser, rateLimit } from "./auth";
@@ -18,7 +19,8 @@ const STATIC_COVERS = new Set([
   ...DZMM_CHARACTERS.map((character) => character.cover),
   ...[...DZMM_PUBLIC_INTRODUCTION_IDS].map((id) => `/dzmm/covers/${id}.webp`),
 ]);
-const MAX_SNAPSHOT_BYTES = 256 * 1024;
+const MAX_SNAPSHOT_BYTES = DZMM_CHARACTER_CARD_MAX_BYTES;
+const PUBLISH_SNAPSHOT_MAX_BYTES = 1_800_000;
 const PREFIX = "/api/dzmm/backend/v1/publishing";
 type MediaMap = Record<string, string>;
 type PublicationRow = { id: string; user_id: string; display_heat: number; display_likes: number; private_character_id: string; version: number; current_revision: number; approved_revision: number | null; is_listed: number; mutation_token: string; created_at: number; updated_at: number };
@@ -125,8 +127,9 @@ function displayStats(body: Record<string, unknown>): { heat: number; likes: num
 }
 function publicCharacter(row: SubmissionRow): DzmmPublishedCharacter {
   const card = submissionCharacter(row.snapshot_json);
+  const { systemPrompt: _systemPrompt, ...visible } = card;
   const media = JSON.parse(row.published_media_json) as MediaMap;
-  return { ...card, id: row.publication_id, author: card.author?.trim() || row.nickname, heat: displayCount(Number(row.display_heat) || 0), likes: String(Number(row.display_likes) || 0),
+  return { ...visible, id: row.publication_id, author: card.author?.trim() || row.nickname, heat: displayCount(Number(row.display_heat) || 0), likes: String(Number(row.display_likes) || 0),
     sourceKind: "original", promptOrigin: "original", sourceUrl: "", createdAt: new Date(row.reviewed_at ?? row.created_at).toISOString(),
     cover: media.cover ? `${PREFIX}/media/${row.publication_id}/${row.revision}/cover` : card.cover,
     ...(card.gallery ? { gallery: card.gallery.map((path, index) => media[`gallery-${index}`] ? `${PREFIX}/media/${row.publication_id}/${row.revision}/gallery-${index}` : path) } : {}),
@@ -167,7 +170,12 @@ function catalogWhere(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: s
     bindings.push(query.since);
   }
   if (query.look) {
-    where.push("EXISTS (SELECT 1 FROM character_looks l WHERE l.publication_id = p.id AND l.look = ?)");
+    // A recorded look is exact. Cards with no look row stay visible so a style
+    // tag does not wipe the catalog before looks are backfilled.
+    where.push(`(
+      EXISTS (SELECT 1 FROM character_looks l WHERE l.publication_id = p.id AND l.look = ?)
+      OR NOT EXISTS (SELECT 1 FROM character_looks l WHERE l.publication_id = p.id)
+    )`);
     bindings.push(query.look);
   }
   return { sql: where.join(" AND "), bindings };
@@ -204,10 +212,11 @@ async function readCatalogPage(env: Env, query: ReturnType<typeof parseDzmmCatal
   const rows = await env.DB.prepare(`${SUBMISSIONS} WHERE ${filter.sql} ORDER BY ${CATALOG_ORDER[query.sort]} LIMIT ? OFFSET ?`)
     .bind(...filter.bindings, query.limit, query.ids.length ? 0 : query.offset).all<SubmissionRow>();
   const characters: Character[] = rows.results.map(publicCharacter);
-  if (!query.authorIds.length && !query.look && characters.length < query.limit) {
+  if (!query.authorIds.length && characters.length < query.limit) {
     try {
       const official = (await listedOfficialCards(env)).filter(card => {
         if (query.ids.length && !query.ids.includes(card.id)) return false;
+        if (query.look && dzmmLocalLook(card.id) !== query.look) return false;
         if (query.q && !`${card.name} ${card.description} ${card.tags.join(" ")}`.toLowerCase().includes(query.q.toLowerCase())) return false;
         if (query.tags.length && !query.tags.some(tag => card.tags.includes(tag))) return false;
         return true;
@@ -232,23 +241,31 @@ function sitemapCoverExtension(key: unknown): "png" | "jpg" | null {
   return match[1].toLowerCase() === "png" ? "png" : "jpg";
 }
 
-/** Listed, approved revisions only. The payload is ids and cover types, never names or snapshots. */
-export async function readPublicSitemapIndex(env: Pick<Env, "DB">): Promise<{ id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null }[]> {
-  const characters: { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null }[] = [];
+function sitemapName(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const name = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+  if (!name) return null;
+  return [...name].slice(0, 80).join("");
+}
+
+/** Listed, approved revisions only. The payload is the public card title plus ids and cover types, never descriptions or snapshots. */
+export async function readPublicSitemapIndex(env: Pick<Env, "DB">): Promise<{ id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title: string | null }[]> {
+  const characters: { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title: string | null }[] = [];
   for (let offset = 0; characters.length < SITEMAP_CAP; offset += SITEMAP_PAGE) {
     const rows = await env.DB.prepare(`SELECT p.id AS id,
         COALESCE(s.reviewed_at, p.updated_at) AS updated_at,
         s.revision AS revision,
-        json_extract(s.published_media_json, '$.cover') AS cover_key
+        json_extract(s.published_media_json, '$.cover') AS cover_key,
+        json_extract(s.snapshot_json, '$.name') AS name
       FROM character_submissions s
       JOIN character_publications p ON p.id = s.publication_id
       WHERE p.is_listed = 1 AND s.status = 'approved' AND s.revision = p.approved_revision
       ORDER BY p.id
-      LIMIT ? OFFSET ?`).bind(SITEMAP_PAGE, offset).all<{ id: string; updated_at: number; revision: number; cover_key: string | null }>();
+      LIMIT ? OFFSET ?`).bind(SITEMAP_PAGE, offset).all<{ id: string; updated_at: number; revision: number; cover_key: string | null; name: string | null }>();
     for (const row of rows.results) {
       const updatedAt = Number(row.updated_at);
       if (!PUBLICATION_ID.test(row.id) || !Number.isSafeInteger(row.revision) || row.revision < 1 || !Number.isSafeInteger(updatedAt) || updatedAt < 0) continue;
-      characters.push({ id: row.id, updatedAt, revision: row.revision, coverExtension: sitemapCoverExtension(row.cover_key) });
+      characters.push({ id: row.id, updatedAt, revision: row.revision, coverExtension: sitemapCoverExtension(row.cover_key), title: sitemapName(row.name) });
       if (characters.length >= SITEMAP_CAP) break;
     }
     if (rows.results.length < SITEMAP_PAGE) break;
@@ -267,6 +284,12 @@ export async function readPublishedCharacters(env: Env, options: { offset?: numb
 export async function readPublishedCharacter(env: Env, id: string): Promise<DzmmPublishedCharacter | null> {
   const row = await env.DB.prepare(`${SUBMISSIONS} WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision`).bind(id).first<SubmissionRow>();
   return row ? publicCharacter(row) : null;
+}
+/** Logged-in chat may read the author instruction. Public catalog responses omit it. */
+export async function readPublishedPlayPrompt(env: Env, id: string): Promise<string | null> {
+  const row = await env.DB.prepare(`${SUBMISSIONS} WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision`).bind(id).first<SubmissionRow>();
+  if (!row) return null;
+  return submissionCharacter(row.snapshot_json).systemPrompt ?? "";
 }
 
 type LikeRow = { character_id: string; count: number; liked: number };
@@ -311,7 +334,7 @@ async function normalizeSnapshot(env: Env, user: UserRecord, value: unknown) {
     || supplied.publicIntroductionSha256 !== undefined || supplied.publication !== undefined) throw new ApiError(400, "投稿不可冒充原站来源或已审核公开角色。");
   let character: Character & { gallery?: string[] };
   try {
-    if (new TextEncoder().encode(JSON.stringify(supplied)).byteLength > MAX_SNAPSHOT_BYTES) throw new ApiError(413, "角色快照不能超过 256 KB。");
+    if (new TextEncoder().encode(JSON.stringify(supplied)).byteLength > PUBLISH_SNAPSHOT_MAX_BYTES) throw new ApiError(413, "公开发布的角色不能超过 2 MB，请先精简世界书。");
     const runnable = { ...supplied };
     delete runnable.authoringDraft;
     character = parseCharacterImport(runnable, privateId);
@@ -555,6 +578,15 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
       characters, total, offset, limit: query.limit, hasMore: query.ids.length ? false : offset + query.limit < total,
       applied: { q: query.q, tags: query.tags, sort: query.sort, view: query.view, authorIds: query.authorIds, ids: query.ids, since: query.since, look: query.look },
     });
+  }
+  const playPrompt = /^\/catalog\/([^/]+)\/prompt$/.exec(path);
+  if (playPrompt) {
+    if (request.method !== "GET") throw new ApiError(405, "角色扮演指令仅支持 GET。");
+    const user = suppliedUser ?? await requireUser(request, env);
+    await rateLimit(request, env, "play-prompt", 120, user.id);
+    const systemPrompt = await readPublishedPlayPrompt(env, publicationId(playPrompt[1]));
+    if (systemPrompt === null) throw new ApiError(404, "角色尚未发布或已下架。");
+    return json({ systemPrompt });
   }
   const publicCard = /^\/catalog\/([^/]+)$/.exec(path);
   if (publicCard) {

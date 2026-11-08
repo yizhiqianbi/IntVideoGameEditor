@@ -16,6 +16,14 @@ body,
   min-height: 100%;
 }
 
+#root {
+  min-height: 100dvh;
+}
+
+#root:not(:empty) ~ #xumeng-public-tail {
+  display: none;
+}
+
 @media (max-width: 767px) {
   #xumeng-public-tail {
     margin-bottom: 76px !important;

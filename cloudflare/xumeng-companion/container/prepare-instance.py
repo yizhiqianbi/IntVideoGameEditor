@@ -227,6 +227,41 @@ def apply_chat_model(destination, model, fast_model=""):
         rewrite_private(info_path, json.dumps(info))
 
 
+def refresh_template_secrets(destination, source):
+    """A factory disk carries a placeholder key and shared local tokens. Replace both before the process starts."""
+    identity_path = destination / "container-instance.json"
+    identity = json.loads(identity_path.read_text())
+    if identity.get("template") is not True:
+        return
+    settings = inputs(dict(os.environ), source)
+    if settings["api_key"] == "xumeng-template-placeholder":
+        raise ValueError("A runtime provider secret is required")
+    import tomlkit
+    model_path = destination / "config/model_config.toml"
+    models = tomlkit.parse(model_path.read_text())
+    replaced = False
+    for provider in models.get("api_providers", []):
+        if isinstance(provider, dict) and provider.get("name") == "OpenRouter":
+            provider["api_key"] = settings["api_key"]
+            replaced = True
+    if not replaced:
+        raise ValueError("Missing native configuration")
+    rewrite_private(model_path, tomlkit.dumps(models))
+    bot_path = destination / "config/bot_config.toml"
+    bot = tomlkit.parse(bot_path.read_text())
+    bot["maim_message"]["auth_token"] = [secrets.token_urlsafe(32)]
+    bot["maim_message"]["api_server_allowed_api_keys"] = [secrets.token_urlsafe(32)]
+    rewrite_private(bot_path, tomlkit.dumps(bot))
+    webui = destination / "data/webui.json"
+    if webui.is_file():
+        data = json.loads(webui.read_text())
+        if isinstance(data, dict):
+            data["access_token"] = secrets.token_urlsafe(48)
+            rewrite_private(webui, json.dumps(data))
+    identity.pop("template", None)
+    rewrite_private(identity_path, json.dumps(identity))
+
+
 def rebind_existing(destination, ports, persona="classic"):
     import tomlkit
     path = destination / "config/bot_config.toml"
@@ -240,6 +275,7 @@ def rebind_existing(destination, ports, persona="classic"):
         rewrite_private(path, updated)
     stamp_persona(destination, name)
     apply_chat_model(destination, os.environ.get("COMPANION_CHAT_MODEL", ""), os.environ.get("COMPANION_FAST_MODEL", ""))
+    refresh_template_secrets(destination, Path(os.environ.get("MAIBOT_SOURCE_DIR", "/opt/maibot")).resolve())
 
 
 def prepare(destination, source, env, ports=None):
@@ -254,7 +290,7 @@ def prepare(destination, source, env, ports=None):
         # Official init only creates templates; no runner, model, or plugin starts.
         subprocess.run([str(source / ".venv/bin/maibot"), "init", "--directory", str(stage)],
                        cwd=stage, env=child_env, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        plugin_source = Path("/opt/companion/plugins/xumeng_media")
+        plugin_source = Path(env.get("COMPANION_MEDIA_PLUGIN") or "/opt/companion/plugins/xumeng_media")
         if not (plugin_source / "plugin.py").is_file() or not (plugin_source / "_manifest.json").is_file():
             raise ValueError("XUMENG media plugin is missing from the image")
         plugin_target = stage / "plugins" / "xumeng_media"

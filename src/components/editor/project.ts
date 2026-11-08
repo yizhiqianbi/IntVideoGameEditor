@@ -345,6 +345,8 @@ function sanitizeCharacter(value: unknown, index = 1): CharacterDefinition {
     bio: sanitizeString(value.bio),
     basePrompt: sanitizeString(value.basePrompt),
     imageModel:
+      value.imageModel === "heartsync/flux-nsfw-uncensored" ||
+      value.imageModel === "x-ai/grok-imagine-image-2.0" ||
       value.imageModel === "doubao-seedream-5-0-260128" ||
       value.imageModel === "doubao-seedream-4-5-251128" ||
       value.imageModel === "doubao-seedream-4-0-250828" ||
@@ -382,6 +384,8 @@ function sanitizeSceneDefinition(value: unknown, index = 1): SceneDefinition {
     description: sanitizeString(value.description),
     basePrompt: sanitizeString(value.basePrompt),
     imageModel:
+      value.imageModel === "heartsync/flux-nsfw-uncensored" ||
+      value.imageModel === "x-ai/grok-imagine-image-2.0" ||
       value.imageModel === "doubao-seedream-5-0-260128" ||
       value.imageModel === "doubao-seedream-4-5-251128" ||
       value.imageModel === "doubao-seedream-4-0-250828" ||

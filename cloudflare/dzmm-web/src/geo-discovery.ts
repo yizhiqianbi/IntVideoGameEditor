@@ -1,10 +1,11 @@
-import { characterShareGEOEntries, characterShareLocations } from "./character-share";
+import { characterShareGEOEntries, characterShareLocations, shareTitle } from "./character-share";
 import { XUMENG_COMMUNITY_GUIDELINES_DATE, XUMENG_COMMUNITY_GUIDELINES_DESCRIPTION, XUMENG_COMMUNITY_GUIDELINES_PATH, XUMENG_COMMUNITY_GUIDELINES_TITLE } from "../../../src/lib/xumeng-community-guidelines";
 import { XUMENG_PAYMENT_INFO_DRAFT, XUMENG_PAYMENT_INFO_PAGES } from "../../../src/lib/xumeng-payment-info";
+import { gtmBodyHtml, gtmHeadHtml } from "./gtm";
 import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
 
 export const GEO_SITE = "https://xumengchat.top";
-export const GEO_UPDATED = "2026-10-29";
+export const GEO_UPDATED = "2026-11-05";
 export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的 AI 角色卡与连续剧情互动故事空间。`;
 export const GEO_BOUNDARY = "私人会话、账号信息、余额与未公开内容不在公开资料中。";
 export const GEO_META_DESCRIPTION = "叙梦（XUMENG）是 AI 角色卡与连续剧情的互动故事空间。浏览公开角色、世界书与开场设定，再进入站内继续对话。";
@@ -100,11 +101,11 @@ export function publicRobotsTxt(): string {
 
 type SitemapEntry = { loc: string; lastmod?: string; changefreq: string; priority: string; image?: { loc: string; title?: string } };
 
-export type PublishedSitemapCharacter = { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null };
+export type PublishedSitemapCharacter = { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title?: string };
 
 const PUBLISHED_SITEMAP_ID = /^published-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const SITEMAP_CATALOG = "https://dzmm-backend.850587960.workers.dev/v1/publishing/sitemap";
-const SITEMAP_CACHE = "https://xumengchat.top/sitemap.xml";
+const SITEMAP_CACHE = "https://xumengchat.top/sitemap.xml?v=character-title";
 
 function sitemapLastmod(updatedAt: number): string | undefined {
   if (!Number.isSafeInteger(updatedAt) || updatedAt < 0 || updatedAt > 10_000_000_000_000) return undefined;
@@ -120,16 +121,19 @@ export function publishedSitemapCharacters(payload: unknown): PublishedSitemapCh
   const seen = new Set<string>();
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
-    const item = row as { id?: unknown; updatedAt?: unknown; revision?: unknown; coverExtension?: unknown };
+    const item = row as { id?: unknown; updatedAt?: unknown; revision?: unknown; coverExtension?: unknown; title?: unknown };
     if (typeof item.id !== "string" || !PUBLISHED_SITEMAP_ID.test(item.id) || seen.has(item.id)) continue;
     if (!Number.isSafeInteger(item.updatedAt) || Number(item.updatedAt) < 0 || Number(item.updatedAt) > 10_000_000_000_000) continue;
     if (!Number.isSafeInteger(item.revision) || Number(item.revision) < 1 || Number(item.revision) > 1_000_000_000) continue;
+    const rawTitle = typeof item.title === "string" ? item.title.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim() : "";
+    const title = rawTitle ? shareTitle(rawTitle) : undefined;
     seen.add(item.id);
     characters.push({
       id: item.id,
       updatedAt: Number(item.updatedAt),
       revision: Number(item.revision),
       coverExtension: item.coverExtension === "png" || item.coverExtension === "jpg" ? item.coverExtension : null,
+      ...(title ? { title } : {}),
     });
   }
   return characters;
@@ -163,7 +167,7 @@ export function publicSitemapEntries(published: readonly PublishedSitemapCharact
       lastmod: sitemapLastmod(row.updatedAt),
       changefreq: "weekly",
       priority: "0.5",
-      image: row.coverExtension ? { loc: `${GEO_SITE}/assets/xumeng/share/${row.id}-${row.revision}.${row.coverExtension}` } : undefined,
+      image: row.coverExtension ? { loc: `${GEO_SITE}/assets/xumeng/share/${row.id}-${row.revision}.${row.coverExtension}`, ...(row.title ? { title: row.title } : {}) } : undefined,
     }));
   return [...pages, ...characters, ...listed];
 }
@@ -220,6 +224,7 @@ export function publicLlmsTxt(): string {
     "",
     `- [公开角色地址表](${GEO_SITE}/sitemap.xml): 全部公开角色的规范网址。引用角色时以各角色页摘要为准。`,
     `- [精选角色订阅](${GEO_SITE}/feed.xml): 精选公开角色的 Atom 订阅。`,
+    `- [叙梦短剧](https://video.xumengchat.top/): AI成人短剧与漫剧的公开播放站。剧集规范网址见 https://video.xumengchat.top/sitemap.xml 。`,
   ];
   const draft = draftCitationRule();
   if (draft) lines.push(draft);
@@ -431,8 +436,10 @@ function documentShell(id: GeoPageId, title: string, description: string, body: 
       h2 { font-size: 20px; margin: 28px 0 8px; }
     </style>
     <script type="application/ld+json">${jsonLd(pageGraph(id, title, description))}</script>
+    ${gtmHeadHtml}
   </head>
   <body>
+    ${gtmBodyHtml}
     <header>
       <nav aria-label="叙梦公开说明">
         <a href="/">叙梦</a>

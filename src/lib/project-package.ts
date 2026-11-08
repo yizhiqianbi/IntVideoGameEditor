@@ -1,11 +1,11 @@
 import JSZip from "jszip";
-import type { EditorProject } from "../components/editor/project";
 import {
   buildProjectPackageManifest,
   type LoadedProjectRecord,
   type ProjectMediaInput,
   type ProjectPackageAssetEntry,
   type ProjectRecord,
+  type ProjectSnapshot,
 } from "./projects";
 
 type ProjectPackageProjectFile = {
@@ -19,14 +19,14 @@ type ProjectPackageProjectFile = {
     lastOpenedAt: string;
     previewImageUrl?: string;
   };
-  snapshot: EditorProject;
+  snapshot: ProjectSnapshot;
 };
 
 export type ImportedProjectPackage = {
   name: string;
   description: string;
   previewImageUrl?: string;
-  snapshot: EditorProject;
+  snapshot: ProjectSnapshot;
   media: ProjectMediaInput[];
 };
 

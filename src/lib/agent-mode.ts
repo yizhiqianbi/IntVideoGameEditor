@@ -508,7 +508,9 @@ function sanitizeString(value: unknown, fallback = "") {
 }
 
 function sanitizeImageModel(value: unknown): ImageGenerationModel {
-  return value === "doubao-seedream-5-0-260128" ||
+  return value === "heartsync/flux-nsfw-uncensored" ||
+    value === "x-ai/grok-imagine-image-2.0" ||
+    value === "doubao-seedream-5-0-260128" ||
     value === "doubao-seedream-4-5-251128" ||
     value === "doubao-seedream-4-0-250828" ||
     value === "doubao-seedream-3-0-t2i-250415"

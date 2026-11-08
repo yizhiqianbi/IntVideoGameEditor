@@ -20,6 +20,7 @@ export type Env = {
   DB: D1Database;
   MEDIA?: R2Bucket;
   AI?: Ai;
+  ELEVENLABS_API_KEY?: string;
   VIDU_VOICE?: ViduVoiceServiceBinding;
   CHAT_MEDIA_ENABLED?: string;
   APP_ORIGINS: string;

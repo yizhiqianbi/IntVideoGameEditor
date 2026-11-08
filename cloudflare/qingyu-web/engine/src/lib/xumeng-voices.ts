@@ -1,6 +1,10 @@
 /** Exact provider IDs from Vidu's official voice table. Labels describe a sound style, not an actor's age. */
 export const XUMENG_SPEECH_VOICES = [
   { id: "melotts", label: "自然中文", group: "默认", description: "原来的中文朗读声音", provider: "cloudflare", model: "@cf/myshell-ai/melotts" },
+  { id: "cRL5y2g9Apu45tuoclY0", label: "晚灯", group: "女声", description: "温暖、亲密、略带沙感；适合陪伴聊天", provider: "elevenlabs", model: "eleven_multilingual_v2", previewUrl: "https://api.us.elevenlabs.io/v1/voices/cRL5y2g9Apu45tuoclY0/previews/audio" },
+  { id: "HE2pJq42vZv55x9j9gOh", label: "清川", group: "女声", description: "清晰、克制、自然；适合日常对话", provider: "elevenlabs", model: "eleven_multilingual_v2", previewUrl: "https://storage.googleapis.com/eleven-public-prod/database/workspace/a039efafad594fe799a7b51529e19424/voices/HE2pJq42vZv55x9j9gOh/f032866b-9690-496d-b23b-c41b47a7fc91.mp3" },
+  { id: "dGyruSqrNQLp4m4NQbHz", label: "微澜", group: "女声", description: "柔和、低调、有情绪余韵；适合安静场景", provider: "elevenlabs", model: "eleven_multilingual_v2", previewUrl: "https://storage.googleapis.com/eleven-public-prod/database/workspace/a039efafad594fe799a7b51529e19424/voices/dGyruSqrNQLp4m4NQbHz/2f76c70f-5347-478a-95fb-5fa8a8c5d50e.mp3" },
+  { id: "BT0SH7Hb8NRPpT5xbCgg", label: "Lulu · 小魔女", group: "女声", description: "台湾普通话、年轻、可爱活泼；适合二次元和游戏角色", provider: "elevenlabs", model: "eleven_multilingual_v2", previewUrl: "https://storage.googleapis.com/eleven-public-prod/database/workspace/451fb4b0fbd844bbb0c30fe416b6498e/voices/BT0SH7Hb8NRPpT5xbCgg/JMJTJG4vYXdZKcbYxLQv.mp3" },
   { id: "female-yujie", label: "御姐", group: "女声", description: "沉稳、有姐姐感", provider: "vidu", model: "vidu-tts", previewUrl: "https://scene.vidu.zone/media-asset/072356-YiaFlpiWzo4Twkxb.mp3" },
   { id: "female-shaonv", label: "软萌少女", group: "女声", description: "轻盈、偏软萌的声音", provider: "vidu", model: "vidu-tts", previewUrl: "https://scene.vidu.zone/media-asset/072356-Zp3xnBAgMpkKN0fb.mp3" },
   { id: "female-tianmei", label: "甜美", group: "女声", description: "明亮、亲切", provider: "vidu", model: "vidu-tts", previewUrl: "https://scene.vidu.zone/media-asset/072356-gc9rn0lig2Phdh1g.mp3" },

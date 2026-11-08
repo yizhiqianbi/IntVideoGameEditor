@@ -1,0 +1,46 @@
+{
+  "truelove": {
+    "path": "/dzmm/categories/truelove.webp",
+    "sha256": "e11e4c4e98816c67e8a98dd52e83f3be1e4c7f3d8c55653c91ca28d65e1cdd4d"
+  },
+  "girl": {
+    "path": "/dzmm/categories/girl.webp",
+    "sha256": "c1e77d753aa80ed486de754e9851ccf15ec86068fdd5276e751e9d4b718152a3"
+  },
+  "history": {
+    "path": "/dzmm/categories/history.webp",
+    "sha256": "b0fecc21c706e55643b411657fc44d98df3d1bd90270d3a036d69cea1451fda7"
+  },
+  "cultivation-sect": {
+    "path": "/dzmm/categories/cultivation-sect.webp",
+    "sha256": "380f8fc420cec95c1a77ce98077964394aa0d258bc80d7db4dabdaaacf6d8b68"
+  },
+  "world": {
+    "path": "/dzmm/categories/world.webp",
+    "sha256": "192db657eaf0eff61e771a848b3e48d97b0313137302a06844ee44794373aa99"
+  },
+  "acg": {
+    "path": "/dzmm/categories/acg.webp",
+    "sha256": "2e2ca15101165aea2e412dadb8928dbe9df060f0aeb36acea45f01154aa83eaf"
+  },
+  "yuri": {
+    "path": "/dzmm/categories/yuri.webp",
+    "sha256": "160af6300c5f8261ad4e70162a557f285f884ddabce0d833086c94a181042f66"
+  },
+  "sfw": {
+    "path": "/dzmm/categories/sfw.webp",
+    "sha256": "7ac070ac67fa890c94a53c561ab8231999e64e350b6c4220b7b72c310b111fe6"
+  },
+  "gay": {
+    "path": "/dzmm/categories/gay.webp",
+    "sha256": "5fd57adfee58afaa09a83f3fc21c4cf1e26458aee87bd2aa21a02e7429f910ec"
+  },
+  "for-girls": {
+    "path": "/dzmm/categories/for-girls.webp",
+    "sha256": "b75ba81f9018236a5d87bdb14473722bf3c05bd64c6cf45c15bcb0d372786cab"
+  },
+  "rpg": {
+    "path": "/dzmm/categories/rpg.webp",
+    "sha256": "14ba7c9ab41f43a49eadcf07c037c6d418f5f20e7bcac28f35ecad5ff26d72de"
+  }
+}

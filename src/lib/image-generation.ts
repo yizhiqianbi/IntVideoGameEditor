@@ -1,4 +1,9 @@
+export const GROK_IMAGE_MODEL = "x-ai/grok-imagine-image-2.0";
+export const FLUX_NSFW_MODEL = "heartsync/flux-nsfw-uncensored";
+
 export type ImageGenerationModel =
+  | typeof FLUX_NSFW_MODEL
+  | typeof GROK_IMAGE_MODEL
   | "doubao-seedream-5-0-260128"
   | "doubao-seedream-4-5-251128"
   | "doubao-seedream-4-0-250828"
@@ -13,14 +18,36 @@ export type ImageGenerationResponse = {
 };
 
 export const DEFAULT_CHARACTER_IMAGE_MODEL: ImageGenerationModel =
-  "doubao-seedream-5-0-260128";
+  GROK_IMAGE_MODEL;
 
-export const DEFAULT_CHARACTER_IMAGE_SIZE: ImageGenerationSize = "2K";
+export function isLocalFluxModel(model: unknown) {
+  return model === FLUX_NSFW_MODEL;
+}
+
+export function parseImageModel(value: unknown): ImageGenerationModel {
+  return IMAGE_MODEL_OPTIONS.some((option) => option.value === value)
+    ? (value as ImageGenerationModel)
+    : DEFAULT_CHARACTER_IMAGE_MODEL;
+}
+
+export function imageModelShortLabel(model: ImageGenerationModel) {
+  return (
+    IMAGE_MODEL_OPTIONS.find((option) => option.value === model)?.label.split(
+      " · ",
+    )[0] || "生图"
+  );
+}
+
+export const DEFAULT_CHARACTER_IMAGE_SIZE: ImageGenerationSize = "1K";
+
+export const CHARACTER_THREE_VIEW_PROMPT =
+  "横向三格分镜排版，人物三视图：左侧完整全身正面视图，中间完整全身侧面视图，右侧完整全身背面视图；三格必须为同一个人物，五官、脸型、发型、眼镜、身材比例、服装正反面细节完全统一，无脸型差异、五官崩坏、服装错位、肢体畸形。";
 
 export const IMAGE_MODEL_OPTIONS: Array<{
   value: ImageGenerationModel;
   label: string;
 }> = [
+  { value: GROK_IMAGE_MODEL, label: "Grok Image 2.0" },
   {
     value: "doubao-seedream-5-0-260128",
     label: "Seedream 5.0",
@@ -49,7 +76,7 @@ export function buildCharacterImagePrompt(input: {
 
   const subject = segments.join("，");
 
-  return `${subject}，单人角色设定图，正脸清晰，服装稳定，电影感人像，适合作为互动影视角色参考图。`;
+  return `${subject}。${CHARACTER_THREE_VIEW_PROMPT}明确21岁以上，全身入画，干净工作室灯光，无文字，无未成年人。`;
 }
 
 export function buildSceneImagePrompt(input: {

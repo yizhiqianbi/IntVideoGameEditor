@@ -1,0 +1,269 @@
+{
+  "version": 1,
+  "sourceCommit": "dab0da437810b2ea4b5eec414c10c8fa35e779f8",
+  "author": "Foreverse Team (foreverse.app)",
+  "license": "CC BY 4.0",
+  "licenseUrl": "https://creativecommons.org/licenses/by/4.0/",
+  "changes": "Original JSON and covers unchanged. Xumeng maps runtime fields and renders static markup without source styles or executable content.",
+  "files": [
+    {
+      "path": "foreverse-peiyu.v2.json",
+      "bytes": 19278,
+      "sha256": "7dd714fdd35d4f479b91540700b25628cf518768b50222309e14722b56e2756a",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/peiyu/peiyu.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-shenyan.v2.json",
+      "bytes": 18361,
+      "sha256": "43842967b7d93bef5e7e8b18df02370e9327fb7f232297d981c8985438430a7c",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/shenyan/shenyan.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-tangtuantuan.v2.json",
+      "bytes": 19988,
+      "sha256": "e4338fd4941f07857447f50b349568d3d001e07e024bde889c29672528d71d34",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/tangtuantuan/tangtuantuan.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-wangushi.v2.json",
+      "bytes": 17594,
+      "sha256": "6bf91f72bddd973191b3953560059a89383a823215f4aea8710b3652387cf3a9",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/wangushi/wangushi.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-peiyu-cover.png",
+      "bytes": 1479780,
+      "sha256": "b022b27e8b9027eef5a53d9b250dd3a1938a27f5c0e2c1031e390c2a70e775e4",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/peiyu/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-shenyan-cover.png",
+      "bytes": 1006785,
+      "sha256": "cea77c2fd6ab86eeb0e6d6bac24666ad3759a076ade5099fb207920e7bf273ff",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/shenyan/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-tangtuantuan-cover.png",
+      "bytes": 1739467,
+      "sha256": "5827cc7588d3fc192be213fae745ecf65d5b511dff3c31efd6b6227112db171a",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/tangtuantuan/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-wangushi-cover.png",
+      "bytes": 1765287,
+      "sha256": "06a4ef5f71897f3c6b303bea858a1deecf9d086302b122b757665fb407a7321f",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/wangushi/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-huoyushen.v2.json",
+      "bytes": 20570,
+      "sha256": "872bb81fb07273c7487cd2dd14c5b71d694048a12a676c286ed800bf39ee229b",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/huoyushen/huoyushen.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-huoyushen-cover.png",
+      "bytes": 1334201,
+      "sha256": "cbf1f0ebfebe13f1127bf0d037c4418935cc8122f2f4b20b3eac640aaae4ecb7",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/huoyushen/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-jiwenqing.v2.json",
+      "bytes": 22186,
+      "sha256": "6abc3b7a08cf82c9eb5a78b0322f471840dc31932410105de997e1ce8d784ce3",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/jiwenqing/jiwenqing.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-jiwenqing-cover.png",
+      "bytes": 1309023,
+      "sha256": "79daef9f237a072ce3bcff188ad129a63d1b19faa698d07b6d3c96d023640c76",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/jiwenqing/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-naifuer.v2.json",
+      "bytes": 22194,
+      "sha256": "20c61ec2cf36462f69cecb002a2fa8b7dab31f6e450103cb2f1b710faac095ee",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/naifuer/naifuer.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-naifuer-cover.png",
+      "bytes": 1965346,
+      "sha256": "3faf1910a7b880dab105627e66fdfe77d7650b6f59d2db7c9edd0a00e87daa98",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/naifuer/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-songzhixia.v2.json",
+      "bytes": 19600,
+      "sha256": "ee3319fd0387d11cdabd1335f559514572af2c1953a8b748622893fb36ea8571",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/songzhixia/songzhixia.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-songzhixia-cover.png",
+      "bytes": 959788,
+      "sha256": "1b70ad32a0e55cbbc11b4b4f4d359bd9e5139c6c27e504794dcbfb33d1d9f5b8",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/songzhixia/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-caleb.v2.json",
+      "bytes": 34578,
+      "sha256": "cc6a6a66f2fe8e6e396e22eab4b4f9b3bb8b545c0891b9382e32e1f253c55d09",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/caleb/caleb.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-caleb-cover.png",
+      "bytes": 1663886,
+      "sha256": "95856b8363dc2a2bce9edf8e1371e51168389658e2f195eb3edeef0ca407abc7",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/caleb/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-edmund-harrower.v2.json",
+      "bytes": 22210,
+      "sha256": "70c96d304edde86c27e68b2ccee40be799ae6e1036bae5a70a97c0843130930c",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/edmund-harrower/edmund-harrower.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-edmund-harrower-cover.png",
+      "bytes": 2797518,
+      "sha256": "ab5b2f73693186e2edeee6e25e9c3ecfd7f40712d000081d9dca66e9aef7b0ee",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/edmund-harrower/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-frankie-doyle.v2.json",
+      "bytes": 19692,
+      "sha256": "0798ae866eed8bd637a3e0e764ef166edb780f21379621f49c90bda0af54e210",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/frankie-doyle/frankie-doyle.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-frankie-doyle-cover.png",
+      "bytes": 2218248,
+      "sha256": "d475017b2dea750c9fb58b991b3dc0e6555f514a176a6b0b92bd874ade5bca84",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/frankie-doyle/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-redline-salvage.v2.json",
+      "bytes": 20800,
+      "sha256": "fde4d3d2f68a025cca1c87e5f9961ab178914d61a161f98dac1098714fb06c15",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/redline-salvage/redline-salvage.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-redline-salvage-cover.png",
+      "bytes": 2554183,
+      "sha256": "3e860efb31bf082e4ee409e9b1df805eb69532d028f388b4887473579a5335f8",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/redline-salvage/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-rosalind.v2.json",
+      "bytes": 29459,
+      "sha256": "f530d2f7d3ad042fab235e78e918c77cbe5c726764bac15a832bec9a96247d86",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/rosalind/rosalind.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-rosalind-cover.png",
+      "bytes": 1387536,
+      "sha256": "5ca64d4c7e9db1c3873dd51213eb15cb796f579903a34990241b802fa20a2f94",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/rosalind/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-the-lighthouse.v2.json",
+      "bytes": 42304,
+      "sha256": "61b9eb8e932f7d61d5e27a727832307136438460ba0e509ee8e0914ec67d6e5c",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/the-lighthouse/the-lighthouse.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-the-lighthouse-cover.png",
+      "bytes": 1816663,
+      "sha256": "b1a98f18c34ab982ecd8e0a4b5bfaa3e94834d008889a97bf20222e43720a6db",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/en/the-lighthouse/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-jiangchiye.v2.json",
+      "bytes": 19642,
+      "sha256": "37b81f31102af1eeea6a464163d2256019307ab1b05bd83615e9dbb21fea198a",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/jiangchiye/jiangchiye.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-jiangchiye-cover.png",
+      "bytes": 1819178,
+      "sha256": "fe672bcc440d3dac904b6b9ff0506d4ff727be0f8721dec4222d92e96c41e8ea",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/jiangchiye/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-sunianzhi.v2.json",
+      "bytes": 21757,
+      "sha256": "3f09b432271db35f89d84bdb9388fe8edfe53c1693b21b7fc8e04387a251a52c",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/sunianzhi/sunianzhi.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-sunianzhi-cover.png",
+      "bytes": 1556398,
+      "sha256": "e2bca6e3e043154967a443af45c8e46757db4aee3c00bfc1e3ac2d52a18ca1e0",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/sunianzhi/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-xuanjing.v2.json",
+      "bytes": 21117,
+      "sha256": "65587996b1087bf946f1a3e9874d6d17f820526f9bb667c58528d949dbedf4a2",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/xuanjing/xuanjing.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-xuanjing-cover.png",
+      "bytes": 1769827,
+      "sha256": "a26aa9169ae9453808bd38d243e0b2e8e3db62c5db7a437770e6007bdc6b554d",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/xuanjing/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "foreverse-nie-xiaoqian.v2.json",
+      "bytes": 22119,
+      "sha256": "5a6a3574edb1cef1099842175571d13a6834f06e1508c03e41eb6fb7aa4701a3",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/nie-xiaoqian/nie-xiaoqian.v2.json",
+      "kind": "original-card"
+    },
+    {
+      "path": "foreverse-nie-xiaoqian-cover.png",
+      "bytes": 1599724,
+      "sha256": "a5f9c25477d3725a66d2acaa3c7a0c80da9d2ff6a8a54a86b6ec25aae9d60a67",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/cards/zh/nie-xiaoqian/cover.png",
+      "kind": "original-cover"
+    },
+    {
+      "path": "LICENSE-CONTENT.txt",
+      "bytes": 1384,
+      "sha256": "6e6fba2e29ea6118e5719d4cab03803a4a4c3160afedda247ee27650137be492",
+      "sourceUrl": "https://raw.githubusercontent.com/foreverse-app/character-card-skills/dab0da437810b2ea4b5eec414c10c8fa35e779f8/LICENSE-CONTENT",
+      "kind": "license"
+    }
+  ]
+}

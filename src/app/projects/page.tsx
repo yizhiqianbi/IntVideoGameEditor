@@ -8,10 +8,12 @@ import { TopNav } from "@/components/top-nav";
 import {
   deleteProject,
   listProjects,
+  projectOpenPath,
   renameProject,
   saveProject,
   type ProjectSummary,
 } from "@/lib/projects";
+import { emptyDramaArchive, isDramaSnapshot } from "@/lib/drama-archive";
 import { importProjectPackage } from "@/lib/project-package";
 import { setStoredActiveProjectId } from "@/lib/project-session";
 import {
@@ -62,7 +64,7 @@ function formatRelativeTime(value: string) {
 export default function ProjectsPage() {
   const router = useRouter();
   const importRef = useRef<HTMLInputElement | null>(null);
-  const shouldAutoCreateRef = useRef(false);
+  const shouldAutoCreateRef = useRef<"interactive" | "drama" | null>(null);
   const [projects, setProjects] = useState<ProjectSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
@@ -110,8 +112,9 @@ export default function ProjectsPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
+      const created = new URLSearchParams(window.location.search).get("new");
       shouldAutoCreateRef.current =
-        new URLSearchParams(window.location.search).get("new") === "1";
+        created === "drama" ? "drama" : created === "1" ? "interactive" : null;
     }
 
     void refreshProjects();
@@ -120,8 +123,10 @@ export default function ProjectsPage() {
   // ?new=1 — triggered from TopNav CTA button
   useEffect(() => {
     if (shouldAutoCreateRef.current && !isLoading && !isCreating) {
-      shouldAutoCreateRef.current = false;
-      void handleCreateProject();
+      const kind = shouldAutoCreateRef.current;
+      shouldAutoCreateRef.current = null;
+      if (kind === "drama") void handleCreateDramaProject();
+      else void handleCreateProject();
       router.replace("/projects", { scroll: false });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -137,6 +142,7 @@ export default function ProjectsPage() {
       const record = await saveProject({
         name: projectName,
         description: "一个新的互动影游戏项目",
+        kind: "interactive",
         snapshot,
         referencedAssetIds: [],
         media: [],
@@ -154,9 +160,35 @@ export default function ProjectsPage() {
     }
   }
 
-  function handleOpenProject(projectId: string) {
-    setStoredActiveProjectId(projectId);
-    router.push(`/pencil-studio-vid?project=${projectId}`);
+  async function handleCreateDramaProject() {
+    setIsCreating(true);
+    try {
+      const createdAt = new Date();
+      const projectName = `未命名短片 ${createdAt.toLocaleDateString("zh-CN")}`;
+      const snapshot = emptyDramaArchive(projectName);
+      const record = await saveProject({
+        name: projectName,
+        description: "成人短片项目 · 每剧一份画布",
+        kind: "drama",
+        snapshot,
+        referencedAssetIds: [],
+        media: [],
+      });
+      setStoredActiveProjectId(record.id);
+      router.push(`/video-studio?project=${record.id}`);
+    } catch (error) {
+      showNotice({
+        tone: "error",
+        message: error instanceof Error ? error.message : "创建短片项目失败。",
+      });
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  function handleOpenProject(project: ProjectSummary) {
+    setStoredActiveProjectId(project.id);
+    router.push(projectOpenPath(project));
   }
 
   async function handleDeleteProject(projectId: string) {
@@ -240,13 +272,16 @@ export default function ProjectsPage() {
         name: imported.name,
         description: imported.description,
         previewImageUrl: imported.previewImageUrl,
+        kind: isDramaSnapshot(imported.snapshot) ? "drama" : "interactive",
         snapshot: imported.snapshot,
-        referencedAssetIds: collectProjectReferencedAssetIds(imported.snapshot),
+        referencedAssetIds: isDramaSnapshot(imported.snapshot)
+          ? []
+          : collectProjectReferencedAssetIds(imported.snapshot),
         media: imported.media,
       });
 
       setStoredActiveProjectId(saved.id);
-      router.push(`/pencil-studio-vid?project=${saved.id}`);
+      router.push(projectOpenPath(saved));
     } catch (error) {
       showNotice({
         tone: "error",
@@ -273,7 +308,7 @@ export default function ProjectsPage() {
               )}
             </div>
             <p className={styles.librarySubtitle}>
-              继续最近作品，或者直接开始一个新的互动影游项目。
+              继续最近作品，或者新建互动影游、成人短片。
             </p>
             <div className={styles.heroActions}>
               <button
@@ -282,7 +317,15 @@ export default function ProjectsPage() {
                 onClick={() => void handleCreateProject()}
                 disabled={isCreating}
               >
-                {isCreating ? "创建中..." : "新建项目"}
+                {isCreating ? "创建中..." : "新建互动影游"}
+              </button>
+              <button
+                type="button"
+                className={styles.secondaryButton}
+                onClick={() => void handleCreateDramaProject()}
+                disabled={isCreating}
+              >
+                新建短片
               </button>
               <button
                 type="button"
@@ -319,18 +362,27 @@ export default function ProjectsPage() {
               </div>
               <div className={styles.recentProjectBody}>
                 <div className={styles.recentProjectMeta}>
-                  <span className={styles.recentProjectKicker}>最近编辑</span>
+                  <span className={styles.recentProjectKicker}>
+                    {featuredProject.kind === "drama" ? "成人短片" : "最近编辑"}
+                  </span>
                   <span className={styles.projectDate}>
                     {formatRelativeTime(featuredProject.lastOpenedAt)}
                   </span>
                 </div>
                 <h2 className={styles.recentProjectTitle}>{featuredProject.name}</h2>
                 <p className={styles.recentProjectDesc}>
-                  {featuredProject.description || "继续从这里推进你的互动影游。"}
+                  {featuredProject.description ||
+                    (featuredProject.kind === "drama"
+                      ? "继续编排这集短片的分镜。"
+                      : "继续从这里推进你的互动影游。")}
                 </p>
                 <div className={styles.metaChips}>
                   <span className={styles.metaChip}>
-                    {featuredProject.stats.nodeCount} 节点
+                    {featuredProject.kind === "drama" ? "短片" : "互动影游"}
+                  </span>
+                  <span className={styles.metaChip}>
+                    {featuredProject.stats.nodeCount}
+                    {featuredProject.kind === "drama" ? " 镜头" : " 节点"}
                   </span>
                   <span className={styles.metaChip}>
                     {featuredProject.stats.sceneCount} 场景
@@ -351,7 +403,7 @@ export default function ProjectsPage() {
                           key={project.id}
                           type="button"
                           className={styles.queueItem}
-                          onClick={() => handleOpenProject(project.id)}
+                          onClick={() => handleOpenProject(project)}
                         >
                           <span className={styles.queueItemName}>{project.name}</span>
                           <span className={styles.queueItemMeta}>
@@ -366,19 +418,21 @@ export default function ProjectsPage() {
                   <button
                     type="button"
                     className={styles.primaryButton}
-                    onClick={() => handleOpenProject(featuredProject.id)}
+                    onClick={() => handleOpenProject(featuredProject)}
                   >
                     继续创作
                   </button>
-                  <button
-                    type="button"
-                    className={styles.secondaryButton}
-                    onClick={() =>
-                      router.push(`/pencil-studio-vid/play-agent?project=${featuredProject.id}`)
-                    }
-                  >
-                    Play 创作
-                  </button>
+                  {featuredProject.kind !== "drama" ? (
+                    <button
+                      type="button"
+                      className={styles.secondaryButton}
+                      onClick={() =>
+                        router.push(`/pencil-studio-vid/play-agent?project=${featuredProject.id}`)
+                      }
+                    >
+                      Play 创作
+                    </button>
+                  ) : null}
                   {renamingProjectId !== featuredProject.id ? (
                     <button
                       type="button"
@@ -424,7 +478,7 @@ export default function ProjectsPage() {
             <div className={styles.emptyIcon}>🎬</div>
             <p className={styles.emptyTitle}>还没有项目</p>
             <p className={styles.emptySubtitle}>
-              新建一个项目或导入已有项目包开始创作
+              新建互动影游或成人短片，也可以导入已有项目包
             </p>
             <button
               type="button"
@@ -432,7 +486,15 @@ export default function ProjectsPage() {
               onClick={() => void handleCreateProject()}
               disabled={isCreating}
             >
-              {isCreating ? "创建中..." : "+ 新建项目"}
+              {isCreating ? "创建中..." : "+ 新建互动影游"}
+            </button>
+            <button
+              type="button"
+              className={styles.secondaryButton}
+              onClick={() => void handleCreateDramaProject()}
+              disabled={isCreating}
+            >
+              新建短片
             </button>
           </div>
         ) : (
@@ -543,7 +605,7 @@ export default function ProjectsPage() {
                         <button
                           type="button"
                           className={styles.overlayBtn}
-                          onClick={() => handleOpenProject(project.id)}
+                          onClick={() => handleOpenProject(project)}
                         >
                           打开
                         </button>
@@ -571,7 +633,11 @@ export default function ProjectsPage() {
                       </p>
                       <div className={styles.metaChips}>
                         <span className={styles.metaChip}>
-                          {project.stats.nodeCount} 节点
+                          {project.kind === "drama" ? "短片" : "互动影游"}
+                        </span>
+                        <span className={styles.metaChip}>
+                          {project.stats.nodeCount}
+                          {project.kind === "drama" ? " 镜头" : " 节点"}
                         </span>
                         <span className={styles.metaChip}>
                           {project.stats.sceneCount} 场景
@@ -640,15 +706,25 @@ export default function ProjectsPage() {
                         </div>
                       ) : (
                         <div className={styles.cardFooter}>
-                          <button
-                            type="button"
-                            className={styles.cancelButton}
-                            onClick={() =>
-                              router.push(`/pencil-studio-vid/play-agent?project=${project.id}`)
-                            }
-                          >
-                            Play 创作
-                          </button>
+                          {project.kind !== "drama" ? (
+                            <button
+                              type="button"
+                              className={styles.cancelButton}
+                              onClick={() =>
+                                router.push(`/pencil-studio-vid/play-agent?project=${project.id}`)
+                              }
+                            >
+                              Play 创作
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              className={styles.cancelButton}
+                              onClick={() => handleOpenProject(project)}
+                            >
+                              打开分镜
+                            </button>
+                          )}
                           <button
                             type="button"
                             className={styles.dangerButton}

@@ -3,6 +3,7 @@ import { ApiError, json, readJson } from "./http";
 import { chatMediaDayKey, chatMediaMembership, chatMediaMinuteLimit, chatMediaOutputBytes,
   chatMediaOutputType, chatMediaUsage, chatMediaWithTimeout, cleanChatMediaText, expireChatMediaPending } from "./chat-media";
 import { getXumengSpeechVoice, XUMENG_SPEECH_VOICES } from "../../../src/lib/xumeng-voices";
+import { elevenLabsVoiceConfigured, generateElevenLabsCharacterVoice } from "./elevenlabs-character-voice";
 import type { Env, UserRecord } from "./types";
 
 export const CHARACTER_VOICE_MODEL = "@cf/myshell-ai/melotts";
@@ -43,7 +44,8 @@ async function viduConfigured(env: Env): Promise<boolean> {
 async function speechVoices(env: Env): Promise<string[]> {
   if (!enabled(env)) return [];
   const vidu = await viduConfigured(env);
-  return XUMENG_SPEECH_VOICES.filter(voice => voice.provider === "cloudflare" ? Boolean(env.AI) : vidu).map(voice => voice.id);
+  return XUMENG_SPEECH_VOICES.filter(voice => voice.provider === "cloudflare" ? Boolean(env.AI)
+    : voice.provider === "vidu" ? vidu : elevenLabsVoiceConfigured(env)).map(voice => voice.id);
 }
 async function expire(env: Env, owner: string, now: number) {
   await expireChatMediaPending(env, owner, now);
@@ -87,7 +89,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   const vip = await chatMediaMembership(env, user, now);
   if (user.isGuest || (!vip.active && !vip.adminPreview)) throw new ApiError(403, "角色朗读需要有效 VIP 会员。");
   if (!enabled(env)) throw new ApiError(503, "角色朗读暂未启用。");
-  if (voice.provider === "cloudflare" ? !env.AI : !await viduConfigured(env))
+  if (voice.provider === "cloudflare" ? !env.AI : voice.provider === "vidu" ? !await viduConfigured(env) : !elevenLabsVoiceConfigured(env))
     throw new ApiError(503, "所选朗读音色暂未接通，请选择其他可用音色。", { code: "voice_provider_unavailable" });
   const name = body.name.trim(), sourceKey = body.sourceKey, text = body.text, speech = cleanChatMediaText(text);
   if (!speech) throw new ApiError(400, "台词中没有可朗读的正文。");
@@ -129,6 +131,10 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   try {
     const abort = new AbortController();
     const bytes = await chatMediaWithTimeout((async () => {
+      if (voice.provider === "elevenlabs") {
+        const output = await generateElevenLabsCharacterVoice(env, { text: speech, voiceId: voice.id });
+        return chatMediaOutputBytes(output.bytes, "audio", abort.signal);
+      }
       if (voice.provider === "vidu") {
         let output: Awaited<ReturnType<NonNullable<Env["VIDU_VOICE"]>["generate"]>>;
         try { output = await env.VIDU_VOICE!.generate({ text: speech, voiceId: voice.id }); }

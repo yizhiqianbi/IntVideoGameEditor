@@ -3,8 +3,8 @@ import type { DzmmCreditCostPolicy } from "./dzmm-credit-pricing";
 export type DzmmSelectableModelId = "grok" | "grok46" | "gemini31" | "gemini" | "claude" | "gpt" | "deepseek" | "qwen" | "gemma26" | "gemma31";
 /** Legacy modes remain valid stored/request values; new choices are server-owned IDs. */
 export type DzmmModelPreset = DzmmSelectableModelId | "fast" | "balanced" | "story";
-/** Default for new XUMENG conversations, including the girlfriend chat. */
-export const DZMM_DEFAULT_MODEL: DzmmSelectableModelId = "qwen";
+/** Default for new Qingyu conversations. */
+export const DZMM_DEFAULT_MODEL: DzmmSelectableModelId = "gemma31";
 export type DzmmModelOption = {
   readonly id: DzmmSelectableModelId;
   readonly label: string;
@@ -65,7 +65,7 @@ export const DZMM_MODEL_OPTIONS: readonly DzmmModelOption[] = Object.freeze([
 
 /** Models shown in the product picker. Other catalogue ids stay valid for stored rows and billing. */
 export const DZMM_OFFERED_MODEL_OPTIONS = Object.freeze(
-  (["grok", "grok46", "deepseek", "qwen", "gemma26", "gemma31"] as const).flatMap(id => {
+  (["gemma31", "gemma26", "qwen", "deepseek", "grok", "grok46"] as const).flatMap(id => {
     const option = DZMM_MODEL_OPTIONS.find(item => item.id === id);
     return option ? [option] : [];
   }),
@@ -75,7 +75,7 @@ export function isDzmmModelPreset(value: unknown): value is DzmmModelPreset {
   return value === "fast" || value === "balanced" || value === "story" || DZMM_MODEL_OPTIONS.some(option => option.id === value);
 }
 
-/** Keep an offered choice. Legacy presets and models no longer in the picker use Grok 4.7. */
+/** Keep an offered choice. Legacy presets and models no longer in the picker use the default. */
 export function normalizeDzmmModelSelection(value: DzmmModelPreset): DzmmSelectableModelId {
   return DZMM_OFFERED_MODEL_OPTIONS.find(option => option.id === value)?.id ?? DZMM_DEFAULT_MODEL;
 }

@@ -1,0 +1,4 @@
+jQuery JavaScript Library v1.9.1
+Copyright 2005, 2012 jQuery Foundation, Inc. and other contributors
+Released under the MIT license
+http://jquery.org/license

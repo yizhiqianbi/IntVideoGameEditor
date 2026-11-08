@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "provenance": {
+    "kind": "original-procedural-animation",
+    "modelOutput": false,
+    "thirdPartyAssets": false,
+    "description": "Original silent motion illustrations drawn with Pillow; not model-generated demonstrations or evidence of output quality."
+  },
+  "source": {
+    "path": "cloudflare/dzmm-web/scripts/build-action-demos.py",
+    "sha256": "12801b149a5197d3f21ceab0eef6fe0e42aa9fa3bfbfdd512a7ea71169aba105"
+  },
+  "canvas": {
+    "width": 640,
+    "height": 400
+  },
+  "assets": [
+    {
+      "id": "action-high-five",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-high-five.mp4",
+        "sha256": "aeaa87c836feee5cdf5d2965abd94981fb9e2239fb1179cf66518b4449c12575",
+        "bytes": 29128,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-high-five.png",
+        "sha256": "786b27a155958d2bdd6ec369ed102e939925be13a176534e1cc5f5e3440a31f5",
+        "bytes": 31110,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    },
+    {
+      "id": "action-handshake",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-handshake.mp4",
+        "sha256": "4f84a52584e937099b54e5daa27907009e193191fa86798ac9c9e5ad5e9cc952",
+        "bytes": 27939,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-handshake.png",
+        "sha256": "75db53653c7a8df0139d128a9e14ce38e987441922487714bd3e44e4f66b1cbc",
+        "bytes": 30368,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    },
+    {
+      "id": "action-hug",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-hug.mp4",
+        "sha256": "2c43bb6dbcdbf139579614e44f4917bac7dd13effeddd27d5b1979553acb9a43",
+        "bytes": 40159,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-hug.png",
+        "sha256": "4cffc5c522e8d8a0f935c0bb446ec35224cf9f7b4f0bf7425819b4702660fa77",
+        "bytes": 30773,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    },
+    {
+      "id": "action-object-exchange",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-object-exchange.mp4",
+        "sha256": "ff0dc400545a0806fdc7cb1b752fbe28d5103a6a446db9b772685f77b5269ea2",
+        "bytes": 28631,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-object-exchange.png",
+        "sha256": "fc26996d71e24eafb6963196721d5cdad98d6f3b4eee103b2e4bbb8b722309ae",
+        "bytes": 32135,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    },
+    {
+      "id": "action-side-by-side-walk",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-side-by-side-walk.mp4",
+        "sha256": "7a0bf8cfd0a3fe8c4ca79a6dee06cf83150ab7a0b0cc1fa8c519b810a32df67c",
+        "bytes": 79474,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-side-by-side-walk.png",
+        "sha256": "f7382039ee1e98e504f10e5eb6aa1d686060e0359f9739a9005bfb9ac0039afd",
+        "bytes": 31732,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    },
+    {
+      "id": "action-paired-dance",
+      "provenance": "original-procedural-animation",
+      "video": {
+        "path": "/dzmm/action-templates/action-paired-dance.mp4",
+        "sha256": "aaf2f959d9c0fc27a349f6d39ec44faf3f532d834fb74aac81d912745eff2fd1",
+        "bytes": 70468,
+        "mimeType": "video/mp4",
+        "codec": "h264",
+        "pixelFormat": "yuv420p",
+        "fps": 24,
+        "durationSeconds": 4,
+        "width": 640,
+        "height": 400,
+        "audio": false
+      },
+      "poster": {
+        "path": "/dzmm/action-templates/action-paired-dance.png",
+        "sha256": "fe5a324e6cd88b336bc8bb1f12a4c4497d749dd60cea87a1e748e07edbaf6ddc",
+        "bytes": 33178,
+        "mimeType": "image/png",
+        "width": 640,
+        "height": 400
+      }
+    }
+  ]
+}

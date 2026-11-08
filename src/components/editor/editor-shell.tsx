@@ -40,9 +40,11 @@ import {
   type VideoProviderId,
 } from "../../lib/video-generation";
 import {
+  GROK_IMAGE_MODEL,
   IMAGE_MODEL_OPTIONS,
   buildCharacterImagePrompt,
   buildSceneImagePrompt,
+  isLocalFluxModel,
   type ImageGenerationModel,
 } from "../../lib/image-generation";
 import {
@@ -85,6 +87,7 @@ import {
   type GlobalAssetRecord,
   type ProjectMediaInput,
 } from "../../lib/projects";
+import { isDramaSnapshot } from "../../lib/drama-archive";
 import { setStoredActiveProjectId } from "../../lib/project-session";
 import {
   applyDemoVisuals,
@@ -899,6 +902,7 @@ export function EditorShell({
   const [agentImageUrl, setAgentImageUrl] = useState(
     () => initialSession?.agentImageUrl ?? "",
   );
+  const [openRouterImageKey, setOpenRouterImageKey] = useState("");
   const [agentApiKey, setAgentApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(AGENT_API_KEY_STORAGE_KEY) ?? "";
@@ -1314,7 +1318,11 @@ export function EditorShell({
   }
 
   async function handleGenerateCharacterImage(character: CharacterDefinition) {
-    if (!providerCredentials.doubao.apiKey.trim()) {
+    if (
+      !isLocalFluxModel(character.imageModel) &&
+      character.imageModel !== GROK_IMAGE_MODEL &&
+      !providerCredentials.doubao.apiKey.trim()
+    ) {
       setNotice({
         tone: "error",
         message: "请先配置火山 API Key。",
@@ -1339,9 +1347,10 @@ export function EditorShell({
 
     try {
       const { data: result, error } = await imageApi.generateImage({
-        apiKey: providerCredentials.doubao.apiKey,
+        apiKey: character.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
         prompt,
         model: character.imageModel,
+        size: "1K",
       });
 
       if (!result?.b64Json) {
@@ -2268,6 +2277,13 @@ export function EditorShell({
               media: [],
             };
       const project = imported.snapshot;
+      if (isDramaSnapshot(project)) {
+        setNotice({
+          tone: "error",
+          message: "这是短片项目，请回到项目库打开。",
+        });
+        return;
+      }
       const hydratedEdges = hydrateProjectEdges(project);
       const nextAssetRuntimeMap = buildRuntimeMapFromProjectMedia(imported.media);
       applyProjectSnapshot(project, nextAssetRuntimeMap, {
@@ -3088,7 +3104,11 @@ export function EditorShell({
   }
 
   async function handleGenerateSceneImage(scene: SceneDefinition) {
-    if (!providerCredentials.doubao.apiKey.trim()) {
+    if (
+      !isLocalFluxModel(scene.imageModel) &&
+      scene.imageModel !== GROK_IMAGE_MODEL &&
+      !providerCredentials.doubao.apiKey.trim()
+    ) {
       setNotice({
         tone: "error",
         message: "请先配置火山 API Key。",
@@ -3104,7 +3124,7 @@ export function EditorShell({
 
     try {
       const { data: result, error } = await imageApi.generateImage({
-        apiKey: providerCredentials.doubao.apiKey,
+        apiKey: scene.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
         prompt,
         model: scene.imageModel,
       });
@@ -3868,10 +3888,18 @@ export function EditorShell({
           loadProject(projectId),
           loadRecoveryDraft(projectId),
         ]);
+        if (isDramaSnapshot(loadedProject.record.snapshot)) {
+          router.replace(`/video-studio?project=${projectId}`);
+          return;
+        }
         const resolved = resolveProjectSnapshotForEditing(
           loadedProject.record,
           recoveryDraft,
         );
+        if (isDramaSnapshot(resolved.snapshot)) {
+          router.replace(`/video-studio?project=${projectId}`);
+          return;
+        }
 
         if (cancelled) {
           return;
@@ -5849,7 +5877,7 @@ export function EditorShell({
                   >
                     {generatingCharacterIdSet.has(selectedCharacter.id)
                       ? "正在生图..."
-                      : "生成参考图"}
+                      : "生成 1K 角色图"}
                   </button>
                   <button
                     type="button"
@@ -7201,6 +7229,16 @@ export function EditorShell({
                 })}
               </div>
 
+              <div className={styles.providerCard} style={{ marginTop: "20px" }}>
+                <strong>Grok Image · OpenRouter</strong>
+                <p className={styles.providerMeta}>角色与场景生图。留空使用服务器配置的密钥。</p>
+                <label>
+                  OpenRouter API Key
+                  <input type="password" autoComplete="off" value={openRouterImageKey}
+                    onChange={(event) => setOpenRouterImageKey(event.target.value)}
+                    placeholder="sk-or-…" />
+                </label>
+              </div>
               {/* Agent API Key 配置 */}
               <div className={styles.providerCard} style={{ marginTop: "20px" }}>
                 <div className={styles.providerHead}>

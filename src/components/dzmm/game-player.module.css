@@ -1,0 +1,30 @@
+.player { display: flex; flex-direction: column; flex: 1; width: 100%; min-width: 0; min-height: 0; padding: 0 24px 18px; overflow-y: auto; overscroll-behavior: contain; background: var(--bg); color: var(--text); }
+.header { display: flex; align-items: center; gap: 12px; min-height: 80px; padding: 12px 0; flex-shrink: 0; border-bottom: 1px solid var(--line); }
+.heading { min-width: 0; flex: 1; }
+.heading p { margin: 0 0 3px; font-size: 11px; color: var(--muted); }
+.heading h1 { margin: 0; font-size: 18px; font-weight: 600; overflow-wrap: anywhere; }
+.iconButton { width: 36px; height: 36px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 9px; background: transparent; }
+.iconButton:hover { background: var(--soft); }
+.actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.primary, .secondary { font: inherit; }
+.primary { min-height: 44px; padding: 11px 21px; border: 0; border-radius: 9px; color: #fff !important; background: var(--pink); font-size: 13px; font-weight: 600; }
+.primary:hover { filter: brightness(1.08); }
+.secondary { min-height: 40px; padding: 9px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 12px; white-space: nowrap; }
+.secondary:hover { background: var(--soft); }
+.canvas { display: flex; flex-direction: column; flex: 1; min-height: 420px; margin-top: 16px; overflow: hidden; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+.htmlFrame { display: block; flex: 1; width: 100%; min-height: 420px; height: 100%; border: 0; background: #111116; }
+.intro { display: flex; flex-direction: column; flex: 1; min-height: 0; padding: 38px 24px; overflow-y: auto; text-align: center; }
+.introContent { width: 100%; max-width: 620px; margin: auto; }
+.playMark { display: grid; place-items: center; width: 62px; height: 62px; margin: 0 auto; border-radius: 50%; color: var(--pink); background: var(--pink-soft); }
+.intro h2 { margin: 22px 0 14px; font-size: 26px; line-height: 1.4; overflow-wrap: anywhere; }
+.intro p { margin: 0 0 26px; font-size: 13px; line-height: 1.9; color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; }
+.intro .primary { margin-top: 8px; }
+.error { flex-shrink: 0; padding: 11px 14px; margin: 12px 0 0; border-radius: 9px; color: #ef8da5; background: var(--pink-soft); font-size: 12px; line-height: 1.75; overflow-wrap: anywhere; }
+.footer { flex-shrink: 0; padding-top: 13px; }
+.footer p { margin: 0; color: var(--muted); font-size: 11px; line-height: 1.8; }
+.player:fullscreen { height: 100svh; padding: 0 24px 18px; background: var(--bg, #080808); }
+.player:fullscreen .canvas { min-height: 0; }
+.player:fullscreen .htmlFrame { min-height: 0; }
+@media (max-width: 700px) { .player { padding: 0 14px 16px; } .header { min-height: 74px; gap: 10px; flex-wrap: wrap; } .heading h1 { font-size: 16px; } .actions { margin-left: auto; } .secondary { padding: 9px 10px; } .canvas { margin-top: 12px; min-height: 360px; } .htmlFrame { min-height: 360px; } .intro { padding: 32px 18px; } .intro h2 { font-size: 23px; } .player:fullscreen { padding: 0 14px 16px; } }
+@media (max-width: 440px) { .actions { width: calc(100% - 46px); justify-content: flex-end; } }
+@media (prefers-reduced-motion: reduce) { .player button { transition: none; } }

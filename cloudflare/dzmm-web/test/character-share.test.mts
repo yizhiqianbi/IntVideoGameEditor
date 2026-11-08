@@ -64,9 +64,8 @@ test("share covers are real 1200 by 630 jpegs", async () => {
   const root = resolve(dirname(fileURLToPath(import.meta.url)), "../../..");
   const supplied = JSON.parse(await readFile(resolve(root, "src/lib/xumeng-user-provided-cards-2026-10-24.json"), "utf8"));
   const exported = JSON.parse(await readFile(resolve(root, "src/lib/xumeng-exported-cards-2026-10-21.json"), "utf8"));
-  const context = JSON.parse(await readFile(resolve(root, "src/lib/dzmm-public-context-2026-10-15.json"), "utf8"));
   const retired = new Set(JSON.parse(await readFile(resolve(root, "src/lib/xumeng-retired-cards.json"), "utf8")).ids);
-  const listed = [...exported.map((card: { id: string }) => card.id), ...supplied.map((card: { id: string }) => card.id), ...context.characters.map((card: { id: string }) => card.id)];
+  const listed = [...exported.map((card: { id: string }) => card.id), ...supplied.map((card: { id: string }) => card.id)];
   assert.equal(CHARACTER_SHARE_INDEX.length, listed.length - listed.filter((id: string) => retired.has(id)).length);
   const bytes = new Uint8Array(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "../dist/assets/xumeng/share/xumeng-foreverse-peiyu.jpg")));
   assert.deepEqual(readImageSize(bytes), { type: "image/jpeg", width: 1200, height: 630 });

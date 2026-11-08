@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="zh-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'" />
+    <title>完整原始角色卡 · 本地隔离验收</title>
+    <style>
+      body{margin:0;background:#080808;color:#f4f4f5;font-family:system-ui,sans-serif}*{box-sizing:border-box}
+      .fixture-panel{margin:16px auto;padding:20px;max-width:1180px;border:1px solid #34343c;border-radius:16px;background:#131316}
+      .fixture-panel h1{font-size:24px;margin:0 0 10px}.fixture-panel h2{font-size:19px;margin:0 0 12px}.fixture-panel p{line-height:1.65;color:#bcbcc7}
+      .fixture-actions{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}.fixture-panel button,.fixture-panel a.fixture-download{padding:10px 14px;border:1px solid #454550;border-radius:9px;background:#25252d;color:#fff;text-decoration:none}.fixture-panel button[aria-pressed=true]{border-color:#ed1763;background:#431a2b}
+      .fixture-panel pre{white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.65 ui-monospace,monospace}.fixture-checks{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,245px),1fr));gap:12px}.fixture-card{padding:14px;background:#202027;border-radius:10px;overflow-wrap:anywhere}.fixture-card strong{display:block;margin-bottom:8px}.fixture-ok{color:#93e4b6}.fixture-bad{color:#ff8b9c}.fixture-wait{color:#dfca80}.fixture-text{white-space:pre-wrap;line-height:1.8}.fixture-note{color:#dfca80!important}.fixture-detail{max-width:1440px;margin:auto}.fixture-panel summary{cursor:pointer;margin:10px 0}.fixture-opening{max-height:650px;overflow:auto;padding:16px;border:1px solid #3b3b45;border-radius:10px}
+      @media(max-width:600px){.fixture-panel{padding:14px;margin:10px}.fixture-panel h1{font-size:21px}.fixture-actions button{flex:1}.fixture-detail{padding:0 8px}}
+    </style>
+  </head>
+  <body><div id="root"></div><script type="module" src="./exported-cards.tsx"></script></body>
+</html>

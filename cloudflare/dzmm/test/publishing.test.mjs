@@ -81,11 +81,12 @@ test('sitemap index lists only the current listed revision and a crawlable cover
   assert.ok(row);
   assert.equal(row.revision, 1);
   assert.equal(row.coverExtension, 'png');
+  assert.equal(row.title, '站点地图样本');
   assert.equal(typeof row.updatedAt, 'number');
   assert.equal(listed.total, listed.characters.length);
   const serialized = JSON.stringify(listed);
   assert.equal(serialized.includes('PRIVATE_SITEMAP_SENTINEL'), false);
-  assert.equal(serialized.includes('站点地图样本'), false);
+  assert.equal(serialized.includes('站点地图样本'), true);
   assert.equal(serialized.includes('snapshot'), false);
   expect(await unpublish(approved.publication), 200);
   const after = expect(await new Client().request('/v1/publishing/sitemap'), 200);

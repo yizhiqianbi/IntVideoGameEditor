@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>叙梦 VIP 与余额恢复 · 本地隔离验收</title>
+    <style>
+      :root { color-scheme: dark; font-family: system-ui, sans-serif; background: #111114; color: #ededf2; }
+      * { box-sizing: border-box; }
+      body { margin: 0; }
+      button { font: inherit; }
+      .fixture-panel { padding: 18px 24px; background: #242430; border-bottom: 1px solid #777; }
+      .fixture-panel h1 { margin: 0 0 8px; font-size: 20px; }
+      .fixture-panel p { margin: 8px 0; color: #c6c6d1; }
+      .fixture-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+      .fixture-actions button { border: 1px solid #9393ab; background: #363646; color: white; border-radius: 6px; padding: 8px 12px; cursor: pointer; }
+      .fixture-panel pre { margin: 10px 0 0; overflow: auto; font-size: 13px; white-space: pre-wrap; }
+    </style>
+  </head>
+  <body>
+    <div id="fixture-controls"></div>
+    <div id="root"></div>
+    <script type="module" src="./vip-wallet-recovery.tsx"></script>
+  </body>
+</html>

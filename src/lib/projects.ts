@@ -6,6 +6,8 @@ import {
   collectProjectReferencedAssetIds,
   getTemplatePreviewFallback,
 } from "./project-templates";
+import { isDramaSnapshot, type DramaArchive } from "./drama-archive";
+import { dramaBranchCount } from "./drama-tree";
 
 const PROJECT_DB_NAME = "pencil-studio-project-library";
 const PROJECT_DB_VERSION = 1;
@@ -21,12 +23,15 @@ export type ProjectStats = {
   branchCount: number;
 };
 
-export type ProjectSnapshot = EditorProject;
+export type ProjectKind = "interactive" | "drama";
+
+export type ProjectSnapshot = EditorProject | DramaArchive;
 
 export type ProjectRecord = {
   id: string;
   name: string;
   description: string;
+  kind?: ProjectKind;
   createdAt: string;
   updatedAt: string;
   lastOpenedAt: string;
@@ -54,6 +59,7 @@ export type SaveProjectInput = {
   projectId?: string;
   name: string;
   description: string;
+  kind?: ProjectKind;
   previewImageUrl?: string;
   snapshot: ProjectSnapshot;
   referencedAssetIds: string[];
@@ -173,6 +179,16 @@ function transactionDone(transaction: IDBTransaction) {
 }
 
 export function calculateProjectStats(project: ProjectSnapshot): ProjectStats {
+  if (isDramaSnapshot(project)) {
+    return {
+      characterCount: project.assets.filter((asset) => asset.kind === "reference")
+        .length,
+      sceneCount: project.assets.filter((asset) => asset.kind === "scene").length,
+      nodeCount: project.shots.length,
+      branchCount: dramaBranchCount(project.shots),
+    };
+  }
+
   const outgoingCountBySource = new Map<string, number>();
 
   for (const edge of project.edges) {
@@ -266,6 +282,16 @@ async function getProjectPreviewImage(
   snapshot: ProjectSnapshot,
   media: ProjectMediaInput[],
 ) {
+  if (isDramaSnapshot(snapshot)) {
+    const still = snapshot.assets.find((asset) =>
+      /^(https?:|data:|\/api\/)/.test(asset.imageUrl),
+    )?.imageUrl;
+    if (still) return still;
+    return snapshot.shots.find((shot) =>
+      shot.endStill && /^(https?:|data:|\/api\/)/.test(shot.endStill),
+    )?.endStill;
+  }
+
   const runtimeImageMap: Record<string, string> = {};
 
   for (const mediaEntry of media) {
@@ -311,6 +337,7 @@ export async function listProjects(): Promise<ProjectSummary[]> {
         id: record.id,
         name: record.name,
         description: record.description,
+        kind: record.kind ?? (isDramaSnapshot(record.snapshot) ? "drama" : "interactive"),
         createdAt: record.createdAt,
         updatedAt: record.updatedAt,
         lastOpenedAt: record.lastOpenedAt,
@@ -335,6 +362,7 @@ export async function saveProject(
   try {
     let createdAt = now;
     let lastOpenedAt = now;
+    let existingKind: ProjectKind | undefined;
 
     if (input.projectId) {
       const existingTransaction = database.transaction(PROJECT_STORE, "readonly");
@@ -349,12 +377,17 @@ export async function saveProject(
       if (existingRecord?.lastOpenedAt) {
         lastOpenedAt = existingRecord.lastOpenedAt;
       }
+      existingKind = existingRecord?.kind;
     }
 
     const record: ProjectRecord = {
       id: projectId,
       name: input.name.trim() || "未命名项目",
       description: input.description.trim(),
+      kind:
+        input.kind ??
+        existingKind ??
+        (isDramaSnapshot(input.snapshot) ? "drama" : "interactive"),
       createdAt,
       updatedAt: now,
       lastOpenedAt,
@@ -605,6 +638,7 @@ export async function deleteGlobalAsset(globalAssetId: string) {
 export function buildEmptyProjectSnapshot(
   fallbackSnapshot: ProjectSnapshot,
 ) {
+  if (isDramaSnapshot(fallbackSnapshot)) return fallbackSnapshot;
   return {
     ...fallbackSnapshot,
     nodes: fallbackSnapshot.nodes,
@@ -613,6 +647,12 @@ export function buildEmptyProjectSnapshot(
     scenes: fallbackSnapshot.scenes,
     settings: fallbackSnapshot.settings,
   };
+}
+
+export function projectOpenPath(project: { id: string; kind?: ProjectKind }) {
+  return project.kind === "drama"
+    ? `/video-studio?project=${project.id}`
+    : `/pencil-studio-vid?project=${project.id}`;
 }
 
 export function buildProjectSaveInput(params: {
@@ -627,9 +667,12 @@ export function buildProjectSaveInput(params: {
     projectId: params.projectId,
     name: params.name,
     description: params.description,
+    kind: isDramaSnapshot(params.snapshot) ? "drama" as const : "interactive" as const,
     previewImageUrl: params.previewImageUrl,
     snapshot: params.snapshot,
-    referencedAssetIds: collectProjectReferencedAssetIds(params.snapshot),
+    referencedAssetIds: isDramaSnapshot(params.snapshot)
+      ? []
+      : collectProjectReferencedAssetIds(params.snapshot),
     media: params.media,
   } satisfies SaveProjectInput;
 }

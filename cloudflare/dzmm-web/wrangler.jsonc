@@ -1,0 +1,59 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dzmm-web",
+  "main": "src/entry.ts",
+  "compatibility_date": "2026-10-02",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "durable_objects": {
+    "bindings": [{ "name": "LIVE_STUDIOS", "class_name": "ViduLiveStudio" }]
+  },
+  "migrations": [{ "tag": "live-studio-v1", "new_sqlite_classes": ["ViduLiveStudio"] }],
+  "triggers": { "crons": ["* * * * *"] },
+  "routes": [
+    { "pattern": "xumengchat.top", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    // Check page aliases before SPA fallback, including mixed-case URLs.
+    "run_worker_first": true
+  },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "xumeng-create-media" }],
+  "services": [
+    { "binding": "BACKEND", "service": "dzmm-backend" },
+    { "binding": "COMPANION", "service": "xumeng-companion" },
+    { "binding": "BILLING", "service": "dzmm-backend", "entrypoint": "BillingService" }
+  ],
+  "ratelimits": [
+    {
+      "name": "LIVE_RATE_LIMITER",
+      "namespace_id": "202610081",
+      "simple": { "limit": 8, "period": 60 }
+    },
+    {
+      "name": "CHAT_RATE_LIMITER",
+      "namespace_id": "202610021",
+      "simple": { "limit": 6, "period": 60 }
+    },
+    {
+      "name": "MEMORY_RATE_LIMITER",
+      "namespace_id": "202610051",
+      "simple": { "limit": 12, "period": 60 }
+    }
+  ],
+  "vars": {
+    "GENERATION_ENABLED": "true",
+    "VIDU_REGION": "global",
+    "MINICPM_PHONE_ENABLED": "true",
+    "MINICPM_REALTIME_URL": "wss://minicpmo45.modelbest.cn/v1/realtime?mode=audio",
+    "DZMM_BASE_URL": "https://openrouter.ai/api/v1",
+    "DZMM_MODEL": "google/gemma-4-31b-it",
+    "CANVAS_AGENT_MODEL": "x-ai/grok-4.7",
+    "CANVAS_AGENT_BASE_URL": "https://openrouter.ai/api/v1",
+    "DZMM_PROVIDER_MAX_INPUT_USD_PER_MILLION": "0.2",
+    "DZMM_PROVIDER_MAX_OUTPUT_USD_PER_MILLION": "0.4",
+    "AIAPI_BASE_URL": "https://p0-api.inaiai.com"
+  }
+}

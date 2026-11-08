@@ -64,6 +64,23 @@ class ArchiveTests(unittest.TestCase):
             self.assertFalse((restored / "data/native.log.1").exists())
             with self.assertRaises(ValueError): archive.restore(path, restored, ACCOUNT)
 
+    def test_template_restore_rewrites_the_account_and_personal_snapshots_stay_bound(self):
+        with tempfile.TemporaryDirectory() as temporary:
+            root = Path(temporary); source = self.fixture(root)
+            identity = json.loads((source / "container-instance.json").read_text())
+            identity["accountId"] = archive.TEMPLATE_ACCOUNT
+            (source / "container-instance.json").write_text(json.dumps(identity))
+            path = root / "template.tar.gz"
+            archive.snapshot(source, path, archive.TEMPLATE_ACCOUNT, "classic")
+            restored = root / "restored"
+            archive.restore(path, restored, OTHER, "classic")
+            claimed = json.loads((restored / "container-instance.json").read_text())
+            self.assertEqual(claimed["accountId"], OTHER)
+            self.assertIs(claimed["template"], True)
+            with self.assertRaises(ValueError):
+                archive.restore(path, root / "plain", OTHER)
+            self.assertFalse((root / "plain").exists())
+
     def test_cross_account_restore_is_rejected_and_target_stays_absent(self):
         with tempfile.TemporaryDirectory() as temporary:
             root = Path(temporary); source = self.fixture(root); path = root / "snapshot.tar.gz"

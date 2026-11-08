@@ -10,6 +10,11 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@chatscope/chat-ui-kit-react": "^2.1.1",
+    "@chatscope/chat-ui-kit-styles": "^1.4.0",
+    "@fal-ai/client": "^1.10.1",
+    "@ffmpeg/ffmpeg": "^0.12.15",
+    "@ffmpeg/util": "^0.12.2",
     "@prisma/client": "^5.22.0",
     "@xyflow/react": "^12.10.1",
     "bcryptjs": "^3.0.3",

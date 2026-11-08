@@ -7,6 +7,7 @@
   --line: #eeeeef;
   --pink: #ed1763;
   --pink-soft: #fff0f5;
+  --dialogue: #c8102e;
   min-height: 100svh;
   background: var(--bg);
   color: var(--text);
@@ -24,6 +25,7 @@
   --muted: #96969f;
   --line: #29292f;
   --pink-soft: #311421;
+  --dialogue: #ff5470;
   color-scheme: dark;
 }
 .app button,
@@ -1006,6 +1008,12 @@
 .messageBubble em {
   color: var(--muted);
 }
+.messageBubble .speech, .dmBubble .speech {
+  color: var(--dialogue);
+}
+.dmRow.userRow .speech {
+  color: inherit;
+}
 .visibleStatus {
   margin-top: 12px;
   border: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
@@ -1036,6 +1044,10 @@
   white-space: nowrap;
 }
 .visibleStatus summary:focus-visible { outline: 2px solid var(--pink); outline-offset: -2px; }
+.statusSection { padding: 0 11px 10px; }
+.statusSection + .statusSection { border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent); padding-top: 10px; }
+.statusSection h4 { margin: 0 0 6px; color: var(--pink); font-size: 12px; font-weight: 650; }
+.visibleStatus dl > .statusWide { grid-column: 1 / -1; }
 .visibleStatus dl { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; margin: 0; padding: 0 11px 10px; }
 .visibleStatus dl > div { min-width: 0; padding-top: 8px; border-top: 1px solid color-mix(in srgb, var(--line) 55%, transparent); }
 .visibleStatus dt { color: var(--muted); font-size: 10px; }

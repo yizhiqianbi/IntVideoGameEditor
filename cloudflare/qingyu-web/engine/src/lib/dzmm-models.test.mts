@@ -18,8 +18,8 @@ const policy = { version: 1 as const, multiplier: 3 as const, usdToCny: 6.704588
 test("fixed selections agree with the official catalogue, including canonical identities and highest cache/context tiers", async () => {
   const evidence = JSON.parse(await readFile(new URL("../../output/xumeng/multi-models/openrouter-catalog-20261008.json", import.meta.url), "utf8"));
   assert.equal(evidence.source, "https://openrouter.ai/api/v1/models");
-  assert.equal(DZMM_DEFAULT_MODEL, "qwen"); assert.equal(DZMM_MODEL_OPTIONS.length, 12);
-  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["grok", "grok46", "deepseek", "qwen", "gemma26", "gemma31", "cydonia", "venice"]);
+  assert.equal(DZMM_DEFAULT_MODEL, "gemma31"); assert.equal(DZMM_MODEL_OPTIONS.length, 12);
+  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["gemma31", "gemma26", "qwen", "deepseek", "grok", "grok46"]);
   for (const option of DZMM_MODEL_OPTIONS) {
     const official = evidence.models.find((model: { id: string }) => model.id === option.providerModel);
     assert.ok(official); assert.equal(option.canonicalModel, official.canonical_slug);
@@ -46,8 +46,8 @@ test("fixed selections agree with the official catalogue, including canonical id
 test("new requests and imported preferences accept only server IDs while old modes and unknown warnings survive", () => {
   const config = readDzmmProviderConfig({ DZMM_API_KEY: "isolated-key", DZMM_MODEL: "legacy/default", DZMM_FAST_MODEL: "legacy/fast" });
   assert.equal(config.models.fast, "legacy/fast"); assert.equal(config.models.balanced, "legacy/default");
-  assert.equal(readDzmmProviderConfig({ DZMM_API_KEY: "isolated-key" }).models.balanced, "qwen/qwen3-30b-a3b-instruct-2507");
-  assert.equal(DZMM_INITIAL_STATE.preferences.model, "qwen");
+  assert.equal(readDzmmProviderConfig({ DZMM_API_KEY: "isolated-key" }).models.balanced, "google/gemma-4-31b-it");
+  assert.equal(DZMM_INITIAL_STATE.preferences.model, "gemma31");
   for (const model of ["fast", "balanced", "story", ...DZMM_MODEL_OPTIONS.map(option => option.id)]) {
     assert.ok(isDzmmModelPreset(model));
     assert.equal(validateDzmmChatInput({ character: { name: "原创图书员" }, messages: [{ role: "user", content: "看地图。" }], model }).model, model);
@@ -59,7 +59,7 @@ test("new requests and imported preferences accept only server IDs while old mod
     assert.throws(() => validateDzmmChatInput({ character: { name: "图书员" }, messages: [{ role: "user", content: "看地图。" }], model }));
     assert.ok(hydrateDzmmState(JSON.stringify({ version: 1, preferences: { model } })).warnings.some(warning => warning.includes("本地模型模式无效")));
   }
-  assert.equal(normalizeDzmmModelSelection("story"), "qwen");
+  assert.equal(normalizeDzmmModelSelection("story"), "gemma31");
 });
 
 test("provider caps and frozen tariff come from the same exact model, retaining FX and rejecting speculative canonical versions", () => {

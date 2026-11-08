@@ -1,0 +1,24 @@
+.library { max-width:1120px; padding:32px 32px 60px; margin:auto; color:var(--text); }
+.header { display:flex; justify-content:space-between; align-items:center; gap:24px; margin-bottom:36px; }
+.header h1 { font-size:28px; margin:0 0 9px; }
+.header p { color:var(--muted); font-size:14px; line-height:1.7; margin:0; }
+.create,.empty button { border:0; background:var(--pink); color:white; padding:11px 18px; border-radius:22px; font:inherit; display:inline-flex; align-items:center; justify-content:center; gap:8px; cursor:pointer; white-space:nowrap; }
+.mine { border-top:1px solid var(--line); padding-top:24px; }
+.toolbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:16px; }
+.toolbar h2 { margin:0; font-size:18px; font-weight:500; }
+.search { display:flex; align-items:center; gap:10px; background:var(--soft); border-radius:22px; padding:10px 15px; }
+.search input { background:transparent; border:0; color:var(--text); font:inherit; width:190px; min-width:0; outline-offset:5px; }
+.privateList { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 28px; }
+.privateList > button { min-width:0; display:flex; align-items:center; gap:16px; text-align:left; padding:22px 0; background:transparent; border:0; border-bottom:1px solid var(--line); color:var(--text); cursor:pointer; }
+.gameIcon { width:56px; height:56px; background:var(--soft); border-radius:12px; display:grid; place-items:center; color:var(--pink); flex-shrink:0; }
+.description { min-width:0; flex:1; }
+.description strong,.description small { display:block; }
+.description strong { font-size:16px; font-weight:500; overflow-wrap:anywhere; }
+.description small { font-size:13px; margin-top:8px; color:var(--muted); line-height:1.65; display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; }
+.empty { display:flex; flex-direction:column; align-items:center; gap:15px; color:var(--muted); padding:60px 20px; text-align:center; }
+.empty p { max-width:440px; font-size:14px; line-height:1.9; margin:0; }
+.loading { padding:35px 0; color:var(--muted); }
+.error { color:var(--pink); line-height:1.8; padding:14px; background:var(--pink-soft); border-radius:8px; }
+.error button { border:0; background:transparent; color:var(--pink); font:inherit; cursor:pointer; margin-left:12px; }
+.library :is(button,input):focus-visible { outline:2px solid var(--pink); outline-offset:4px; }
+@media(max-width:700px) { .library {padding:24px 18px 42px;} .header {align-items:flex-start; flex-direction:column;gap:18px; margin-bottom:26px;} .toolbar {align-items:flex-start;flex-direction:column;gap:16px;} .search {width:100%;} .search input {flex:1;} .privateList {grid-template-columns:minmax(0,1fr);} .empty {padding:40px 10px;} }

@@ -7,7 +7,7 @@ import { CompanionSender, CompanionTranscript, type CompanionSenderHandle, type 
 import { applyCompanionSession, COMPANION_MEDIA_PLACEHOLDER, mergeCompanionMessages, openingPreface, pickCompanionSession, type PrefaceLatch } from "./companion-thread-items";
 import { CLASSIC_LINES, CLASSIC_STYLE, type CompanionStyle } from "./companion-style";
 import { INTIMATE_LINES, INTIMATE_STYLE } from "./intimate-style";
-import { clearPersonTranscript, dropUnscopedCompanionCache, markChatSeen, publishCompanionTranscript, readInbox, readPersonTranscript } from "./companion-inbox";
+import { dropUnscopedCompanionCache, markChatSeen, publishCompanionTranscript, readInbox, readPersonTranscript } from "./companion-inbox";
 import { SALES_CUES, SALES_LINES, SALES_NUDGE, SALES_OPEN, SALES_STYLE } from "./sales-style";
 import type { CompanionProfile } from "./companion-profiles";
 import type { GirlfriendCast } from "./cast";
@@ -17,6 +17,7 @@ import { assistantRepliedAfter, generationStillOpen, nextCompanionPollDelay, nex
 import { stripXumengMomentTails } from "../../../lib/xumeng-moment-status";
 import { XUMENG_CALLS_ENABLED } from "../../../lib/xumeng-feature-availability";
 import { STUDIO_STILL_CREDITS } from "../../../lib/xumeng-studio-still-billing";
+import { VoiceNote } from "../../../components/dzmm/voice-note";
 
 type MediaKind = "image" | "audio" | "emoji";
 type MessageMedia = { kind: MediaKind; url?: string; alt?: string; label?: string; text?: string; mimeType?: string; durationMs?: number };
@@ -64,9 +65,8 @@ function stripStyle(value: string) {
 }
 
 function recoveryNotice(health: Health | null): string {
-  if (health?.deliveryAmbiguous) return "有一条消息的送达还没确认。重新开始不会补回那一句，本机这段记录也会清掉。";
-  if (health?.snapshotVerified === false) return "这次中断没有留下可装回的存盘。重新开始会清掉中断标记，本机这段记录也会清掉。";
-  return "这段聊天中断了，重建后才能继续说。";
+  if (health?.deliveryAmbiguous) return "有一条消息还在路上，先等它落下。";
+  return "这段聊天中断了，先别发新的。";
 }
 
 function displayTitle(title: string | undefined, person: string, intimate: boolean) {
@@ -170,17 +170,6 @@ function normalizeMedia(message: Message): MessageMedia[] {
   });
 }
 
-function PauseOtherAudio({ audioRef, mediaId }: { audioRef: { current: HTMLAudioElement | null }; mediaId: string }) {
-  useEffect(() => {
-    const pause = (event: Event) => {
-      if ((event as CustomEvent).detail !== mediaId) audioRef.current?.pause();
-    };
-    document.addEventListener("xumeng-companion-audio-play", pause);
-    return () => document.removeEventListener("xumeng-companion-audio-play", pause);
-  }, [audioRef, mediaId]);
-  return null;
-}
-
 function MessageMediaView({ items }: { items: MessageMedia[] }) {
   return <div className={styles.mediaList} aria-label="消息附件">
     {items.map((item, index) => <MessageMediaItem key={`${item.kind}:${item.url || item.text || index}`} item={item} index={index} />)}
@@ -189,7 +178,6 @@ function MessageMediaView({ items }: { items: MessageMedia[] }) {
 
 function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }) {
   const mediaId = `${item.kind}:${item.url || item.text || index}`;
-  const audio = useRef<HTMLAudioElement>(null);
   const [failed, setFailed] = useState(false);
   if (item.kind === "emoji" && (!item.url || failed) && item.text) {
     return <span className={styles.emoji} role="img" aria-label={item.label || "表情"}>{item.text}</span>;
@@ -206,13 +194,7 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
   if (item.kind === "emoji") {
     return <span className={styles.sticker}><img src={item.url} alt={item.alt || item.label || item.text || "表情包"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); }} /></span>;
   }
-  return <div className={styles.voice}>
-    <div className={styles.voiceTitle}><span aria-hidden="true">♫</span><span>{item.label || "她的语音"}</span></div>
-    <audio ref={audio} src={item.url} controls preload="metadata" aria-label={item.label || "她的语音消息"}
-      onPlay={() => { setFailed(false); document.dispatchEvent(new CustomEvent("xumeng-companion-audio-play", { detail: mediaId })); }}
-      onError={() => setFailed(true)} />
-    <PauseOtherAudio audioRef={audio} mediaId={mediaId} />
-  </div>;
+  return <VoiceNote src={item.url} label={item.label || "她的语音消息"} assetId={mediaId} onError={() => setFailed(true)} />;
 }
 
 function restorePending(key: string): Pending[] {
@@ -821,11 +803,10 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
   }, [active, creating, health?.reason, ready, sessions.length, sessionsKnown]);
 
   async function abandonAndRebuild() {
-    if (!window.confirm(`这会放弃当前异常的${name}实例并开始一段空白聊天。旧审计记录会保留，但当前聊天内容不会自动恢复。继续吗？`)) return;
+    if (!window.confirm(`这会换一个新的${name}进程。本机这段记录还在。继续吗？`)) return;
     setResetting(true); setError("");
     try {
       await request("/reset", { confirmation: "discard-current-instance" });
-      if (accountId) clearPersonTranscript(accountId, lane);
       setSessions([]); setActive(null); setConversation(null); setHealth({ ready: false, reason: "starting" });
       setBoot(value => value + 1);
     } catch (failure) {
@@ -925,8 +906,8 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
       try { writeHold(accountId, lane, { ...current, draft: value }); } catch { /* A full disk still leaves the draft on screen. */ }
     }
   }
-  const recovering = health?.reason === RECOVERY_REVIEW_CODE;
-  const placeholder = health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : recovering ? "重建后才能继续说" : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…");
+  const recovering = health?.reason === RECOVERY_REVIEW_CODE && health?.snapshotVerified !== false;
+  const placeholder = health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : recovering ? (health?.deliveryAmbiguous ? "等这一句落下再继续说" : "先别发新的") : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…");
   const stageStyle = { "--companion-cover": `url(${JSON.stringify(avatarUrl)})` } as CSSProperties;
   return <section className={`${styles.chat} ${styles.chatStage}`} style={stageStyle} aria-label={`与${name}聊天`}>
         <header className={styles.chatHeader}>
@@ -972,7 +953,7 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
           </div>}
           {recovering && <div className={styles.recovery} role="status">
             <p>{recoveryNotice(health)}</p>
-            <button type="button" disabled={resetting} onClick={() => void abandonAndRebuild()}>{resetting ? "正在重建…" : "重新开始"}</button>
+            {!health?.deliveryAmbiguous && <button type="button" disabled={resetting} onClick={() => void abandonAndRebuild()}>{resetting ? "正在重建…" : "重新开始"}</button>}
           </div>}
           <CompanionSender
             ref={senderRef}

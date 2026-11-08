@@ -563,7 +563,7 @@ export default function CompanionPage({ onBack, variant = "classic" }: { onBack?
             onChange={event => { setDraft(event.target.value); if (storage) localStorage.setItem(`${storage}:${active}:draft`, event.target.value); }}
             onKeyDown={event => { if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); submit(); } }} />
           <button type="submit" disabled={!draft.trim() || deliveryBlocked} aria-label={deliveryBlocked ? "送达待确认，暂不能发送" : "发送消息"}>↑</button></div>
-          <div className={styles.composerHint}><span>{deliveryBlocked ? "有一条消息的送达结果待确认，请先检查记录" : <>{sendingCount > 0 ? `正在发送 ${sendingCount} 条 · ` : ""}Enter 发送 · Shift + Enter 换行{billing?.enabled ? ` · 每条 ${billing.creditsPerMessage} Credit` : ""}</>}</span><a className={styles.attribution} href="https://github.com/Mai-with-u/MaiBot" target="_blank" rel="noreferrer">由 MaiBot 驱动 ↗</a></div>
+          {(deliveryBlocked || sendingCount > 0) && <div className={styles.composerHint}><span>{deliveryBlocked ? "有一条消息的送达结果待确认，请先检查记录" : `正在发送 ${sendingCount} 条`}</span></div>}
         </form>}
         {showCreate && <div className={styles.createOverlay} role="dialog" aria-modal="true" aria-label={draftMode === "current" && active ? `定制${name}` : `和${name}的新聊天`}>
           <form className={styles.createDialog} onSubmit={event => { event.preventDefault(); void saveCustomize(); }}>

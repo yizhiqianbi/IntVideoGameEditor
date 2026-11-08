@@ -2,7 +2,25 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import presentationModule from "./xumeng-message-presentation";
 
-const { splitXumengMessagePresentation } = presentationModule;
+const { splitXumengMessagePresentation, plainXumengStoryText, splitXumengSpeech } = presentationModule;
+
+test("status tags with sections and pipe fields become a status card", () => {
+  const card = splitXumengMessagePresentation("“跪下。”\n</theatre>\n<Status_block>\n<HR color=#987cb9>\n『日期 某月某日 时间：晚上 - 位置：酒店』\n<details>\n```\n『凛的状态』\n    当前行动:审视猎物\n    当前穿搭:黑色衬衫\n```\n</details>\n</Status_block>");
+  assert.equal(card.body, "“跪下。”\n</theatre>");
+  assert.equal(card.status?.sections?.[0].notes[0], "日期 某月某日 时间：晚上 - 位置：酒店");
+  assert.equal(card.status?.sections?.[1].title, "凛的状态");
+  assert.deepEqual(card.status?.sections?.[1].fields, [{ label: "当前行动", value: "审视猎物" }, { label: "当前穿搭", value: "黑色衬衫" }]);
+  const pipes = splitXumengMessagePresentation("她歪头。\n<Status_block>\n[位置|二区·12号牢房]\n[时间|下午]\n</Status_block>");
+  assert.deepEqual(pipes.status?.fields, [{ label: "位置", value: "二区·12号牢房" }, { label: "时间", value: "下午" }]);
+  const hidden = splitXumengMessagePresentation("<think>计划</think>正文。<UpdateVariable>x=1</UpdateVariable>");
+  assert.equal(hidden.body, "正文。");
+});
+
+test("markdown marks are dropped and quoted speech is split out", () => {
+  assert.equal(plainXumengStoryText("## 标题\n*她笑了。*\n---\n- **“好。”**\n</theatre>"), "标题\n她笑了。\n“好。”");
+  assert.deepEqual(splitXumengSpeech("她说“胆子大了，沈砚。″然后笑"), [
+    { text: "她说", speech: false }, { text: "“胆子大了，沈砚。″", speech: true }, { text: "然后笑", speech: false }]);
+});
 
 test("explicit status marker separates narrative from a collapsible snapshot", () => {
   const result = splitXumengMessagePresentation(`天空一道惊雷闪过。\n\n点击查看状态栏\n\n姓名：待定\n\n当前地点：未知之地\n\n你的精力值：85／100\n\n你的健康值：200／300`);

@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; form-action 'none'; base-uri 'self'" />
+    <title>叙梦角色创作云端保存 · 本地隔离验收</title>
+    <style>
+      * { box-sizing: border-box; } body { margin: 0; }
+      .fixture-panel { padding: 14px 20px; color: #eee; background: #242430; font: 14px/1.5 system-ui, sans-serif; border-bottom: 1px solid #9393ab; }
+      .fixture-panel h1 { font-size: 19px; margin: 0 0 6px; } .fixture-panel p { margin: 5px 0; }
+      .fixture-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 9px 0; }
+      .fixture-actions button { padding: 7px 10px; color: white; background: #363646; border: 1px solid #9393ab; border-radius: 6px; font: inherit; cursor: pointer; }
+      .fixture-panel pre { overflow: auto; max-height: 130px; margin: 8px 0 0; white-space: pre-wrap; font-size: 11px; }
+    </style>
+  </head>
+  <body>
+    <div id="fixture-controls"></div><div id="root"></div>
+    <script type="module" src="./authoring-cloud-flow.tsx"></script>
+  </body>
+</html>

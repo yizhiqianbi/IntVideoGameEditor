@@ -1,4 +1,4 @@
-.message { outline-offset: 4px; }
+.message { max-width: 100%; min-width: 0; outline-offset: 4px; }
 .tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 2px 6px; margin-top: 4px; }
 .action { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 5px; min-height: 36px; color: var(--muted); font-size: 11px; padding: 6px 9px; border-radius: 14px; transition: background 120ms ease, color 120ms ease; }
 .action span { white-space: nowrap; }
@@ -6,14 +6,9 @@
 .action:hover:not(:disabled) { background: var(--soft); color: var(--text); }
 .action:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
 .action:disabled { opacity: .4; cursor: default; }
-.voice { width: min(360px, 100%); margin-top: 9px; padding: 12px 14px; border-radius: 18px; background: var(--soft); }
-.voiceTop { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--text); }
-.voiceTop small { margin-left: auto; color: var(--muted); font-size: 10px; font-variant-numeric: tabular-nums; }
-.voiceControls { display: flex; align-items: center; gap: 9px; margin-top: 8px; }
-.play { display: flex; align-items: center; justify-content: center; width: 31px; height: 31px; flex-shrink: 0; border-radius: 50%; color: var(--text); background: var(--bg); }
-.voice audio { width: 100%; height: 34px; min-width: 0; }
+.voice { width: min(280px, 100%); margin-top: 8px; }
 .partial { display: block; color: var(--muted); font-size: 10px; margin-top: 6px; }
-.picture { margin: 9px 0 0; max-width: 480px; border-radius: 18px; overflow: hidden; background: var(--soft); }
+.picture { margin: 9px 0 0; max-width: min(480px, 100%); border-radius: 18px; overflow: hidden; background: var(--soft); }
 .picture button { display: block; width: 100%; }
 .picture img { display: block; width: 100%; max-height: 420px; object-fit: cover; transition: filter 150ms ease; }
 .picture button:hover img { filter: brightness(1.06); }

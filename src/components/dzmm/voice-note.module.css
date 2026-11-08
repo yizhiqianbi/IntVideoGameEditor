@@ -1,0 +1,49 @@
+.note {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: min(260px, 100%);
+  min-height: 48px;
+  margin-top: 8px;
+  padding: 6px 12px 6px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--pink) 14%, var(--soft));
+}
+.play {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--pink);
+  color: white;
+}
+.play svg { fill: currentColor; stroke: none; }
+.play:focus-visible, .track:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
+.track {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex: 1;
+  height: 28px;
+  min-width: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.bar, .barOn {
+  flex: 1;
+  min-height: 3px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+}
+.barOn { background: var(--pink); }
+.time {
+  flex-shrink: 0;
+  min-width: 34px;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}

@@ -1,0 +1,44 @@
+{
+  "name": "dzmm-cloudflare-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174",
+    "build": "node scripts/build-live-rtc.mjs && npm run check:client && vite build && node scripts/copy-assets.mjs && node scripts/build-character-share.mjs",
+    "brand:build": "node scripts/build-brand.mjs",
+    "preview": "vite preview --host 127.0.0.1 --port 4174",
+    "check": "npm run check:client && npm run check:worker",
+    "check:client": "tsc --noEmit -p tsconfig.client.json",
+    "check:worker": "tsc --noEmit -p tsconfig.worker.json",
+    "test:web": "tsx --test test/*.test.mts",
+    "dev:worker": "npm run build && wrangler dev --local --config wrangler.jsonc --ip 127.0.0.1 --port 8791",
+    "deploy:dry-run": "npm run build && wrangler deploy --dry-run --config wrangler.jsonc --outdir .wrangler/dry-run",
+    "deploy": "npm run build && wrangler deploy --config wrangler.jsonc",
+    "secrets:sync": "node scripts/sync-model-secret.mjs",
+    "verify:production": "node scripts/verify-production.mjs",
+    "verify:payments": "node scripts/verify-payments.mjs",
+    "verify:billing": "tsx scripts/verify-credit-billing.mjs",
+    "verify:subscriptions": "node scripts/verify-subscriptions.mjs",
+    "verify:email": "node scripts/verify-email-auth.mjs",
+    "verify:branding": "node scripts/verify-brand-routes.mjs",
+    "verify:search": "node scripts/verify-brand-routes.mjs https://xumengchat.top output/xumeng/search-redirect-verification.json",
+    "audit:geo-seo": "node scripts/audit-geo-seo.mjs",
+    "verify:cleanup": "node scripts/cleanup-verification.mjs"
+  },
+  "dependencies": {
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "8.3.2",
+    "wrangler": "^4.146.0"
+  }
+}

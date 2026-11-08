@@ -330,11 +330,15 @@ test('failed restore blocks instead of initializing a blank instance', async () 
   await f.host.fetch(request()); assert.equal(f.events.filter(e => e === 'container:start').length, starts);
 });
 
-test('missing or cross-account snapshot cannot become a new empty instance', async () => {
+test('missing or cross-account snapshot falls back to the persona template', async () => {
   const f = fixture(); await f.host.fetch(request()); f.advance(); await f.host.alarm();
   const state: any = f.values.get('runtime'); f.saved.get(state.snapshot.key)!.metadata.accountId = OTHER;
-  f.events.length = 0; assert.equal((await f.host.fetch(request())).status, 503);
-  assert.equal(f.events.includes('/internal/start'), false); assert.equal(f.events.includes('/internal/restore'), false);
+  f.events.length = 0; assert.equal((await f.host.fetch(request())).status, 200);
+  assert.ok(f.events.includes('/internal/restore-template'));
+  assert.ok(f.events.includes('/internal/start'));
+  assert.equal(f.events.includes('/internal/restore'), false);
+  assert.equal((f.values.get('runtime') as any).blocked, undefined);
+  assert.equal((f.values.get('runtime') as any).restoreTemplate, undefined);
 });
 
 test('container loss restores a verified snapshot when no receipt is ambiguous', async () => {
@@ -371,11 +375,11 @@ test('a blocked account resumes only when the existing native runtime is healthy
   assert.equal((f.values.get('runtime') as any).blocked, undefined);
 });
 
-test('an empty lost instance resets without touching any conversation state', async () => {
-  const f = fixture(); await f.host.fetch(request()); f.loseContainer();
-  assert.equal((await f.host.fetch(request())).status, 503);
-  f.events.length = 0; const result = await f.host.fetch(request());
+test('a lost instance with no snapshot starts from the persona template', async () => {
+  const f = fixture(); await f.host.fetch(request()); f.loseContainer(); f.events.length = 0;
+  const result = await f.host.fetch(request());
   assert.equal(result.status, 200);
+  assert.ok(f.events.includes('/internal/restore-template'));
   assert.ok(f.events.includes('container:start'));
   assert.equal((f.values.get('runtime') as any).blocked, undefined);
   assert.equal((f.values.get('runtime') as any).dirty, true);
@@ -383,9 +387,10 @@ test('an empty lost instance resets without touching any conversation state', as
 
 test('an empty lost instance with a receipt remains blocked', async () => {
   const f = fixture(); await f.host.fetch(request()); f.loseContainer();
-  assert.equal((await f.host.fetch(request())).status, 503);
   await f.values.set(`request:${REQUEST}`, { fingerprint: 'x', status: 'uncertain' });
+  f.events.length = 0;
   assert.equal((await f.host.fetch(request())).status, 503);
+  assert.equal(f.events.includes('container:start'), false);
   assert.equal((f.values.get('runtime') as any).blocked, 'unexpected-container-loss');
 });
 
@@ -401,6 +406,7 @@ test('an empty instance with a stopped native process is recreated safely', asyn
 
 test('the explicitly confirmed reset abandons the blocked native instance but keeps audit receipts', async () => {
   const f = fixture(); await f.host.fetch(request()); f.loseContainer();
+  f.values.set(`request:${REQUEST}`, { fingerprint: 'x', status: 'uncertain' });
   assert.equal((await f.host.fetch(request())).status, 503);
   f.values.set('session:old', { key: 'old-observation', sha256: 'old', observedAt: 1000 });
   f.values.set('style:old', { version: 1, personality: 'p', speakingStyle: 's', relationshipStyle: 'r' });

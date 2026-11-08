@@ -6,6 +6,7 @@ import io
 import json
 import os
 from pathlib import Path, PurePosixPath
+import re
 import shutil
 import stat
 import tarfile
@@ -14,6 +15,8 @@ import uuid
 
 FORMAT = "xumeng-companion-instance"
 VERSION = 1
+TEMPLATE_ACCOUNT = "00000000-0000-4000-8000-0000000000aa"
+TEMPLATE_NAME = re.compile(r"^[a-z0-9-]{1,40}$")
 MAX_FILES = 100_000
 MAX_TOTAL = 1024 * 1024 * 1024
 MAX_MANIFEST = 16 * 1024 * 1024
@@ -61,8 +64,10 @@ class CheckedReader:
         self.hash.update(chunk)
         return chunk
 
-def snapshot(instance, archive, account):
+def snapshot(instance, archive, account, template=None):
     account = account_id(account)
+    if template is not None and (not isinstance(template, str) or not TEMPLATE_NAME.fullmatch(template) or account != account_id(TEMPLATE_ACCOUNT)):
+        raise ValueError("Invalid template")
     if instance.is_symlink() or not instance.is_dir() or archive.exists():
         raise ValueError("Invalid source or existing archive")
     verify_identity(instance, account)
@@ -94,6 +99,8 @@ def snapshot(instance, archive, account):
             files[relative] = {"size": size, "sha256": hash_file(path), "mode": 0o700 if path.stat().st_mode & 0o100 else 0o600}
     manifest = {"format": FORMAT, "version": VERSION, "accountId": account, "files": files,
                 "directories": sorted(directories), "totalBytes": total, "excluded": ["logs", "*.log", "*.log.*"]}
+    if template is not None:
+        manifest["template"] = template
     encoded = json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()
     if len(encoded) > MAX_MANIFEST:
         raise ValueError("Manifest limit exceeded")
@@ -122,7 +129,19 @@ def snapshot(instance, archive, account):
         archive.unlink(missing_ok=True)
         raise
 
-def restore(archive, instance, account):
+def claim_template(stage, account):
+    path = stage / "container-instance.json"
+    identity = json.loads(path.read_text())
+    if not isinstance(identity, dict):
+        raise ValueError("Missing identity")
+    identity["accountId"] = account
+    identity["template"] = True
+    descriptor = os.open(path, os.O_WRONLY | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0))
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        stream.write(json.dumps(identity, separators=(",", ":")))
+
+
+def restore(archive, instance, account, template=None):
     account = account_id(account)
     if instance.exists() or instance.is_symlink():
         raise ValueError("Restore target must not exist")
@@ -134,7 +153,13 @@ def restore(archive, instance, account):
             if first is None or first.name != "manifest.json" or not first.isfile() or first.size > MAX_MANIFEST:
                 raise ValueError("Manifest must be first")
             manifest = json.loads(source.extractfile(first).read())
-            if manifest.get("format") != FORMAT or manifest.get("version") != VERSION or manifest.get("accountId") != account:
+            if manifest.get("format") != FORMAT or manifest.get("version") != VERSION:
+                raise ValueError("Snapshot format or account mismatch")
+            declared = manifest.get("template")
+            if declared is not None:
+                if not isinstance(declared, str) or not TEMPLATE_NAME.fullmatch(declared) or declared != template or manifest.get("accountId") != account_id(TEMPLATE_ACCOUNT):
+                    raise ValueError("Template mismatch")
+            elif template is not None or manifest.get("accountId") != account:
                 raise ValueError("Snapshot format or account mismatch")
             files = manifest.get("files")
             directories = manifest.get("directories")
@@ -183,6 +208,8 @@ def restore(archive, instance, account):
                     raise ValueError("File hash mismatch")
             if seen != set(files):
                 raise ValueError("Snapshot files missing")
+        if manifest.get("template") is not None:
+            claim_template(stage, account)
         verify_identity(stage, account)
         stage.rename(instance)
         return {"accountId": account, "fileCount": len(files), "totalBytes": total, "restored": True}
@@ -196,12 +223,13 @@ def main():
     parser.add_argument("--instance", type=Path, required=True)
     parser.add_argument("--archive", type=Path, required=True)
     parser.add_argument("--account", required=True)
+    parser.add_argument("--template")
     args = parser.parse_args()
     try:
         if args.operation == "snapshot":
-            result = snapshot(args.instance, args.archive, args.account)
+            result = snapshot(args.instance, args.archive, args.account, args.template)
         else:
-            result = restore(args.archive, args.instance, args.account)
+            result = restore(args.archive, args.instance, args.account, args.template)
     except Exception:
         print(json.dumps({"error": "Snapshot operation failed integrity or lifecycle checks"}))
         return 1

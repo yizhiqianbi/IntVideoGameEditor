@@ -4,7 +4,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath, URL as NodeURL } from "node:url";
 import { build } from "esbuild";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
-import { getXumengPaymentInfoPage, renderXumengPaymentInfoPage, XUMENG_PAYMENT_INFO_PAGES, XUMENG_PAYMENT_SUPPORT_EMAIL } from "../../../src/lib/xumeng-payment-info";
+import { getXumengPaymentInfoPage, renderXumengPaymentInfoPage, XUMENG_PAYMENT_INFO_PAGES } from "../../../src/lib/xumeng-payment-info";
 
 const ORIGIN = "https://xumengchat.top";
 const CONDITIONAL_HEADERS = ["If-None-Match", "If-Modified-Since", "If-Match", "If-Unmodified-Since", "Range", "If-Range"];
@@ -20,7 +20,7 @@ test("public payment page lookup is shared by the Worker and SPA, and renders fi
     const html = renderXumengPaymentInfoPage(page);
     assert.match(html, /草稿 · 待确认/);
     assert.match(html, /Waffo 正式收款审核尚未通过，人民币月卡尚不能付款/);
-    assert.ok(html.includes(`href="mailto:${XUMENG_PAYMENT_SUPPORT_EMAIL}"`));
+    assert.doesNotMatch(html, /mailto:|@qq\.com|850587960/);
     assert.match(html, /aria-label="服务与政策"/);
     assert.match(html, /@media\(max-width:700px\)/);
     assert.match(html, /overflow-wrap:anywhere/);

@@ -1,0 +1,32 @@
+{
+  "brand": "叙梦",
+  "englishName": "XUMENG",
+  "createdAt": "2026-10-03",
+  "design": "原创月牙对话气泡与星点；手绘 SVG，不使用 DZMM 图形。",
+  "assets": [
+    {
+      "file": "/assets/xumeng/brand/xumeng-mark.svg",
+      "bytes": 541,
+      "sha256": "24b897083d319ffd59470c968097c8f7731285b16eb854d19651f14071c36b7b",
+      "origin": "original-vector-design"
+    },
+    {
+      "file": "/assets/xumeng/brand/xumeng-icon-192.png",
+      "bytes": 3327,
+      "sha256": "d45b76a8e2c3ed4db089871e8e7abf14b36b27e7d87ade6d907eb7ca7b75fd9e",
+      "origin": "original-vector-design"
+    },
+    {
+      "file": "/assets/xumeng/brand/xumeng-icon-512.png",
+      "bytes": 12949,
+      "sha256": "92aa54fc417c39c39f0c891d45b5e8aab526408908fb9925e1e1de42575e7d2f",
+      "origin": "original-vector-design"
+    },
+    {
+      "file": "/assets/xumeng/brand/xumeng-favicon.ico",
+      "bytes": 1551,
+      "sha256": "aca96579833823077dcf7b822fd0d11ede3fdd8f2aa6182c30d57d4bdf0b9d20",
+      "origin": "original-vector-design"
+    }
+  ]
+}
