@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Female-oriented Xumeng preview
 
-The isolated women-oriented experience is available at `/xumeng/female`. It reuses the Xumeng front-end shell (rail, topbar, browse tabs, character cards, chat sidebar, composer, and mobile drawer) while running as its own local-only page. The existing `/xumeng` surface is unchanged. The page keeps conversation content in React memory only: it does not call a chat API or write chat content to `localStorage`, `sessionStorage`, or cloud history. Refreshing the page clears the temporary conversation.
+The isolated women-oriented experience is available at `/xumeng/female`. It reuses the Xumeng front-end shell (rail, topbar, browse tabs, character cards, chat sidebar, composer, and mobile drawer) while running as its own local-only page. The homepage now supports mood-led discovery, local favorites, daily story moments, and character profile sheets before chat. The existing `/xumeng` surface is unchanged. The page keeps conversation content in React memory only: it does not call a chat API or write chat content to `localStorage`, `sessionStorage`, or cloud history. Refreshing the page clears the temporary conversation.
 
 ## Getting Started
 
