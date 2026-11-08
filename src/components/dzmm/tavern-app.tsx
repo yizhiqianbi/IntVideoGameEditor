@@ -3636,12 +3636,16 @@ export default function TavernApp() {
       {rechargeNeeded && <div className={s.overlay} role="presentation" onClick={() => setRechargeNeeded(false)}>
         <div className={s.balanceDialog} role="dialog" aria-modal="true" aria-labelledby="balance-gate-title" onClick={event => event.stopPropagation()}>
           <h2 id="balance-gate-title">余额不够</h2>
-          <p>{rechargeMessage || "这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。"}</p>
-          <div className={s.balanceActions}>
+          <p>{rechargeMessage || "这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。"}
+            {(!cloud.user || cloud.user.isGuest) && " 新设备赠送的 100 Credit 用完了，注册再送 300 Credit 就能接着聊。"}</p>
+          {!cloud.user || cloud.user.isGuest ? <div className={s.balanceActions}>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}>注册领 300 Credit</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("login"); }}>我已有账号，登录</button>
+          </div> : <div className={s.balanceActions}>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}>去邀请</button>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("checkin"); }}>去签到</button>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("recharge"); }}>{XUMENG_PAYMENTS_ENABLED ? "充值" : "查看余额"}</button>
-          </div>
+          </div>}
           <button type="button" className={s.secondary} onClick={() => setRechargeNeeded(false)}>先留在这里</button>
         </div>
       </div>}

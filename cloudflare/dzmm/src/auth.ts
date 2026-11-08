@@ -2,7 +2,7 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from "node:crypto";
 import { ApiError, json, readJson, readOptionalJson } from "./http";
 import type { Env, UserRecord } from "./types";
 import { handleEmailAuth, type EmailAuthOptions } from "./email-auth";
-import { passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
+import { guestWelcomeCreditStatement, passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
 import { referralCodeForUser, referralCodeFromBody, findInviter, referralRewardStatements, acquisitionRegisteredStatement } from "./referrals";
 import { rememberDailyVisit } from "./visits";
 
@@ -310,7 +310,26 @@ async function createGuest(request: Request, env: Env) {
     if (/UNIQUE constraint failed: users\.id/i.test(String(error))) throw new ApiError(409, "游客身份编号发生冲突，请重试。");
     throw error;
   }
+  // A brand-new device still gets a few free turns before the account gate.
+  // The grant is best effort: an uncredited visitor may still browse as a guest.
+  try {
+    if (await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
+  } catch {
+    /* A grant failure must never block the guest session. */
+  }
   return issueSession(request, env, user);
+}
+
+/** Guests are per browser, but a shared IP should not mint unlimited welcome
+ * credits; the day key keeps the counter independent of the 10 minute window. */
+async function guestWelcomeAllowed(request: Request, env: Env, maximum = 5): Promise<boolean> {
+  const ip = request.headers.get("cf-connecting-ip") || "local";
+  const day = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+  const row = await env.DB.prepare(
+    `INSERT INTO auth_rate_limits (key,count,window_start) VALUES (?,1,?)
+     ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count`,
+  ).bind(digest(`guest-welcome:${day}:${ip}`), Date.now()).first<{ count: number }>();
+  return Boolean(row) && row.count <= maximum;
 }
 
 async function register(request: Request, env: Env) {

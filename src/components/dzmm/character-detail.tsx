@@ -423,7 +423,6 @@ export default function CharacterDetail({
 
       <section className={s.album} aria-labelledby="character-album-title">
         <h2 id="character-album-title">对话相册</h2>
-        <p className={s.albumNote}>按北京时间的日期收着你和这位角色一起生成的图片和视频。删掉聊天后，这里还在。</p>
         {albumItems === null ? <p className={s.albumNote}>正在整理相册…</p> : albumGroups.length === 0 ? (
           <div className={s.albumEmpty}>
             <p>还没有一起生成的画面。</p>

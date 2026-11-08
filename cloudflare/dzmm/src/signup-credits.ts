@@ -4,6 +4,18 @@ import type { Env } from "./types";
  * VIP daily check-in. Login never backfills it. */
 export const NEW_SIGNUP_CREDITS = 300;
 
+/** A new device (guest session) gets enough to try the tavern once before the
+ * account gate. Registered accounts get the larger signup gift instead. */
+export const NEW_GUEST_CREDITS = 100;
+
+/** One welcome grant per browser session; the grant key makes retries idempotent. */
+export function guestWelcomeCreditStatement(env: Pick<Env, "DB">, userId: string, createdAt: number) {
+  return env.DB.prepare(`INSERT INTO trusted_credit_grants(grant_key,user_id,credits,reason,created_at)
+    VALUES('guest_welcome:' || ?1,?1,?2,'guest_welcome',?3)
+    ON CONFLICT(grant_key) DO NOTHING`)
+    .bind(userId, NEW_GUEST_CREDITS, createdAt);
+}
+
 export function publicSignupCreditConfig() {
   return {
     enabled: true,
