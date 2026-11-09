@@ -329,7 +329,7 @@ async function guestWelcomeAllowed(request: Request, env: Env, maximum = 5): Pro
     `INSERT INTO auth_rate_limits (key,count,window_start) VALUES (?,1,?)
      ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count`,
   ).bind(digest(`guest-welcome:${day}:${ip}`), Date.now()).first<{ count: number }>();
-  return Boolean(row) && row.count <= maximum;
+  return row !== null && row.count <= maximum;
 }
 
 async function register(request: Request, env: Env) {

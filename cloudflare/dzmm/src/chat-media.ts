@@ -1,7 +1,7 @@
 import { breezeSpeechFor, type BreezeSpeechRoute } from "../../../src/lib/xumeng-breeze-voices";
 import { splitXumengMessagePresentation } from "../../../src/lib/xumeng-message-presentation";
 import { statusStillScene } from "../../../src/lib/xumeng-status-still";
-import { xumengStatusBarLabels } from "../../../src/lib/xumeng-character-status";
+import { xumengStatusBarFields, xumengStatusBarLabels } from "../../../src/lib/xumeng-character-status";
 import { getXumengSpeechVoice, XUMENG_DEFAULT_SPEECH_VOICE } from "../../../src/lib/xumeng-voices";
 import { digest, tokenFrom } from "./auth";
 import { breezeVoiceConfigured, generateBreezeCharacterVoice } from "./breeze-character-voice";
@@ -87,22 +87,28 @@ async function conversationSpeechVoice(env: Env, userId: string, conversationId:
     return fallback;
   }
 }
-async function statusLabels(env: Env, userId: string, conversationId: string): Promise<string[]> {
+type StatusContext = { labels: string[]; initial: string };
+async function statusContext(env: Env, userId: string, conversationId: string): Promise<StatusContext> {
   const row = await env.DB.prepare(`SELECT c.context_json AS context_json FROM conversations v
     JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
     WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string }>();
-  if (!row?.context_json) return [];
+  if (!row?.context_json) return { labels: [], initial: "" };
   try {
     const parsed = JSON.parse(row.context_json) as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown } };
     const bar = parsed.statusBar;
-    if (!bar || typeof bar !== "object") return [];
-    return xumengStatusBarLabels({
+    if (!bar || typeof bar !== "object") return { labels: [], initial: "" };
+    const normalized = {
       template: typeof bar.template === "string" ? bar.template : "",
       initialState: typeof bar.initialState === "string" ? bar.initialState : "",
       updateRules: typeof bar.updateRules === "string" ? bar.updateRules : "",
-    });
+    };
+    const initial = xumengStatusBarFields(normalized)
+      .filter(field => field.value.trim() && field.value.trim() !== "未记录")
+      .map(field => `${field.label}：${field.value}`)
+      .join("\n");
+    return { labels: xumengStatusBarLabels(normalized), initial };
   } catch {
-    return [];
+    return { labels: [], initial: "" };
   }
 }
 async function mediaNarrative(env: Env, userId: string, conversationId: string, messageId: string, source: MessageRow): Promise<string> {
@@ -227,13 +233,33 @@ export function chatScenePrompt(content: string): string {
   return prefix + visual.slice(0, 2048 - prefix.length).replace(/[\ud800-\udbff]$/, "");
 }
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
-const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。参考图一中的角色看着你，脸、发型和肤色保持不变。不要画出你的脸。这一刻：";
-const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。这一刻：";
-const STILL_SUFFIX = "。无文字、无水印、无未成年人、无幼态面孔、无校服。";
+const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。输入的参考图是唯一的角色身份、构图和连续性锚点；上一张已生成的剧情图片存在时，必须优先参考上一张做连续生图，保持同一张脸、发型、肤色、体型、服装轮廓、主要颜色、镜头关系和画风；如果这是第一张或上一张已不可用，则使用角色封面作为身份锚点。不要把参考图当成灵感图，也不要换成另一个人。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景；状态字段是当前画面的硬约束，低数值不要夸张，高数值不要省略。这一刻：";
+const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景。这一刻：";
+const STILL_SUFFIX = "。所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
+const STATUS_LABEL_CUES: [RegExp, string][] = [
+  [/性欲|兴奋|唤起/u, "唤起程度按数值和备注呈现，不自行升级"],
+  [/奶水|乳房|胸部|乳/u, "胸部状态只按数值和备注呈现，不用默认夸张体型替代"],
+  [/服装|衣着|穿着/u, "服装状态是当前穿着的硬约束，不要自动改成完整默认服装"],
+  [/表情|神态|目光|眼神/u, "表情、目光和面部动作按字段执行"],
+  [/疲劳|体力|负荷/u, "疲劳程度影响姿势、动作幅度和精神状态"],
+  [/私处|下体|身体状态/u, "身体状态按字段执行，不用无关的默认状态覆盖"],
+  [/地点|位置|场景|环境/u, "地点和环境决定背景、灯光与空间关系"],
+];
+function statusVisualCues(scene: string): string {
+  const cues = [...scene.matchAll(/([^：。]{1,16})：([^。]+)/gu)].flatMap((match) => {
+    const label = match[1]?.trim() ?? "";
+    const value = match[2]?.trim() ?? "";
+    if (!label || !value) return [];
+    const rule = STATUS_LABEL_CUES.find(([pattern]) => pattern.test(label))?.[1];
+    return [`${label}=${value}${rule ? `（${rule}）` : ""}`];
+  });
+  return cues.length ? `状态字段视觉映射：${cues.slice(0, 16).join("；")}。` : "";
+}
 function stillPrompt(scene: string, reference: boolean): string {
   const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
-  const budget = 800 - Array.from(prefix + STILL_SUFFIX).length;
-  return prefix + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
+  const semantic = statusVisualCues(scene);
+  const budget = 1400 - Array.from(prefix + semantic + STILL_SUFFIX).length;
+  return prefix + semantic + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
 }
 /** Scene text for Qwen Image. A cover keeps identity on the reference; otherwise the scene is text-to-image. */
 export function chatStillPrompt(content: string, reference = true): string | null {
@@ -314,23 +340,62 @@ async function readCover(response: Response): Promise<Uint8Array | null> {
   if (bytes.byteLength < 32 || bytes.byteLength > COVER_BYTES || !imageSignature(bytes)) return null;
   return bytes;
 }
-async function characterReference(env: Env, userId: string, conversationId: string, options: ChatMediaOptions): Promise<Uint8Array | null> {
-  const row = await env.DB.prepare(`SELECT c.cover FROM conversations v
+async function characterReference(env: Env, userId: string, conversationId: string, messageId: string, options: ChatMediaOptions): Promise<Uint8Array | null> {
+  // Continue from the latest generated still in this conversation. The
+  // current message is included so a regeneration also chains from its old
+  // result before falling back to the character cover.
+  if (env.MEDIA) {
+    const anchor = await env.DB.prepare(`SELECT a.object_key FROM chat_media_assets a
+      JOIN messages m ON m.user_id=a.user_id AND m.conversation_id=a.conversation_id AND m.id=a.message_id
+      WHERE a.user_id=? AND a.conversation_id=? AND a.kind='image' AND a.status='ready'
+        AND m.role='assistant' AND m.position <= (SELECT position FROM messages WHERE user_id=? AND conversation_id=? AND id=?)
+      ORDER BY m.position DESC, a.created_at DESC LIMIT 1`)
+      .bind(userId, conversationId, userId, conversationId, messageId).first<{ object_key: string }>();
+    if (anchor?.object_key) {
+      const object = await env.MEDIA.get(anchor.object_key);
+      if (object && object.customMetadata?.ownerId === userId) {
+        const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
+        if (bytes) return bytes;
+      }
+    }
+  }
+  const row = await env.DB.prepare(`SELECT c.cover, c.context_json FROM conversations v
     JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
-    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ cover: string | null }>();
-  const cover = row?.cover?.trim() ?? "";
-  if (!cover || placeholderCover(cover)) return null;
-  const owned = OWNED_MEDIA.exec(cover);
-  if (owned) {
-    if (owned[1] !== userId || !env.MEDIA) return null;
-    const object = await env.MEDIA.get(`${owned[1]}/${owned[2]}`);
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ cover: string | null; context_json: string | null }>();
+  const candidates: string[] = [];
+  if (row?.cover?.trim()) candidates.push(row.cover.trim());
+  if (row?.context_json) {
+    try {
+      const parsed = JSON.parse(row.context_json) as { gallery?: unknown };
+      if (Array.isArray(parsed.gallery)) candidates.push(...parsed.gallery.filter((value): value is string => typeof value === "string"));
+    } catch { /* a malformed gallery must not prevent the cover from being used */ }
+  }
+  for (const candidate of candidates) {
+    if (!candidate || placeholderCover(candidate)) continue;
+    const owned = OWNED_MEDIA.exec(candidate);
+    if (owned) {
+      if (owned[1] !== userId || !env.MEDIA) continue;
+      const object = await env.MEDIA.get(`${owned[1]}/${owned[2]}`);
+      if (!object || object.customMetadata?.ownerId !== userId) continue;
+      const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
+      if (bytes) return bytes;
+      continue;
+    }
+    const url = coverUrl(env, candidate);
+    if (!url) continue;
+    try {
+      const bytes = await readCover(await (options.fetch ?? fetch)(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) }));
+      if (bytes) return bytes;
+    } catch { /* try the next gallery image */ }
+  }
+  return null;
+}
+async function previousImageReference(env: Env, userId: string, asset: AssetRow | null | undefined): Promise<Uint8Array | null> {
+  if (!asset || asset.status !== "ready" || asset.kind !== "image" || !env.MEDIA) return null;
+  try {
+    const object = await env.MEDIA.get(asset.object_key);
     if (!object || object.customMetadata?.ownerId !== userId) return null;
     return readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-  }
-  const url = coverUrl(env, cover);
-  if (!url) return null;
-  try {
-    return await readCover(await (options.fetch ?? fetch)(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) }));
   } catch { return null; }
 }
 function bytesToBase64(bytes: Uint8Array): string {
@@ -342,7 +407,12 @@ async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null,
   const apiKey = env.WHATSTOKEN_API_KEY?.trim();
   if (!apiKey) throw new ApiError(503, "出图服务还没接上。");
   const png = reference && reference.length >= 8 && reference[0] === 0x89 && reference[1] === 0x50;
-  const image = reference?.byteLength ? `data:${png ? "image/png" : "image/jpeg"};base64,${bytesToBase64(reference)}` : undefined;
+  const webp = reference && reference.length >= 12
+    && new TextDecoder().decode(reference.subarray(0, 4)) === "RIFF"
+    && new TextDecoder().decode(reference.subarray(8, 12)) === "WEBP";
+  const image = reference?.byteLength
+    ? `data:${png ? "image/png" : webp ? "image/webp" : "image/jpeg"};base64,${bytesToBase64(reference)}`
+    : undefined;
   try {
     const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio: "3:4", signal, fetchImpl: options.fetch });
     return still.bytes;
@@ -452,7 +522,7 @@ async function fail(env: Env, userId: string, assetId: string, token: string, no
 async function generate(request: Request, env: Env, user: UserRecord, now: number, options: ChatMediaOptions): Promise<Response> {
   const illustrated = new URL(request.url).pathname === "/v1/chat-media/illustrate";
   const body = await readJson(request, illustrated ? 12_000 : 2048);
-  let conversationId: string, messageId: string, kind: Kind, stillOverride: string | null = null, rememberImage = true;
+  let conversationId: string, messageId: string, kind: Kind, stillOverride: string | null = null, rememberImage = true, regenerate = false;
   if (illustrated) {
     let draft: ReturnType<typeof parseDzmmIllustrationDraft>;
     try { draft = parseDzmmIllustrationDraft(body); }
@@ -465,13 +535,14 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     stillOverride = composeDzmmIllustration(draft);
     rememberImage = draft.visibility === "public";
   } else {
-    if (Object.keys(body).length !== 4 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind"].includes(key))
+    if (Object.keys(body).length < 4 || Object.keys(body).length > 5 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate"].includes(key))
       || ![body.accountId,body.conversationId,body.messageId].every(value => typeof value === "string" && SAFE_ID.test(value))
-      || (body.kind !== "audio" && body.kind !== "image")) throw new ApiError(400,"素材请求参数无效。");
+      || (body.kind !== "audio" && body.kind !== "image") || (body.regenerate !== undefined && body.regenerate !== true)) throw new ApiError(400,"素材请求参数无效。");
     if (body.accountId !== user.id) throw new ApiError(409,"账户已切换，请刷新后重试。");
     conversationId = body.conversationId as string;
     messageId = body.messageId as string;
     kind = body.kind as Kind;
+    regenerate = body.regenerate === true;
   }
   if (user.isGuest) throw new ApiError(403,kind === "audio" ? "请先登录正式账户，再生成语音。" : "请先登录正式账户，再生成剧情图片。");
   if (kind === "audio" && !audioConfigured(env)) throw new ApiError(503,"语音和剧情图片暂未启用。");
@@ -490,7 +561,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   const lookup = () => env.DB.prepare(`SELECT * FROM chat_media_assets WHERE user_id=? AND conversation_id=? AND message_id=? AND kind=? AND source_hash=?`)
     .bind(user.id,conversationId,messageId,kind,sourceHash).first<AssetRow>();
   const existing = await lookup();
-  if (existing?.status === "ready") {
+  if (existing?.status === "ready" && !regenerate) {
     return readyResponse(env,existing,now);
   }
   if (existing?.status === "pending") throw new ApiError(409,"这条消息的素材正在生成，请稍后查看。",{retryAfter:3});
@@ -499,8 +570,17 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   if (kind === "image") {
     if (env.GENERATION_ENABLED === "false") throw new ApiError(503,"图片与视频生成已暂停开放。",{code:"media_generation_paused"});
     if (!env.WHATSTOKEN_API_KEY?.trim()) throw new ApiError(503,"出图服务还没接上。");
-    const cover = await characterReference(env, user.id, conversationId, options);
-    const fromStatus = stillOverride === null ? statusStillScene(source.content, await statusLabels(env, user.id, conversationId)) : null;
+    // A regenerated scene should stay anchored to the previous scene when it
+    // exists. If there is no previous scene yet (or its object has expired),
+    // fall back to the character cover so the first reference generation still
+    // has an identity anchor instead of failing with a recovery error.
+    const previous = regenerate ? await previousImageReference(env, user.id, existing) : null;
+    const cover = previous ?? await characterReference(env, user.id, conversationId, messageId, options);
+    const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "" };
+    let fromStatus = stillOverride === null ? statusStillScene(source.content, status.labels) : null;
+    if (!fromStatus && status.initial) {
+      fromStatus = statusStillScene(`${source.content}\n${status.initial}`, status.labels);
+    }
     const blocked = Boolean(fromStatus && "blocked" in fromStatus);
     const built = blocked ? null
       : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null)
@@ -526,13 +606,13 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
       AND EXISTS(SELECT 1 FROM users WHERE id=?2 AND is_guest=0)
       AND EXISTS(SELECT 1 FROM credit_usage_balances WHERE user_id=?2 AND balance>=?14)
       AND EXISTS(SELECT 1 FROM sessions WHERE user_id=?2 AND token_hash=?13 AND expires_at>MAX(?6,${sqlNow}))
-      AND NOT EXISTS(SELECT 1 FROM chat_media_assets WHERE user_id=?2 AND conversation_id=?9 AND message_id=?10 AND kind=?4 AND source_hash=?12 AND status IN ('pending','ready'))`)
-      .bind(token,user.id,id,kind,dayKey(now),now,now+timeout+30_000,LIMITS[kind],conversationId,messageId,source.content,sourceHash,sessionHash,CREDIT_COST[kind]),
+      AND NOT EXISTS(SELECT 1 FROM chat_media_assets WHERE user_id=?2 AND conversation_id=?9 AND message_id=?10 AND kind=?4 AND source_hash=?12 AND (status='pending' OR (status='ready' AND ?15=0)))`)
+      .bind(token,user.id,id,kind,dayKey(now),now,now+timeout+30_000,LIMITS[kind],conversationId,messageId,source.content,sourceHash,sessionHash,CREDIT_COST[kind],Number(regenerate)),
     env.DB.prepare(`INSERT INTO chat_media_assets(id,user_id,conversation_id,message_id,kind,source_hash,status,processing_token,object_key,created_at,updated_at)
       SELECT ?1,?2,?3,?4,?5,?6,'pending',?7,?8,?9,?9 WHERE EXISTS(SELECT 1 FROM chat_media_usage WHERE id=?7 AND status='pending')
       ON CONFLICT(user_id,conversation_id,message_id,kind,source_hash) DO UPDATE SET status='pending',processing_token=excluded.processing_token,
       object_key=excluded.object_key,created_at=excluded.created_at,updated_at=excluded.updated_at,mime_type=NULL,byte_length=NULL,audio_text_chars=NULL,total_text_chars=NULL
-      WHERE chat_media_assets.status='failed'`).bind(id,user.id,conversationId,messageId,kind,sourceHash,token,objectKey,now),
+      WHERE chat_media_assets.status='failed' OR (chat_media_assets.status='ready' AND ?10=1)`).bind(id,user.id,conversationId,messageId,kind,sourceHash,token,objectKey,now,Number(regenerate)),
   ]);
   if (reserved[0].meta.changes !== 1 || reserved[1].meta.changes !== 1) {
     if(!await session())throw new ApiError(401,"登录状态已失效，请重新登录。");
