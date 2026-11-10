@@ -7,7 +7,7 @@ import type { Character } from "@/lib/dzmm-characters";
 import { coverShelfTags } from "@/lib/xumeng-shelf-tags";
 import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import type { DzmmPreferences } from "@/lib/dzmm-storage";
-import { localizeCharacter, sourceCharacterTag } from "@/lib/xumeng-card-localization";
+import { localizeCharacter, sourceCharacterTag, xumengLocalizedAuthorName } from "@/lib/xumeng-card-localization";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
 import {
   DZMM_DISCOVERY_CATEGORIES, filterDzmmCharacters, findCharacterAuthor, isDzmmCharacterBlocked,
@@ -48,8 +48,8 @@ function CharacterCards({ characters, authors, favorites, likes = [], onCharacte
         <div className={s.cardBody}>
           <button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{displayCharacter.name}</h2><p>{getDzmmCharacterCardBlurb(displayCharacter, userName)}</p>{reasonLabel && <span className={s.reason}>{reasonLabel}</span>}</button>
           <div className={s.cardFooter}>
-            {author ? <button className={s.authorLink} onClick={() => onAuthor(author)} aria-label={`查看作者 ${author.name}`}><span className={s.avatar}>{Array.from(author.name)[0] ?? ""}</span><span>{author.name}</span></button>
-              : <span className={s.authorLink}><span className={s.avatar}>{Array.from(character.author)[0] ?? ""}</span><span>{character.author}</span></span>}
+            {author ? <button className={s.authorLink} onClick={() => onAuthor(author)} aria-label={`查看作者 ${xumengLocalizedAuthorName(author.name, locale)}`}><span className={s.avatar}>{Array.from(author.name)[0] ?? ""}</span><span>{xumengLocalizedAuthorName(author.name, locale)}</span></button>
+              : <span className={s.authorLink}><span className={s.avatar}>{Array.from(character.author)[0] ?? ""}</span><span>{xumengLocalizedAuthorName(character.author, locale)}</span></span>}
             <button className={liked ? s.liked : s.like} onClick={() => onLike?.(character.id)} aria-label={`${liked ? "取消点赞" : "点赞"} ${character.name}`} aria-pressed={liked}><Icon name="heart" size={16} /><span>{character.likes || "—"}</span></button>
             <button className={favorite ? s.favorited : s.favorite} onClick={() => onFavorite(character.id)} aria-label={`${favorite ? "取消收藏" : "收藏"} ${character.name}`} aria-pressed={favorite}><Icon name={favorite ? "check" : "book"} size={16} /></button>
           </div>

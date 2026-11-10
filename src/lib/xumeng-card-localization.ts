@@ -15,6 +15,14 @@ type TranslationTable = Record<string, Partial<Record<XumengLocale, XumengCardTr
 const table = translations as TranslationTable;
 const loadedLocales = new Set<XumengLocale>(["zh-Hans"]);
 
+export function xumengCardTranslationsLoaded(locale: XumengLocale): boolean {
+  return locale === "zh-Hans" || loadedLocales.has(locale);
+}
+
+export function hasXumengCardTranslation(characterId: string, locale: XumengLocale): boolean {
+  return Boolean(table[characterId]?.[locale]);
+}
+
 /** Load the larger public-card translation shard only when a translated locale is selected. */
 export async function loadXumengCardTranslations(locale: XumengLocale): Promise<boolean> {
   if (locale === "zh-Hans" || loadedLocales.has(locale) || typeof fetch !== "function") return false;
@@ -67,4 +75,13 @@ export function sourceCharacterTag(character: Character, locale: XumengLocale, t
   const localized = localizedCharacterTags(character, locale);
   const index = localized.indexOf(tag);
   return index >= 0 ? character.tags[index] ?? tag : tag;
+}
+
+export function xumengLocalizedAuthorName(author: string, locale: XumengLocale): string {
+  if (author !== "叙梦管理员") return author;
+  if (locale === "en") return "XUMENG Admin";
+  if (locale === "ja") return "XUMENG管理者";
+  if (locale === "ko") return "XUMENG 관리자";
+  if (locale === "zh-Hant") return "叙夢管理員";
+  return author;
 }

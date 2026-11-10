@@ -124,7 +124,7 @@ import { fetchHomeBanners, type PublicHomeBanner } from "@/lib/home-banners-clie
 import ReplySuggestions from "./reply-suggestions";
 import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzmmPublishingMine, type DzmmLikeStats, type DzmmPublishingSubmission } from "@/lib/dzmm-publishing";
 import { XUMENG_LOCALES, resolveXumengLocale, xumengHtmlLang, xumengLocaleLabel, xumengTranslate, type XumengMessageKey } from "@/lib/xumeng-i18n";
-import { loadXumengCardTranslations, localizeCharacter, localizedCharacterTags, sourceCharacterTag } from "@/lib/xumeng-card-localization";
+import { hasXumengCardTranslation, loadXumengCardTranslations, localizeCharacter, localizedCharacterTags, sourceCharacterTag, xumengCardTranslationsLoaded, xumengLocalizedAuthorName } from "@/lib/xumeng-card-localization";
 import { xumengLocaleFromPathname, xumengLocalePathname, XUMENG_DEFAULT_LOCALE, type XumengLocale } from "@/lib/xumeng-i18n";
 import { XUMENG_TELEGRAM_GROUP_URL } from "@/lib/xumeng-links";
 import s from "./tavern.module.css";
@@ -1944,11 +1944,12 @@ export default function TavernApp() {
     else setNotice("这张卡没有署名作者，没有可打开的作者主页。");
   }
   function characterAuthorControl(character: Character) {
+    const displayAuthor = xumengLocalizedAuthorName(character.author, locale);
     const mark = <span className={s.authorAvatar}>{Array.from(character.author)[0] ?? ""}</span>;
     if (resolveCharacterAuthorTarget(authors, character).kind === "unsigned") {
-      return <span className={s.author}>{mark}{character.author}</span>;
+      return <span className={s.author}>{mark}{displayAuthor}</span>;
     }
-    return <button type="button" className={s.author} onClick={() => showCharacterAuthor(character)} aria-label={`查看作者 ${character.author}`}>{mark}{character.author}</button>;
+    return <button type="button" className={s.author} onClick={() => showCharacterAuthor(character)} aria-label={`查看作者 ${displayAuthor}`}>{mark}{displayAuthor}</button>;
   }
   function toggleFollow(character: Character) {
     const author = findCharacterAuthor(authors, character.id);
@@ -2501,7 +2502,16 @@ export default function TavernApp() {
   const shelfList = useMemo(() => {
     const rankedFeed = Boolean(rankQuery) && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢");
     const hideRanked = tab === "新手" || tab === "猜你喜欢" || tab === "榜单" || tab === "分类" || view === "search";
-    const remote = (rankedFeed && rankWaiting ? [] : publicShelf.characters).filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id)));
+    const translatedShelfReady = xumengCardTranslationsLoaded(locale);
+    const remote = (rankedFeed && rankWaiting ? [] : publicShelf.characters).filter((character) => {
+      if (!isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id))) {
+        if (locale !== XUMENG_DEFAULT_LOCALE && (character.sourceKind === "public-summary" || character.publication)) {
+          return translatedShelfReady && hasXumengCardTranslation(character.id, locale);
+        }
+        return true;
+      }
+      return false;
+    });
     const seen = new Set<string>();
     const pinLocal = view === "characters" && tab === "新手" && !rankedFeed;
     const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
@@ -2522,7 +2532,7 @@ export default function TavernApp() {
     if (!rankedFeed || !rankReady) return visible;
     const order = new Map(displayRecommendationIds.map((id, index) => [id, index]));
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
-  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, displayRecommendationIds, sortMode]);
+  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, displayRecommendationIds, sortMode, locale]);
   const relatedCards = useMemo(() => {
     if (!detail || relatedRank.status !== "ready") return [];
     const byId = new Map(characters.map((character) => [character.id, character]));
