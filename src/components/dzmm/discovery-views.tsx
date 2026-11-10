@@ -7,6 +7,8 @@ import type { Character } from "@/lib/dzmm-characters";
 import { coverShelfTags } from "@/lib/xumeng-shelf-tags";
 import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import type { DzmmPreferences } from "@/lib/dzmm-storage";
+import { localizeCharacter, sourceCharacterTag } from "@/lib/xumeng-card-localization";
+import type { XumengLocale } from "@/lib/xumeng-i18n";
 import {
   DZMM_DISCOVERY_CATEGORIES, filterDzmmCharacters, findCharacterAuthor, isDzmmCharacterBlocked,
   searchDzmmAuthors,
@@ -25,25 +27,26 @@ type CharacterCallbacks = {
   onTag?: (tag: string) => void;
 };
 
-function CharacterCards({ characters, authors, favorites, likes = [], onCharacter, onFavorite, onLike, onAuthor, onTag, single = false, userName, reasons, trackRecommendations = false }: CharacterCallbacks & {
+function CharacterCards({ characters, authors, favorites, likes = [], onCharacter, onFavorite, onLike, onAuthor, onTag, single = false, userName, reasons, trackRecommendations = false, locale = "zh-Hans" }: CharacterCallbacks & {
   characters: Character[]; authors: DzmmAuthor[]; favorites: string[]; likes?: string[]; onTag?: (tag: string) => void; single?: boolean; userName?: string;
-  reasons?: Readonly<Record<string, RecommendationReason>>; trackRecommendations?: boolean;
+  reasons?: Readonly<Record<string, RecommendationReason>>; trackRecommendations?: boolean; locale?: XumengLocale;
 }) {
   return <div className={`${s.cardGrid} ${single ? s.singleGrid : ""}`}>
     {characters.map((character, index) => {
+      const displayCharacter = localizeCharacter(character, locale);
       const author = findCharacterAuthor(authors, character.id);
       const favorite = favorites.includes(character.id);
       const liked = likes.includes(character.id);
-      const painted = coverShelfTags(character.tags, 2);
+      const painted = coverShelfTags(displayCharacter.tags, 2);
       const reason = reasons?.[character.id];
       const reasonLabel = recommendationReasonText(reason);
       return <article className={s.card} key={character.id} data-recommend-id={trackRecommendations ? character.id : undefined} data-recommend-position={trackRecommendations ? index : undefined}>
-        <CoverReel className={s.coverButton} character={character} count="corner" onOpen={() => onCharacter(character)}>
-          <span className={s.heat}><Icon name="flame" size={14} />{character.heat || "—"}</span>
+        <CoverReel className={s.coverButton} character={displayCharacter} count="corner" onOpen={() => onCharacter(character)}>
+          <span className={s.heat}><Icon name="flame" size={14} />{displayCharacter.heat || "—"}</span>
         </CoverReel>
-        {painted.length > 0 && <div className={s.coverTags}>{painted.map((tag) => onTag ? <button key={tag} type="button" onClick={() => onTag(tag)} aria-label={`只看${tag}`}>{tag}</button> : <span key={tag}>{tag}</span>)}</div>}
+        {painted.length > 0 && <div className={s.coverTags}>{painted.map((tag) => onTag ? <button key={tag} type="button" onClick={() => onTag(sourceCharacterTag(character, locale, tag))} aria-label={`只看${tag}`}>{tag}</button> : <span key={tag}>{tag}</span>)}</div>}
         <div className={s.cardBody}>
-          <button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, userName)}</p>{reasonLabel && <span className={s.reason}>{reasonLabel}</span>}</button>
+          <button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{displayCharacter.name}</h2><p>{getDzmmCharacterCardBlurb(displayCharacter, userName)}</p>{reasonLabel && <span className={s.reason}>{reasonLabel}</span>}</button>
           <div className={s.cardFooter}>
             {author ? <button className={s.authorLink} onClick={() => onAuthor(author)} aria-label={`查看作者 ${author.name}`}><span className={s.avatar}>{Array.from(author.name)[0] ?? ""}</span><span>{author.name}</span></button>
               : <span className={s.authorLink}><span className={s.avatar}>{Array.from(character.author)[0] ?? ""}</span><span>{character.author}</span></span>}
@@ -126,7 +129,7 @@ function ShelfMore({ more }: { more?: ShelfPage | null }) {
 
 export type CatalogDiscoveryProps = CharacterCallbacks & {
   characters: Character[]; authors: DzmmAuthor[]; favorites: string[]; likes?: string[];
-  preferences: DzmmPreferences; initialCategory?: string | null;
+  preferences: DzmmPreferences; initialCategory?: string | null; locale?: XumengLocale;
   onCategoryChange?: (slug: string | null) => void;
   filters?: CatalogDiscoveryFilters;
   onFiltersChange?: (filters: CatalogDiscoveryFilters) => void;
@@ -135,7 +138,7 @@ export type CatalogDiscoveryProps = CharacterCallbacks & {
   trackRecommendations?: boolean;
 };
 
-export function CatalogDiscovery({ characters, authors, favorites, likes, preferences, initialCategory, onCategoryChange, filters: controlledFilters, onFiltersChange, onTag, more, reasons, trackRecommendations, ...callbacks }: CatalogDiscoveryProps) {
+export function CatalogDiscovery({ characters, authors, favorites, likes, preferences, initialCategory, locale = "zh-Hans", onCategoryChange, filters: controlledFilters, onFiltersChange, onTag, more, reasons, trackRecommendations, ...callbacks }: CatalogDiscoveryProps) {
   const [localCategory, setCategory] = useState<string | null>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const tagPickerRef = useRef<HTMLElement | null>(null);
@@ -195,14 +198,14 @@ export function CatalogDiscovery({ characters, authors, favorites, likes, prefer
         <label className={s.filterSearch}><Icon name="search" size={17} /><input aria-label={`搜索 ${selected?.name ?? "分类"} 角色`} maxLength={DZMM_CATEGORY_QUERY_MAX_LENGTH} value={query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder="搜索角色、作者或标签" /></label>
       </div>
       {sort === "likes" && <p className={s.filterNote}>按已收录的点赞记录排序，未知记录排在后面。</p>}
-      {more?.loading && filtered.length === 0 ? <p className={s.loading} role="status">正在加载角色…</p> : filtered.length ? <><CharacterCards characters={filtered} authors={authors} favorites={favorites} likes={likes} onTag={onTag} single={preferences.homeLayout === "single"} userName={preferences.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="这个分类还没有相关角色" description={query ? "试试其他关键词，或清除时间和标签筛选。" : "目前没有收录符合筛选条件的角色。"} />{more?.hasMore && <ShelfMore more={listedMore} />}</>}
+      {more?.loading && filtered.length === 0 ? <p className={s.loading} role="status">正在加载角色…</p> : filtered.length ? <><CharacterCards characters={filtered} authors={authors} favorites={favorites} likes={likes} onTag={onTag} locale={locale} single={preferences.homeLayout === "single"} userName={preferences.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="这个分类还没有相关角色" description={query ? "试试其他关键词，或清除时间和标签筛选。" : "目前没有收录符合筛选条件的角色。"} />{more?.hasMore && <ShelfMore more={more} />}</>}
     </>}
   </main>;
 }
 
 export type SearchResultsProps = CharacterCallbacks & {
   query: string; characters: Character[]; authors: DzmmAuthor[]; favorites: string[]; likes?: string[];
-  preferences?: DzmmPreferences;
+  preferences?: DzmmPreferences; locale?: XumengLocale;
   onTopic?: (topic: DzmmForumTopic) => void;
   searchTopics?: (query: string, signal: AbortSignal) => Promise<DzmmForumTopic[]>;
   more?: ShelfPage | null;
@@ -210,7 +213,7 @@ export type SearchResultsProps = CharacterCallbacks & {
   trackRecommendations?: boolean;
 };
 
-export function SearchResults({ query, characters, authors, favorites, likes, preferences, onTopic, searchTopics, more, reasons, trackRecommendations, ...callbacks }: SearchResultsProps) {
+export function SearchResults({ query, characters, authors, favorites, likes, preferences, locale = "zh-Hans", onTopic, searchTopics, more, reasons, trackRecommendations, ...callbacks }: SearchResultsProps) {
   const [tab, setTab] = useState<"characters" | "authors" | "topics">("characters");
   const [retry, setRetry] = useState(0);
   const [topicResult, setTopicResult] = useState<{ query: string; retry: number; topics: DzmmForumTopic[]; error: string }>({ query: "", retry: -1, topics: [], error: "" });
@@ -238,7 +241,7 @@ export function SearchResults({ query, characters, authors, favorites, likes, pr
       {searchTopics && <button role="tab" aria-selected={tab === "topics"} className={tab === "topics" ? s.activeTab : ""} onClick={() => setTab("topics")}>主题</button>}
     </div>
     {!query.trim() ? <Empty title="输入关键词开始搜索" description={searchTopics ? "可以查找角色、已收录作者和站内主题。" : "可以查找角色和已收录作者。"} /> : <>
-      {tab === "characters" && (more?.loading && matchingCharacters.length === 0 ? <p className={s.loading} role="status">正在搜索角色…</p> : matchingCharacters.length ? <><CharacterCards characters={matchingCharacters} authors={authors} favorites={favorites} likes={likes} single={preferences?.homeLayout === "single"} userName={preferences?.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="没有找到相关角色" description="试试角色名称、作者名或其他标签。" />{more?.hasMore && <ShelfMore more={listedMore} />}</>)}
+      {tab === "characters" && (more?.loading && matchingCharacters.length === 0 ? <p className={s.loading} role="status">正在搜索角色…</p> : matchingCharacters.length ? <><CharacterCards characters={matchingCharacters} authors={authors} favorites={favorites} likes={likes} locale={locale} single={preferences?.homeLayout === "single"} userName={preferences?.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="没有找到相关角色" description="试试角色名称、作者名或其他标签。" />{more?.hasMore && <ShelfMore more={listedMore} />}</>)}
       {tab === "authors" && (matchingAuthors.length ? <div className={s.authorGrid}>{matchingAuthors.map((author) => <button className={s.authorCard} key={author.id} onClick={() => callbacks.onAuthor(author)}><span className={s.largeAvatar}>{Array.from(author.name)[0] ?? ""}</span><span><strong>{author.name}</strong><small>{author.characterIds.length} 个已收录作品</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="没有找到相关用户" description="目前只显示已收录角色的作者资料。" />)}
       {tab === "topics" && (loading ? <p className={s.loading} role="status">正在搜索主题…</p> : error ? <div className={s.empty}><p role="alert">{error}</p><button className={s.outline} onClick={() => setRetry((value) => value + 1)}>重试</button></div> : topics.length ? <div className={s.topicList}>{topics.map((topic) => <button className={s.topic} key={topic.id} onClick={() => onTopic?.(topic)} disabled={!onTopic}><span className={s.topicMeta}>{topic.author || "站内用户"}{topic.category && ` · ${topic.category}`}</span><h2>{topic.title}</h2>{topic.body && <p>{topic.body}</p>}<span className={s.topicRead}>查看主题 <Icon name="chevron" size={15} /></span></button>)}</div> : <Empty title="没有找到相关主题" description={searchTopics ? "换一个关键词试试。" : "主题搜索尚未连接。"} />)}
     </>}

@@ -124,7 +124,7 @@ import { fetchHomeBanners, type PublicHomeBanner } from "@/lib/home-banners-clie
 import ReplySuggestions from "./reply-suggestions";
 import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzmmPublishingMine, type DzmmLikeStats, type DzmmPublishingSubmission } from "@/lib/dzmm-publishing";
 import { XUMENG_LOCALES, resolveXumengLocale, xumengHtmlLang, xumengLocaleLabel, xumengTranslate, type XumengMessageKey } from "@/lib/xumeng-i18n";
-import { loadXumengCardTranslations, localizeCharacter, localizedCharacterTags } from "@/lib/xumeng-card-localization";
+import { loadXumengCardTranslations, localizeCharacter, localizedCharacterTags, sourceCharacterTag } from "@/lib/xumeng-card-localization";
 import { xumengLocaleFromPathname, xumengLocalePathname, XUMENG_DEFAULT_LOCALE, type XumengLocale } from "@/lib/xumeng-i18n";
 import { XUMENG_TELEGRAM_GROUP_URL } from "@/lib/xumeng-links";
 import s from "./tavern.module.css";
@@ -875,11 +875,22 @@ export default function TavernApp() {
     setAccountMode("register");
   }, [pendingInvite, loaded, cloud.authBusy, cloud.user?.isGuest]);
   useEffect(() => {
-    if (!loaded || cloud.authBusy || state.preferences.locale || typeof navigator === "undefined") return;
-    const detected = resolveXumengLocale(undefined, navigator.languages);
-    if (detected === "zh-Hans") return;
-    setState(previous => previous.preferences.locale ? previous : { ...previous, preferences: { ...previous.preferences, locale: detected } });
-  }, [loaded, cloud.authBusy, state.preferences.locale, setState]);
+    if (!loaded || cloud.authBusy || routeLocale || state.preferences.locale) return;
+    let active = true;
+    const apply = (detected: XumengLocale | null) => {
+      if (!active || !detected || detected === "zh-Hans") return;
+      setState(previous => previous.preferences.locale ? previous : { ...previous, preferences: { ...previous.preferences, locale: detected } });
+    };
+    void fetch("/api/dzmm/region", { cache: "no-store" }).then(async response => {
+      if (!response.ok) return null;
+      const payload = await response.json() as { locale?: unknown };
+      return typeof payload.locale === "string" ? resolveXumengLocale(payload.locale) : null;
+    }).catch(() => null).then(detected => {
+      if (detected) apply(detected);
+      else if (typeof navigator !== "undefined") apply(resolveXumengLocale(undefined, navigator.languages));
+    });
+    return () => { active = false; };
+  }, [loaded, cloud.authBusy, routeLocale, state.preferences.locale, setState]);
   useEffect(() => {
     if (!loaded || cloud.authBusy || !routeLocale || state.preferences.locale === routeLocale) return;
     setState(previous => previous.preferences.locale === routeLocale ? previous : { ...previous, preferences: { ...previous.preferences, locale: routeLocale } });
@@ -2881,7 +2892,11 @@ export default function TavernApp() {
                     data-recommend-id={recommendPositions?.has(item.character.id) ? item.character.id : undefined}
                     data-recommend-position={recommendPositions?.get(item.character.id)}
                   >
-                    <CoverReel className={s.coverButton} character={localizeCharacter(item.character, locale)} onOpen={() => showDetail(item.character)}>
+                    {(() => {
+                      const displayCharacter = localizeCharacter(item.character, locale);
+                      const displayTags = coverShelfTags(displayCharacter.tags, 2);
+                      return <>
+                    <CoverReel className={s.coverButton} character={displayCharacter} onOpen={() => showDetail(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
                         {item.character.heat || "—"}
@@ -2890,14 +2905,14 @@ export default function TavernApp() {
                         <span className={s.localBadge}>我的角色</span>
                       )}
                     </CoverReel>
-                    {coverShelfTags(item.character.tags, 2).length > 0 && <div className={s.coverTags}>{coverShelfTags(item.character.tags, 2).map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([tag]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
+                    {displayTags.length > 0 && <div className={s.coverTags}>{displayTags.map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([sourceCharacterTag(item.character, locale, tag)]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                     <div className={s.cardBody}>
                       <button
                         className={s.cardText}
                         onClick={() => showDetail(item.character)}
                       >
-                        <h2>{localizeCharacter(item.character, locale).name}</h2>
-                        <p>{getDzmmCharacterCardBlurb(localizeCharacter(item.character, locale), playUserName)}</p>
+                        <h2>{displayCharacter.name}</h2>
+                        <p>{getDzmmCharacterCardBlurb(displayCharacter, playUserName)}</p>
                         {showRecommendationReasons && recommendationReasonText(recommendation.reasons[item.character.id]) && <span className={s.reason}>{recommendationReasonText(recommendation.reasons[item.character.id])}</span>}
                       </button>
                       <div className={s.cardFooter}>
@@ -2905,7 +2920,7 @@ export default function TavernApp() {
                         <button
                           className={likedForCurrentAccount.includes(item.character.id) ? s.liked : s.like}
                           onClick={() => toggleLike(item.character.id)}
-                          aria-label={`${likedForCurrentAccount.includes(item.character.id) ? "取消点赞" : "点赞"} ${localizeCharacter(item.character, locale).name}`}
+                          aria-label={`${likedForCurrentAccount.includes(item.character.id) ? "取消点赞" : "点赞"} ${displayCharacter.name}`}
                           aria-pressed={likedForCurrentAccount.includes(item.character.id)}
                         >
                           <Icon name="heart" size={15} />
@@ -2921,6 +2936,8 @@ export default function TavernApp() {
                         </button>
                       </div>
                     </div>
+                      </>;
+                    })()}
                   </article>
                 );
 
@@ -3634,7 +3651,7 @@ export default function TavernApp() {
       {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} onEmailBound={cloud.emailBound} />}
       {view === "presets" && !detail && <PresetLibrary key={profileUser.id} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} />}
       {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={[...characters, ...publicShelf.characters]} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : publicShelf.loading ? <main className={s.profileEmpty}><p>正在加载作者…</p></main> : <main className={s.profileEmpty}><p>没有找到这位作者。</p><button className={s.secondary} onClick={() => navigate("characters")}>返回角色广场</button></main>)}
-      {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }} reasons={showRecommendationReasons ? recommendation.reasons : undefined} trackRecommendations={rankReady} searchTopics={XUMENG_FORUM_ENABLED ? searchForumTopics : undefined} onTopic={XUMENG_FORUM_ENABLED ? (topic) => showForumPost(topic.id) : undefined} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
+      {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} locale={locale} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }} reasons={showRecommendationReasons ? recommendation.reasons : undefined} trackRecommendations={rankReady} searchTopics={XUMENG_FORUM_ENABLED ? searchForumTopics : undefined} onTopic={XUMENG_FORUM_ENABLED ? (topic) => showForumPost(topic.id) : undefined} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
       {view === "forum" && !detail && XUMENG_FORUM_ENABLED && <ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={shelfList} onCharacter={showDetail} shelfMore={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, onLoad: publicShelf.loadMore }} />}
       {view === "admin" && !detail && <AdminDashboard key={`${cloud.user?.id}:${cloud.user?.role}`} user={cloud.user} onRequireAccount={() => openAccount("login")} onAccountChanged={() => setBillingRefresh(value => value + 1)}
         publishingReview={<PublishingCenter key={`review:${profileUser.id}`} admin user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("login")} onCatalogChanged={cloud.refreshCatalog} onNovels={() => navigate("novels")} />}

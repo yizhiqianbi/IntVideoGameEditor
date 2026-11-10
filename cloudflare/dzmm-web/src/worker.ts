@@ -25,6 +25,7 @@ import { getXumengPaymentInfoPage, renderXumengPaymentInfoPage, XUMENG_PAYMENT_I
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { AiapiError, runAiapiJob, sniffAiapiBytes } from "../../../src/lib/aiapi-channel";
 import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availability";
+import { xumengLocaleFromCountry } from "../../../src/lib/xumeng-region";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
 import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
 import { sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
@@ -1227,6 +1228,11 @@ export async function fetchRequest(
         || path === "/api/payments/zpay/subscription/notify" || path === "/api/payments/zpay/subscription/return"
         || /^\/api\/payments\/zpay\/subscription\/checkout\/sp_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(path)) {
         return await zpayPayment(request, env, path);
+      }
+      if (path === "/api/dzmm/region") {
+        if (request.method !== "GET") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET" });
+        const country = (request as Request & { cf?: { country?: string } }).cf?.country ?? request.headers.get("CF-IPCountry");
+        return json({ country: country?.toUpperCase() ?? null, locale: xumengLocaleFromCountry(country) ?? "zh-Hans" });
       }
       const translationLocale = /^\/api\/dzmm\/translations\/(en|zh-Hant|ja|ko)$/.exec(path)?.[1];
       if (translationLocale) {

@@ -62,3 +62,9 @@ export function localizedCharacterTags(character: Character, locale: XumengLocal
     ? translation.tags.map((tag, index) => nonEmpty(tag, character.tags[index] ?? ""))
     : character.tags;
 }
+
+export function sourceCharacterTag(character: Character, locale: XumengLocale, tag: string): string {
+  const localized = localizedCharacterTags(character, locale);
+  const index = localized.indexOf(tag);
+  return index >= 0 ? character.tags[index] ?? tag : tag;
+}
