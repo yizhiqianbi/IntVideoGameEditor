@@ -1,5 +1,5 @@
-import { KREA2_STYLES } from "./xumeng-krea2-styles.ts";
-import { STUDIO_STILL_CREDITS } from "./xumeng-studio-still-billing.ts";
+import { KREA2_STYLES } from "./xumeng-krea2-styles";
+import { STUDIO_STILL_CREDITS } from "./xumeng-studio-still-billing";
 
 const TEMPLATE_ID = /^krea2-[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const STYLE_IDS = new Set<string>(KREA2_STYLES.map(item => item.id));

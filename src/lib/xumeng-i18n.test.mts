@@ -12,6 +12,8 @@ const {
   xumengHtmlLang,
   xumengLocaleInstruction,
   xumengLocaleLabel,
+  xumengLocaleFromPathname,
+  xumengLocalePathname,
   xumengTranslate,
 } = i18n as typeof import("./xumeng-i18n");
 
@@ -37,4 +39,13 @@ test("every supported locale has complete shell copy and document metadata", () 
     assert.ok(xumengLocaleInstruction(locale));
     assert.ok(xumengTranslate(locale, "navPlay"));
   }
+});
+
+test("locale routes keep shared card links and expose prompt prefixes", () => {
+  assert.equal(xumengLocaleFromPathname("/jp/c/demo"), "ja");
+  assert.equal(xumengLocaleFromPathname("/zh-tw/c/demo"), "zh-Hant");
+  assert.equal(xumengLocalePathname("/c/demo", "ja"), "/jp/c/demo");
+  assert.equal(xumengLocalePathname("/jp/c/demo", "zh-Hans"), "/c/demo");
+  assert.match(xumengLocaleInstruction("ja"), /\/jp/);
+  assert.match(xumengLocaleInstruction("zh-Hant"), /\/zh-tw/);
 });

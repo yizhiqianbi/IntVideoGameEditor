@@ -1,4 +1,4 @@
-import { STUDIO_STILL_CREDITS } from "./xumeng-studio-still-billing.ts";
+import { STUDIO_STILL_CREDITS } from "./xumeng-studio-still-billing";
 
 const STILL_TYPES = ["image/png", "image/jpeg", "image/webp"];
 

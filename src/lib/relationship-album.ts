@@ -1,4 +1,4 @@
-import { shanghaiDayKey } from "./shanghai-time.ts";
+import { shanghaiDayKey } from "./shanghai-time";
 
 export type RelationshipAlbumKind = "image" | "video";
 export type RelationshipAlbumItem = {

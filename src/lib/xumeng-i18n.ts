@@ -19,14 +19,16 @@ export type XumengLocaleOption = {
   readonly label: string;
   /** BCP 47 language tag used for document.lang and Intl. */
   readonly htmlLang: string;
+  /** Short URL segment used in shared language routes and prompt hints. */
+  readonly routePrefix: string;
 };
 
 export const XUMENG_LOCALE_OPTIONS: readonly XumengLocaleOption[] = Object.freeze([
-  { locale: "en", label: "English", htmlLang: "en-US" },
-  { locale: "zh-Hans", label: "简体中文", htmlLang: "zh-CN" },
-  { locale: "zh-Hant", label: "繁體中文", htmlLang: "zh-TW" },
-  { locale: "ja", label: "日本語", htmlLang: "ja-JP" },
-  { locale: "ko", label: "한국어", htmlLang: "ko-KR" },
+  { locale: "en", label: "English", htmlLang: "en-US", routePrefix: "en" },
+  { locale: "zh-Hans", label: "简体中文", htmlLang: "zh-CN", routePrefix: "zh-cn" },
+  { locale: "zh-Hant", label: "繁體中文", htmlLang: "zh-TW", routePrefix: "zh-tw" },
+  { locale: "ja", label: "日本語", htmlLang: "ja-JP", routePrefix: "jp" },
+  { locale: "ko", label: "한국어", htmlLang: "ko-KR", routePrefix: "ko" },
 ]);
 
 const localeSet = new Set<XumengLocale>(XUMENG_LOCALES);
@@ -81,13 +83,35 @@ export function xumengHtmlLang(locale: XumengLocale): string {
   return xumengLocaleOption(locale).htmlLang;
 }
 
-/** Language hint for character replies. Card content itself is never translated. */
+export function xumengLocaleRoutePrefix(locale: XumengLocale): string {
+  return xumengLocaleOption(locale).routePrefix;
+}
+
+export function xumengLocaleFromPathname(pathname: string): XumengLocale | null {
+  const segment = pathname.replace(/^\/+/, "").split("/", 1)[0]?.toLowerCase() ?? "";
+  if (segment === "jp") return "ja";
+  return normalizeXumengLocale(segment);
+}
+
+/** Convert /xumeng or /c/:id into the canonical locale-prefixed route. */
+export function xumengLocalePathname(pathname: string, locale: XumengLocale): string {
+  let path = pathname || "/xumeng";
+  if (!path.startsWith("/")) path = `/${path}`;
+  const routeLocale = xumengLocaleFromPathname(path);
+  if (routeLocale) path = path.replace(/^\/[^/]+(?=\/|$)/, "") || "/";
+  if (path === "/xumeng") path = "/";
+  else if (path.startsWith("/xumeng/")) path = path.slice("/xumeng".length);
+  if (locale === XUMENG_DEFAULT_LOCALE) return path === "/" ? "/xumeng" : path;
+  return `/${xumengLocaleRoutePrefix(locale)}${path === "/" ? "" : path}`;
+}
+
+/** Language hint for character replies and localized card variants. */
 const LOCALE_INSTRUCTIONS: Readonly<Record<XumengLocale, string>> = Object.freeze({
-  en: "Respond in English unless the user asks for another language.",
-  "zh-Hans": "请使用简体中文回复，除非用户指定其他语言。",
-  "zh-Hant": "請使用繁體中文回覆，除非使用者指定其他語言。",
-  ja: "ユーザーが別の言語を指定しない限り、日本語で返信してください。",
-  ko: "사용자가 다른 언어를 지정하지 않는 한 한국어로 답변하세요.",
+  en: "Language route: /en. Respond in English unless the user asks for another language.",
+  "zh-Hans": "语言路由：/zh-cn。请使用简体中文回复，除非用户指定其他语言。",
+  "zh-Hant": "語言路由：/zh-tw。請使用繁體中文回覆，除非使用者指定其他語言。",
+  ja: "言語ルート：/jp。ユーザーが別の言語を指定しない限り、日本語で返信してください。",
+  ko: "언어 경로: /ko. 사용자가 다른 언어를 지정하지 않는 한 한국어로 답변하세요.",
 });
 
 export function xumengLocaleInstruction(locale: XumengLocale): string {

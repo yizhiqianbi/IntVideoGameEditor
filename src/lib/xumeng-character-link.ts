@@ -7,5 +7,5 @@ export function characterSharePath(id: string): string | null {
 
 export function characterLinkId(pathname: string): string | null {
   try { pathname = decodeURIComponent(pathname); } catch { return null; }
-  return pathname.replace(/\/+$/, "").toLowerCase().match(/^\/c\/([a-z0-9][a-z0-9-]{0,119})$/)?.[1] ?? null;
+  return pathname.replace(/\/+$/, "").toLowerCase().match(/^(?:\/(?:en|zh-cn|zh-tw|jp|ko))?\/c\/([a-z0-9][a-z0-9-]{0,119})$/)?.[1] ?? null;
 }

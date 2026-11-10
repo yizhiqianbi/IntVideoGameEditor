@@ -8,6 +8,17 @@ const COOP_COEP_HEADERS = [
 const nextConfig: NextConfig = {
   async rewrites() {
     return [
+      { source: "/c/:id", destination: "/xumeng" },
+      { source: "/en", destination: "/xumeng" },
+      { source: "/en/:path*", destination: "/xumeng" },
+      { source: "/zh-cn", destination: "/xumeng" },
+      { source: "/zh-cn/:path*", destination: "/xumeng" },
+      { source: "/zh-tw", destination: "/xumeng" },
+      { source: "/zh-tw/:path*", destination: "/xumeng" },
+      { source: "/jp", destination: "/xumeng" },
+      { source: "/jp/:path*", destination: "/xumeng" },
+      { source: "/ko", destination: "/xumeng" },
+      { source: "/ko/:path*", destination: "/xumeng" },
       {
         source: "/assets/xumeng/:path*",
         destination: "/dzmm/:path*",

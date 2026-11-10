@@ -56,7 +56,7 @@ import {
 } from "@/lib/dzmm-storage";
 import { dzmmCloudRequest, uploadDzmmCover, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
 import { fetchDzmmPlayMaterials, fetchDzmmPublicCharacter } from "@/lib/dzmm-publishing";
-import { isDzmmListPreview, orderDzmmShelfByTime, xumengPlayCatalogSort, xumengPlaySortSelection, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
+import { isDzmmListPreview, orderDzmmShelfByTime, xumengPlayCatalogSort, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
 import { dzmmBundledPlayableCharacter } from "@/lib/load-dzmm-bundled-cards";
 import { dzmmDeferredIntroductionCharacter } from "@/lib/load-dzmm-public-introductions";
 import { isDzmmDeferredAiArchiveId } from "@/lib/dzmm-ai-archive-ids";
@@ -109,7 +109,7 @@ import { usePerformanceCharacters } from "./use-performance-characters";
 import { xumengPerformanceFromCard, type XumengPerformanceCharacter } from "@/lib/xumeng-performance-character";
 import { buildXumengLiveConversationHandoff } from "@/lib/xumeng-live-conversation";
 import { xumengVideoDramaIdFromRoute } from "@/lib/xumeng-video-catalog";
-import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_FORUM_ENABLED, XUMENG_FORUM_LOCKED_MESSAGE, XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
+import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_CHARACTER_VOICE_ENABLED, XUMENG_FORUM_ENABLED, XUMENG_FORUM_LOCKED_MESSAGE, XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
 import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
 import { SignupWelcome } from "./signup-welcome";
 import { ChatMediaProvider, ChatMessageMedia } from "./chat-message-media";
@@ -122,8 +122,10 @@ import { dzmmReplySuggestionPrefixKeys, dzmmReplySuggestionSettingsKey, fetchDzm
 import { DZMM_REPLY_SUGGESTIONS_PROMPT_VERSION } from "@/lib/dzmm-reply-suggestions";
 import { fetchHomeBanners, type PublicHomeBanner } from "@/lib/home-banners-client";
 import ReplySuggestions from "./reply-suggestions";
-import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzmmPublishingMine, type DzmmPublishingSubmission } from "@/lib/dzmm-publishing";
+import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzmmPublishingMine, type DzmmLikeStats, type DzmmPublishingSubmission } from "@/lib/dzmm-publishing";
 import { XUMENG_LOCALES, resolveXumengLocale, xumengHtmlLang, xumengLocaleLabel, xumengTranslate, type XumengMessageKey } from "@/lib/xumeng-i18n";
+import { loadXumengCardTranslations, localizeCharacter, localizedCharacterTags } from "@/lib/xumeng-card-localization";
+import { xumengLocaleFromPathname, xumengLocalePathname, XUMENG_DEFAULT_LOCALE, type XumengLocale } from "@/lib/xumeng-i18n";
 import { XUMENG_TELEGRAM_GROUP_URL } from "@/lib/xumeng-links";
 import s from "./tavern.module.css";
 
@@ -167,7 +169,10 @@ function prefetchRoute(target: string) {
   else if (target === "videos" || xumengVideoDramaIdFromRoute(target)) void import("./video-channel");
   else if (target === "live") void import("./minicpm-phone");
   else if (target === "voice") void import("./voice-studio");
-  else if (target === "generation") void import(XUMENG_GENERATION_WORKSPACE_ENABLED ? "./generation-studio" : "./generation-history");
+  else if (target === "generation") {
+    if (XUMENG_GENERATION_WORKSPACE_ENABLED) void import("./generation-studio");
+    else void import("./generation-history");
+  }
   else if (target === "tasks") void import("./task-hub");
   else if (target === "app") void import("./install-app");
   else if (target === "recharge" || target === "vip") void import("./recharge");
@@ -201,6 +206,15 @@ function browseTagName(id: string): string {
   if (id === "anime") return "动漫";
   return DZMM_DISCOVERY_CATEGORIES.find((item) => item.slug === id)?.name ?? id;
 }
+type CoverTagTone = "rose" | "violet" | "gold" | "blue" | "plum";
+function coverTagTone(tag: string): CoverTagTone {
+  const value = tag.trim().toLowerCase();
+  if (/(病娇|抖s|女王|支配|强势|人妻|熟女|成人|性瘾|巨乳|反差|暧昧|暗恋)/u.test(value)) return "rose";
+  if (/(战斗|冒险|超英|修仙|异世界|魔法|大世界|游戏)/u.test(value)) return "violet";
+  if (/(温柔|治愈|陪伴|日常|乡村|校园)/u.test(value)) return "gold";
+  if (/(权力|职场|模拟|悬疑|推理|科幻)/u.test(value)) return "blue";
+  return "plum";
+}
 function readStoredBrowseSelection(): string[] {
   const stored: string[] = [];
   if (typeof window !== "undefined") {
@@ -222,6 +236,28 @@ function readStoredBrowseSelection(): string[] {
   }
   return unique.slice(0, BROWSE_TAG_LIMIT);
 }
+
+function recommendationRandomSeed(): number {
+  return Math.floor(Math.random() * 0x1_0000_0000) >>> 0;
+}
+
+function recommendationShuffleHash(id: string, seed: number): number {
+  let hash = (seed ^ 0x811c9dc5) >>> 0;
+  for (let index = 0; index < id.length; index += 1) {
+    hash ^= id.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash;
+}
+
+/** Keep a few strong cards at the front while changing the exploration set on every refresh. */
+function shuffleHomeRecommendationIds(ids: readonly string[], seed: number): string[] {
+  const stable = ids.slice(0, 6);
+  const exploratory = ids.slice(6).map((id, index) => ({ id, index, hash: recommendationShuffleHash(id, seed) }));
+  exploratory.sort((left, right) => left.hash - right.hash || left.index - right.index);
+  return [...stable, ...exploratory.map((item) => item.id)];
+}
+
 function subscribeCoarsePointer(onChange: () => void) {
   const query = window.matchMedia(COARSE_POINTER);
   query.addEventListener("change", onChange);
@@ -455,6 +491,8 @@ export default function TavernApp() {
   const [guestGate, setGuestGate] = useState<{ character: Character; stage: "account" | "welcome" | "open" } | null>(null);
   const [pendingInvite, setPendingInvite] = useState("");
   const [view, setView] = useState<View>("characters");
+  const [routeLocale, setRouteLocale] = useState<XumengLocale | null>(() => typeof window === "undefined" ? null : xumengLocaleFromPathname(window.location.pathname));
+  const [, setCardTranslationRevision] = useState(0);
   const [tab, setTab] = useState("新手");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [appliedTags, setAppliedTags] = useState<string[]>(readStoredBrowseSelection);
@@ -483,9 +521,9 @@ export default function TavernApp() {
     return () => { live = false; };
   }, []);
   const [query, setQuery] = useState("");
-  const [sortMode, setSortMode] = useState<"recommended" | "heat" | "likes" | "updated" | "name">("recommended");
+  const [sortMode] = useState<"recommended" | "heat" | "likes" | "updated" | "name">("recommended");
   const [rankingPeriod, setRankingPeriod] = useState<"day" | "week" | "all">("week");
-  const [recommendEpoch, setRecommendEpoch] = useState(0);
+  const [recommendEpoch, setRecommendEpoch] = useState(recommendationRandomSeed);
   const [localHidden, setLocalHidden] = useState<string[]>([]);
   const [recommendation, setRecommendation] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error"; key: string }>({ status: "idle", key: "", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
   const [relatedRank, setRelatedRank] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error" }>({ status: "idle", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
@@ -659,10 +697,14 @@ export default function TavernApp() {
   const rankReady = canRank && Boolean(rankQuery) && recommendation.status === "ready" && recommendation.key === rankKey;
   const rankFailed = canRank && Boolean(rankQuery) && recommendation.status === "error" && recommendation.key === rankKey;
   const rankWaiting = canRank && Boolean(rankQuery) && !rankReady && !rankFailed;
+  const displayRecommendationIds = useMemo(() => {
+    if (!rankReady || rankQuery?.surface !== "home") return recommendation.ids;
+    return shuffleHomeRecommendationIds(recommendation.ids, recommendEpoch);
+  }, [rankReady, rankQuery?.surface, recommendation.ids, recommendEpoch]);
   const shelfRequest = useMemo((): DzmmCatalogRequest | null => {
     const authorKey = /^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/;
     const scoped = (request: DzmmCatalogRequest): DzmmCatalogRequest => look ? { ...request, look } : request;
-    const rankedIds = rankReady ? recommendation.ids : null;
+    const rankedIds = rankReady ? displayRecommendationIds : null;
     if (view === "search") return rankedIds ? scoped({ ids: rankedIds, sort: "hot" }) : scoped({ q: deferredQuery, sort: "hot" });
     if (view === "author" && authorId && authorKey.test(authorId)) return scoped({ authorIds: [authorId], sort: "new" });
     if (view === "forum") return scoped({ sort: "hot" });
@@ -689,7 +731,7 @@ export default function TavernApp() {
       return scoped({ ids: recommendation.ids, sort: "hot", tags: shelfTags });
     }
     return scoped({ tags: selectedShelfTags(genres), sort: xumengPlayCatalogSort(tab, sortMode) });
-  }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, rankFailed, sortMode, genres, look]);
+  }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, rankFailed, sortMode, genres, look, displayRecommendationIds]);
   const publicShelf = usePublicCharacterShelf(shelfRequest);
   const rememberCharacter = (character: Character) => {
     setResolvedCards((previous) => {
@@ -794,13 +836,23 @@ export default function TavernApp() {
     return () => media.removeEventListener("change", update);
   }, []);
   const dark = state.preferences.theme === "system" ? systemDark : state.preferences.theme ? state.preferences.theme === "dark" : state.preferences.dark;
-  const locale = state.preferences.locale ?? "zh-Hans";
+  const locale = routeLocale ?? state.preferences.locale ?? XUMENG_DEFAULT_LOCALE;
   const t = (key: XumengMessageKey) => xumengTranslate(locale, key);
   const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
   useEffect(() => {
     document.documentElement.lang = xumengHtmlLang(locale);
+    const pathname = window.location.pathname;
+    const nextPath = xumengLocalePathname(pathname, locale);
+    if (nextPath !== pathname) window.history.replaceState(window.history.state, "", `${nextPath}${window.location.search}${window.location.hash}`);
+  }, [locale]);
+  useEffect(() => {
+    let active = true;
+    void loadXumengCardTranslations(locale).then((loaded) => {
+      if (active && loaded) setCardTranslationRevision((revision) => revision + 1);
+    });
+    return () => { active = false; };
   }, [locale]);
   const invitePrompted = useRef(false);
   useEffect(() => {
@@ -828,6 +880,10 @@ export default function TavernApp() {
     if (detected === "zh-Hans") return;
     setState(previous => previous.preferences.locale ? previous : { ...previous, preferences: { ...previous.preferences, locale: detected } });
   }, [loaded, cloud.authBusy, state.preferences.locale, setState]);
+  useEffect(() => {
+    if (!loaded || cloud.authBusy || !routeLocale || state.preferences.locale === routeLocale) return;
+    setState(previous => previous.preferences.locale === routeLocale ? previous : { ...previous, preferences: { ...previous.preferences, locale: routeLocale } });
+  }, [loaded, cloud.authBusy, routeLocale, state.preferences.locale, setState]);
   const profileUser = cloud.user ?? { id: "offline", nickname: state.preferences.nickname, isGuest: true, role: "user" };
   const playUserName = state.preferences.nickname.trim() || cloud.user?.nickname.trim() || "";
   const likedForCurrentAccount = loaded && !cloud.authBusy
@@ -903,7 +959,10 @@ export default function TavernApp() {
   if (authorRecord) authorHold.current = authorRecord;
   else if (authorHold.current?.id !== authorId) authorHold.current = null;
   const selectedAuthor = authorRecord ?? authorHold.current;
-  function savePreferences(preferences: Preferences) { setState((previous) => ({ ...previous, preferences })); }
+  function savePreferences(preferences: Preferences) {
+    setRouteLocale(preferences.locale && preferences.locale !== XUMENG_DEFAULT_LOCALE ? preferences.locale : null);
+    setState((previous) => ({ ...previous, preferences }));
+  }
   const studioCharacterId = view === "studio-edit" && editor && editor !== "new" ? editor.id : null;
   const studioAccountId = cloud.user?.id;
   const studioAccountIsGuest = cloud.user?.isGuest;
@@ -989,6 +1048,32 @@ export default function TavernApp() {
     const timer = setTimeout(() => setNotice(""), 4000);
     return () => clearTimeout(timer);
   }, [notice]);
+  const detailId = detail?.id;
+  const detailIsPublic = Boolean(detail?.publication) || Boolean(detail && isDzmmListPreview(detail));
+  useEffect(() => {
+    if (!detailId || !detailIsPublic) return;
+    const targetId = detailId;
+    let stopped = false;
+    let request: AbortController | null = null;
+    const refresh = async () => {
+      request?.abort();
+      request = new AbortController();
+      try {
+        const [fresh, stats] = await Promise.all([
+          fetchDzmmPublicCharacter(targetId, request.signal),
+          cloud.user?.id ? fetchDzmmLikeStats([targetId], request.signal) : Promise.resolve<DzmmLikeStats>({}),
+        ]);
+        if (stopped) return;
+        rememberCharacter(fresh);
+        setDetail(current => current?.id === targetId ? fresh : current);
+        const stat = stats[targetId];
+        if (stat) setLikeStats(current => ({ ...current, [targetId]: stat }));
+      } catch { /* A transient refresh failure leaves the last visible values intact. */ }
+    };
+    void refresh();
+    const timer = window.setInterval(() => { if (document.visibilityState === "visible") void refresh(); }, 20_000);
+    return () => { stopped = true; request?.abort(); window.clearInterval(timer); };
+  }, [detailId, detailIsPublic, cloud.user?.id]);
   const characters = useMemo(
     () => {
       const resolvedById = new Map(resolvedCards.map((card) => [card.id, card]));
@@ -1645,7 +1730,8 @@ export default function TavernApp() {
     setActiveId(null); setGameRequest(null); setConversationQuery(""); setError("");
   }
   function warmCompanion(variant: "classic" | "intimate" | "qwen" | "sales" | "cast", castId?: string) {
-    void import(variant === "qwen" ? "@/app/xumeng/girlfriend/qwen-companion" : "@/app/xumeng/girlfriend/companion-page");
+    if (variant === "qwen") void import("@/app/xumeng/girlfriend/qwen-companion");
+    else void import("@/app/xumeng/girlfriend/companion-page");
     const key = variant === "cast" ? `cast:${castId || ""}` : variant;
     if (variant === "qwen" || (variant === "cast" && !castId) || companionWarmup.current.has(key) || typeof window === "undefined") return;
     companionWarmup.current.add(key);
@@ -1925,7 +2011,8 @@ export default function TavernApp() {
     pendingDetailRoute.current = { accountId: activeAccount.current, route };
     const sharePath = characterSharePath(character.id);
     if (sharePath) {
-      if (location.pathname !== sharePath || location.hash) window.history.pushState(window.history.state, "", sharePath);
+      const localizedPath = xumengLocalePathname(sharePath, locale);
+      if (location.pathname !== localizedPath || location.hash) window.history.pushState(window.history.state, "", localizedPath);
     } else location.hash = route;
     writeDiscoveryHistory(route, discoveryFiltersRef.current, detailDiscoveryOrigin.current);
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -1950,6 +2037,12 @@ export default function TavernApp() {
     });
     closeDetail();
     setNotice("已减少类似推荐。");
+  }
+  function refreshHomeRecommendations() {
+    setRecommendEpoch((current) => {
+      const next = recommendationRandomSeed();
+      return next === current ? (next + 1) >>> 0 : next;
+    });
   }
   async function copyMessage(content: string) {
     try {
@@ -2122,6 +2215,7 @@ export default function TavernApp() {
       return;
     }
     if (character.authoringDraft) { openStudio(character); setNotice("世界书还有未完成的词条，请先完善草稿再开始对话。"); return; }
+    const localizedCharacterForOpening = localizeCharacter(character, locale);
     const existing = state.conversations.find(
       (c) => c.characterId === character.id,
     );
@@ -2132,7 +2226,7 @@ export default function TavernApp() {
     const resumeExisting = Boolean(existing && !fresh && existing.messages.some(message => message.role === "user"));
     let opening: ReturnType<typeof captureDzmmConversationOpening>;
     try { opening = resumeExisting ? resolveDzmmConversationOpening(character, existing!)
-      : captureDzmmConversationOpening(character, openingIndex); }
+      : captureDzmmConversationOpening(localizedCharacterForOpening, openingIndex); }
     catch (failure) { setNotice(failure instanceof Error ? failure.message : "角色开场暂时无法加载。"); return; }
     const openingMessages = opening.messages.map((message) => ({ ...message, id: uid() }));
     if (existing && !fresh) {
@@ -2147,7 +2241,7 @@ export default function TavernApp() {
       const conversation: Conversation = {
         id: uid(),
         characterId: character.id,
-        title: character.name,
+        title: localizedCharacterForOpening.name,
         opening,
         messages: openingMessages,
         worldClockMode: state.preferences.worldClockMode ?? "story",
@@ -2301,7 +2395,7 @@ export default function TavernApp() {
         world: { clockMode: conversation.worldClockMode ?? "story", ...(worldRuntime ? { state: worldRuntime.state,
           recordedAt: worldRuntime.recordedAt, previousClockMode: worldRuntime.clockMode } : {}) },
         memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: resolveDzmmConversationPersona(state.preferences, conversationId),
-        userName: playUserName, locale: state.preferences.locale, model: normalizeDzmmModelSelection(state.preferences.model), maxTokens: state.preferences.maxTokens, signal: abort.signal,
+        userName: playUserName, locale, model: normalizeDzmmModelSelection(state.preferences.model), maxTokens: state.preferences.maxTokens, signal: abort.signal,
         onSummaryStart: () => setGenerating(previous => previous[conversationId] ? { ...previous, [conversationId]: "summary" } : previous),
         onMemory: (storyMemory) => {
           if (activeAccount.current !== owner) return;
@@ -2415,9 +2509,9 @@ export default function TavernApp() {
       return true;
     });
     if (!rankedFeed || !rankReady) return visible;
-    const order = new Map(recommendation.ids.map((id, index) => [id, index]));
+    const order = new Map(displayRecommendationIds.map((id, index) => [id, index]));
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
-  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, recommendation.ids, sortMode]);
+  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, displayRecommendationIds, sortMode]);
   const relatedCards = useMemo(() => {
     if (!detail || relatedRank.status !== "ready") return [];
     const byId = new Map(characters.map((character) => [character.id, character]));
@@ -2787,7 +2881,7 @@ export default function TavernApp() {
                     data-recommend-id={recommendPositions?.has(item.character.id) ? item.character.id : undefined}
                     data-recommend-position={recommendPositions?.get(item.character.id)}
                   >
-                    <CoverReel className={s.coverButton} character={item.character} onOpen={() => showDetail(item.character)}>
+                    <CoverReel className={s.coverButton} character={localizeCharacter(item.character, locale)} onOpen={() => showDetail(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
                         {item.character.heat || "—"}
@@ -2796,14 +2890,14 @@ export default function TavernApp() {
                         <span className={s.localBadge}>我的角色</span>
                       )}
                     </CoverReel>
-                    {coverShelfTags(item.character.tags, 2).length > 0 && <div className={s.coverTags}>{coverShelfTags(item.character.tags, 2).map((tag) => <button key={tag} type="button" onClick={() => { setAppliedTags([tag]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
+                    {coverShelfTags(item.character.tags, 2).length > 0 && <div className={s.coverTags}>{coverShelfTags(item.character.tags, 2).map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([tag]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                     <div className={s.cardBody}>
                       <button
                         className={s.cardText}
                         onClick={() => showDetail(item.character)}
                       >
-                        <h2>{item.character.name}</h2>
-                        <p>{getDzmmCharacterCardBlurb(item.character, playUserName)}</p>
+                        <h2>{localizeCharacter(item.character, locale).name}</h2>
+                        <p>{getDzmmCharacterCardBlurb(localizeCharacter(item.character, locale), playUserName)}</p>
                         {showRecommendationReasons && recommendationReasonText(recommendation.reasons[item.character.id]) && <span className={s.reason}>{recommendationReasonText(recommendation.reasons[item.character.id])}</span>}
                       </button>
                       <div className={s.cardFooter}>
@@ -2811,7 +2905,7 @@ export default function TavernApp() {
                         <button
                           className={likedForCurrentAccount.includes(item.character.id) ? s.liked : s.like}
                           onClick={() => toggleLike(item.character.id)}
-                          aria-label={`${likedForCurrentAccount.includes(item.character.id) ? "取消点赞" : "点赞"} ${item.character.name}`}
+                          aria-label={`${likedForCurrentAccount.includes(item.character.id) ? "取消点赞" : "点赞"} ${localizeCharacter(item.character, locale).name}`}
                           aria-pressed={likedForCurrentAccount.includes(item.character.id)}
                         >
                           <Icon name="heart" size={15} />
@@ -2820,7 +2914,7 @@ export default function TavernApp() {
                         <button
                           className={state.favorites.includes(item.character.id) ? s.favorited : ""}
                           onClick={() => toggleFavorite(item.character.id)}
-                          aria-label={`${state.favorites.includes(item.character.id) ? "取消收藏" : "收藏"} ${item.character.name}`}
+                          aria-label={`${state.favorites.includes(item.character.id) ? "取消收藏" : "收藏"} ${localizeCharacter(item.character, locale).name}`}
                           aria-pressed={state.favorites.includes(item.character.id)}
                         >
                           <Icon name={state.favorites.includes(item.character.id) ? "check" : "book"} size={15} />
@@ -2909,7 +3003,7 @@ export default function TavernApp() {
         <ResponsiveNavigation key={view} items={localizedNav} tools={cloud.user?.role === "super" ? [...localizedTools, localizedAdmin] : localizedTools}
           currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
-          footer={<><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, locale: event.target.value as typeof locale } }))}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
+          footer={<><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
         <label className={s.search}>
           <Icon name="search" size={20} />
           <input
@@ -2946,7 +3040,7 @@ export default function TavernApp() {
         </button>
         <label className={s.localePicker}>
           <span className={s.srOnly}>{t("language")}</span>
-          <select aria-label={t("language")} value={locale} onChange={(event) => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, locale: event.target.value as typeof locale } }))}>
+          <select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>
             {XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}
           </select>
         </label>
@@ -2986,7 +3080,7 @@ export default function TavernApp() {
               ))}
             </nav>
             </div>
-            <label className={s.sortSelect}><span>排序</span><select aria-label="排序" value={xumengPlaySortSelection(tab, sortMode)} onChange={event => setSortMode(event.target.value as typeof sortMode)}><option value="recommended">推荐</option><option value="heat">热度</option><option value="likes">点赞</option><option value="updated">最近更新</option><option value="name">名称</option></select></label>
+            {rankQuery?.surface === "home" && canRank && <button type="button" className={`${s.secondary} ${s.recommendRefresh}`} aria-label="换一批推荐角色" disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />换一批</button>}
             </div>
           </div>
           <DiscoveryTagPicker open={tagPickerOpen} onClose={() => setTagPickerOpen(false)} options={browseTagChoices} selected={appliedTags} limit={BROWSE_TAG_LIMIT} onToggle={toggleBrowseTag} onClear={() => setAppliedTags([])} />
@@ -3284,8 +3378,10 @@ export default function TavernApp() {
                     >
                       <Icon name="sliders" size={17} />
                     </button>
-                    <button className={`${s.iconButton} ${s.callButton}`} aria-label={XUMENG_CALLS_ENABLED ? "给当前角色打语音电话，接通预扣 200 Credit" : "语音通话暂时关闭"} title={XUMENG_CALLS_ENABLED ? (chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "语音通话，接通预扣 200 Credit") : XUMENG_CALLS_LOCKED_MESSAGE} disabled={busy || (XUMENG_CALLS_ENABLED && billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "phone")}><Icon name="phone" size={18} />{!XUMENG_CALLS_ENABLED && <Icon className={s.callLock} name="lock" size={12} />}</button>
-                    <button className={`${s.iconButton} ${s.callButton}`} aria-label={XUMENG_CALLS_ENABLED ? "给当前角色打视频电话，接通预扣 200 Credit" : "视频通话暂时关闭"} title={XUMENG_CALLS_ENABLED ? (chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "视频通话，接通预扣 200 Credit") : XUMENG_CALLS_LOCKED_MESSAGE} disabled={busy || (XUMENG_CALLS_ENABLED && billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "video")}><Icon name="video" size={18} />{!XUMENG_CALLS_ENABLED && <Icon className={s.callLock} name="lock" size={12} />}</button>
+                    {XUMENG_CALLS_ENABLED && <>
+                      <button className={`${s.iconButton} ${s.callButton}`} aria-label="给当前角色打语音电话，接通预扣 200 Credit" title={chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "语音通话，接通预扣 200 Credit"} disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "phone")}><Icon name="phone" size={18} /></button>
+                      <button className={`${s.iconButton} ${s.callButton}`} aria-label="给当前角色打视频电话，接通预扣 200 Credit" title={chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "视频通话，接通预扣 200 Credit"} disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "video")}><Icon name="video" size={18} /></button>
+                    </>}
                   </div>
                 </header>
                 <div className={s.messageScroll} ref={messageScrollRef} data-message-scroll="">
@@ -3502,15 +3598,16 @@ export default function TavernApp() {
       {view === "scenarios" && !detail && <ScenarioStudio key={`${profileUser.id}:${creatorInitial.id ?? creatorInitial.roomCode ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} initialRoomCode={creatorInitial.roomCode} onNavigate={id => { creatorRoute.current = id ? `studio/scenarios/${encodeURIComponent(id)}` : "studio/scenarios"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/scenarios/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRoom={code => { creatorRoute.current = `studio/room/${encodeURIComponent(code)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
       {view === "studio-edit" && !detail && editor && <CharacterStudio key={`${profileUser.id}:${studioSession}`} character={editor === "new" ? null : editor} nickname={state.preferences.nickname} user={cloud.user} submission={studioSubmission} onClose={() => { studioDirty.current = false; studioBusy.current = false; setEditor(null); navigate("studio"); }} onDirtyChange={(dirty) => { studioDirty.current = dirty; }} onBusyChange={(working) => { studioBusy.current = working; }} onSave={saveStudioCharacter} onRetrySave={(character) => saveStudioCharacter(character, true)} onSubmit={submitStudioCharacter} onLoadCloud={async () => { if (!await cloud.reloadCloud()) throw new Error("云端版本没有载入，当前编辑内容仍保留。请再加载云端版本。"); }} onTest={testStudioCharacter} onRequireAccount={() => openAccount("register")} />}
       {view === "profile" && !detail && <>
-        <ProfileView key={profileUser.id} user={cloud.user} characters={characters} custom={state.custom} favorites={state.favorites} conversations={state.conversations} authors={authors} preferences={state.preferences} onCharacter={showDetail} onAuthor={showAuthor} onConversation={(conversation) => { selectConversation(conversation); navigate("chat"); }} onEditCharacter={openStudio} onCreateCharacter={() => openStudio("new")} onEditProfile={() => navigate("settings")} onSettings={() => navigate("settings")} onPresets={() => navigate("presets")} onRecharge={() => navigate("recharge")} onInvite={() => navigate("invite")} onDeleteCharacter={deleteCharacter} onAdmin={cloud.user?.role === "super" ? () => navigate("admin") : undefined} />
+        <ProfileView key={profileUser.id} user={cloud.user} characters={characters} custom={state.custom} favorites={state.favorites} conversations={state.conversations} authors={authors} preferences={state.preferences} onCharacter={showDetail} onAuthor={showAuthor} onConversation={(conversation) => { selectConversation(conversation); navigate("chat"); }} onEditCharacter={openStudio} onCreateCharacter={() => openStudio("new")} onEditProfile={() => navigate("settings")} onSettings={() => navigate("settings")} onPresets={() => navigate("presets")} onRecharge={() => navigate("recharge")} onInvite={() => navigate("invite")} onLogin={() => openAccount("login")} onRegister={() => openAccount("register")} onBrowse={() => navigate("characters")} onDeleteCharacter={deleteCharacter} onAdmin={cloud.user?.role === "super" ? () => navigate("admin") : undefined} />
         <div className={s.profile}>
-          <section className={s.cloudAccount} aria-label="账号与数据库同步">
+          {cloud.user && !cloud.user.isGuest && <>
+          <section className={`${s.cloudAccount} ${cloud.user?.isGuest ? s.cloudAccountGuest : ""}`} aria-label="账号与数据库同步">
             <div className={s.cloudStatus} data-status={cloud.syncStatus} role="status">
               <span className={s.syncDot} />
               <div><strong>{cloud.syncMessage}</strong>{cloud.syncStatus === "synced" && cloud.lastSyncedAt && <small>最近同步 {new Date(cloud.lastSyncedAt).toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit" })}</small>}</div>
             </div>
             <div className={s.cloudActions}>
-              {cloud.authenticated ? <button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>退出账号</button> : <><button className={s.primary} disabled={cloud.authBusy || busy} onClick={() => openAccount("register")}>注册账号</button><button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => openAccount("login")}>登录</button></>}
+              {cloud.authenticated && <button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>退出账号</button>}
               <button className={s.secondary} disabled={cloud.authBusy || busy || cloud.syncStatus === "saving" || cloud.syncStatus === "loading"} onClick={() => void (cloud.syncStatus === "conflict" ? cloud.reloadCloud() : cloud.retrySync())}><Icon name="refresh" size={14} />{cloud.syncStatus === "conflict" ? "加载云端版本" : "重新同步"}</button>
               {cloud.backupAvailable && <>
                 <label className={s.backupChoice}>本地恢复版本
@@ -3530,6 +3627,7 @@ export default function TavernApp() {
             </div>
           </section>
           <button className={s.secondary} onClick={() => download("dzmm-account-backup.json", JSON.stringify(state, null, 2))}><Icon name="download" />导出记录备份</button>
+          </>}
         </div>
       </>}
       {view === "invite" && !detail && <InviteCenter key={profileUser.id} user={cloud.user} onBack={() => navigate("profile")} onRegister={() => openAccount("register")} onWallet={() => navigate("profile")} />}
@@ -3592,17 +3690,17 @@ export default function TavernApp() {
 
       {detail && (
         <CharacterDetail
-          character={detail}
+          character={localizeCharacter(detail, locale)}
           favorites={state.favorites.includes(detail.id)}
           liked={likedForCurrentAccount.includes(detail.id)}
-          likeCount={detail.likes}
-          related={relatedCards}
+          likeCount={formatLikeTotal(detail, likeStats[detail.id])}
+          related={relatedCards.map((role) => localizeCharacter(role, locale))}
           relatedReasons={relatedRank.status === "ready" ? relatedRank.reasons : undefined}
           inviteCode={inviteCode}
           onBack={closeDetail}
           onStart={(openingIndex, fresh) => startChat(detail, fresh ?? false, openingIndex ?? 0)}
-          onLive={() => performCharacter(xumengPerformanceFromCard(detail), "live")}
-          onVoice={() => performCharacter(xumengPerformanceFromCard(detail), "voice")}
+          onLive={XUMENG_CALLS_ENABLED ? () => performCharacter(xumengPerformanceFromCard(detail), "live") : undefined}
+          onVoice={XUMENG_CHARACTER_VOICE_ENABLED ? () => performCharacter(xumengPerformanceFromCard(detail), "voice") : undefined}
           onFavorite={() => toggleFavorite(detail.id)}
           onLike={() => toggleLike(detail.id)}
           onHide={isPublicRecommendationCharacter(detail) ? () => hideRecommendation(detail) : undefined}
@@ -3620,7 +3718,11 @@ export default function TavernApp() {
           onNotice={setNotice}
           shareRequiresAccount={!cloud.user || cloud.user.isGuest}
           onRequireAccount={() => openAccount("register")}
-          onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }}
+          onTag={(tag) => {
+            const translatedTags = localizedCharacterTags(detail, locale);
+            const sourceTag = detail.tags[translatedTags.indexOf(tag)] ?? tag;
+            setTab("新手"); setAppliedTags([sourceTag]); navigate("characters");
+          }}
           onAuthor={resolveCharacterAuthorTarget(authors, detail).kind === "unsigned" ? undefined : () => showCharacterAuthor(detail)}
           onFollow={resolveCharacterAuthorTarget(authors, detail).kind === "author" ? () => toggleFollow(detail) : undefined}
           galleryPaths={getDzmmCharacterMedia(detail)?.gallery.map((image) => image.path)}
