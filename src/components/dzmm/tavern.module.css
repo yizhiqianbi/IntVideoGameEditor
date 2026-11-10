@@ -3011,10 +3011,14 @@
   pointer-events: none;
 }
 .cardGrid:not(.singleLayout) .coverTags button {
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.14);
+  max-width: 96px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 7px;
+  background: rgba(19, 11, 20, 0.48);
   color: #fff;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   backdrop-filter: blur(8px);
 }
 .cardGrid:not(.singleLayout) .cardBody { position: relative; z-index: 2; padding: 0 14px 14px; color: #fff; }
@@ -3123,25 +3127,9 @@
   transform: translateY(-1px);
   box-shadow: 0 5px 12px rgba(25, 3, 15, 0.22);
 }
-.cardGrid:not(.singleLayout) .coverTags button[data-tone="rose"] {
-  background: linear-gradient(135deg, rgba(226, 75, 119, 0.92), rgba(128, 28, 70, 0.94));
-  border-color: rgba(255, 208, 216, 0.62);
-}
-.cardGrid:not(.singleLayout) .coverTags button[data-tone="violet"] {
-  background: linear-gradient(135deg, rgba(135, 91, 182, 0.88), rgba(82, 47, 126, 0.92));
-  border-color: rgba(225, 207, 255, 0.56);
-}
-.cardGrid:not(.singleLayout) .coverTags button[data-tone="gold"] {
-  background: linear-gradient(135deg, rgba(196, 143, 74, 0.92), rgba(127, 77, 39, 0.9));
-  border-color: rgba(255, 232, 182, 0.66);
-}
-.cardGrid:not(.singleLayout) .coverTags button[data-tone="blue"] {
-  background: linear-gradient(135deg, rgba(63, 131, 169, 0.9), rgba(36, 77, 113, 0.92));
-  border-color: rgba(191, 229, 255, 0.58);
-}
-.cardGrid:not(.singleLayout) .coverTags button[data-tone="plum"] {
-  background: linear-gradient(135deg, rgba(160, 76, 117, 0.88), rgba(89, 38, 77, 0.92));
-  border-color: rgba(247, 192, 220, 0.56);
+.cardGrid:not(.singleLayout) .coverTags button[data-tone] {
+  background: rgba(19, 11, 20, 0.48);
+  border-color: rgba(255, 255, 255, 0.22);
 }
 .conversationGenerating { color: var(--pink); }
 .homeTags { display: flex; gap: 8px; max-width: 1240px; margin: 8px auto 0; overflow-x: auto; scrollbar-width: none; }
