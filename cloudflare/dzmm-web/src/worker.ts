@@ -92,6 +92,7 @@ const PUBLIC_ASSET_FILES = new Set([
     `exported-cards/foreverse-${slug}.v2.json`, `exported-cards/foreverse-${slug}-cover.png`,
   ]),
   "live/rtc.js", "live/minicpm-capture.js",
+  "i18n/cards-en.json", "i18n/cards-zh-Hant.json", "i18n/cards-ja.json", "i18n/cards-ko.json",
   "brand/xumeng-mark.svg", "brand/xumeng-icon-192.png", "brand/xumeng-icon-512.png",
   "brand/xumeng-character-placeholder.svg",
   "brand/xumeng-favicon.ico", "brand/sources.json", "manifest.webmanifest",
@@ -1226,6 +1227,17 @@ export async function fetchRequest(
         || path === "/api/payments/zpay/subscription/notify" || path === "/api/payments/zpay/subscription/return"
         || /^\/api\/payments\/zpay\/subscription\/checkout\/sp_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(path)) {
         return await zpayPayment(request, env, path);
+      }
+      const translationLocale = /^\/api\/dzmm\/translations\/(en|zh-Hant|ja|ko)$/.exec(path)?.[1];
+      if (translationLocale) {
+        if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
+        const assetUrl = new URL(request.url);
+        assetUrl.pathname = `${PUBLIC_ASSET_PREFIX}i18n/cards-${translationLocale}.json`;
+        const response = await publicAsset(new Request(assetUrl, request), env);
+        const headers = new Headers(response.headers);
+        headers.set("Cache-Control", "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800");
+        headers.set("X-Content-Type-Options", "nosniff");
+        return new Response(request.method === "HEAD" ? null : response.body, { status: response.status, headers });
       }
       checkMutationOrigin(request);
       if (path === "/api/aiapi/still") return await aiapiStill(request, env);

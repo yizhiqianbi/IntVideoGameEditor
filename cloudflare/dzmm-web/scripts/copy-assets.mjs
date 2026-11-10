@@ -311,6 +311,10 @@ export async function copyVerifiedAssets({
 
   const files = new Set([
     "live/rtc.js",
+    "i18n/cards-en.json",
+    "i18n/cards-zh-Hant.json",
+    "i18n/cards-ja.json",
+    "i18n/cards-ko.json",
     "brand/xumeng-mark.svg",
     "brand/xumeng-character-placeholder.svg",
     "brand/xumeng-icon-192.png",
