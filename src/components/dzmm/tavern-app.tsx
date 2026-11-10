@@ -2906,6 +2906,7 @@ export default function TavernApp() {
                       const displayCharacter = localizeCharacter(item.character, locale);
                       const displayTags = coverShelfTags(displayCharacter.tags, 2);
                       return <>
+                    {tab === "榜单" && <span className={`${s.rankBadge} ${index < 3 ? s.rankTop : ""}`} aria-label={`第${index + 1}名`}>#{index + 1}</span>}
                     <CoverReel className={s.coverButton} character={displayCharacter} onOpen={() => showDetail(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
@@ -2915,8 +2916,8 @@ export default function TavernApp() {
                         <span className={s.localBadge}>我的角色</span>
                       )}
                     </CoverReel>
-                    {displayTags.length > 0 && <div className={s.coverTags}>{displayTags.map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([sourceCharacterTag(item.character, locale, tag)]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                     <div className={s.cardBody}>
+                      {displayTags.length > 0 && <div className={s.coverTags}>{displayTags.map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([sourceCharacterTag(item.character, locale, tag)]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                       <button
                         className={s.cardText}
                         onClick={() => showDetail(item.character)}
@@ -2950,6 +2951,8 @@ export default function TavernApp() {
                     })()}
                   </article>
                 );
+
+  const rankingPeriodCopy = rankingPeriod === "day" ? "今日互动，实时更新" : rankingPeriod === "week" ? "本周互动，周一重置" : "累计互动，长期沉淀";
 
   return (
     <div
@@ -3113,7 +3116,14 @@ export default function TavernApp() {
           <DiscoveryTagPicker open={tagPickerOpen} onClose={() => setTagPickerOpen(false)} options={browseTagChoices} selected={appliedTags} limit={BROWSE_TAG_LIMIT} onToggle={toggleBrowseTag} onClear={() => setAppliedTags([])} />
           <>
           <main className={s.catalog} ref={catalogRef}>
-            {tab === "榜单" && <div className={s.rankingBar} role="tablist" aria-label="榜单周期">{([ ["day", "日榜"], ["week", "周榜"], ["all", "总榜"] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>}
+            {tab === "榜单" && <div className={s.rankingPanel}>
+              <div className={s.rankingPanelCopy}>
+                <strong><Icon name="trophy" size={16} /> 实时榜单</strong>
+                <span>{rankingPeriodCopy}</span>
+              </div>
+              <div className={s.rankingBar} role="tablist" aria-label="榜单周期">{([ ["day", "日榜"], ["week", "周榜"], ["all", "总榜"] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>
+              <button type="button" className={s.rankingRefresh} aria-label="刷新榜单" disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />刷新</button>
+            </div>}
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label="首页横幅"><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}

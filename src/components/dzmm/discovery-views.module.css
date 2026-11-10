@@ -59,7 +59,7 @@
 .coverButton::before { content:""; position:absolute; z-index:1; top:0; left:0; right:0; height:48px; background:linear-gradient(#0008, transparent); pointer-events:none; }
 .coverButton::after { content:""; position:absolute; inset:65% 0 0; background:linear-gradient(transparent,#0009); pointer-events:none; }
 .coverTags { position:absolute; z-index:2; top:8px; left:8px; right:8px; display:flex; flex-wrap:wrap; gap:4px; }
-.coverTags button, .coverTags span { max-width:96px; overflow:hidden; padding:3px 8px; border:1px solid rgba(255,255,255,.22); border-radius:7px; background:rgba(19,11,20,.48); color:#fff; font-size:10px; line-height:1.35; text-overflow:ellipsis; white-space:nowrap; }
+.coverTags button, .coverTags span { max-width:120px; min-height:28px; overflow:hidden; padding:5px 10px; border:1px solid rgba(255,255,255,.3); border-radius:13px; background:rgba(34,27,39,.62); color:rgba(255,255,255,.96); font-size:12px; font-weight:600; letter-spacing:.01em; line-height:1.25; text-overflow:ellipsis; text-shadow:0 1px 3px rgba(0,0,0,.4); white-space:nowrap; box-shadow:inset 0 1px rgba(255,255,255,.12),0 3px 10px rgba(14,6,17,.18); backdrop-filter:blur(10px); }
 .heat { position:absolute; z-index:1; top:9px; right:10px; display:flex; gap:4px; align-items:center; padding:3px 8px; border-radius:999px; background:rgba(237,23,99,.88); color:white; font-size:12px; }
 .reason { display:block; margin-top:6px; color:var(--muted); font-size:11px; line-height:1.4; }
 .cardBody { padding:12px; }

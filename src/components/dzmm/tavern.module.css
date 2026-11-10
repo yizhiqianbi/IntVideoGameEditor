@@ -575,9 +575,19 @@
 .lookBar .lookActive { background:var(--pink); color:#fff; }
 .reason { display:block; margin-top:6px; color:var(--muted); font-size:11px; line-height:1.4; }
 .rankNote { max-width:1240px; margin:0 auto 12px; color:var(--muted); font-size:13px; }
-.rankingBar { display:flex; align-items:center; gap:8px; max-width:1240px; margin:0 auto 14px; padding:0; border:0; background:transparent; }
+.rankingPanel { display:flex; align-items:center; gap:12px; max-width:1240px; margin:0 auto 14px; padding:10px 12px; border:1px solid var(--line); border-radius:14px; background:color-mix(in srgb,var(--surface) 88%,var(--pink-soft)); }
+.rankingPanelCopy { display:flex; flex-direction:column; gap:2px; min-width:140px; }
+.rankingPanelCopy strong { display:flex; align-items:center; gap:6px; color:var(--text); font-size:13px; }
+.rankingPanelCopy strong svg { color:var(--gold); }
+.rankingPanelCopy span { color:var(--muted); font-size:11px; }
+.rankingBar { display:flex; align-items:center; gap:8px; flex:1; margin:0; padding:0; border:0; background:transparent; }
 .rankingBar button { padding:6px 12px; border-radius:999px; color:var(--text); font-size:12px; background:var(--surface); }
 .rankingBar button:hover,.rankingBar .rankActive { background:var(--pink); color:#fff; }
+.rankingRefresh { display:inline-flex; align-items:center; gap:5px; flex-shrink:0; padding:6px 10px; border:1px solid var(--line); border-radius:999px; background:transparent; color:var(--muted); font:inherit; font-size:11px; }
+.rankingRefresh:hover { border-color:var(--pink); color:var(--pink); }
+.rankingRefresh:disabled { cursor:wait; opacity:.55; }
+.rankBadge { position:absolute; z-index:4; top:12px; left:12px; display:inline-flex; align-items:center; min-width:34px; justify-content:center; padding:4px 8px; border:1px solid rgba(255,255,255,.38); border-radius:8px; background:rgba(19,11,20,.58); color:#fff; font-size:12px; font-weight:700; letter-spacing:.02em; box-shadow:0 4px 12px rgba(19,11,20,.2); pointer-events:none; }
+.rankBadge.rankTop { border-color:color-mix(in srgb,var(--gold) 60%,white); background:color-mix(in srgb,var(--gold) 28%,rgba(19,11,20,.72)); color:#fff4cf; }
 .shelfTitle {
   margin: 0 4px 10px;
   color: var(--muted);
@@ -678,14 +688,23 @@
   gap: 4px;
 }
 .coverTags button {
-  max-width: 100%;
-  padding: 2px 7px;
-  border-radius: 10px;
-  background: #0008;
-  color: #fff;
-  font-size: 10px;
-  line-height: 1.5;
-  backdrop-filter: blur(6px);
+  max-width: 120px;
+  min-height: 28px;
+  overflow: hidden;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 13px;
+  background: rgba(34, 27, 39, 0.62);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  white-space: nowrap;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 3px 10px rgba(14, 6, 17, 0.18);
+  backdrop-filter: blur(10px);
 }
 .heat {
   position: absolute;
@@ -2950,6 +2969,7 @@
 .singleLayout { grid-template-columns: minmax(0, 1fr); }
 .singleLayout .card { display: grid; grid-template-columns: 130px minmax(0, 1fr); }
 .singleLayout .coverButton { aspect-ratio: .8; }
+.singleLayout .coverTags { position: static; top: auto; right: auto; left: auto; margin: 0 0 8px; }
 .singleLayout .cardBody { display: flex; flex-direction: column; justify-content: space-between; padding: 18px; }
 .singleLayout .cardText p { -webkit-line-clamp: 4; }
 .cardFooter > .author { flex: 1; justify-content: flex-start; min-width: 0; }
@@ -2963,7 +2983,9 @@
   .presetPeople { grid-template-columns:1fr 1fr; }
   .discoveryControls { display:flex; align-items:center; }
   .tagStrip { width:auto; }
-  .rankingBar { overflow-x:auto; }
+  .rankingPanel { flex-wrap:wrap; gap:8px; }
+  .rankingPanelCopy { flex:1; min-width:0; }
+  .rankingBar { order:3; flex-basis:100%; overflow-x:auto; }
   .singleLayout .card { grid-template-columns: 105px minmax(0, 1fr); }
   .singleLayout .cardBody { padding: 12px; }
 }
@@ -2995,14 +3017,14 @@
   background: linear-gradient(transparent, rgba(42, 8, 22, 0.2) 18%, rgba(42, 8, 22, 0.88));
 }
 .cardGrid:not(.singleLayout) .coverTags {
-  position: absolute;
+  position: static;
   z-index: 3;
-  top: 40px;
-  left: 8px;
-  right: 8px;
-  margin: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 4px;
+  max-width: 100%;
+  margin: 0 0 8px;
   padding: 0;
-  max-height: 48px;
   overflow: hidden;
 }
 .cardGrid:not(.singleLayout) .heat,
@@ -3011,15 +3033,25 @@
   pointer-events: none;
 }
 .cardGrid:not(.singleLayout) .coverTags button {
-  max-width: 96px;
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 50%;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 7px;
-  background: rgba(19, 11, 20, 0.48);
-  color: #fff;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 13px;
+  background: rgba(34, 27, 39, 0.62);
+  color: rgba(255, 255, 255, 0.96);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  line-height: 1.25;
   text-overflow: ellipsis;
   white-space: nowrap;
-  backdrop-filter: blur(8px);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.12), 0 3px 10px rgba(14, 6, 17, 0.18);
+  backdrop-filter: blur(10px);
 }
 .cardGrid:not(.singleLayout) .cardBody { position: relative; z-index: 2; padding: 0 14px 14px; color: #fff; }
 .cardGrid:not(.singleLayout) .card h2 { min-height: 0; margin-bottom: 4px; color: #fff; font-size: 16px; line-height: 1.3; }
@@ -3079,18 +3111,13 @@
     overflow: hidden;
   }
   .cardGrid:not(.singleLayout) .coverTags {
-    top: 34px;
-    left: 8px;
-    right: 8px;
-    flex-wrap: nowrap;
-    overflow: hidden;
-    padding: 0;
+    margin-bottom: 6px;
     gap: 4px;
   }
   .cardGrid:not(.singleLayout) .coverTags button {
-    flex-shrink: 0;
-    font-size: 10px;
-    padding: 2px 7px;
+    min-height: 26px;
+    padding: 4px 9px;
+    font-size: 11px;
   }
   .cardGrid:not(.singleLayout) .cardFooter { margin-top: 6px; gap: 6px; }
   .cardGrid:not(.singleLayout) .heat { top: 8px; left: auto; right: 8px; font-size: 10px; }
@@ -3128,8 +3155,8 @@
   box-shadow: 0 5px 12px rgba(25, 3, 15, 0.22);
 }
 .cardGrid:not(.singleLayout) .coverTags button[data-tone] {
-  background: rgba(19, 11, 20, 0.48);
-  border-color: rgba(255, 255, 255, 0.22);
+  background: rgba(34, 27, 39, 0.62);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 .conversationGenerating { color: var(--pink); }
 .homeTags { display: flex; gap: 8px; max-width: 1240px; margin: 8px auto 0; overflow-x: auto; scrollbar-width: none; }
