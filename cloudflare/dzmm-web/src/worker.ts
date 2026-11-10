@@ -31,7 +31,7 @@ import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billi
 import { sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
-import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, publicSitemapResponse } from "./geo-discovery";
+import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
 import { XUMENG_USER_CARD_ASSET_PATHS } from "./user-card-assets";
 import { h3Query, h3Upstream } from "./h3-channel";
 import { runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
@@ -174,6 +174,38 @@ function redirectPage(request: Request, pathname: string, status: 302 | 307 | 30
   const target = new URL(request.url);
   target.pathname = pathname;
   return new Response(null, { status, headers: { Location: target.href } });
+}
+
+async function localizedLandingResponse(request: Request, env: Env, locale: import("../../../src/lib/xumeng-i18n").XumengLocale): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
+  const shellUrl = new URL(request.url);
+  shellUrl.pathname = "/";
+  shellUrl.search = "";
+  const shell = await env.ASSETS.fetch(new Request(shellUrl, { method: "GET" }));
+  if (!shell.ok || !shell.headers.get("Content-Type")?.includes("text/html")) return shell;
+  const seo = localizedLandingSeo(locale);
+  const canonical = `${new URL(request.url).origin}${localizedLandingPath(locale)}`;
+  const alternates = localizedLandingAlternates().map(item => `<link rel="alternate" hreflang="${item.hreflang}" href="${item.href}" />`).join("")
+    + `<link rel="alternate" hreflang="x-default" href="${new URL(request.url).origin}/" />`;
+  const rewritten = new HTMLRewriter()
+    .on("html", { element: element => { element.setAttribute("lang", seo.ogLocale.replace("_", "-")); } })
+    .on("title", { element: element => { element.setInnerContent(seo.title); } })
+    .on('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]', { element: element => { element.setAttribute("content", seo.description); } })
+    .on('meta[property="og:title"], meta[name="twitter:title"]', { element: element => { element.setAttribute("content", seo.title); } })
+    .on('meta[property="og:locale"]', { element: element => { element.setAttribute("content", seo.ogLocale); } })
+    .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
+    .on('link[rel="canonical"]', { element: element => { element.setAttribute("href", canonical); } })
+    .on('link[rel="alternate"][hreflang]', { element: element => { element.remove(); } })
+    .on("head", { element: element => { element.append(alternates, { html: true }); } })
+    .on('script[type="application/ld+json"]', { element: element => { element.setInnerContent(localizedLandingJsonLd(locale), { html: true }); } })
+    .on("noscript#xumeng-public-fallback", { element: element => { element.setInnerContent(renderLocalizedLandingFallback(locale), { html: true }); } })
+    .transform(shell);
+  const headers = new Headers(rewritten.headers);
+  headers.delete("ETag"); headers.delete("Last-Modified"); headers.delete("Content-Length");
+  headers.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
+  headers.set("X-Content-Type-Options", "nosniff");
+  if (request.method === "HEAD") await rewritten.body?.cancel();
+  return new Response(request.method === "HEAD" ? null : rewritten.body, { status: rewritten.status, headers });
 }
 
 async function publicAsset(request: Request, env: Env): Promise<Response> {
@@ -1123,6 +1155,8 @@ export async function fetchRequest(
       return new Response(response.body, { status: response.status, headers });
     }
     const normalizedPath = normalizedPagePath(path);
+    const localizedLanding = localizedLandingLocale(normalizedPath);
+    if (localizedLanding) return await localizedLandingResponse(request, env, localizedLanding);
     if (normalizedPath === "/xumeng/girlfriend") {
       if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
       const destination = new URL(request.url);

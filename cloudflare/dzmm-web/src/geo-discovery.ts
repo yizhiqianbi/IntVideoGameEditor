@@ -3,12 +3,51 @@ import { XUMENG_COMMUNITY_GUIDELINES_DATE, XUMENG_COMMUNITY_GUIDELINES_DESCRIPTI
 import { XUMENG_PAYMENT_INFO_DRAFT, XUMENG_PAYMENT_INFO_PAGES } from "../../../src/lib/xumeng-payment-info";
 import { gtmBodyHtml, gtmHeadHtml } from "./gtm";
 import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
+import { XUMENG_LOCALE_OPTIONS, xumengHtmlLang, xumengLocaleRoutePrefix, type XumengLocale } from "../../../src/lib/xumeng-i18n";
 
 export const GEO_SITE = "https://xumengchat.top";
 export const GEO_UPDATED = "2026-11-05";
 export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的 AI 角色卡与连续剧情互动故事空间。`;
 export const GEO_BOUNDARY = "私人会话、账号信息、余额与未公开内容不在公开资料中。";
 export const GEO_META_DESCRIPTION = "叙梦（XUMENG）是 AI 角色卡与连续剧情的互动故事空间。浏览公开角色、世界书与开场设定，再进入站内继续对话。";
+
+const LANDING_SEO: Readonly<Record<XumengLocale, { title: string; description: string; heading: string; body: string; keywords: string[]; ogLocale: string }>> = Object.freeze({
+  en: { title: "XUMENG | AI Character Cards, Roleplay and Interactive Stories", description: "Discover AI character cards, roleplay characters, worldbuilding and interactive stories on XUMENG.", heading: "AI character cards and interactive stories", body: "Browse public AI character cards, roleplay characters, worldbuilding settings and story openings, then continue the story in XUMENG.", keywords: ["AI character cards", "AI roleplay", "interactive stories", "worldbuilding"], ogLocale: "en_US" },
+  "zh-Hans": { title: "叙梦｜AI角色卡、角色扮演与互动故事", description: "在叙梦发现 AI 角色卡、角色扮演、世界书和连续互动故事。", heading: "AI角色卡与互动故事", body: "浏览公开 AI 角色卡、角色扮演角色、世界书和故事开场设定，再进入叙梦继续互动剧情。", keywords: ["AI角色卡", "角色扮演", "互动故事", "世界书"], ogLocale: "zh_CN" },
+  "zh-Hant": { title: "叙夢｜AI角色卡、角色扮演與互動故事", description: "在叙夢探索 AI 角色卡、角色扮演、世界書與連續互動故事。", heading: "AI角色卡與互動故事", body: "瀏覽公開 AI 角色卡、角色扮演角色、世界書與故事開場設定，再進入叙夢繼續互動劇情。", keywords: ["AI角色卡", "角色扮演", "互動故事", "世界書"], ogLocale: "zh_TW" },
+  ja: { title: "XUMENG｜AIキャラクターカード・ロールプレイ・インタラクティブストーリー", description: "XUMENGでAIキャラクターカード、ロールプレイ、世界観設定、インタラクティブストーリーを探そう。", heading: "AIキャラクターカードと物語体験", body: "公開AIキャラクターカード、ロールプレイ用キャラクター、世界観設定、ストーリーの導入を見つけて、XUMENGで続きを楽しめます。", keywords: ["AIキャラクターカード", "AIロールプレイ", "インタラクティブストーリー", "世界観設定"], ogLocale: "ja_JP" },
+  ko: { title: "XUMENG｜AI 캐릭터 카드·롤플레이·인터랙티브 스토리", description: "XUMENG에서 AI 캐릭터 카드, 롤플레이, 세계관 설정과 인터랙티브 스토리를 찾아보세요.", heading: "AI 캐릭터 카드와 인터랙티브 스토리", body: "공개 AI 캐릭터 카드, 롤플레이 캐릭터, 세계관 설정과 스토리 도입부를 둘러보고 XUMENG에서 이야기를 이어갈 수 있습니다.", keywords: ["AI 캐릭터 카드", "AI 롤플레이", "인터랙티브 스토리", "세계관 설정"], ogLocale: "ko_KR" },
+});
+
+export function localizedLandingLocale(normalizedPath: string): XumengLocale | null {
+  const option = XUMENG_LOCALE_OPTIONS.find(item => item.locale !== "zh-Hans" && `/${item.routePrefix}` === normalizedPath);
+  return option?.locale ?? null;
+}
+
+export function localizedLandingPath(locale: XumengLocale): string {
+  return locale === "zh-Hans" ? "/" : `/${xumengLocaleRoutePrefix(locale)}`;
+}
+
+export function localizedLandingSeo(locale: XumengLocale) {
+  return LANDING_SEO[locale] ?? LANDING_SEO[XUMENG_LOCALE_OPTIONS[1].locale];
+}
+
+export function localizedLandingAlternates(): readonly { locale: XumengLocale; href: string; hreflang: string }[] {
+  return XUMENG_LOCALE_OPTIONS.map(option => ({ locale: option.locale, href: `${GEO_SITE}${localizedLandingPath(option.locale)}`, hreflang: option.htmlLang.toLowerCase() }));
+}
+
+export function localizedLandingJsonLd(locale: XumengLocale): string {
+  const seo = localizedLandingSeo(locale);
+  const url = `${GEO_SITE}${localizedLandingPath(locale)}`;
+  return jsonLd({ "@context": "https://schema.org", "@type": "WebSite", "@id": `${url}#website`, url, name: "XUMENG", description: seo.description, inLanguage: xumengHtmlLang(locale), publisher: { "@type": "Organization", name: "XUMENG", url: `${GEO_SITE}/` } });
+}
+
+export function renderLocalizedLandingFallback(locale: XumengLocale): string {
+  const seo = localizedLandingSeo(locale);
+  const path = localizedLandingPath(locale);
+  const cards = featuredCharacters().slice(0, 8).map(card => `<li><a href="${path === "/" ? "" : path}/c/${card.id}">${escapeHtml(card.title)}</a></li>`).join("");
+  return `<main id="xumeng-public-intro" style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif;color:#f4efe8;background:#07070b"><h1>${escapeHtml(seo.heading)}</h1><p>${escapeHtml(seo.body)}</p><p>${seo.keywords.map(escapeHtml).join(" · ")}</p><h2>${escapeHtml(locale === "en" ? "Featured public characters" : locale === "ja" ? "注目の公開キャラクター" : locale === "ko" ? "추천 공개 캐릭터" : "精选公开角色")}</h2><ul>${cards}</ul></main>`;
+}
 
 const ANSWER_AGENTS = [
   "*",
@@ -147,6 +186,7 @@ export function publicSitemapEntries(published: readonly PublishedSitemapCharact
     { loc: `${GEO_SITE}/faq`, lastmod: GEO_UPDATED, changefreq: "monthly", priority: "0.8" },
     { loc: `${GEO_SITE}/characters`, lastmod: GEO_UPDATED, changefreq: "weekly", priority: "0.9" },
     { loc: `${GEO_SITE}${XUMENG_COMMUNITY_GUIDELINES_PATH}`, lastmod: XUMENG_COMMUNITY_GUIDELINES_DATE, changefreq: "yearly", priority: "0.5" },
+    ...XUMENG_LOCALE_OPTIONS.filter(option => option.locale !== "zh-Hans").map(option => ({ loc: `${GEO_SITE}${localizedLandingPath(option.locale)}`, lastmod: GEO_UPDATED, changefreq: "weekly", priority: "0.9" })),
   ];
   const characters = characterShareLocations().map(loc => {
     const id = loc.slice(`${GEO_SITE}/c/`.length);
