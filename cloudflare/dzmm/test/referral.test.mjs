@@ -43,6 +43,8 @@ test('registration invite awards spendable Credit and exposes stable sharing det
   assert.match(first.data.inviteUrl, /[?&]invite=/);
 
   assert.equal(first.data.rewardPoints, 20);
+  assert.equal(first.data.rebatePercent, 15);
+  assert.equal(first.data.rebateCurrency, 'CNY');
   assert.equal(first.data.activityRewardPoints, 5);
   assert.equal(first.data.activityRewardDays, 3);
 

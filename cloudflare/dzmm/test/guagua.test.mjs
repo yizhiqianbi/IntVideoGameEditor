@@ -196,8 +196,8 @@ test('WeChat VIP checkout opens a membership and does not grant recharge credit'
 });
 
 test('invited WeChat payments credit dream coin once, then exchange and withdrawal keep one ledger', async () => {
-  assert.equal(dreamCoinRebatePreview(2800, 0, 0), 560);
-  assert.equal(dreamCoinRebatePreview(2800, 11 * 86400000, 0), 280);
+  assert.equal(dreamCoinRebatePreview(2800), 420);
+  assert.equal(dreamCoinRebatePreview(1), 0);
   const invitee = await fixture();
   const inviter = { id: randomUUID(), email: `${randomUUID()}@dream.example.test`, nickname: '邀请人', isGuest: false, role: 'user', version: 0 };
   const now = Date.now();
@@ -215,6 +215,7 @@ test('invited WeChat payments credit dream coin once, then exchange and withdraw
   }
   await pay();
   await pay();
+  await pay();
   async function dream(path, body, actor = inviter) {
     try {
       const response = await handleDreamCoin(new Request(`https://xumengchat.top${path}`, { method: body ? 'POST' : 'GET', headers: { 'Content-Type': 'application/json', 'CF-Connecting-IP': actor.id }, body: body ? JSON.stringify(body) : undefined }), invitee.env, actor);
@@ -222,13 +223,17 @@ test('invited WeChat payments credit dream coin once, then exchange and withdraw
     } catch (error) { return { status: error.status, data: { error: error.message } }; }
   }
   const wallet = expect(await dream('/v1/dream-coin'), 200);
-  assert.equal(wallet.balanceFen, 1120);
-  assert.equal(wallet.entries.filter(entry => entry.kind === 'invite_rebate').length, 2);
+  assert.equal(wallet.balanceFen, 1260);
+  assert.equal(wallet.currency, 'CNY');
+  assert.equal(wallet.rebatePercent, 15);
+  assert.equal(wallet.earnedRebateFen, 1260);
+  assert.equal(wallet.entries.filter(entry => entry.kind === 'invite_rebate').length, 3);
+  assert.ok(wallet.entries.filter(entry => entry.kind === 'invite_rebate').every(entry => entry.amountFen === 420));
   const exchanged = expect(await dream('/v1/dream-coin/exchange', { amountFen: 100 }), 201);
-  assert.equal(exchanged.balanceFen, 1020);
+  assert.equal(exchanged.balanceFen, 1160);
   assert.equal((await DB.prepare('SELECT balance FROM credit_usage_balances WHERE user_id=?').bind(inviter.id).first()).balance, 100);
   const withdrawn = expect(await dream('/v1/dream-coin/withdrawals', { amountFen: 1000, payoutAccount: 'dream@example.test' }), 201);
-  assert.equal(withdrawn.balanceFen, 20);
+  assert.equal(withdrawn.balanceFen, 160);
   assert.equal(withdrawn.withdrawals[0].status, 'pending');
   const blocked = await dream('/v1/dream-coin/withdrawals', { amountFen: 1000, payoutAccount: 'dream@example.test' });
   assert.equal(blocked.status, 409);
@@ -236,10 +241,10 @@ test('invited WeChat payments credit dream coin once, then exchange and withdraw
   const rejected = expect(await dream(`/v1/dream-coin/withdrawals/${withdrawn.withdrawals[0].id}`, { status: 'rejected' }, admin), 200);
   assert.equal(rejected.status, 'rejected');
   const restored = expect(await dream('/v1/dream-coin'), 200);
-  assert.equal(restored.balanceFen, 1020);
+  assert.equal(restored.balanceFen, 1160);
   const again = expect(await dream('/v1/dream-coin/withdrawals', { amountFen: 1000, payoutAccount: 'dream@example.test' }), 201);
   expect(await dream(`/v1/dream-coin/withdrawals/${again.withdrawals[0].id}`, { status: 'paid' }, admin), 200);
   const closed = await dream('/v1/dream-coin/withdrawals', { amountFen: 1000, payoutAccount: 'dream@example.test' });
   assert.equal(closed.status, 409);
-  assert.equal((await dream('/v1/dream-coin')).data.balanceFen, 20);
+  assert.equal((await dream('/v1/dream-coin')).data.balanceFen, 160);
 });

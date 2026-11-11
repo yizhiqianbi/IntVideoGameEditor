@@ -1,5 +1,6 @@
 import type { D1PreparedStatement } from "@cloudflare/workers-types";
 import { ApiError, json } from "./http";
+import { INVITE_REBATE_CURRENCY, INVITE_REBATE_PERCENT } from "./invite-rebate";
 import type { Env, UserRecord } from "./types";
 
 export const REFERRAL_SIGNUP_POINTS = 20;
@@ -148,6 +149,7 @@ export async function handleReferral(request: Request, env: Env, user: UserRecor
     inviteUrl: `${origin}/?invite=${encodeURIComponent(inviteCode)}`,
     rewardPoints: REFERRAL_SIGNUP_POINTS, rewardCredits: REFERRAL_SIGNUP_POINTS,
     activityRewardPoints: REFERRAL_ACTIVITY_POINTS, activityRewardDays: REFERRAL_ACTIVITY_DAYS,
+    rebatePercent: INVITE_REBATE_PERCENT, rebateCurrency: INVITE_REBATE_CURRENCY,
     invitedCount, earnedPoints, earnedCredits: earnedPoints, pointsKind: "credit", modelBillingLinked: true, rewardUnit: "Credit",
     successfulInvites: invitedCount, totalRewardPoints: earnedPoints, totalRewardCredits: earnedPoints,
     opens: Number(funnel?.opens ?? 0), registrations: Number(funnel?.registrations ?? 0), startedChats: Number(funnel?.started ?? 0) });

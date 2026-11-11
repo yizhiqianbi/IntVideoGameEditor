@@ -1,13 +1,11 @@
 import type { D1PreparedStatement } from "@cloudflare/workers-types";
 import { rateLimit } from "./auth";
 import { ApiError, json, readJson } from "./http";
+import { INVITE_REBATE_CURRENCY, INVITE_REBATE_PERCENT, inviteRebateFen } from "./invite-rebate";
 import type { Env, UserRecord } from "./types";
 
 const DAY = 86400000;
 const FEN = 100;
-export const EARLY_REBATE_PERCENT = 20;
-export const LATER_REBATE_PERCENT = 10;
-export const EARLY_WINDOW_DAYS = 10;
 export const MIN_EXCHANGE_FEN = FEN;
 export const MIN_WITHDRAW_FEN = 10 * FEN;
 export const WITHDRAW_INTERVAL_DAYS = 10;
@@ -31,11 +29,6 @@ function payoutAccount(value: unknown): string {
   return account;
 }
 
-function rebateFen(amountMinor: number, paidAt: number, invitedAt: number): number {
-  const percent = paidAt < invitedAt + EARLY_WINDOW_DAYS * DAY ? EARLY_REBATE_PERCENT : LATER_REBATE_PERCENT;
-  return Math.floor(amountMinor * percent / 100);
-}
-
 /** One verified RMB payment can create one invite rebate. Replay keeps the first amount. */
 export function inviteRebateStatement(
   env: Pick<Env, "DB">,
@@ -47,18 +40,15 @@ export function inviteRebateStatement(
   eventId: string,
   nonce: string,
 ): D1PreparedStatement {
-  const windowEnd = EARLY_WINDOW_DAYS * DAY;
   return env.DB.prepare(`INSERT INTO dream_coin_ledger(id,user_id,amount_fen,kind,source_type,source_id,note,created_at)
-    SELECT ?,e.inviter_id,
-      CASE WHEN ? < e.created_at + ? THEN (? * ? / 100) ELSE (? * ? / 100) END,
-      'invite_rebate','invite_rebate',?,?,?
+    SELECT ?,e.inviter_id,CAST(? * ? / 100 AS INTEGER),'invite_rebate','invite_rebate',?,?,?
     FROM referral_events e JOIN users u ON u.id=e.inviter_id AND u.is_guest=0
     WHERE e.invitee_id=? AND e.inviter_id<>e.invitee_id
-      AND CASE WHEN ? < e.created_at + ? THEN (? * ? / 100) ELSE (? * ? / 100) END > 0
+      AND CAST(? * ? / 100 AS INTEGER) > 0
       AND EXISTS(SELECT 1 FROM ${eventTable} WHERE event_id=? AND processing_token=?)
     ON CONFLICT(source_type,source_id) DO NOTHING`)
-    .bind(`dc_${crypto.randomUUID()}`, paidAt, windowEnd, amountMinor, EARLY_REBATE_PERCENT, amountMinor, LATER_REBATE_PERCENT,
-      sourceId, "好友实付返利", paidAt, inviteeId, paidAt, windowEnd, amountMinor, EARLY_REBATE_PERCENT, amountMinor, LATER_REBATE_PERCENT, eventId, nonce);
+    .bind(`dc_${crypto.randomUUID()}`, amountMinor, INVITE_REBATE_PERCENT, sourceId, "好友实付15%人民币返点", paidAt,
+      inviteeId, amountMinor, INVITE_REBATE_PERCENT, eventId, nonce);
 }
 
 async function balanceFen(env: Env, userId: string): Promise<number> {
@@ -67,14 +57,16 @@ async function balanceFen(env: Env, userId: string): Promise<number> {
 }
 
 async function snapshot(env: Env, user: UserRecord) {
-  const [entries, withdrawals, balance] = await Promise.all([
+  const [entries, withdrawals, balance, earned] = await Promise.all([
     env.DB.prepare("SELECT id,amount_fen,kind,note,created_at FROM dream_coin_ledger WHERE user_id=? ORDER BY created_at DESC,id DESC LIMIT 50").bind(user.id).all<LedgerRow>(),
     env.DB.prepare("SELECT id,amount_fen,payout_account,status,created_at,updated_at FROM dream_coin_withdrawals WHERE user_id=? ORDER BY created_at DESC,id DESC LIMIT 20").bind(user.id).all<WithdrawalRow>(),
     balanceFen(env, user.id),
+    env.DB.prepare("SELECT COALESCE(SUM(amount_fen),0) AS fen FROM dream_coin_ledger WHERE user_id=? AND kind='invite_rebate'").bind(user.id).first<{ fen: number }>(),
   ]);
   return {
     accountId: user.id, unit: "梦币", yuanPerCoin: 1, creditsPerYuan: FEN, balanceFen: balance,
-    earlyRebatePercent: EARLY_REBATE_PERCENT, laterRebatePercent: LATER_REBATE_PERCENT, earlyWindowDays: EARLY_WINDOW_DAYS,
+    currency: INVITE_REBATE_CURRENCY, rebatePercent: INVITE_REBATE_PERCENT, earnedRebateFen: Number(earned?.fen ?? 0),
+    earlyRebatePercent: INVITE_REBATE_PERCENT, laterRebatePercent: INVITE_REBATE_PERCENT, earlyWindowDays: 0,
     minExchangeFen: MIN_EXCHANGE_FEN, minWithdrawFen: MIN_WITHDRAW_FEN, withdrawIntervalDays: WITHDRAW_INTERVAL_DAYS,
     entries: entries.results.map(row => ({ id: row.id, amountFen: row.amount_fen, kind: row.kind, note: row.note, createdAt: row.created_at })),
     withdrawals: withdrawals.results.map(row => ({ id: row.id, amountFen: row.amount_fen, payoutAccount: row.payout_account, status: row.status, createdAt: row.created_at, updatedAt: row.updated_at })),
@@ -167,4 +159,4 @@ export async function handleDreamCoin(request: Request, env: Env, user: UserReco
   return path.endsWith("/exchange") ? exchange(request, env, user) : withdraw(request, env, user);
 }
 
-export const dreamCoinRebatePreview = rebateFen;
+export const dreamCoinRebatePreview = inviteRebateFen;
