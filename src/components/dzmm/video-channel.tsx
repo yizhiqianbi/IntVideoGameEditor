@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { isXumengVideoDramaId, parseXumengVideoCatalog, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
+import { isXumengVideoDramaId, matchXumengVideoCharacter, parseXumengVideoCatalog, rankXumengVideoDramas, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
 import Icon from "./icons";
 import s from "./video-channel.module.css";
 
 const CATALOG_URLS = ["/assets/xumeng/video-catalog.json", "/api/xumeng-video/catalog"];
 const MARKS_KEY = "xumeng-video-marks";
 const NOTES_KEY = "xumeng-video-notes";
+const PROGRESS_KEY = "xumeng-video-progress";
 const CATALOG_TTL_MS = 60_000;
 const SWIPE_DISTANCE = 64;
 const SWIPE_MS = 180;
@@ -16,6 +17,7 @@ type Drama = XumengVideoDrama;
 type SheetId = "" | "episodes" | "comments";
 type Marks = { likes: string[]; saves: string[] };
 type Note = { id: string; dramaId: string; body: string; at: number };
+type WatchProgress = { dramaId: string; episodeId: string; currentTime: number; duration: number; updatedAt: number };
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const text = (value: unknown, max: number) => typeof value === "string" && value.trim().length > 0 && value.length <= max ? value.trim() : "";
@@ -76,21 +78,74 @@ function readNotes(): Note[] {
   }
 }
 
+function readProgress(): Record<string, WatchProgress> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "");
+    if (!record(raw)) return {};
+    return Object.fromEntries(Object.entries(raw).flatMap(([episodeId, item]) => {
+      const dramaId = record(item) && typeof item.dramaId === "string" ? item.dramaId : "";
+      if (!record(item) || !isXumengVideoDramaId(dramaId) || typeof item.episodeId !== "string" || item.episodeId !== episodeId) return [];
+      const currentTime = typeof item.currentTime === "number" && Number.isFinite(item.currentTime) && item.currentTime >= 0 ? item.currentTime : 0;
+      const duration = typeof item.duration === "number" && Number.isFinite(item.duration) && item.duration > 0 ? item.duration : 0;
+      const updatedAt = typeof item.updatedAt === "number" && Number.isFinite(item.updatedAt) ? item.updatedAt : 0;
+      return [{ key: episodeId, value: { dramaId, episodeId, currentTime, duration, updatedAt } }];
+    }).sort((a, b) => b.value.updatedAt - a.value.updatedAt).slice(0, 200).map(item => [item.key, item.value]));
+  } catch {
+    return {};
+  }
+}
+
+function formatTime(value: number) {
+  const seconds = Math.max(0, Math.floor(value));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 function dramaHash(dramaId: string) {
   return `#videos/${dramaId}`;
 }
 
-export default function VideoChannel() {
+const CATEGORY_LABEL: Record<string, string> = {
+  "AI成人短剧": "短剧",
+  "AI换脸": "换脸",
+  "AI魔改": "魔改",
+  "AI成人漫剧": "漫剧",
+};
+
+function categoryLabel(category: string) {
+  return CATEGORY_LABEL[category] || category.replace(/^AI/u, "") || "短剧";
+}
+
+function storyLine(drama: Drama, character: { introduction?: string; description?: string; scenario?: string } | null, episodeName: string) {
+  const raw = drama.synopsis || character?.introduction || character?.description || character?.scenario || "";
+  const line = raw.replace(/\s+/gu, " ").trim();
+  if (line) return line;
+  return `${episodeName} · 共 ${drama.episodes.length} 集`;
+}
+
+export type VideoCharacterLink = {
+  id: string;
+  name: string;
+  description?: string;
+  introduction?: string;
+  scenario?: string;
+  tags?: string[];
+};
+
+export default function VideoChannel({ characters = [], onOpenCharacter }: {
+  characters?: readonly VideoCharacterLink[];
+  onOpenCharacter?: (id: string) => void;
+}) {
   const [dramas, setDramas] = useState<Drama[]>([]);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [visualIndex, setVisualIndex] = useState(0);
   const [episodeId, setEpisodeId] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const [sheet, setSheet] = useState<SheetId>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [catalogReload, setCatalogReload] = useState(0);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -100,6 +155,8 @@ export default function VideoChannel() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState("");
+  const [videoError, setVideoError] = useState(false);
+  const [videoRetry, setVideoRetry] = useState(0);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -113,10 +170,18 @@ export default function VideoChannel() {
   const frameReady = useRef(false);
   const feedLengthRef = useRef(0);
   const mutedRef = useRef(false);
+  const progressRef = useRef<Record<string, WatchProgress>>({});
+  const lastProgressWriteRef = useRef(0);
 
-  const feed = dramas;
+  const ranked = useMemo(() => rankXumengVideoDramas(dramas), [dramas]);
+  const categories = useMemo(() => {
+    const seen: string[] = [];
+    for (const item of dramas) if (item.category && !seen.includes(item.category)) seen.push(item.category);
+    return seen;
+  }, [dramas]);
+  const feed = useMemo(() => category ? ranked.filter(item => item.category === category) : ranked, [ranked, category]);
   const keyword = query.trim().toLowerCase();
-  const found = useMemo(() => keyword ? dramas.filter(drama => drama.title.toLowerCase().includes(keyword)) : dramas, [dramas, keyword]);
+  const found = useMemo(() => keyword ? ranked.filter(drama => drama.title.toLowerCase().includes(keyword)) : ranked, [ranked, keyword]);
   const playing = feed[index] ?? null;
   const drama = feed[visualIndex] ?? null;
   const episode = playing ? clipFor(playing, playing.dramaId, episodeId) : null;
@@ -135,6 +200,8 @@ export default function VideoChannel() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setError("");
     loadCatalog(controller.signal).then(list => {
       if (!controller.signal.aborted) { setDramas(list); setLoading(false); }
     }).catch(failure => {
@@ -143,24 +210,33 @@ export default function VideoChannel() {
       setLoading(false);
     });
     return () => controller.abort();
-  }, []);
+  }, [catalogReload]);
 
   useEffect(() => {
     setMarks(readMarks());
     setNotes(readNotes());
+    progressRef.current = readProgress();
   }, []);
 
   useEffect(() => {
+    if (!feed.length || index < feed.length) return;
+    indexRef.current = 0;
+    visualRef.current = 0;
+    setIndex(0);
+    setVisualIndex(0);
+  }, [feed.length, index]);
+
+  useEffect(() => {
     const id = xumengVideoDramaIdFromRoute(location.hash);
-    if (!id || !dramas.length || moved.current) return;
-    const foundIndex = dramas.findIndex(item => item.dramaId === id);
+    if (!id || !feed.length || moved.current) return;
+    const foundIndex = feed.findIndex(item => item.dramaId === id);
     if (foundIndex > 0) {
       indexRef.current = foundIndex;
       visualRef.current = foundIndex;
       setIndex(foundIndex);
       setVisualIndex(foundIndex);
     }
-  }, [dramas]);
+  }, [feed]);
 
   useEffect(() => {
     if (!playing) return;
@@ -201,6 +277,7 @@ export default function VideoChannel() {
 
   useLayoutEffect(() => {
     frameReady.current = false;
+    setVideoError(false);
     setCurrentTime(0);
     setDuration(0);
     const node = videoRef.current;
@@ -224,7 +301,7 @@ export default function VideoChannel() {
     const node = currentVideo();
     if (!node || !episode) return;
     const url = xumengVideoMediaUrl(episode.mediaKey);
-    if (node.dataset.clip !== episode.id) {
+    if (node.dataset.clip !== episode.id || videoRetry > 0) {
       frameReady.current = false;
       node.style.opacity = "0";
       if (node.getAttribute("src")) {
@@ -234,13 +311,14 @@ export default function VideoChannel() {
       }
       node.dataset.clip = episode.id;
       node.src = url;
+      node.load();
     }
     startPlayback(node);
     if (node.readyState >= 2) {
       frameReady.current = true;
       revealFrame();
     }
-  }, [episode?.id]);
+  }, [episode?.id, videoRetry]);
 
   useEffect(() => {
     if (!toast) return;
@@ -251,6 +329,26 @@ export default function VideoChannel() {
   function remember(next: Marks) {
     setMarks(next);
     try { localStorage.setItem(MARKS_KEY, JSON.stringify(next)); } catch { /* The buttons still reflect this visit. */ }
+  }
+
+  function rememberProgress(next: WatchProgress) {
+    const current = { ...progressRef.current, [next.episodeId]: next };
+    const trimmed = Object.fromEntries(Object.entries(current).sort((a, b) => b[1].updatedAt - a[1].updatedAt).slice(0, 200));
+    progressRef.current = trimmed;
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(trimmed)); } catch { /* Playback remains usable without persistence. */ }
+  }
+
+  function clearProgress(episodeId: string) {
+    if (!progressRef.current[episodeId]) return;
+    const next = { ...progressRef.current };
+    delete next[episodeId];
+    progressRef.current = next;
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* The completed episode can still advance. */ }
+  }
+
+  function retryVideo() {
+    setVideoError(false);
+    setVideoRetry(value => value + 1);
   }
 
   function toggleMark(kind: "likes" | "saves") {
@@ -279,7 +377,6 @@ export default function VideoChannel() {
     if (total < 2 || next === indexRef.current) return;
     indexRef.current = next;
     moved.current = true;
-    setExpanded(false);
     setSheet("");
     setIndex(next);
   }
@@ -339,15 +436,39 @@ export default function VideoChannel() {
     const timer = window.setTimeout(() => finish(), SWIPE_MS + 80);
   }
 
+  function chooseCategory(next: string) {
+    if (next === category) return;
+    moved.current = true;
+    indexRef.current = 0;
+    visualRef.current = 0;
+    setCategory(next);
+    setIndex(0);
+    setVisualIndex(0);
+    setEpisodeId("");
+    setSheet("");
+    setSearchOpen(false);
+    resetTrack();
+  }
+
+  function openCharacter() {
+    if (!drama) return;
+    const character = matchXumengVideoCharacter(drama, characters);
+    if (!character || !onOpenCharacter) {
+      setToast("这部剧还没有对应的角色卡");
+      return;
+    }
+    onOpenCharacter(character.id);
+  }
+
   function openDrama(next: Drama) {
-    const at = dramas.findIndex(item => item.dramaId === next.dramaId);
+    const at = ranked.findIndex(item => item.dramaId === next.dramaId);
+    setCategory("");
     moved.current = true;
     indexRef.current = Math.max(0, at);
     visualRef.current = indexRef.current;
     setIndex(indexRef.current);
     setVisualIndex(indexRef.current);
     setEpisodeId(next.episodes[0]?.id ?? "");
-    setExpanded(false);
     setSearchOpen(false);
     setSheet("");
     resetTrack();
@@ -467,6 +588,30 @@ export default function VideoChannel() {
     if (!sliding.current) placeTrack(0, true);
   }
 
+  function onStageKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      settleRef.current(1);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      settleRef.current(-1);
+      return;
+    }
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      togglePlay();
+      return;
+    }
+    if (event.key === "Escape") {
+      if (sheet) setSheet("");
+      else if (searchOpen) setSearchOpen(false);
+    }
+  }
+
   const settleRef = useRef(settle);
   const gateRef = useRef({ searchOpen, sheet });
   settleRef.current = settle;
@@ -489,11 +634,12 @@ export default function VideoChannel() {
 
   const liked = drama ? marks.likes.includes(drama.dramaId) : false;
   const saved = drama ? marks.saves.includes(drama.dramaId) : false;
+  const linkedCharacter = drama ? matchXumengVideoCharacter(drama, characters) : null;
 
   return <div className={s.shell}>
-    <section ref={stageRef} className={s.stage} aria-label="短剧" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
+    <section ref={stageRef} className={s.stage} aria-label="短剧" tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
       {loading && <p className={s.status}>正在打开</p>}
-      {error && <p className={s.status} role="alert">{error}</p>}
+      {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>重新加载</button></div>}
       {!loading && !error && !drama && <p className={s.status}>还没有可以看的短剧。</p>}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
@@ -513,7 +659,13 @@ export default function VideoChannel() {
             const node = videoRef.current;
             if (node) {
               setDuration(Number.isFinite(node.duration) ? node.duration : 0);
-              setCurrentTime(node.currentTime || 0);
+              const saved = episode ? progressRef.current[episode.id] : undefined;
+              const canResume = saved && saved.currentTime >= 5 && saved.currentTime < node.duration - 2;
+              if (canResume) {
+                node.currentTime = saved.currentTime;
+                setCurrentTime(saved.currentTime);
+                setToast(`从 ${formatTime(saved.currentTime)} 继续`);
+              } else setCurrentTime(node.currentTime || 0);
             }
           }}
           onDurationChange={() => {
@@ -522,20 +674,34 @@ export default function VideoChannel() {
           }}
           onTimeUpdate={() => {
             const node = videoRef.current;
-            if (node) setCurrentTime(node.currentTime || 0);
+            if (node) {
+              const nextTime = node.currentTime || 0;
+              setCurrentTime(nextTime);
+              if (episode && nextTime > 0 && Date.now() - lastProgressWriteRef.current >= 3000) {
+                lastProgressWriteRef.current = Date.now();
+                rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: Number.isFinite(node.duration) ? node.duration : 0, updatedAt: Date.now() });
+              }
+            }
           }}
           onPlay={() => setPaused(false)}
           onPause={() => setPaused(true)}
-          onLoadedData={() => { frameReady.current = true; revealFrame(); }}
-          onError={() => { frameReady.current = false; if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); }}
+          onLoadedData={() => { setVideoError(false); frameReady.current = true; revealFrame(); }}
+          onError={() => { frameReady.current = false; if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); setVideoError(true); }}
           onEnded={() => {
+            if (episode) clearProgress(episode.id);
             const at = playing.episodes.findIndex(entry => entry.id === episode.id);
             if (at >= 0 && at < playing.episodes.length - 1) setEpisodeId(playing.episodes[at + 1].id);
             else settle(1);
           }}
         />
+        {videoError && <div className={s.videoError} role="alert">
+          <p>这一集暂时加载失败</p>
+          <button type="button" onClick={retryVideo}>重试播放</button>
+        </div>}
       </div>}
       {drama && episode && <>
+        <button type="button" className={`${s.navButton} ${s.navPrevious}`} aria-label="上一部" disabled={index <= 0} onClick={() => move(-1)}><Icon name="chevron" size={22} /></button>
+        <button type="button" className={`${s.navButton} ${s.navNext}`} aria-label="下一部" disabled={index >= feed.length - 1} onClick={() => move(1)}><Icon name="chevron" size={22} /></button>
         {duration > 0 && <div
           className={s.scrub}
           data-dragging={scrubbing || undefined}
@@ -561,33 +727,38 @@ export default function VideoChannel() {
           <RailButton name="收藏" label={saved ? "1" : "收藏"} pressed={saved} onClick={() => toggleMark("saves")}><Star filled={saved} /></RailButton>
           <RailButton name="分享" label="分享" onClick={() => void shareDrama()}><Share /></RailButton>
         </div>
-        <div className={s.caption}>
-          <div className={s.copy}>
-            <h1>{drama.title}</h1>
-            <p className={expanded ? s.synopsisOpen : s.synopsis}>
-              <span>{episode.episode}{drama.episodes.length > 1 ? ` · 共 ${drama.episodes.length} 集` : ""}</span>
-              <button type="button" onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : "展开"}</button>
-            </p>
-            {expanded && <ol className={s.episodeList}>{drama.episodes.map(item => <li key={item.id}>{item.episode}</li>)}</ol>}
+        <div className={s.storyCard} onPointerDown={event => event.stopPropagation()}>
+          <div className={s.chips}>
+            <span className={s.tag}>{categoryLabel(drama.category)}</span>
+            <span className={s.brand}>叙梦短剧</span>
           </div>
-          <button type="button" className={s.watchAll} onClick={() => setSheet("episodes")}>
-            <span>观看完整短剧 · 全 {drama.episodes.length} 集</span>
-            <Icon name="chevron" size={16} />
-          </button>
+          <div className={s.storyHead}>
+            <h1>{drama.title}</h1>
+            {drama.episodes.length > 1 && <button type="button" className={s.episodes} onClick={() => setSheet("episodes")}>全 {drama.episodes.length} 集</button>}
+          </div>
+          <p className={s.blurb}>{storyLine(drama, linkedCharacter, episode.episode)}</p>
+          <button type="button" className={s.start} onClick={openCharacter}><Icon name="play" size={13} />我来玩</button>
         </div>
       </>}
-      <header className={s.top}>
+      <header className={s.top} onPointerDown={event => event.stopPropagation()}>
+        <button type="button" className={s.back} aria-label="返回角色广场" onClick={() => { location.hash = "characters"; }}><Icon name="back" size={20} /></button>
         {searchOpen ? <label className={s.searchBox}>
           <Icon name="search" size={16} />
           <input aria-label="搜索短剧" placeholder="搜索短剧" value={query} maxLength={80} autoFocus onChange={event => setQuery(event.target.value)} />
           <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }}>取消</button>
-        </label> : <button type="button" className={s.topSide} aria-label="搜索" onClick={() => setSearchOpen(true)}><Icon name="search" size={20} /></button>}
+        </label> : <>
+          <div className={s.tabs} role="tablist" aria-label="短剧分类">
+            <button type="button" role="tab" aria-selected={!category} onClick={() => chooseCategory("")}>为你推荐</button>
+            {categories.map(item => <button type="button" role="tab" key={item} aria-selected={category === item} onClick={() => chooseCategory(item)}>{categoryLabel(item)}</button>)}
+          </div>
+          <button type="button" className={s.topSide} aria-label="搜索" onClick={() => setSearchOpen(true)}><Icon name="search" size={20} /></button>
+        </>}
       </header>
       {searchOpen && <div className={s.results}>
         {!keyword && <p>输入剧名</p>}
         {keyword && found.length === 0 && <p>没有找到对应短剧。</p>}
         {keyword && found.slice(0, 40).map(item => <button type="button" key={item.dramaId} onClick={() => openDrama(item)}>
-          <span><strong>{item.title}</strong><small>{item.episodes.length} 集</small></span>
+          <span><strong>{item.title}</strong><small>{item.category || "短剧"} · {item.episodes.length} 集</small></span>
         </button>)}
       </div>}
     </section>

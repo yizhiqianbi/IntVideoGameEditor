@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import catalog from "./xumeng-video-catalog.ts";
 
-const { parseXumengVideoCatalog, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl } = catalog as typeof import("./xumeng-video-catalog.ts");
+const { parseXumengVideoCatalog, rankXumengVideoDramas, matchXumengVideoCharacter, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl } = catalog as typeof import("./xumeng-video-catalog.ts");
 
 test("huangguo catalog groups episodes and ignores the deleted full-video layout", () => {
   const dramas = parseXumengVideoCatalog({
@@ -24,6 +24,38 @@ test("huangguo catalog groups episodes and ignores the deleted full-video layout
   assert.equal(xumengVideoDramaIdFromRoute("videos/1018"), "");
 });
 
+test("optional character link and synopsis stay with the drama", () => {
+  const [drama] = parseXumengVideoCatalog({
+    items: [
+      { id: "hg-11138-1", dramaId: "hg-11138", title: "海浪与婚戒", episode: "第01集", mediaKey: "video/huangguo/11138/ep-001.mp4", posterKey: "posters/huangguo/11138.jpg", category: "AI成人短剧", characterId: "card-1", synopsis: "婚礼前夜，她把戒指放回你掌心。", tags: ["都市", "太长的标签不应该被收下因为超过十六字"] },
+    ],
+  });
+  assert.equal(drama?.characterId, "card-1");
+  assert.equal(drama?.synopsis, "婚礼前夜，她把戒指放回你掌心。");
+  assert.deepEqual(drama?.tags, ["都市"]);
+});
+
+test("a drama opens the character with the same id or title", () => {
+  const drama = { title: "八位王子，一顶王冠", characterId: "" };
+  const cards = [
+    { id: "other", name: "另一张卡" },
+    { id: "crown", name: "八位王子，一顶王冠" },
+    { id: "longer", name: "八位王子，一顶王冠 番外" },
+  ];
+  assert.equal(matchXumengVideoCharacter(drama, cards)?.id, "crown");
+  assert.equal(matchXumengVideoCharacter({ title: "没有这张卡", characterId: "crown" }, cards)?.id, "crown");
+  assert.equal(matchXumengVideoCharacter({ title: "海", characterId: "" }, [{ id: "sea", name: "海浪与婚戒" }]), null);
+});
+
 test("a catalog without an item list is rejected", () => {
   assert.throws(() => parseXumengVideoCatalog({ brand: "叙梦短剧" }), /视频目录格式无效/);
+});
+
+test("video drama ranking is stable within a day and changes the exploration order across days", () => {
+  const dramas = parseXumengVideoCatalog({ items: [
+    ...["11138", "11139", "11140", "11141"].map(id => ({ id: `hg-${id}-1`, dramaId: `hg-${id}`, title: id, episode: "第01集", mediaKey: `video/huangguo/${id}/ep-001.mp4`, posterKey: `posters/huangguo/${id}.jpg`, category: "AI成人短剧" })),
+  ] });
+  const today = rankXumengVideoDramas(dramas, "2026-11-12").map(item => item.dramaId);
+  assert.deepEqual(rankXumengVideoDramas(dramas, "2026-11-12").map(item => item.dramaId), today);
+  assert.notDeepEqual(rankXumengVideoDramas(dramas, "2026-11-13").map(item => item.dramaId), today);
 });

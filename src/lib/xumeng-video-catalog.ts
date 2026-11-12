@@ -21,6 +21,9 @@ export type XumengVideoDrama = {
   title: string;
   category: string;
   episodes: XumengVideoEpisode[];
+  characterId: string;
+  synopsis: string;
+  tags: string[];
 };
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -61,6 +64,12 @@ export function parseXumengVideoCatalog(value: unknown): XumengVideoDrama[] {
     const mediaKey = text(item.mediaKey, 80);
     const posterKey = text(item.posterKey, 80);
     const category = text(item.category, 40);
+    const characterId = text(item.characterId, 80);
+    const synopsis = text(item.synopsis, 400) || text(item.description, 400);
+    const tags = Array.isArray(item.tags) ? item.tags.flatMap(tag => {
+      const value = text(tag, 16);
+      return value ? [value] : [];
+    }).slice(0, 4) : [];
     const dramaMatch = DRAMA_ID.exec(dramaId);
     const itemMatch = ITEM_ID.exec(id);
     const mediaMatch = MEDIA_KEY.exec(mediaKey);
@@ -68,8 +77,11 @@ export function parseXumengVideoCatalog(value: unknown): XumengVideoDrama[] {
     if (!dramaMatch || !itemMatch || !mediaMatch || !posterMatch || !title || !episode) continue;
     const seriesId = dramaMatch[1];
     if (itemMatch[1] !== seriesId || mediaMatch[1] !== seriesId || posterMatch[1] !== seriesId) continue;
-    const current = groups.get(dramaId) ?? { dramaId, title, category, episodes: [] };
+    const current = groups.get(dramaId) ?? { dramaId, title, category, episodes: [], characterId: "", synopsis: "", tags: [] };
     if (!current.category && category) current.category = category;
+    if (!current.characterId && characterId) current.characterId = characterId;
+    if (!current.synopsis && synopsis) current.synopsis = synopsis;
+    if (!current.tags.length && tags.length) current.tags = tags;
     if (!current.episodes.some(existing => existing.mediaKey === mediaKey)) {
       current.episodes.push({ id, dramaId, title, episode, mediaKey, posterKey, episodeNumber: Number(mediaMatch[2]) });
     }
@@ -79,4 +91,53 @@ export function parseXumengVideoCatalog(value: unknown): XumengVideoDrama[] {
     ...drama,
     episodes: [...drama.episodes].sort((a, b) => a.episodeNumber - b.episodeNumber || a.id.localeCompare(b.id)),
   }));
+}
+
+function videoHash32(value: string) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+const compactName = (value: string) => value.replace(/\s+/gu, "").toLowerCase();
+
+/** A drama opens its character card by id, then by the same title. */
+export function matchXumengVideoCharacter<T extends { id: string; name: string }>(
+  drama: Pick<XumengVideoDrama, "title" | "characterId">,
+  characters: readonly T[],
+): T | null {
+  const id = drama.characterId.trim();
+  if (id) {
+    const byId = characters.find(character => character.id === id);
+    if (byId) return byId;
+  }
+  const title = compactName(drama.title);
+  if (title.length < 2) return null;
+  const exact = characters.find(character => compactName(character.name) === title);
+  if (exact) return exact;
+  if (title.length < 4) return null;
+  const contained = characters.filter(character => {
+    const name = compactName(character.name);
+    return name.length >= 4 && (title.includes(name) || name.includes(title));
+  });
+  contained.sort((left, right) => Math.abs(compactName(left.name).length - title.length) - Math.abs(compactName(right.name).length - title.length));
+  return contained[0] ?? null;
+}
+
+/** Keep the reels feed fresh while making the same day's order stable for sharing and return visits. */
+export function rankXumengVideoDramas(dramas: XumengVideoDrama[], day = new Date().toISOString().slice(0, 10)) {
+  if (dramas.length < 2) return dramas.slice();
+  const ids = dramas.map(item => Number(item.dramaId.replace(/^hg-/, ""))).filter(Number.isFinite);
+  const minId = ids.length ? Math.min(...ids) : 0;
+  const span = Math.max(1, (ids.length ? Math.max(...ids) : 0) - minId);
+  return dramas.map((drama, index) => {
+    const numericId = Number(drama.dramaId.replace(/^hg-/, ""));
+    const recency = Number.isFinite(numericId) ? (numericId - minId) / span : 0.5;
+    const exploration = videoHash32(`${day}:${drama.dramaId}:${drama.category}`) / 0xffffffff;
+    const depth = Math.min(drama.episodes.length, 8) / 8;
+    return { drama, index, score: recency * 0.28 + exploration * 0.57 + depth * 0.15 };
+  }).sort((left, right) => right.score - left.score || left.index - right.index).map(item => item.drama);
 }
