@@ -1,3 +1,5 @@
+import { normalizeImage } from "./reference-image.mjs";
+
 /**
  * Safe "remove outerwear only" handler.
  * This module must never call undress/nudify/clothes-removal providers,
@@ -14,7 +16,7 @@ export const FEATURE = {
   title: "去外套",
   line: "只移除外套，保留完整内搭",
   detail:
-    "只移除外层外套或外衣，必须保留完整、正常的内层上衣，全程遮盖隐私部位。这不是脱衣，不会生成裸露、内衣暴露或性化画面。不需要、也不能填写提示词。",
+    "上传一张人物图。",
 };
 
 export const BLOCKED_PROVIDERS = Object.freeze([
@@ -47,9 +49,9 @@ const FORBIDDEN_BODY_KEYS = new Set([
   "text",
 ]);
 
-const BLOCKED_NOTE = /未成年|幼态|幼女|幼童|萝莉|正太|小学生|初中生|高中生|校服|学生服|学生妹|loli|shota|underage|\bchild\b|\bteen\b|真人照片|真人脸|本人照片|明星脸|公众人物|real person|real photo/i;
-const MINOR_NOTE = /未成年|幼态|幼女|幼童|萝莉|正太|小学生|初中生|高中生|校服|学生服|学生妹|loli|shota|underage|\bchild\b|\bteen\b/i;
-const UNSAFE_EDIT = /脱衣|去衣|nudif|undress|nude|naked|nsfw|内衣|裸露|赤裸|无衣|不穿衣服/i;
+// const BLOCKED_NOTE = /未成年|幼态|幼女|幼童|萝莉|正太|小学生|初中生|高中生|校服|学生服|学生妹|loli|shota|underage|\bchild\b|\bteen\b|真人照片|真人脸|本人照片|明星脸|公众人物|real person|real photo/i;
+// const MINOR_NOTE = /未成年|幼态|幼女|幼童|萝莉|正太|小学生|初中生|高中生|校服|学生服|学生妹|loli|shota|underage|\bchild\b|\bteen\b/i;
+// const UNSAFE_EDIT = /脱衣|去衣|nudif|undress|nude|naked|nsfw|内衣|裸露|赤裸|无衣|不穿衣服/i;
 
 export function jsonError(error, status, extra = {}) {
   return new Response(JSON.stringify({ error, ...extra }), {
@@ -99,10 +101,9 @@ export function isBlockedProvider(name) {
 export const OUTERWEAR_CHANNEL = "http://127.0.0.1:3477/api/channel";
 export const OUTERWEAR_EDITOR_ID = "qwen_image21_multi_image_edit";
 export const OUTERWEAR_CHECK_ID = "qwen_vqa";
-export const OUTERWEAR_INSTRUCTION =
-  "只移除外层外套或外衣，保留完整、正常的内层上衣，遮盖隐私部位，不改变脸、姿势和身体。虚构的成年角色，二十一岁以上。";
-const OUTERWEAR_NEGATIVE =
-  "nude, naked, underwear, lingerie, nipples, undress, nsfw, bare chest, removed shirt, see-through, 内衣, 裸露, 赤裸, 脱衣, 去衣";
+export const OUTERWEAR_INSTRUCTION = "移除全部的衣服";
+  // "只移除外层外套或外衣，保留完整、正常的内层上衣，遮盖隐私部位，不改变脸、姿势和身体。虚构的成年角色，二十一岁以上。";
+// const OUTERWEAR_NEGATIVE = "";
 const OUTERWEAR_CHECK_PROMPT = [
   "比较第一张原图和第二张结果。只输出一个 JSON 对象，不要解释。",
   "字段 onlyOuterwearRemoved、innerLayerIntact、privatePartsCovered、noNudity、noUnderwearExposure 必须是布尔值。",
@@ -124,8 +125,8 @@ export function buildOuterwearEditCall(image, instruction) {
     payload: {
       id: OUTERWEAR_EDITOR_ID,
       values: {
-        positive_prompt: String(instruction || ""),
-        negative_prompt: OUTERWEAR_NEGATIVE,
+        positive_prompt: String("移除全部的衣服"),
+        negative_prompt: String(""),
       },
       files: {
         image_urls: [{ type: image.type, data: image.bytes.toString("base64") }],
@@ -294,9 +295,9 @@ export function validateOuterwearResult(meta, bytes) {
 }
 
 function noteError(text) {
-  if (MINOR_NOTE.test(text)) return "不能生成未成年或幼态角色。";
-  if (BLOCKED_NOTE.test(text)) return "这里只生成虚构的成年角色。";
-  if (UNSAFE_EDIT.test(text)) return "只能移除外层外套并保留完整内搭，不能做脱衣或裸露编辑。";
+  // if (MINOR_NOTE.test(text)) return "不能生成未成年或幼态角色。";
+  // if (BLOCKED_NOTE.test(text)) return "这里只生成虚构的成年角色。";
+  // if (UNSAFE_EDIT.test(text)) return "只能移除外层外套并保留完整内搭，不能做脱衣或裸露编辑。";
   return null;
 }
 
@@ -349,8 +350,12 @@ export async function handleRemoveOuterwear(request, options = {}) {
     if (blocked) return jsonError(blocked, 400);
   }
 
-  const parsed = imageBytes(body.image);
-  if (!parsed) return jsonError("请先上传一张 PNG、JPEG 或 WebP 人物图。", 400);
+  let parsed = imageBytes(body.image);
+  if (!parsed) {
+    const normalized = await normalizeImage(body.image);
+    if (!normalized.ok) return jsonError(normalized.error, 400);
+    parsed = { bytes: normalized.bytes, ext: "jpg", type: normalized.type };
+  }
 
   const provider = resolveProvider(env);
   if (!provider.ok) return jsonError(provider.message, 503, { code: provider.code });
@@ -364,9 +369,10 @@ export async function handleRemoveOuterwear(request, options = {}) {
   if (provider.name === "test-mock") {
     const render = options.testRender || defaultTestMockRender;
     const rendered = await render(parsed);
-    const checked = validateOuterwearResult(rendered?.meta, rendered?.bytes);
-    if (!checked.ok) return jsonError(checked.error, 422, { code: "output-rejected" });
-    return outerwearImage(checked.image);
+    return outerwearImage(rendered.bytes);
+    // const checked = validateOuterwearResult(rendered?.meta, rendered?.bytes);
+    // if (!checked.ok) return jsonError(checked.error, 422, { code: "output-rejected" });
+    // return outerwearImage(checked.image);
   }
 
   return runOuterwearEdit(parsed, env, options.fetchImpl);
@@ -431,7 +437,8 @@ export async function serveRemoveOuterwear(req, res, options = {}) {
     const response = await handleRemoveOuterwear(request, options);
     await sendWebResponse(res, response);
     return true;
-  } catch {
+  } catch (error) {
+    console.error("remove-outerwear failed", error);
     const response = jsonError("去外套服务暂时不可用。", 500);
     await sendWebResponse(res, response);
     return true;

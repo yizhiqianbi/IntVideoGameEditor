@@ -1,0 +1,23 @@
+{
+  "name": "xumeng-gen",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test:outerwear": "node --test lib/remove-outerwear.test.mjs",
+    "test:studio": "node --test lib/remove-outerwear.test.mjs lib/novel-request.test.mjs",
+    "test:novel": "node --test lib/novel-request.test.mjs"
+  },
+  "dependencies": {
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.9.0"
+  }
+}

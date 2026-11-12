@@ -1,0 +1,2765 @@
+[
+  {
+    "id": "ai_chuangzuo_wenshengtu_dongman_fengge",
+    "group": "生图",
+    "title": "文生图-动漫风格",
+    "path": "/api/public/ai_chuangzuo_wenshengtu_dongman_fengge",
+    "result": "image",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzuo_wenshengtu_xieshi_fengge",
+    "group": "生图",
+    "title": "Ai创作 --> 文生图 --> 写实风格",
+    "path": "/api/public/ai_chuangzuo_wenshengtu_xieshi_fengge",
+    "result": "image",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "dongzuo_kelong_shengtu",
+    "group": "生图",
+    "title": "动作克隆视频",
+    "path": "/api/public/dongzuo_kelong_shengtu",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img1_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "img2_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "generate-image2image",
+    "group": "生图",
+    "title": "图生图片",
+    "path": "/api/public/generate/image2image",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "源图片"
+      },
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "描述图像内容的正向提示字符串"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "描述图像内容的负向提示字符串"
+      }
+    ]
+  },
+  {
+    "id": "generate-qwen-two-image",
+    "group": "生图",
+    "title": "Qwen 单人/双人场景生图（使用三图母版）",
+    "path": "/api/public/generate/qwen/two-image",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片1；单人场景只传这一张"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": false,
+        "label": "人物图片2；双人场景必填"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": true,
+        "label": "场景名称；单人场景1张图"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "自定义提示词"
+      }
+    ]
+  },
+  {
+    "id": "generate-text2image",
+    "group": "生图",
+    "title": "文本生成图片",
+    "path": "/api/public/generate/text2image",
+    "result": "image",
+    "fields": [
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "描述图像内容的正向提示字符串"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "描述图像内容的负向提示字符串"
+      }
+    ]
+  },
+  {
+    "id": "image_upscale-seedvr2_vosr2",
+    "group": "生图",
+    "title": "图片高清放大-Seedvr2+Vosr2",
+    "path": "/api/public/image_upscale/seedvr2_vosr2",
+    "result": "image",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片 HTTP(S) URL"
+      }
+    ]
+  },
+  {
+    "id": "pornmaster_t2i",
+    "group": "生图",
+    "title": "PornMaster文生图",
+    "path": "/api/public/pornmaster_t2i",
+    "result": "image",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "qwen_edit_three_pic",
+    "group": "生图",
+    "title": "图生图 qwen 3图",
+    "path": "/api/public/qwen_edit_three_pic",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url1",
+        "kind": "image",
+        "required": true,
+        "label": "图片1URL"
+      },
+      {
+        "key": "img_url2",
+        "kind": "image",
+        "required": true,
+        "label": "图片2URL"
+      },
+      {
+        "key": "img_url3",
+        "kind": "image",
+        "required": true,
+        "label": "图片3URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "qwen_image21_multi_image_edit",
+    "group": "生图",
+    "title": "图生图 Qwen Image 2.1 多图编辑",
+    "path": "/api/public/qwen_image21_multi_image_edit",
+    "result": "image",
+    "fields": [
+      {
+        "key": "image_urls",
+        "kind": "images",
+        "required": true,
+        "label": "图片 URL 的 JSON 数组"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "编辑指令"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu",
+    "group": "生图",
+    "title": "图生图",
+    "path": "/api/public/tushengtu",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_beiying_zhuanhuan",
+    "group": "生图",
+    "title": "图生图 -- 背影转换",
+    "path": "/api/public/tushengtu_beiying_zhuanhuan",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img1_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "img2_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_fengge_zhuanhuan",
+    "group": "生图",
+    "title": "图生图 -- 风格转换",
+    "path": "/api/public/tushengtu_fengge_zhuanhuan",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_jubu_tuya",
+    "group": "生图",
+    "title": "图生图 -- 局部涂鸦",
+    "path": "/api/public/tushengtu_jubu_tuya",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "mask_url",
+        "kind": "image",
+        "required": true,
+        "label": "遮罩"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_tuya_chonghui",
+    "group": "生图",
+    "title": "图生图 -- 涂鸦重绘",
+    "path": "/api/public/tushengtu_tuya_chonghui",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_tuya_chonghui_2",
+    "group": "生图",
+    "title": "图生图 -- 涂鸦重绘(2)",
+    "path": "/api/public/tushengtu_tuya_chonghui_2",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzuo_tushengshipin",
+    "group": "生视频",
+    "title": "图生视频（无声）",
+    "path": "/api/public/ai_chuangzuo_tushengshipin",
+    "result": "video",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzuo_tushengshipin_8s",
+    "group": "生视频",
+    "title": "8秒图生视频",
+    "path": "/api/public/ai_chuangzuo_tushengshipin_8s",
+    "result": "video",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzuo_wenshengshipin",
+    "group": "生视频",
+    "title": "文生视频",
+    "path": "/api/public/ai_chuangzuo_wenshengshipin",
+    "result": "video",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzuo_wenshengshipin_8s",
+    "group": "生视频",
+    "title": "8秒文生视频",
+    "path": "/api/public/ai_chuangzuo_wenshengshipin_8s",
+    "result": "video",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "dongzuo_kelong_shengshipin",
+    "group": "生视频",
+    "title": "动作克隆生视频",
+    "path": "/api/public/dongzuo_kelong_shengshipin",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "图片"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "视频"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "generate-clothes-swap-video",
+    "group": "生视频",
+    "title": "换衣视频",
+    "path": "/api/public/generate/clothes-swap/video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "first_image",
+        "kind": "image",
+        "required": true,
+        "label": "首帧图片 URL"
+      },
+      {
+        "key": "end_image",
+        "kind": "image",
+        "required": true,
+        "label": "尾帧图片 URL"
+      }
+    ]
+  },
+  {
+    "id": "generate-face-swap-video",
+    "group": "生视频",
+    "title": "换脸视频",
+    "path": "/api/public/generate/face-swap/video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "图片"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "视频"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-kiss-video",
+    "group": "生视频",
+    "title": "两张照片KISS视频",
+    "path": "/api/public/generate/kiss/video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "first_image",
+        "kind": "image",
+        "required": true,
+        "label": "第一张图片"
+      },
+      {
+        "key": "end_image",
+        "kind": "image",
+        "required": true,
+        "label": "第二张图片"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-pose_transfer-video",
+    "group": "生视频",
+    "title": "动作迁移",
+    "path": "/api/public/generate/pose_transfer/video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "图片"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "视频"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-undress-anime-video",
+    "group": "生视频",
+    "title": "动漫图片去衣视频",
+    "path": "/api/public/generate/undress/anime/video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "qwen_incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "wan_incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes",
+    "group": "生视频",
+    "title": "特殊场景视频",
+    "path": "/api/public/generate/videos/scenes",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-20s",
+    "group": "生视频",
+    "title": "20S 特殊场景视频",
+    "path": "/api/public/generate/videos/scenes/20s",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-8s",
+    "group": "生视频",
+    "title": "8秒场景视频生成",
+    "path": "/api/public/generate/videos/scenes/8s",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-8s-ltx",
+    "group": "生视频",
+    "title": "LTX 10Eros 8s 特殊场景视频",
+    "path": "/api/public/generate/videos/scenes/8s/ltx",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长（整数秒）"
+      },
+      {
+        "key": "audio_enabled",
+        "kind": "audio",
+        "required": false,
+        "label": "Anything Switch 音频开关"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-dasiwa",
+    "group": "生视频",
+    "title": "DaSiWa 特殊场景视频",
+    "path": "/api/public/generate/videos/scenes/dasiwa",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片 URL"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": true,
+        "label": "DaSiWa 场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "自定义场景描述；留空使用场景默认模板"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长（整数秒）；默认 10 秒"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-double",
+    "group": "生视频",
+    "title": "双人特殊场景视频",
+    "path": "/api/public/generate/videos/scenes/double",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "女性图"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "男性图"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-minimax-h3-multi",
+    "group": "生视频",
+    "title": "MiniMax H3 多场景视频",
+    "path": "/api/public/generate/videos/scenes/minimax-h3/multi",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "四视图图片 URL"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": true,
+        "label": "MiniMax H3 多场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "自定义提示词；留空使用 scene 对应提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长（秒）；默认 15"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-minimax-h3-single",
+    "group": "生视频",
+    "title": "MiniMax H3 单场景视频",
+    "path": "/api/public/generate/videos/scenes/minimax-h3/single",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片 URL"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": true,
+        "label": "MiniMax H3 单场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "自定义提示词；留空使用 scene 对应提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长（秒）；默认 15"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-qwen",
+    "group": "生视频",
+    "title": "手办图片",
+    "path": "/api/public/generate/videos/scenes/qwen",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "原始图"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "参考图"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-shortvideo",
+    "group": "生视频",
+    "title": "短视频场景视频生成",
+    "path": "/api/public/generate/videos/scenes/shortvideo",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "输出格式: video 或 webp"
+      },
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词 (节点 47)"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "负向提示词 (节点 34)"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数 (节点 66)"
+      }
+    ]
+  },
+  {
+    "id": "generate-videos-scenes-webp",
+    "group": "生视频",
+    "title": "特殊场景视频(webp)",
+    "path": "/api/public/generate/videos/scenes/webp",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      }
+    ]
+  },
+  {
+    "id": "i2v_10eros",
+    "group": "生视频",
+    "title": "图生视频 20s",
+    "path": "/api/public/i2v_10eros",
+    "result": "video",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长(秒)"
+      }
+    ]
+  },
+  {
+    "id": "i2v_lip_syncing-wan22",
+    "group": "生视频",
+    "title": "对口型图生视频wan22",
+    "path": "/api/public/i2v_lip_syncing/wan22",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片链接"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频链接"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "i2v_short_video-2sampling_ltx2_3",
+    "group": "生视频",
+    "title": "图生短视频_双采样LTX2_3",
+    "path": "/api/public/i2v_short_video/2sampling_ltx2_3",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片链接"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "i2v_short_video-action_transfer_scail2",
+    "group": "生视频",
+    "title": "图生短视频_动作迁移SCAIL2",
+    "path": "/api/public/i2v_short_video/action_transfer_scail2",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片链接"
+      },
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "动作视频链接"
+      },
+      {
+        "key": "mode",
+        "kind": "text",
+        "required": false,
+        "label": "迁移模式: 枚举值"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "i2v_short_video-fl_img_ltx2_3",
+    "group": "生视频",
+    "title": "图生短视频-首尾帧Ltx2.3",
+    "path": "/api/public/i2v_short_video/fl_img_ltx2_3",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url_f",
+        "kind": "image",
+        "required": true,
+        "label": "首帧图片链接"
+      },
+      {
+        "key": "image_url_l",
+        "kind": "image",
+        "required": true,
+        "label": "尾帧图片链接"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "ia2v_short_video-custom_audio_ltx2_3",
+    "group": "生视频",
+    "title": "图音生短视频-自定义音频Ltx2.3",
+    "path": "/api/public/ia2v_short_video/custom_audio_ltx2_3",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片链接"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频链接"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "ia2v_short_video-fl_img_custom_audio_ltx2_3",
+    "group": "生视频",
+    "title": "图音生短视频-首尾帧自定义音频Ltx2.3",
+    "path": "/api/public/ia2v_short_video/fl_img_custom_audio_ltx2_3",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url_f",
+        "kind": "image",
+        "required": true,
+        "label": "首帧图片链接"
+      },
+      {
+        "key": "image_url_l",
+        "kind": "image",
+        "required": true,
+        "label": "尾帧图片链接"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "自定义音频链接"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "ia2v_short_video-reference_audio_ltx2_3",
+    "group": "生视频",
+    "title": "图音生短视频-参考音频Ltx2.3",
+    "path": "/api/public/ia2v_short_video/reference_audio_ltx2_3",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url",
+        "kind": "image",
+        "required": true,
+        "label": "图片链接"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频链接"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "minimax-h3_fl2v_i2v",
+    "group": "生视频",
+    "title": "图生视频/首尾帧 minimax H3",
+    "path": "/api/public/minimax/h3_fl2v_i2v",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_url_f",
+        "kind": "image",
+        "required": false,
+        "label": "首帧图片链接(图生视频时可不传)"
+      },
+      {
+        "key": "image_url_l",
+        "kind": "image",
+        "required": false,
+        "label": "尾帧图片链接(图生视频时不传"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "minimax-h3_i2v_reference",
+    "group": "生视频",
+    "title": "图音生视频-全能参考 minimax H3",
+    "path": "/api/public/minimax/h3_i2v_reference",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_urls",
+        "kind": "images",
+        "required": true,
+        "label": "图片链接(1-9 张"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": false,
+        "label": "音频链接(0-3 个"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "minimax-h3_t2v",
+    "group": "生视频",
+    "title": "文生视频minimax H3",
+    "path": "/api/public/minimax/h3_t2v",
+    "result": "video",
+    "fields": [
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": true,
+        "label": "文本提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      }
+    ]
+  },
+  {
+    "id": "minimax-v2-h3_i2v_reference",
+    "group": "生视频",
+    "title": "H3图音生短视频-全能参考",
+    "path": "/api/public/minimax/v2/h3_i2v_reference",
+    "result": "video",
+    "fields": [
+      {
+        "key": "image_urls",
+        "kind": "images",
+        "required": true,
+        "label": "图片链接 JSON 数组"
+      },
+      {
+        "key": "audio_urls",
+        "kind": "audio",
+        "required": false,
+        "label": "音频链接 JSON 数组"
+      },
+      {
+        "key": "video_urls",
+        "kind": "video",
+        "required": false,
+        "label": "视频参考链接 JSON 数组"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长/秒数"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": false,
+        "label": "文本"
+      }
+    ]
+  },
+  {
+    "id": "t2v_10eros",
+    "group": "生视频",
+    "title": "文生视频 20s",
+    "path": "/api/public/t2v_10eros",
+    "result": "video",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      },
+      {
+        "key": "duration",
+        "kind": "text",
+        "required": false,
+        "label": "视频时长(秒)"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzao_chaoqing_fangda",
+    "group": "视频处理",
+    "title": "AI 创造 - 超清放大 - 视频",
+    "path": "/api/public/ai_chuangzao_chaoqing_fangda",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频URL"
+      }
+    ]
+  },
+  {
+    "id": "ai_chuangzao_chaoqing_fangda_vosr2",
+    "group": "视频处理",
+    "title": "Ai 创造 - Vosr2 超清放大 - 视频",
+    "path": "/api/public/ai_chuangzao_chaoqing_fangda_vosr2",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频URL"
+      }
+    ]
+  },
+  {
+    "id": "generate-subtitle",
+    "group": "视频处理",
+    "title": "音视频字幕识别（可选翻译）",
+    "path": "/api/public/generate/subtitle",
+    "result": "text",
+    "fields": [
+      {
+        "key": "source_language",
+        "kind": "text",
+        "required": true,
+        "label": "源语种"
+      },
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": false,
+        "label": "音频链接"
+      },
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": false,
+        "label": "视频链接"
+      },
+      {
+        "key": "target_languages",
+        "kind": "text",
+        "required": false,
+        "label": "目标语种 en/ja/th/vi"
+      }
+    ]
+  },
+  {
+    "id": "generate-subtitle-render",
+    "group": "视频处理",
+    "title": "字幕压制",
+    "path": "/api/public/generate/subtitle/render",
+    "result": "text",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "要压字幕的视频 HTTP(S) 链接"
+      },
+      {
+        "key": "cues",
+        "kind": "text",
+        "required": true,
+        "label": "字幕 JSON 数组"
+      }
+    ]
+  },
+  {
+    "id": "generate-subtitle-translate",
+    "group": "视频处理",
+    "title": "字幕条目翻译",
+    "path": "/api/public/generate/subtitle/translate",
+    "result": "text",
+    "fields": [
+      {
+        "key": "source_language",
+        "kind": "text",
+        "required": true,
+        "label": "源语种"
+      },
+      {
+        "key": "target_languages",
+        "kind": "text",
+        "required": true,
+        "label": "目标语种 en/ja/th/vi"
+      },
+      {
+        "key": "cues",
+        "kind": "text",
+        "required": true,
+        "label": "字幕条目 JSON 数组"
+      },
+      {
+        "key": "context",
+        "kind": "prompt",
+        "required": false,
+        "label": "上下文 JSON 数组"
+      }
+    ]
+  },
+  {
+    "id": "heibai_zhaoxiufu",
+    "group": "视频处理",
+    "title": "黑白照修复",
+    "path": "/api/public/heibai_zhaoxiufu",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      }
+    ]
+  },
+  {
+    "id": "shipin_huanyi",
+    "group": "视频处理",
+    "title": "视频换衣",
+    "path": "/api/public/shipin_huanyi",
+    "result": "video",
+    "fields": [
+      {
+        "key": "first_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "首图URL"
+      },
+      {
+        "key": "last_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "尾图URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "video_concat-5_clips",
+    "group": "视频处理",
+    "title": "五段视频拼接",
+    "path": "/api/public/video_concat/5_clips",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url_1",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接1"
+      },
+      {
+        "key": "video_url_2",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接2"
+      },
+      {
+        "key": "video_url_3",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接3"
+      },
+      {
+        "key": "video_url_4",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接4"
+      },
+      {
+        "key": "video_url_5",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接5"
+      }
+    ]
+  },
+  {
+    "id": "video_frame_interpolation-gimm_vfi",
+    "group": "视频处理",
+    "title": "视频补帧（视频放大）",
+    "path": "/api/public/video_frame_interpolation/gimm_vfi",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接"
+      }
+    ]
+  },
+  {
+    "id": "video_lip_sync",
+    "group": "视频处理",
+    "title": "视频对口型",
+    "path": "/api/public/video_lip_sync",
+    "result": "video",
+    "fields": [
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频URL"
+      },
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "image URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "video_remove_watermark",
+    "group": "视频处理",
+    "title": "视频去水印",
+    "path": "/api/public/video_remove_watermark",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频url"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "video_remove_watermark-bernini",
+    "group": "视频处理",
+    "title": "视频去水印-Bernini R",
+    "path": "/api/public/video_remove_watermark/bernini",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频 HTTP(S) URL；最多读取 650 帧"
+      }
+    ]
+  },
+  {
+    "id": "video_remove_watermark-long_video",
+    "group": "视频处理",
+    "title": "视频去水印-长视频",
+    "path": "/api/public/video_remove_watermark/long_video",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接"
+      },
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "水印提示: 英文"
+      }
+    ]
+  },
+  {
+    "id": "video_voiceover-woosh",
+    "group": "视频处理",
+    "title": "视频配音 woosh",
+    "path": "/api/public/video_voiceover/woosh",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频链接"
+      }
+    ]
+  },
+  {
+    "id": "video_voiceover_sync_lip-mmaudio",
+    "group": "视频处理",
+    "title": "对口型视频配音 mmaudio",
+    "path": "/api/public/video_voiceover_sync_lip/mmaudio",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频URL"
+      }
+    ]
+  },
+  {
+    "id": "video_voiceover_sync_lip-woosh",
+    "group": "视频处理",
+    "title": "对口型视频配音 woosh",
+    "path": "/api/public/video_voiceover_sync_lip/woosh",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "视频URL"
+      }
+    ]
+  },
+  {
+    "id": "generate-audio",
+    "group": "语音",
+    "title": "生成音频 · audio",
+    "path": "/api/public/generate/audio",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": true,
+        "label": "内容"
+      },
+      {
+        "key": "spk_id",
+        "kind": "text",
+        "required": false,
+        "label": "声音类型"
+      }
+    ]
+  },
+  {
+    "id": "generate-audio-upload",
+    "group": "语音",
+    "title": "Upload音色",
+    "path": "/api/public/generate/audio/upload",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "spk_id",
+        "kind": "text",
+        "required": true,
+        "label": "音色ID"
+      },
+      {
+        "key": "prompt_text",
+        "kind": "prompt",
+        "required": true,
+        "label": "音色提示文本"
+      },
+      {
+        "key": "prompt_audio",
+        "kind": "audio",
+        "required": true,
+        "label": "音色提示音频（WAV格式"
+      }
+    ]
+  },
+  {
+    "id": "generate-ttsv2",
+    "group": "语音",
+    "title": "生成音频 · ttsv2",
+    "path": "/api/public/generate/ttsv2",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": true,
+        "label": "内容"
+      },
+      {
+        "key": "spk_id",
+        "kind": "text",
+        "required": true,
+        "label": "声音类型"
+      },
+      {
+        "key": "use_emo",
+        "kind": "text",
+        "required": false,
+        "label": "是否使用情感"
+      },
+      {
+        "key": "emo_type",
+        "kind": "text",
+        "required": false,
+        "label": "情感类型"
+      },
+      {
+        "key": "emo_text",
+        "kind": "prompt",
+        "required": false,
+        "label": "情感文本"
+      },
+      {
+        "key": "emo_alpha",
+        "kind": "text",
+        "required": false,
+        "label": "情感强度"
+      }
+    ]
+  },
+  {
+    "id": "generate-ttsv2-speaker",
+    "group": "语音",
+    "title": "上传音色",
+    "path": "/api/public/generate/ttsv2/speaker",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "spk_id",
+        "kind": "text",
+        "required": true,
+        "label": "音色ID"
+      },
+      {
+        "key": "spk_name",
+        "kind": "text",
+        "required": false,
+        "label": "音色名称"
+      },
+      {
+        "key": "audio",
+        "kind": "audio",
+        "required": true,
+        "label": "音色提示音频（WAV格式"
+      }
+    ]
+  },
+  {
+    "id": "tts_voice_cloning-qwen3",
+    "group": "语音",
+    "title": "TTS音色克隆 qwen3",
+    "path": "/api/public/tts_voice_cloning/qwen3",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频链接"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": true,
+        "label": "文本"
+      },
+      {
+        "key": "language",
+        "kind": "text",
+        "required": false,
+        "label": "语言枚举值"
+      }
+    ]
+  },
+  {
+    "id": "tts_voice_cloning-voxcpm",
+    "group": "语音",
+    "title": "Tts音色克隆-Voxcpm",
+    "path": "/api/public/tts_voice_cloning/voxcpm",
+    "result": "audio",
+    "fields": [
+      {
+        "key": "audio_url",
+        "kind": "audio",
+        "required": true,
+        "label": "音频样品链接"
+      },
+      {
+        "key": "text",
+        "kind": "prompt",
+        "required": true,
+        "label": "文本"
+      },
+      {
+        "key": "voice_description",
+        "kind": "prompt",
+        "required": false,
+        "label": "修改语气提示词"
+      }
+    ]
+  },
+  {
+    "id": "generate-clothes-swap-images",
+    "group": "人像",
+    "title": "换衣图片",
+    "path": "/api/public/generate/clothes-swap/images",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "源图片"
+      },
+      {
+        "key": "method",
+        "kind": "text",
+        "required": false,
+        "label": "默认 bikini"
+      }
+    ]
+  },
+  {
+    "id": "generate-face-swap",
+    "group": "人像",
+    "title": "换脸图片 · face-swap",
+    "path": "/api/public/generate/face-swap",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "脸部源"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "目标图片"
+      }
+    ]
+  },
+  {
+    "id": "generate-face-swap-male",
+    "group": "人像",
+    "title": "换脸图片 · male",
+    "path": "/api/public/generate/face-swap/male",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "脸部源"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "目标图片"
+      }
+    ]
+  },
+  {
+    "id": "generate-tattoos",
+    "group": "人像",
+    "title": "去衣加纹身",
+    "path": "/api/public/generate/tattoos",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": false,
+        "label": "目标图片(弃用)"
+      },
+      {
+        "key": "target_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      }
+    ]
+  },
+  {
+    "id": "generate-undress",
+    "group": "人像",
+    "title": "去衣视频",
+    "path": "/api/public/generate/undress",
+    "result": "video",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "method",
+        "kind": "text",
+        "required": false,
+        "label": "默认 method_2"
+      },
+      {
+        "key": "output_format",
+        "kind": "text",
+        "required": false,
+        "label": "默认 video"
+      }
+    ]
+  },
+  {
+    "id": "generate-undress-anime",
+    "group": "人像",
+    "title": "动漫图片去衣",
+    "path": "/api/public/generate/undress/anime",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      },
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "incoming_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "默认空字符串"
+      }
+    ]
+  },
+  {
+    "id": "generate-undress-images",
+    "group": "人像",
+    "title": "去衣图片",
+    "path": "/api/public/generate/undress/images",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      }
+    ]
+  },
+  {
+    "id": "generate-undress-images-male",
+    "group": "人像",
+    "title": "去衣图片(男)",
+    "path": "/api/public/generate/undress/images/male",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": true,
+        "label": "人物图片"
+      }
+    ]
+  },
+  {
+    "id": "huanlian",
+    "group": "人像",
+    "title": "换脸-视频",
+    "path": "/api/public/huanlian",
+    "result": "video",
+    "fields": [
+      {
+        "key": "video_url",
+        "kind": "video",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "huanlian_2",
+    "group": "人像",
+    "title": "换脸-图片",
+    "path": "/api/public/huanlian_2",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img1_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "img2_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "huanzhuang",
+    "group": "人像",
+    "title": "换装",
+    "path": "/api/public/huanzhuang",
+    "result": "image",
+    "fields": [
+      {
+        "key": "clothes_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "people_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      }
+    ]
+  },
+  {
+    "id": "manju_shouwei_zhen",
+    "group": "漫剧",
+    "title": "首尾帧视频（慢动作）",
+    "path": "/api/public/manju_shouwei_zhen",
+    "result": "video",
+    "fields": [
+      {
+        "key": "first_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "首图URL"
+      },
+      {
+        "key": "last_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "尾图URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengshipin",
+    "group": "漫剧",
+    "title": "图生视频（有声）",
+    "path": "/api/public/manju_tushengshipin",
+    "result": "video",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengtu_1",
+    "group": "漫剧",
+    "title": "漫剧图生图1（单人-人脸替换）",
+    "path": "/api/public/manju_tushengtu_1",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengtu_2",
+    "group": "漫剧",
+    "title": "漫剧图生图2（双人场景）",
+    "path": "/api/public/manju_tushengtu_2",
+    "result": "image",
+    "fields": [
+      {
+        "key": "female_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "male_img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengtu_3",
+    "group": "漫剧",
+    "title": "漫剧图生图3（单人-人脸替换-风格迁移）",
+    "path": "/api/public/manju_tushengtu_3",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengtu_4",
+    "group": "漫剧",
+    "title": "漫剧图生图4（通用）",
+    "path": "/api/public/manju_tushengtu_4",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "model",
+        "kind": "text",
+        "required": false,
+        "label": "模型"
+      }
+    ]
+  },
+  {
+    "id": "manju_tushengtu_dongman_fengge",
+    "group": "漫剧",
+    "title": "漫剧图生图（日式动漫风格）",
+    "path": "/api/public/manju_tushengtu_dongman_fengge",
+    "result": "image",
+    "fields": [
+      {
+        "key": "img_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "manju_wenshengtu_juese_shengcheng",
+    "group": "漫剧",
+    "title": "漫剧文生图（角色生成）",
+    "path": "/api/public/manju_wenshengtu_juese_shengcheng",
+    "result": "image",
+    "fields": [
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  },
+  {
+    "id": "continue-novel",
+    "group": "文本",
+    "title": "小说续写",
+    "path": "/api/public/continue/novel",
+    "result": "text",
+    "fields": [
+      {
+        "key": "file_url",
+        "kind": "file",
+        "required": true,
+        "label": "小说原文的 TXT/Markdown 下载链接"
+      },
+      {
+        "key": "continuation_type",
+        "kind": "text",
+        "required": false,
+        "label": "继续本章或新增章节"
+      },
+      {
+        "key": "count",
+        "kind": "text",
+        "required": false,
+        "label": "本次新增目标字数"
+      },
+      {
+        "key": "plot_direction",
+        "kind": "prompt",
+        "required": false,
+        "label": "本次剧情走向；留空自然续写"
+      },
+      {
+        "key": "character_setting",
+        "kind": "prompt",
+        "required": false,
+        "label": "人物设定"
+      },
+      {
+        "key": "location_scene",
+        "kind": "prompt",
+        "required": false,
+        "label": "地点场景"
+      },
+      {
+        "key": "details",
+        "kind": "prompt",
+        "required": false,
+        "label": "其他创作要求"
+      }
+    ]
+  },
+  {
+    "id": "generate-novel",
+    "group": "文本",
+    "title": "生成小说",
+    "path": "/api/public/generate/novel",
+    "result": "text",
+    "fields": [
+      {
+        "key": "description",
+        "kind": "prompt",
+        "required": true,
+        "label": "剧情描述/故事情节"
+      },
+      {
+        "key": "character_setting",
+        "kind": "prompt",
+        "required": false,
+        "label": "人物设定"
+      },
+      {
+        "key": "location_scene",
+        "kind": "prompt",
+        "required": false,
+        "label": "地点场景"
+      },
+      {
+        "key": "details",
+        "kind": "prompt",
+        "required": false,
+        "label": "细节说明/其他要求"
+      },
+      {
+        "key": "count",
+        "kind": "text",
+        "required": false,
+        "label": "小说字数"
+      }
+    ]
+  },
+  {
+    "id": "qwen_vqa",
+    "group": "文本",
+    "title": "qwen提示词优化",
+    "path": "/api/public/qwen_vqa",
+    "result": "text",
+    "fields": [
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "提示词要求"
+      },
+      {
+        "key": "img_url_1",
+        "kind": "image",
+        "required": true,
+        "label": "第一张图片 HTTP(S) URL"
+      },
+      {
+        "key": "img_url_2",
+        "kind": "image",
+        "required": false,
+        "label": "第二张图片 URL；可省略或为空"
+      },
+      {
+        "key": "img_url_3",
+        "kind": "image",
+        "required": false,
+        "label": "第三张图片 URL；可省略或为空"
+      }
+    ]
+  },
+  {
+    "id": "generate-img-scenes-shortvideo",
+    "group": "其他",
+    "title": "短视频场景图片生成",
+    "path": "/api/public/generate/img/scenes/shortvideo",
+    "result": "image",
+    "fields": [
+      {
+        "key": "scene_name",
+        "kind": "text",
+        "required": false,
+        "label": "场景名称"
+      },
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "正向提示词 (节点 7)"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "负向提示词 (节点 2)"
+      },
+      {
+        "key": "image_url_1",
+        "kind": "image",
+        "required": false,
+        "label": "图片1 URL；按场景校验图片数量"
+      },
+      {
+        "key": "image_url_2",
+        "kind": "image",
+        "required": false,
+        "label": "图片2 URL（风格场景）"
+      },
+      {
+        "key": "image_url_3",
+        "kind": "image",
+        "required": false,
+        "label": "图片3 URL（风格场景）"
+      }
+    ]
+  },
+  {
+    "id": "orchestrator-generate-images",
+    "group": "其他",
+    "title": "文生图",
+    "path": "/api/public/orchestrator/generate/images",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_path",
+        "kind": "image",
+        "required": false,
+        "label": "参考图片"
+      },
+      {
+        "key": "method",
+        "kind": "text",
+        "required": false,
+        "label": "方式"
+      },
+      {
+        "key": "prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "负面提示词"
+      }
+    ]
+  },
+  {
+    "id": "tushengtu_dongzuo_bianji",
+    "group": "其他",
+    "title": "图生图-动作编辑",
+    "path": "/api/public/tushengtu_dongzuo_bianji",
+    "result": "image",
+    "fields": [
+      {
+        "key": "source_img1_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "source_img2_url",
+        "kind": "image",
+        "required": true,
+        "label": "URL"
+      },
+      {
+        "key": "positive_prompt",
+        "kind": "prompt",
+        "required": true,
+        "label": "正向提示词"
+      },
+      {
+        "key": "negative_prompt",
+        "kind": "prompt",
+        "required": false,
+        "label": "反向提示词"
+      }
+    ]
+  }
+]
