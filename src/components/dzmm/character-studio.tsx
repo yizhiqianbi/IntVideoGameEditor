@@ -6,6 +6,10 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DEFAULT_DZMM_CHARACTER_COVER, parseCharacterImport, parsePrivateCharacter, parseCharacterDraftImport, readDzmmCharacterImportText, dzmmPngCharacterFile, exportCharacterJson, exportCharacterDraftJson, type Character } from "../../lib/dzmm-characters";
 import { DEFAULT_DZMM_CHARACTER_BOOK_SCAN_DEPTH, DZMM_CHARACTER_CARD_MAX_BYTES, DZMM_CHARACTER_PROSE_LIMIT, DZMM_WORLD_BOOK_ENTRY_LIMIT, parseDzmmImageUrl, type DzmmCharacterBook, type DzmmCharacterBookEntry, type DzmmCharacterContext } from "../../lib/dzmm-character-context";
 import { dzmmCloudRequest, uploadDzmmCover } from "../../lib/dzmm-cloud";
+import { requestTextStill } from "../../lib/xumeng-krea2-bridge";
+import { fetchCoverCaption } from "../../lib/dzmm-cover-caption-client";
+import type { DzmmCoverCaptionRequest } from "../../lib/dzmm-cover-caption";
+import { STUDIO_STILL_CREDITS } from "../../lib/xumeng-studio-still-billing";
 import { normalizeShelfTag, shelfTagError, toggleShelfTag, XUMENG_SHELF_TAGS } from "../../lib/xumeng-shelf-tags";
 import { authoringEntryToBookEntry, compileDzmmPrivateWorldBook, omitBlankDzmmBookDraftEntries, type DzmmCharacterAuthoringDraft } from "../../lib/dzmm-character-draft";
 import { analyzeDzmmAuthoringReview } from "../../lib/dzmm-authoring-review";
@@ -16,6 +20,7 @@ import { getXumengSpeechVoice, XUMENG_SPEECH_VOICE_GROUPS, XUMENG_SPEECH_VOICES,
 import { initialXumengPanelValues, XUMENG_PANEL_FIELD_TYPES, XUMENG_PANEL_LIMITS, XUMENG_PANEL_PRESETS, type XumengInteractionTemplate, type XumengPanel, type XumengPanelField } from "../../lib/xumeng-interaction-panels";
 import { XumengPanelGrid } from "./xumeng-interaction-panel";
 import CharacterIntroduction from "./character-introduction";
+import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 import Icon from "./icons";
 import styles from "./character-studio.module.css";
 
@@ -33,6 +38,7 @@ export type CharacterStudioProps = {
   onDirtyChange?: (dirty: boolean) => void;
   onBusyChange?: (busy: boolean) => void;
   submission?: { status: "pending" | "approved" | "rejected" | "withdrawn"; reason?: string } | null;
+  locale?: import("@/lib/xumeng-i18n").XumengLocale;
 };
 type Step = "identity" | "opening" | "book" | "voice" | "preview";
 type MessageDraft = { key: string; role: "user" | "assistant"; content: string };
@@ -53,6 +59,40 @@ const split = (value: string) => [...new Set(value.split(/[,，\n]/).map((item) 
 const withKey = (value: string): TextDraft => ({ key: uid(), value });
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : "操作失败，请稍后重试。";
 const previewImage = (value: string) => { try { return xumengImageUrl(parseDzmmImageUrl(value)); } catch { return null; } };
+function coverCaptionRequest(draft: Draft, note: string): DzmmCoverCaptionRequest {
+  return {
+    name: draft.name.trim(),
+    personality: draft.personality.trim(),
+    scenario: draft.scenario.trim(),
+    description: draft.description.trim(),
+    introduction: draft.introduction.trim(),
+    opening: draft.messages.find((message) => message.role === "assistant" && message.content.trim())?.content.trim() ?? "",
+    lore: draft.entries.filter((item) => item.entry.enabled !== false && item.entry.constant && item.entry.content.trim()).slice(0, 2).map((item) => item.entry.content.trim()).join("\n"),
+    note: note.trim(),
+  };
+}
+function coverCaptionReady(request: DzmmCoverCaptionRequest): boolean {
+  return Object.values(request).some((item) => item.trim().length >= 2);
+}
+async function fileForCover(blob: Blob): Promise<File> {
+  const allowed = blob.size > 0 && blob.size <= 5 * 1024 * 1024 && ["image/png", "image/jpeg", "image/webp"].includes(blob.type);
+  if (allowed) return new File([blob], "cover", { type: blob.type });
+  const bitmap = await createImageBitmap(blob);
+  try {
+    const scale = Math.min(1, 1536 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("这张图无法保存为封面。");
+    context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    for (const quality of [0.86, 0.72, 0.58]) {
+      const next = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", quality));
+      if (next && next.size > 0 && next.size <= 5 * 1024 * 1024) return new File([next], "cover.jpg", { type: "image/jpeg" });
+    }
+  } finally { bitmap.close(); }
+  throw new Error("封面超过 5 MB，请再生成一次。");
+}
 function createDraft(character: Character | null): Draft {
   const card = character as ExtendedCharacter | null;
   const book = card?.authoringDraft?.characterBook ?? card?.characterBook;
@@ -97,7 +137,8 @@ function readiness(draft: Draft): string[] {
   return issues;
 }
 
-export default function CharacterStudio({ character, nickname, user, onClose, onSave, onRetrySave, onTest, onSubmit, onLoadCloud, onRequireAccount, onDirtyChange, onBusyChange, submission }: CharacterStudioProps) {
+export default function CharacterStudio({ character, nickname, user, locale = "zh-Hans", onClose, onSave, onRetrySave, onTest, onSubmit, onLoadCloud, onRequireAccount, onDirtyChange, onBusyChange, submission }: CharacterStudioProps) {
+  const page = xumengPage(locale);
   const [draft, setDraft] = useState<Draft>(() => createDraft(character));
   const [professional, setProfessional] = useState(Boolean(character));
   const [step, setStep] = useState<Step>(character ? "identity" : "opening");
@@ -115,7 +156,12 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
   const [templateGroup, setTemplateGroup] = useState<string | null>(null);
   const [keywordInput, setKeywordInput] = useState("");
   const [previewing, setPreviewing] = useState<string | null>(null);
+  const [coverNote, setCoverNote] = useState("");
+  const [coverCaption, setCoverCaption] = useState("");
+  const [coverPhase, setCoverPhase] = useState<"" | "caption" | "image">("");
+  const [coverError, setCoverError] = useState("");
   const previewAudio = useRef<HTMLAudioElement | null>(null);
+  const coverRequest = useRef<AbortController | null>(null);
   const id = useRef(character?.sourceKind === "original" ? character.id : `local-${uid()}`);
   const createdAt = useRef(character?.sourceKind === "original" ? character.createdAt : new Date().toISOString());
   const importInput = useRef<HTMLInputElement>(null);
@@ -138,8 +184,10 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
   const dirtyCallback = useRef(onDirtyChange);
   const busyCallback = useRef(onBusyChange);
   const working = operation !== null;
-  const busy = working || importCandidate !== null;
-  const steps = professional ? STEPS : STEPS.filter((item) => item.id === "opening" || item.id === "preview");
+  const coverBusy = coverPhase !== "";
+  const busy = working || importCandidate !== null || coverBusy;
+  const stepName = (id: Step) => id === "identity" ? page.stepIdentity : id === "opening" ? page.stepOpening : id === "book" ? page.stepBook : id === "voice" ? page.stepVoice : page.stepPreview;
+  const steps = (professional ? STEPS : STEPS.filter((item) => item.id === "opening" || item.id === "preview")).map(item => ({ ...item, name: stepName(item.id) }));
   const index = steps.findIndex((item) => item.id === step);
   const registered = Boolean(user && !user.isGuest);
   const issues = readiness(draft);
@@ -154,7 +202,7 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     reviewDestination.current = null;
   }, [step, professional]);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; previewAudio.current?.pause(); }; }, []);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; previewAudio.current?.pause(); coverRequest.current?.abort(); }; }, []);
   useEffect(() => { dirtyCallback.current = onDirtyChange; }, [onDirtyChange]);
   useEffect(() => { dirtyCallback.current?.(dirty); }, [dirty]);
   useEffect(() => () => { dirtyCallback.current?.(false); }, []);
@@ -387,6 +435,31 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
       setNotice(card.authoringDraft ? "私人创作草稿已导出，未完成词条已保留；导入后可继续编辑。" : "当前角色卡已导出。"); setError("");
     } catch (failure) { setError(errorMessage(failure)); }
   }
+  async function generateCover() {
+    if (coverPhase || pending.current) return;
+    if (!registered) { onRequireAccount?.(); setCoverError("请先注册或登录，再生成封面。"); return; }
+    const source = coverCaptionRequest(draft, coverNote);
+    if (!coverCaptionReady(source)) { setCoverError("先写角色名字、外貌或场景，再生成封面。"); return; }
+    coverRequest.current?.abort();
+    const controller = new AbortController();
+    coverRequest.current = controller;
+    setCoverPhase("caption"); setCoverError(""); setCoverCaption("");
+    try {
+      const caption = await fetchCoverCaption(source, controller.signal);
+      if (!mounted.current) return;
+      setCoverCaption(caption);
+      setCoverPhase("image");
+      const still = await requestTextStill(caption, controller.signal);
+      if (!mounted.current) return;
+      const path = await uploadDzmmCover(await fileForCover(still.image));
+      if (!mounted.current) return;
+      setDraft((previous) => ({ ...previous, cover: path }));
+      dirtyRef.current = true; setDirty(true); setSubmissionDone(false);
+      setNotice(`封面已生成，出图扣除 ${still.chargedCredits} Credit。保存草稿后保留。`);
+    } catch (failure) {
+      if (!controller.signal.aborted && mounted.current) setCoverError(errorMessage(failure));
+    } finally { if (mounted.current) setCoverPhase(""); }
+  }
   async function upload(files: FileList | null, gallery = false) {
     if (!files?.length || pending.current) return;
     const selected = Array.from(files);
@@ -554,15 +627,25 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
   const descriptionTemplate = <button type="button" className={styles.insertButton} disabled={busy} onClick={(event) => { event.preventDefault(); appendText("description", DZMM_DESCRIPTION_TEMPLATE); }}>插入模板</button>;
   const previewMessages = selectedOpening > 0 && draft.greetings[selectedOpening - 1] ? [{ role: "assistant" as const, content: draft.greetings[selectedOpening - 1].value, key: "alternate-preview" }] : draft.messages;
   const coverPreview = previewImage(draft.cover);
+  const coverReady = coverCaptionReady(coverCaptionRequest(draft, coverNote));
+  const coverMaker = <section className={styles.coverMaker} aria-label={page.makeCover}>
+    <div className={styles.inspectorHeading}>{page.makeCover}<span>{STUDIO_STILL_CREDITS} Credit</span></div>
+    <textarea rows={3} maxLength={300} disabled={busy} value={coverNote} placeholder={page.coverNotePh} onChange={(event) => { setCoverNote(event.target.value); setCoverError(""); }} />
+    {coverCaption && <p className={styles.coverCaption}>{coverCaption}</p>}
+    <button type="button" className={styles.primary} disabled={busy || !coverReady} onClick={() => void generateCover()}><Icon name="sparkles" size={14} />{coverPhase === "caption" ? page.thinkingPicture : coverPhase === "image" ? page.makingPicture : registered ? page.thinkAndMake : page.loginToMake}</button>
+    <p className={styles.help}>{xumengPageFill(page.coverHelp, { credits: STUDIO_STILL_CREDITS })}</p>
+    {coverError && <p className={styles.coverError} role="alert">{coverError}</p>}
+  </section>;
   const textField = (field: "introduction" | "creatorNotes" | "description" | "personality" | "scenario" | "systemPrompt" | "postHistoryInstructions" | "messageExamples", title: string, hint: string, limit = DZMM_CHARACTER_PROSE_LIMIT, rows = 5, action?: ReactNode, placeholder?: string) => <Field title={title} hint={hint} action={action} count={`${draft[field].length} / ${limit}`}><textarea data-studio-field={field} rows={rows} maxLength={limit} disabled={busy} value={draft[field]} placeholder={placeholder} onChange={(event) => update({ [field]: event.target.value })} /></Field>;
   const basicFields = <><Field title="角色名称 *"><input autoComplete="off" maxLength={120} disabled={busy} value={draft.name} placeholder="为角色或故事命名" onChange={(event) => update({ name: event.target.value })} /></Field>{textField("introduction", "角色卡介绍", "展示在角色卡上，AI 不会看到这段介绍。", DZMM_CHARACTER_PROSE_LIMIT, professional ? 4 : 3)}{textField("creatorNotes", "作者备注", "给玩家的致谢、玩法提示和更新说明；单独展示，不会发送给 AI。", DZMM_CHARACTER_PROSE_LIMIT, 3)}</>;
 
   return <main className={styles.studio}>
-    <header className={styles.header}><div className={styles.heading}><button type="button" className={styles.back} aria-label="返回" disabled={busy} onClick={requestClose}><Icon name="back" size={19} /></button><div><h1>{character?.sourceKind === "original" ? "编辑角色" : character ? "创建角色副本" : "创建角色"}</h1><p>{dirty ? "有未保存的修改" : "私人草稿 · 仅自己可见"}</p></div></div><div className={styles.headerActions}><button type="button" className={styles.textButton} disabled={busy} title="JSON 或带有角色卡的 PNG" onClick={() => importInput.current?.click()}><Icon name="upload" size={15} />导入</button><button type="button" className={styles.textButton} disabled={busy} onClick={exportCard}><Icon name="download" size={15} />导出</button><span className={styles.modeLabel}>专业模式<button type="button" role="switch" aria-label="专业模式" aria-checked={professional} disabled={busy} className={`${styles.switch} ${professional ? styles.switchOn : ""}`} onClick={toggleMode}><span /></button></span></div></header>
-    <nav className={styles.steps} aria-label="角色创作步骤">{steps.map((item, position) => <button type="button" key={item.id} aria-current={step === item.id ? "step" : undefined} disabled={busy} className={step === item.id ? styles.activeStep : ""} onClick={() => selectStep(item.id)}><span>{String(position + 1).padStart(2, "0")}</span>{item.name}</button>)}</nav>
+    <header className={styles.header}><div className={styles.heading}><button type="button" className={styles.back} aria-label={page.back} disabled={busy} onClick={requestClose}><Icon name="back" size={19} /></button><div><h1>{character?.sourceKind === "original" ? page.editRole : character ? page.copyRole : page.createRole}</h1><p>{dirty ? page.unsaved : page.privateOnly}</p></div></div><div className={styles.headerActions}><button type="button" className={styles.textButton} disabled={busy} title="JSON 或带有角色卡的 PNG" onClick={() => importInput.current?.click()}><Icon name="upload" size={15} />{page.importCard}</button><button type="button" className={styles.textButton} disabled={busy} onClick={exportCard}><Icon name="download" size={15} />{page.export}</button><span className={styles.modeLabel}>{page.proMode}<button type="button" role="switch" aria-label={page.proMode} aria-checked={professional} disabled={busy} className={`${styles.switch} ${professional ? styles.switchOn : ""}`} onClick={toggleMode}><span /></button></span></div></header>
+    <nav className={styles.steps} aria-label={page.studioSteps}>{steps.map((item, position) => <button type="button" key={item.id} aria-current={step === item.id ? "step" : undefined} disabled={busy} className={step === item.id ? styles.activeStep : ""} onClick={() => selectStep(item.id)}><span>{String(position + 1).padStart(2, "0")}</span>{item.name}</button>)}</nav>
     <div className={styles.workspace} ref={main}>
       <div className={styles.editor}>
-        <div className={styles.sectionHeading}><span>{String(index + 1).padStart(2, "0")}</span><div><h2 tabIndex={-1} data-studio-field="step-heading">{STEPS.find((item) => item.id === step)?.name}</h2><p>{step === "identity" ? "定义人物、背景与叙事方式" : step === "opening" ? "写下第一次相遇，让故事有一个起点" : step === "book" ? "关键词出现时，相关设定会加入对话上下文" : step === "voice" ? "给角色挑一个声音" : "检查角色，试聊后提交审核"}</p></div></div>
+        <div className={styles.coverMakerPhone}>{coverMaker}</div>
+        <div className={styles.sectionHeading}><span>{String(index + 1).padStart(2, "0")}</span><div><h2 tabIndex={-1} data-studio-field="step-heading">{stepName(step)}</h2><p>{step === "identity" ? page.stepIdentityHint : step === "opening" ? page.stepOpeningHint : step === "book" ? page.stepBookHint : step === "voice" ? page.stepVoiceHint : page.stepPreviewHint}</p></div></div>
         {step === "identity" && <>
           {basicFields}
           <div className={styles.coverRow}><div className={styles.coverPreview}>{coverPreview ? <img src={coverPreview} alt="角色封面预览" /> : <Icon name="user" size={36} />}</div><div><Field title="封面图片"><input maxLength={2048} disabled={busy} value={draft.cover} placeholder="图片地址，或上传封面" onChange={(event) => update({ cover: event.target.value })} /></Field><button type="button" className={styles.secondary} disabled={busy} onClick={() => coverInput.current?.click()}><Icon name="upload" size={14} />{operation === "upload" ? "正在上传…" : "上传封面"}</button><p className={styles.help}>PNG、JPEG、WebP、GIF，最大 5 MB。GIF 和动态 WebP 会在封面里播放。</p></div></div>
@@ -639,7 +722,7 @@ export default function CharacterStudio({ character, nickname, user, onClose, on
         {retrySaveAvailable && onRetrySave && !conflictRecovery && !leaving && <div className={styles.field}><p className={styles.help}>可在这里重新同步并保存当前草稿，无需离开编辑器。云端有其他修改时会保留两边记录。</p><button type="button" className={styles.secondary} disabled={busy} onClick={() => void run("save", onRetrySave)}>重新同步并保存</button></div>}
         {notice && <p className={styles.notice} role="status">{notice}</p>}
       </div>
-      <aside className={styles.inspector}><div className={styles.inspectorHeading}>角色预览<span>私人草稿</span></div><div className={styles.rolePreview}>{coverPreview ? <img src={coverPreview} alt={draft.name || "角色封面"} /> : <div className={styles.blankCover}><Icon name="user" size={45} /><span>添加角色封面</span></div>}<div><h3>{draft.name || "未命名角色"}</h3><span>由 {nickname} 创作</span><CharacterIntroduction text={draft.introduction || draft.description} creatorNotes={draft.creatorNotes} characterName={draft.name} userName={nickname} fallback="角色卡介绍会展示在这里" /><div className={styles.tags}>{split(draft.tags).slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div></div></div><p className={styles.previewHelp}>这里展示玩家看到的角色卡。人物设定和系统指令会随试聊生效。</p></aside>
+      <aside className={styles.inspector}>{coverMaker}<div className={styles.inspectorHeading}>角色预览<span>私人草稿</span></div><div className={styles.rolePreview}>{coverPreview ? <img src={coverPreview} alt={draft.name || "角色封面"} /> : <div className={styles.blankCover}><Icon name="user" size={45} /><span>添加角色封面</span></div>}<div><h3>{draft.name || "未命名角色"}</h3><span>由 {nickname} 创作</span><CharacterIntroduction text={draft.introduction || draft.description} creatorNotes={draft.creatorNotes} characterName={draft.name} userName={nickname} fallback="角色卡介绍会展示在这里" /><div className={styles.tags}>{split(draft.tags).slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div></div></div><p className={styles.previewHelp}>这里展示玩家看到的角色卡。人物设定和系统指令会随试聊生效。</p></aside>
     </div>
     <footer className={styles.footer}><div className={styles.progress}>{steps.map((item) => <span key={item.id} className={item.id === step ? styles.currentDot : ""} />)}<span>{index + 1} / {steps.length}</span></div><div className={styles.footerActions}><button type="button" className={`${styles.secondary} ${styles.save}`} disabled={busy} onClick={() => void run("save", onSave)}><Icon name="check" size={14} />{operation === "save" ? "正在保存…" : "保存草稿"}</button>{index > 0 && <button type="button" className={styles.secondary} disabled={busy} onClick={() => selectStep(steps[index - 1].id)}>上一步</button>}{index < steps.length - 1 && <button type="button" className={styles.primary} disabled={busy} onClick={() => selectStep(steps[index + 1].id)}>下一步<Icon name="chevron" size={14} /></button>}{index === steps.length - 1 && <button type="button" className={`${styles.secondary} ${styles.finish}`} disabled={busy} onClick={requestClose}>返回</button>}</div></footer>
     {leaving && <div className={styles.leaveOverlay} onClick={(event) => { if (event.target === event.currentTarget && !busy) setLeaving(false); }}><div className={styles.leaveDialog} ref={leaveDialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="studio-leave-title" aria-describedby="studio-leave-description"><h2 id="studio-leave-title">有未保存的修改</h2><p id="studio-leave-description">保存草稿后再退出，或放弃本次修改。</p>{error && <p className={styles.error} role="alert">{error}</p>}<div className={styles.leaveActions}>{retrySaveAvailable && onRetrySave ? <button type="button" className={styles.primary} disabled={busy} onClick={() => void retrySaveAndClose()}>{operation === "save" ? "正在保存…" : "重新同步并保存后退出"}</button> : <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveAndClose()}>{operation === "save" ? "正在保存…" : "保存并退出"}</button>}<button type="button" className={styles.secondary} disabled={busy} onClick={discard}>放弃修改</button><button type="button" className={styles.textButton} disabled={busy} data-continue="true" onClick={() => setLeaving(false)}>继续编辑</button></div></div></div>}

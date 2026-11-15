@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { xumengHtmlLang, type XumengLocale } from "@/lib/xumeng-i18n";
+import { xumengPage } from "@/lib/xumeng-page-copy";
 import { COMPANION_MEDIA_PLACEHOLDER, sameCompanionUtterance } from "./companion-thread-items";
 import { SALES_CUES } from "./sales-style";
 
@@ -18,16 +20,17 @@ export function companionLane(person: { variant: string; castId?: string }) {
   return person.variant === "cast" && person.castId ? `cast-${person.castId}` : person.variant;
 }
 
-export function chatListStamp(at: number, now = Date.now()): string {
+export function chatListStamp(at: number, now = Date.now(), locale: XumengLocale = "zh-Hans"): string {
   const date = new Date(at);
   if (!Number.isFinite(date.getTime())) return "";
   const current = new Date(now);
-  if (date.toDateString() === current.toDateString()) return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  const lang = xumengHtmlLang(locale);
+  if (date.toDateString() === current.toDateString()) return date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
   const yesterday = new Date(current);
   yesterday.setDate(current.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return "昨天";
-  if (current.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return `周${"日一二三四五六"[date.getDay()]}`;
-  return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  if (date.toDateString() === yesterday.toDateString()) return xumengPage(locale).yesterday;
+  if (current.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return date.toLocaleDateString(lang, { weekday: "short" });
+  return date.toLocaleDateString(lang, { month: "numeric", day: "numeric" });
 }
 
 function visibleText(value: string) {

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import * as shelfModule from "./dzmm-public-shelf";
 import type { Character } from "./dzmm-characters";
 
-const { appendDzmmCatalogPage, isDzmmListPreview, orderDzmmShelfByTime, parseDzmmCatalogQuery, readDzmmShelfFeed, toDzmmCatalogCard, writeDzmmShelfFeed, xumengPlayCatalogSort, xumengPlaySortSelection } =
+const { appendDzmmCatalogPage, dzmmShelfTranslatedRequest, isDzmmListPreview, orderDzmmShelfByTime, parseDzmmCatalogQuery, readDzmmShelfFeed, toDzmmCatalogCard, writeDzmmShelfFeed, xumengPlayCatalogSort, xumengPlaySortSelection } =
   ("default" in shelfModule ? shelfModule.default : shelfModule) as typeof import("./dzmm-public-shelf");
 
 function card(extra: Partial<Character> = {}): Character {
@@ -27,6 +27,14 @@ function card(extra: Partial<Character> = {}): Character {
     ...extra,
   };
 }
+
+test("a translated shelf stays on the cards that have a translation", () => {
+  const narrowed = dzmmShelfTranslatedRequest({ sort: "hot", tags: ["古风"] }, ["card-a", "card-b"]);
+  assert.deepEqual(narrowed.ids, ["card-a", "card-b"]);
+  assert.equal(narrowed.closedIds, true);
+  assert.equal(narrowed.sort, "hot");
+  assert.deepEqual(dzmmShelfTranslatedRequest({ ids: ["other", "card-b"], sort: "hot" }, ["card-a", "card-b"]).ids, ["card-b", "card-a"]);
+});
 
 test("catalog query accepts a shelf page and rejects an oversized page", () => {
   const query = parseDzmmCatalogQuery(new URLSearchParams("limit=24&offset=48&q=凌霜&tags=女性向,古风&sort=hot&view=card"));

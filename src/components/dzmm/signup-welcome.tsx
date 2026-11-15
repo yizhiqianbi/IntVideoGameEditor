@@ -2,13 +2,16 @@
 
 import { useEffect, useRef, useState } from "react";
 import { fetchDzmmTasks, type DzmmTaskCenter } from "../../lib/dzmm-tasks";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 import Icon from "./icons";
 import s from "./account-modal.module.css";
 
-type Props = { accountId: string; characterName: string; onStart: () => void; onTasks: () => void; onClose: () => void };
+type Props = { accountId: string; characterName: string; locale?: XumengLocale; onStart: () => void; onTasks: () => void; onClose: () => void };
 const points = (value: number) => value.toLocaleString("zh-CN");
 
-export function SignupWelcome({ accountId, characterName, onStart, onTasks, onClose }: Props) {
+export function SignupWelcome({ accountId, characterName, locale = "zh-Hans", onStart, onTasks, onClose }: Props) {
+  const copy = xumengPage(locale);
   const [gift, setGift] = useState<number | null>(null);
   const [data, setData] = useState<DzmmTaskCenter | null>(null);
   const [claiming, setClaiming] = useState(false);
@@ -33,32 +36,32 @@ export function SignupWelcome({ accountId, characterName, onStart, onTasks, onCl
     try {
       const result = await fetchDzmmTasks();
       if (!mounted.current) return;
-      if (result.accountId !== accountId || result.isGuest) throw new Error("账号还在同步，请稍后再领取。");
+      if (result.accountId !== accountId || result.isGuest) throw new Error(copy.syncingAccount);
       setData(result);
     } catch (failure) {
-      if (mounted.current) setError(failure instanceof Error ? failure.message : "领取失败，请稍后重试。");
+      if (mounted.current) setError(failure instanceof Error ? failure.message : copy.claimFailed);
     } finally { if (mounted.current) setClaiming(false); }
   }
 
   const starters = data?.tasks.filter(task => task.repeat === "once" && !task.claimed).slice(0, 3) ?? [];
   return <div className={s.overlay}>
     <div className={s.dialog} ref={dialog} role="dialog" aria-modal="true" aria-labelledby="signup-welcome-title">
-      <header><h2 id="signup-welcome-title">欢迎加入叙梦</h2><button type="button" onClick={onClose} aria-label="关闭欢迎窗口"><Icon name="close" /></button></header>
+      <header><h2 id="signup-welcome-title">{copy.welcomeTitle}</h2><button type="button" onClick={onClose} aria-label={copy.closeWelcome}><Icon name="close" /></button></header>
       {!data ? <>
-        <p className={s.intro}>注册奖励 {gift === null ? "" : `${points(gift)} `}Credit 已为你准备好</p>
-        <p className={s.hint}>领取后即可开始和「{characterName}」聊天。到账后长期有效。</p>
+        <p className={s.intro}>{gift === null ? copy.welcomeReady : xumengPageFill(copy.welcomeGift, { gift: `${points(gift)} ` })}</p>
+        <p className={s.hint}>{xumengPageFill(copy.welcomeHint, { name: characterName })}</p>
         {error && <p className={s.error} role="alert">{error}</p>}
-        <div className={s.form}><button type="button" data-primary className={s.submit} disabled={claiming} onClick={() => void claim()}>{claiming ? "正在领取…" : "领取注册奖励"}</button></div>
+        <div className={s.form}><button type="button" data-primary className={s.submit} disabled={claiming} onClick={() => void claim()}>{claiming ? copy.claiming : copy.claimSignup}</button></div>
       </> : <>
-        <p className={s.intro}>已领取，当前可用 {points(data.points.balance)} Credit</p>
+        <p className={s.intro}>{xumengPageFill(copy.claimedBalance, { balance: points(data.points.balance) })}</p>
         {starters.length > 0 && <>
-          <p className={s.hint}>新手任务还能继续领 Credit：</p>
+          <p className={s.hint}>{copy.moreStarter}</p>
           <ul className={s.welcomeTasks}>{starters.map(task => <li key={task.id}><span>{task.title}</span><strong>+{task.rewardPoints}</strong></li>)}</ul>
         </>}
         <div className={s.form}>
-          <button type="button" data-primary className={s.submit} onClick={onStart}>开始使用「{characterName}」</button>
+          <button type="button" data-primary className={s.submit} onClick={onStart}>{xumengPageFill(copy.startWith, { name: characterName })}</button>
         </div>
-        <footer><button type="button" onClick={onTasks}>查看全部新手任务<Icon name="chevron" size={13} /></button></footer>
+        <footer><button type="button" onClick={onTasks}>{copy.viewAllTasks}<Icon name="chevron" size={13} /></button></footer>
       </>}
     </div>
   </div>;

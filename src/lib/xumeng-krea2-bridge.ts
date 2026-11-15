@@ -47,6 +47,30 @@ export async function requestCompanionAlbumStill(input: Krea2StillRequest, signa
   return { url: payload.url, chargedCredits: payload.chargedCredits };
 }
 
+/** Text-only cover. The studio still route accepts krea2-free without a reference image. */
+export async function requestTextStill(prompt: string, signal?: AbortSignal): Promise<{ image: Blob; chargedCredits: number }> {
+  const text = prompt.trim().slice(0, 1600);
+  if (text.length < 2) throw new Error("先写一点画面。");
+  const response = await fetch("/api/krea2/generate", {
+    method: "POST",
+    credentials: "same-origin",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      templateId: "krea2-free",
+      prompt: `画面里是自愿的成年人。竖版角色封面，人物清楚，背景简洁，不要文字和水印。${text}`,
+      ratio: "3:4",
+    }),
+    signal,
+  });
+  if (!response.ok || !response.headers.get("Content-Type")?.startsWith("image/")) {
+    const payload = await response.json().catch(() => null) as { error?: unknown } | null;
+    throw new Error(typeof payload?.error === "string" ? payload.error : "出图没有完成。");
+  }
+  const chargedCredits = Number(response.headers.get("X-Charged-Credits"));
+  if (chargedCredits !== STUDIO_STILL_CREDITS) throw new Error("扣费没有完成，这次没有出图。");
+  return { image: await response.blob(), chargedCredits };
+}
+
 export async function requestKrea2Still(input: Krea2StillRequest, signal?: AbortSignal): Promise<{ image: Blob; chargedCredits: number }> {
   const response = await fetch("/api/krea2/generate", {
     method: "POST",

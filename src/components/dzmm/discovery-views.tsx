@@ -9,6 +9,7 @@ import { recommendationReasonText, type RecommendationReason } from "@/lib/xumen
 import type { DzmmPreferences } from "@/lib/dzmm-storage";
 import { localizeCharacter, sourceCharacterTag, xumengLocalizedAuthorName } from "@/lib/xumeng-card-localization";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
+import { xumengCategoryName, xumengPage, xumengPageFill, xumengReasonLabel } from "@/lib/xumeng-page-copy";
 import {
   DZMM_DISCOVERY_CATEGORIES, filterDzmmCharacters, findCharacterAuthor, isDzmmCharacterBlocked,
   searchDzmmAuthors,
@@ -31,6 +32,7 @@ function CharacterCards({ characters, authors, favorites, likes = [], onCharacte
   characters: Character[]; authors: DzmmAuthor[]; favorites: string[]; likes?: string[]; onTag?: (tag: string) => void; single?: boolean; userName?: string;
   reasons?: Readonly<Record<string, RecommendationReason>>; trackRecommendations?: boolean; locale?: XumengLocale;
 }) {
+  const copy = xumengPage(locale);
   return <div className={`${s.cardGrid} ${single ? s.singleGrid : ""}`}>
     {characters.map((character, index) => {
       const displayCharacter = localizeCharacter(character, locale);
@@ -39,19 +41,19 @@ function CharacterCards({ characters, authors, favorites, likes = [], onCharacte
       const liked = likes.includes(character.id);
       const painted = coverShelfTags(displayCharacter.tags, 2);
       const reason = reasons?.[character.id];
-      const reasonLabel = recommendationReasonText(reason);
+      const reasonLabel = xumengReasonLabel(locale, reason) || recommendationReasonText(reason);
       return <article className={s.card} key={character.id} data-recommend-id={trackRecommendations ? character.id : undefined} data-recommend-position={trackRecommendations ? index : undefined}>
         <CoverReel className={s.coverButton} character={displayCharacter} count="corner" onOpen={() => onCharacter(character)}>
           <span className={s.heat}><Icon name="flame" size={14} />{displayCharacter.heat || "—"}</span>
         </CoverReel>
-        {painted.length > 0 && <div className={s.coverTags}>{painted.map((tag) => onTag ? <button key={tag} type="button" onClick={() => onTag(sourceCharacterTag(character, locale, tag))} aria-label={`只看${tag}`}>{tag}</button> : <span key={tag}>{tag}</span>)}</div>}
+        {painted.length > 0 && <div className={s.coverTags}>{painted.map((tag) => onTag ? <button key={tag} type="button" onClick={() => onTag(sourceCharacterTag(character, locale, tag))} aria-label={xumengPageFill(copy.onlyTag, { tag })}>{tag}</button> : <span key={tag}>{tag}</span>)}</div>}
         <div className={s.cardBody}>
           <button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{displayCharacter.name}</h2><p>{getDzmmCharacterCardBlurb(displayCharacter, userName)}</p>{reasonLabel && <span className={s.reason}>{reasonLabel}</span>}</button>
           <div className={s.cardFooter}>
-            {author ? <button className={s.authorLink} onClick={() => onAuthor(author)} aria-label={`查看作者 ${xumengLocalizedAuthorName(author.name, locale)}`}><span className={s.avatar}>{Array.from(author.name)[0] ?? ""}</span><span>{xumengLocalizedAuthorName(author.name, locale)}</span></button>
+            {author ? <button className={s.authorLink} onClick={() => onAuthor(author)} aria-label={xumengPageFill(copy.viewAuthor, { name: xumengLocalizedAuthorName(author.name, locale) })}><span className={s.avatar}>{Array.from(author.name)[0] ?? ""}</span><span>{xumengLocalizedAuthorName(author.name, locale)}</span></button>
               : <span className={s.authorLink}><span className={s.avatar}>{Array.from(character.author)[0] ?? ""}</span><span>{xumengLocalizedAuthorName(character.author, locale)}</span></span>}
-            <button className={liked ? s.liked : s.like} onClick={() => onLike?.(character.id)} aria-label={`${liked ? "取消点赞" : "点赞"} ${character.name}`} aria-pressed={liked}><Icon name="heart" size={16} /><span>{character.likes || "—"}</span></button>
-            <button className={favorite ? s.favorited : s.favorite} onClick={() => onFavorite(character.id)} aria-label={`${favorite ? "取消收藏" : "收藏"} ${character.name}`} aria-pressed={favorite}><Icon name={favorite ? "check" : "book"} size={16} /></button>
+            <button className={liked ? s.liked : s.like} onClick={() => onLike?.(character.id)} aria-label={`${liked ? copy.unlike : copy.like} ${character.name}`} aria-pressed={liked}><Icon name="heart" size={16} /><span>{character.likes || "—"}</span></button>
+            <button className={favorite ? s.favorited : s.favorite} onClick={() => onFavorite(character.id)} aria-label={`${favorite ? copy.unfavorite : copy.favorite} ${character.name}`} aria-pressed={favorite}><Icon name={favorite ? "check" : "book"} size={16} /></button>
           </div>
         </div>
       </article>;
@@ -67,7 +69,7 @@ export type CatalogDiscoveryFilters = DzmmDiscoveryFilters;
 
 export type ShelfPage = { total: number; hasMore: boolean; loading: boolean; onLoad: () => void; serverFiltered?: boolean };
 
-export function DiscoveryTagPicker({ open, onClose, options, selected, limit, onToggle, onClear }: {
+export function DiscoveryTagPicker({ open, onClose, options, selected, limit, onToggle, onClear, locale = "zh-Hans" }: {
   open: boolean;
   onClose: () => void;
   options: readonly { id: string; name: string }[];
@@ -75,7 +77,9 @@ export function DiscoveryTagPicker({ open, onClose, options, selected, limit, on
   limit: number;
   onToggle: (id: string) => void;
   onClear: () => void;
+  locale?: XumengLocale;
 }) {
+  const copy = xumengPage(locale);
   const pickerRef = useRef<HTMLElement | null>(null);
   const [query, setQuery] = useState("");
   const visible = useMemo(() => {
@@ -94,19 +98,20 @@ export function DiscoveryTagPicker({ open, onClose, options, selected, limit, on
   const close = () => { setQuery(""); onClose(); };
   return <div className={s.tagPickerBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
     <section className={s.tagPicker} ref={pickerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="global-tag-picker-title" onMouseDown={(event) => event.stopPropagation()}>
-      <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="global-tag-picker-title">选择标签</h2><p>点一下就筛选，最多 {limit} 个。</p></div><button type="button" className={s.tagPickerClose} aria-label="关闭标签选择" onClick={close}><Icon name="close" size={18} /></button></header>
-      <label className={s.tagPickerSearch}><Icon name="search" size={16} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder="搜索标签" aria-label="搜索标签" /></label>
-      <div className={s.tagPickerChips} role="group" aria-label="分类标签"><button type="button" className={selected.length === 0 ? s.tagPickerChipOn : s.tagPickerChip} aria-pressed={selected.length === 0} onClick={onClear}>全部</button>{visible.map((item) => {
+      <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="global-tag-picker-title">{copy.pickTags}</h2><p>{xumengPageFill(copy.pickTagsHint, { limit })}</p></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={close}><Icon name="close" size={18} /></button></header>
+      <label className={s.tagPickerSearch}><Icon name="search" size={16} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchTags} aria-label={copy.searchTags} /></label>
+      <div className={s.tagPickerChips} role="group" aria-label={copy.categoryTags}><button type="button" className={selected.length === 0 ? s.tagPickerChipOn : s.tagPickerChip} aria-pressed={selected.length === 0} onClick={onClear}>{copy.all}</button>{visible.map((item) => {
         const on = selected.includes(item.id);
         return <button type="button" className={on ? s.tagPickerChipOn : s.tagPickerChip} key={item.id} aria-pressed={on} onClick={() => onToggle(item.id)}>{item.name}</button>;
       })}</div>
-      {!visible.length && <p className={s.tagPickerEmpty}>没有匹配的标签</p>}
-      <footer className={s.tagPickerFooter}><span>已选 {selected.length}/{limit}</span></footer>
+      {!visible.length && <p className={s.tagPickerEmpty}>{copy.noMatchingTags}</p>}
+      <footer className={s.tagPickerFooter}><span>{xumengPageFill(copy.selectedCount, { selected: selected.length, limit })}</span></footer>
     </section>
   </div>;
 }
 
-function ShelfMore({ more }: { more?: ShelfPage | null }) {
+function ShelfMore({ more, locale = "zh-Hans" }: { more?: ShelfPage | null; locale?: XumengLocale }) {
+  const copy = xumengPage(locale);
   const ref = useRef<HTMLDivElement | null>(null);
   const hasMore = Boolean(more?.hasMore);
   const loading = Boolean(more?.loading);
@@ -122,8 +127,8 @@ function ShelfMore({ more }: { more?: ShelfPage | null }) {
   }, [hasMore, loading, onLoad]);
   if (!more || (more.total <= 0 && !more.hasMore && !more.loading)) return null;
   return <div className={s.more} ref={ref}>
-    {more.total > 0 && <p>共 {more.total} 个</p>}
-    {more.loading && <p>正在往下加载…</p>}
+    {more.total > 0 && <p>{xumengPageFill(copy.totalCount, { count: more.total })}</p>}
+    {more.loading && <p>{copy.loadingMore}</p>}
   </div>;
 }
 
@@ -139,6 +144,7 @@ export type CatalogDiscoveryProps = CharacterCallbacks & {
 };
 
 export function CatalogDiscovery({ characters, authors, favorites, likes, preferences, initialCategory, locale = "zh-Hans", onCategoryChange, filters: controlledFilters, onFiltersChange, onTag, more, reasons, trackRecommendations, ...callbacks }: CatalogDiscoveryProps) {
+  const copy = xumengPage(locale);
   const [localCategory, setCategory] = useState<string | null>(null);
   const [tagPickerOpen, setTagPickerOpen] = useState(false);
   const tagPickerRef = useRef<HTMLElement | null>(null);
@@ -170,35 +176,35 @@ export function CatalogDiscovery({ characters, authors, favorites, likes, prefer
   }, [tagPickerOpen]);
   return <main className={s.discovery}>
     <div className={s.heading}>
-      <div>{category && <button className={s.back} onClick={() => choose(null)}><Icon name="back" size={17} />全部分类</button>}<h1>{selected?.name ?? "分类"}</h1></div>
-      {category && <span className={s.muted}>{listedTotal} 个已收录角色</span>}
+      <div>{category && <button className={s.back} onClick={() => choose(null)}><Icon name="back" size={17} />{copy.allCategories}</button>}<h1>{selected ? xumengCategoryName(locale, selected.slug, selected.name) : copy.category}</h1></div>
+      {category && <span className={s.muted}>{xumengPageFill(copy.listedRoles, { count: listedTotal })}</span>}
     </div>
     {!category ? <>
       <section className={s.tagEntry} aria-labelledby="all-tags-title">
         <div className={s.tagEntryCopy}>
           <span className={s.tagEntryKicker}>DISCOVER</span>
-          <h2 id="all-tags-title">按标签探索</h2>
-          <p>从纯爱、女性向到世界模拟，打开标签面板，选择你想看的内容。</p>
+          <h2 id="all-tags-title">{copy.exploreByTag}</h2>
+          <p>{copy.exploreByTagBody}</p>
         </div>
-        <button type="button" className={s.tagEntryButton} onClick={() => setTagPickerOpen(true)}><Icon name="search" size={18} />打开全部标签</button>
+        <button type="button" className={s.tagEntryButton} onClick={() => setTagPickerOpen(true)}><Icon name="search" size={18} />{copy.openAllTags}</button>
       </section>
-      <div className={s.tagQuickList} aria-label="热门标签">
-        {DZMM_DISCOVERY_CATEGORIES.slice(0, 8).map((item) => <button type="button" className={s.tagQuick} key={item.slug} onClick={() => choose(item.slug)}>{item.name}</button>)}
+      <div className={s.tagQuickList} aria-label={copy.hotTags}>
+        {DZMM_DISCOVERY_CATEGORIES.slice(0, 8).map((item) => <button type="button" className={s.tagQuick} key={item.slug} onClick={() => choose(item.slug)}>{xumengCategoryName(locale, item.slug, item.name)}</button>)}
       </div>
       {tagPickerOpen && <div className={s.tagPickerBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setTagPickerOpen(false); }}>
         <section className={s.tagPicker} ref={tagPickerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="tag-picker-title" onMouseDown={(event) => event.stopPropagation()}>
-          <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="tag-picker-title">选择标签</h2></div><button type="button" className={s.tagPickerClose} aria-label="关闭标签选择" onClick={() => setTagPickerOpen(false)}><Icon name="close" size={18} /></button></header>
-          <div className={s.tagPickerGrid}>{DZMM_DISCOVERY_CATEGORIES.map((item) => <button type="button" className={s.tagPickerTag} key={item.slug} onClick={() => choose(item.slug)}><span>{item.name}</span><small>{item.tags.slice(0, 2).join(" · ")}</small><Icon name="chevron" size={15} /></button>)}</div>
+          <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="tag-picker-title">{copy.pickTags}</h2></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={() => setTagPickerOpen(false)}><Icon name="close" size={18} /></button></header>
+          <div className={s.tagPickerGrid}>{DZMM_DISCOVERY_CATEGORIES.map((item) => <button type="button" className={s.tagPickerTag} key={item.slug} onClick={() => choose(item.slug)}><span>{xumengCategoryName(locale, item.slug, item.name)}</span><small>{item.tags.slice(0, 2).join(" · ")}</small><Icon name="chevron" size={15} /></button>)}</div>
         </section>
       </div>}
     </> : <>
       <div className={s.filters}>
-        <label>排序方式<select aria-label="排序方式" value={sort} onChange={(event) => updateFilters({ sort: event.target.value as DzmmDiscoverySort })}><option value="hot">热门</option><option value="new">最新收录</option><option value="likes">点赞记录</option></select></label>
-        <label>收录时间<select aria-label="收录时间范围" value={time} onChange={(event) => updateFilters({ time: event.target.value as DzmmDiscoveryTime })}><option value="today">今天</option><option value="week">本周</option><option value="month">本月</option><option value="quarter">近三个月</option><option value="all">全部</option></select></label>
-        <label className={s.filterSearch}><Icon name="search" size={17} /><input aria-label={`搜索 ${selected?.name ?? "分类"} 角色`} maxLength={DZMM_CATEGORY_QUERY_MAX_LENGTH} value={query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder="搜索角色、作者或标签" /></label>
+        <label>{copy.sortBy}<select aria-label={copy.sortBy} value={sort} onChange={(event) => updateFilters({ sort: event.target.value as DzmmDiscoverySort })}><option value="hot">{copy.hot}</option><option value="new">{copy.newlyListed}</option><option value="likes">{copy.likeRecords}</option></select></label>
+        <label>{copy.listedTime}<select aria-label={copy.listedTime} value={time} onChange={(event) => updateFilters({ time: event.target.value as DzmmDiscoveryTime })}><option value="today">{copy.today}</option><option value="week">{copy.thisWeek}</option><option value="month">{copy.thisMonth}</option><option value="quarter">{copy.quarter}</option><option value="all">{copy.allTime}</option></select></label>
+        <label className={s.filterSearch}><Icon name="search" size={17} /><input aria-label={xumengPageFill(copy.searchCategoryRoles, { name: selected ? xumengCategoryName(locale, selected.slug, selected.name) : copy.category })} maxLength={DZMM_CATEGORY_QUERY_MAX_LENGTH} value={query} onChange={(event) => updateFilters({ query: event.target.value })} placeholder={copy.searchRolesAuthorsTags} /></label>
       </div>
-      {sort === "likes" && <p className={s.filterNote}>按已收录的点赞记录排序，未知记录排在后面。</p>}
-      {more?.loading && filtered.length === 0 ? <p className={s.loading} role="status">正在加载角色…</p> : filtered.length ? <><CharacterCards characters={filtered} authors={authors} favorites={favorites} likes={likes} onTag={onTag} locale={locale} single={preferences.homeLayout === "single"} userName={preferences.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="这个分类还没有相关角色" description={query ? "试试其他关键词，或清除时间和标签筛选。" : "目前没有收录符合筛选条件的角色。"} />{more?.hasMore && <ShelfMore more={more} />}</>}
+      {sort === "likes" && <p className={s.filterNote}>{copy.likesNote}</p>}
+      {more?.loading && filtered.length === 0 ? <p className={s.loading} role="status">{copy.loadingRoles}…</p> : filtered.length ? <><CharacterCards characters={filtered} authors={authors} favorites={favorites} likes={likes} onTag={onTag} locale={locale} single={preferences.homeLayout === "single"} userName={preferences.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} locale={locale} /></> : <><Empty title={copy.emptyCategory} description={query ? copy.tryOtherFilters : copy.noMatchingFilters} />{more?.hasMore && <ShelfMore more={more} locale={locale} />}</>}
     </>}
   </main>;
 }
@@ -214,6 +220,7 @@ export type SearchResultsProps = CharacterCallbacks & {
 };
 
 export function SearchResults({ query, characters, authors, favorites, likes, preferences, locale = "zh-Hans", onTopic, searchTopics, more, reasons, trackRecommendations, ...callbacks }: SearchResultsProps) {
+  const copy = xumengPage(locale);
   const [tab, setTab] = useState<"characters" | "authors" | "topics">("characters");
   const [retry, setRetry] = useState(0);
   const [topicResult, setTopicResult] = useState<{ query: string; retry: number; topics: DzmmForumTopic[]; error: string }>({ query: "", retry: -1, topics: [], error: "" });
@@ -230,20 +237,20 @@ export function SearchResults({ query, characters, authors, favorites, likes, pr
   useEffect(() => {
     if (tab !== "topics" || !searchTopics || !query.trim()) return;
     const abort = new AbortController();
-    void searchTopics(query.trim(), abort.signal).then((result) => { if (!abort.signal.aborted) setTopicResult({ query: query.trim(), retry, topics: result, error: "" }); }).catch((failure: unknown) => { if (!abort.signal.aborted) setTopicResult({ query: query.trim(), retry, topics: [], error: failure instanceof Error ? failure.message : "主题搜索失败，请重试。" }); });
+    void searchTopics(query.trim(), abort.signal).then((result) => { if (!abort.signal.aborted) setTopicResult({ query: query.trim(), retry, topics: result, error: "" }); }).catch((failure: unknown) => { if (!abort.signal.aborted) setTopicResult({ query: query.trim(), retry, topics: [], error: failure instanceof Error ? failure.message : copy.topicSearchFailed }); });
     return () => abort.abort();
-  }, [tab, query, searchTopics, retry]);
+  }, [tab, query, searchTopics, retry, locale, copy.topicSearchFailed]);
   return <main className={s.discovery}>
-    <div className={s.heading}><h1>搜索{query.trim() && <span className={s.searchTerm}>“{query.trim()}”</span>}</h1></div>
-    <div className={s.tabs} role="tablist" aria-label="搜索内容">
-      <button role="tab" aria-selected={tab === "characters"} className={tab === "characters" ? s.activeTab : ""} onClick={() => setTab("characters")}>角色 <small>{listedTotal}</small></button>
-      <button role="tab" aria-selected={tab === "authors"} className={tab === "authors" ? s.activeTab : ""} onClick={() => setTab("authors")}>用户 <small>{matchingAuthors.length}</small></button>
-      {searchTopics && <button role="tab" aria-selected={tab === "topics"} className={tab === "topics" ? s.activeTab : ""} onClick={() => setTab("topics")}>主题</button>}
+    <div className={s.heading}><h1>{copy.searchHeading}{query.trim() && <span className={s.searchTerm}>“{query.trim()}”</span>}</h1></div>
+    <div className={s.tabs} role="tablist" aria-label={copy.searchContent}>
+      <button role="tab" aria-selected={tab === "characters"} className={tab === "characters" ? s.activeTab : ""} onClick={() => setTab("characters")}>{copy.roles} <small>{listedTotal}</small></button>
+      <button role="tab" aria-selected={tab === "authors"} className={tab === "authors" ? s.activeTab : ""} onClick={() => setTab("authors")}>{copy.users} <small>{matchingAuthors.length}</small></button>
+      {searchTopics && <button role="tab" aria-selected={tab === "topics"} className={tab === "topics" ? s.activeTab : ""} onClick={() => setTab("topics")}>{copy.topics}</button>}
     </div>
-    {!query.trim() ? <Empty title="输入关键词开始搜索" description={searchTopics ? "可以查找角色、已收录作者和站内主题。" : "可以查找角色和已收录作者。"} /> : <>
-      {tab === "characters" && (more?.loading && matchingCharacters.length === 0 ? <p className={s.loading} role="status">正在搜索角色…</p> : matchingCharacters.length ? <><CharacterCards characters={matchingCharacters} authors={authors} favorites={favorites} likes={likes} locale={locale} single={preferences?.homeLayout === "single"} userName={preferences?.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} /></> : <><Empty title="没有找到相关角色" description="试试角色名称、作者名或其他标签。" />{more?.hasMore && <ShelfMore more={listedMore} />}</>)}
-      {tab === "authors" && (matchingAuthors.length ? <div className={s.authorGrid}>{matchingAuthors.map((author) => <button className={s.authorCard} key={author.id} onClick={() => callbacks.onAuthor(author)}><span className={s.largeAvatar}>{Array.from(author.name)[0] ?? ""}</span><span><strong>{author.name}</strong><small>{author.characterIds.length} 个已收录作品</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title="没有找到相关用户" description="目前只显示已收录角色的作者资料。" />)}
-      {tab === "topics" && (loading ? <p className={s.loading} role="status">正在搜索主题…</p> : error ? <div className={s.empty}><p role="alert">{error}</p><button className={s.outline} onClick={() => setRetry((value) => value + 1)}>重试</button></div> : topics.length ? <div className={s.topicList}>{topics.map((topic) => <button className={s.topic} key={topic.id} onClick={() => onTopic?.(topic)} disabled={!onTopic}><span className={s.topicMeta}>{topic.author || "站内用户"}{topic.category && ` · ${topic.category}`}</span><h2>{topic.title}</h2>{topic.body && <p>{topic.body}</p>}<span className={s.topicRead}>查看主题 <Icon name="chevron" size={15} /></span></button>)}</div> : <Empty title="没有找到相关主题" description={searchTopics ? "换一个关键词试试。" : "主题搜索尚未连接。"} />)}
+    {!query.trim() ? <Empty title={copy.searchPrompt} description={searchTopics ? copy.searchPromptTopics : copy.searchPromptAuthors} /> : <>
+      {tab === "characters" && (more?.loading && matchingCharacters.length === 0 ? <p className={s.loading} role="status">{copy.searchingRoles}</p> : matchingCharacters.length ? <><CharacterCards characters={matchingCharacters} authors={authors} favorites={favorites} likes={likes} locale={locale} single={preferences?.homeLayout === "single"} userName={preferences?.nickname} reasons={reasons} trackRecommendations={trackRecommendations} {...callbacks} /><ShelfMore more={listedMore} locale={locale} /></> : <><Empty title={copy.emptySearchTitle} description={copy.tryNames} />{more?.hasMore && <ShelfMore more={listedMore} locale={locale} />}</>)}
+      {tab === "authors" && (matchingAuthors.length ? <div className={s.authorGrid}>{matchingAuthors.map((author) => <button className={s.authorCard} key={author.id} onClick={() => callbacks.onAuthor(author)}><span className={s.largeAvatar}>{Array.from(author.name)[0] ?? ""}</span><span><strong>{author.name}</strong><small>{xumengPageFill(copy.worksCount, { count: author.characterIds.length })}</small></span><Icon name="chevron" size={18} /></button>)}</div> : <Empty title={copy.noUsers} description={copy.onlyListedAuthors} />)}
+      {tab === "topics" && (loading ? <p className={s.loading} role="status">{copy.searchingTopics}</p> : error ? <div className={s.empty}><p role="alert">{error}</p><button className={s.outline} onClick={() => setRetry((value) => value + 1)}>{copy.retry}</button></div> : topics.length ? <div className={s.topicList}>{topics.map((topic) => <button className={s.topic} key={topic.id} onClick={() => onTopic?.(topic)} disabled={!onTopic}><span className={s.topicMeta}>{topic.author || copy.siteUser}{topic.category && ` · ${topic.category}`}</span><h2>{topic.title}</h2>{topic.body && <p>{topic.body}</p>}<span className={s.topicRead}>{copy.viewTopic} <Icon name="chevron" size={15} /></span></button>)}</div> : <Empty title={copy.noTopics} description={searchTopics ? copy.tryKeyword : copy.topicsOffline} />)}
     </>}
   </main>;
 }
@@ -256,6 +263,8 @@ export type AuthorProfileProps = {
 };
 
 export function AuthorProfile({ author, characters, preferences, onPreferences, onCharacter, onBack, more }: AuthorProfileProps) {
+  const locale = preferences.locale ?? "zh-Hans";
+  const copy = xumengPage(locale);
   const [copied, setCopied] = useState("");
   const following = preferences.followedAuthors?.includes(author.id) ?? false;
   const unique = [...new Map(characters.map((character) => [character.id, character])).values()];
@@ -264,15 +273,15 @@ export function AuthorProfile({ author, characters, preferences, onPreferences, 
   const listedMore = more ? { ...more, total: listedTotal } : more;
   function follow() {
     const previous = preferences.followedAuthors ?? [];
-    if (!following && previous.length >= 200) { setCopied("最多关注 200 位作者，请先取消一些关注。"); return; }
+    if (!following && previous.length >= 200) { setCopied(copy.followLimit); return; }
     onPreferences({ ...preferences, followedAuthors: following ? previous.filter((id) => id !== author.id) : [...previous, author.id] });
   }
-  async function copyId() { try { await navigator.clipboard.writeText(author.id); setCopied("作者 ID 已复制。"); } catch { setCopied("未能复制，请选择下方 ID 手动复制。"); } }
+  async function copyId() { try { await navigator.clipboard.writeText(author.id); setCopied(copy.authorCopied); } catch { setCopied(copy.copyFailedManual); } }
   return <main className={s.discovery}>
-    <button className={s.back} onClick={onBack}><Icon name="back" size={18} />返回</button>
-    <header className={s.authorHero}><span className={s.profileAvatar}>{Array.from(author.name)[0] ?? ""}</span><div className={s.authorInfo}><h1>{author.name}</h1><button className={s.idButton} onClick={() => void copyId()} aria-label="复制作者 ID">ID：{author.id}<Icon name="copy" size={13} /></button><p>{author.identityVerified === false ? "作品作者 · 尚未认领本站身份" : "角色作者"}</p></div><button className={following ? s.outline : s.primary} onClick={follow} aria-pressed={following}><Icon name={following ? "check" : "plus"} size={16} />{following ? "已关注" : "关注"}</button></header>
+    <button className={s.back} onClick={onBack}><Icon name="back" size={18} />{copy.back}</button>
+    <header className={s.authorHero}><span className={s.profileAvatar}>{Array.from(author.name)[0] ?? ""}</span><div className={s.authorInfo}><h1>{author.name}</h1><button className={s.idButton} onClick={() => void copyId()} aria-label={copy.copyAuthorId}>ID：{author.id}<Icon name="copy" size={13} /></button><p>{author.identityVerified === false ? copy.unsignedAuthor : copy.roleAuthor}</p></div><button className={following ? s.outline : s.primary} onClick={follow} aria-pressed={following}><Icon name={following ? "check" : "plus"} size={16} />{following ? copy.following : copy.follow}</button></header>
     {copied && <p className={s.inlineStatus} role="status">{copied}</p>}
-    <div className={s.tabs}><span className={s.activeTab}>角色作品 <small>{listedTotal}</small></span></div>
-    {more?.loading && works.length === 0 ? <p className={s.loading} role="status">正在加载作品…</p> : works.length ? <><div className={s.cardGrid}>{works.map((character) => <article className={s.card} key={character.id}><CoverReel className={s.coverButton} character={character} count="corner" onOpen={() => onCharacter(character)}><span className={s.heat}><Icon name="flame" size={14} />{character.heat || "—"}</span></CoverReel><div className={s.cardBody}><button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p></button></div></article>)}</div><ShelfMore more={listedMore} /></> : <><Empty title="暂无可显示的作品" description="这个作者的已收录作品为空，或已被你的标签设置屏蔽。" />{more?.hasMore && <ShelfMore more={listedMore} />}</>}
+    <div className={s.tabs}><span className={s.activeTab}>{copy.roleWorks} <small>{listedTotal}</small></span></div>
+    {more?.loading && works.length === 0 ? <p className={s.loading} role="status">{copy.loadingWorks}</p> : works.length ? <><div className={s.cardGrid}>{works.map((character) => <article className={s.card} key={character.id}><CoverReel className={s.coverButton} character={character} count="corner" onOpen={() => onCharacter(character)}><span className={s.heat}><Icon name="flame" size={14} />{character.heat || "—"}</span></CoverReel><div className={s.cardBody}><button className={s.cardTitle} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p></button></div></article>)}</div><ShelfMore more={listedMore} locale={locale} /></> : <><Empty title={copy.noWorks} description={copy.noWorksBody} />{more?.hasMore && <ShelfMore more={listedMore} locale={locale} />}</>}
   </main>;
 }

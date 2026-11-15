@@ -3,6 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- This component also ships in the standalone Vite Worker; its local PNG is already sized. */
 
 import { useRef, useState, useSyncExternalStore, type KeyboardEvent } from "react";
+import { xumengPage } from "../../lib/xumeng-page-copy";
 import styles from "./install-app.module.css";
 
 type Platform = "ios" | "android" | "desktop";
@@ -91,14 +92,20 @@ const guides: Record<Platform, { title: string; steps: string[]; note: string }>
   },
 };
 
-export function InstallApp({ onBack }: { onBack?: () => void }) {
+export function InstallApp({ onBack, locale = "zh-Hans" }: { onBack?: () => void; locale?: import("../../lib/xumeng-i18n").XumengLocale }) {
+  const copy = xumengPage(locale);
   const installation = useSyncExternalStore(subscribe, () => state, () => serverState);
   const [chosenPlatform, setChosenPlatform] = useState<Platform | null>(null);
   const [installing, setInstalling] = useState(false);
   const [message, setMessage] = useState("");
   const instructions = useRef<HTMLHeadingElement>(null);
   const platform = chosenPlatform ?? installation.platform;
-  const guide = guides[platform];
+  const localizedGuides = {
+    ios: { title: copy.iosTitle, steps: [copy.ios1, copy.ios2, copy.ios3], note: copy.iosNote },
+    android: { title: copy.androidTitle, steps: [copy.android1, copy.android2, copy.android3], note: copy.androidNote },
+    desktop: { title: copy.desktopTitle, steps: [copy.desktop1, copy.desktop2, copy.desktop3], note: copy.desktopNote },
+  };
+  const guide = localizedGuides[platform];
 
   async function install() {
     const prompt = deferredPrompt;
@@ -111,10 +118,10 @@ export function InstallApp({ onBack }: { onBack?: () => void }) {
       await prompt.prompt();
       const choice = await prompt.userChoice;
       setMessage(choice.outcome === "accepted"
-        ? "已确认安装，请等待浏览器完成。"
-        : "已取消安装。你仍可通过浏览器菜单添加本站。");
+        ? copy.installAccepted
+        : copy.installDismissed);
     } catch {
-      setMessage("安装提示未能打开，请使用下方的浏览器安装步骤。");
+      setMessage(copy.installPromptFailed);
     } finally { setInstalling(false); }
   }
 
@@ -140,16 +147,16 @@ export function InstallApp({ onBack }: { onBack?: () => void }) {
   const complete = installation.standalone || installation.installedInSession;
   return <section className={styles.page} aria-labelledby="install-page-title">
     <header className={styles.heading}>
-      {onBack && <button type="button" className={styles.back} onClick={onBack}><Icon type="back" />返回</button>}
-      <h1 id="install-page-title">安装应用</h1>
+      {onBack && <button type="button" className={styles.back} onClick={onBack}><Icon type="back" />{copy.back}</button>}
+      <h1 id="install-page-title">{copy.installApp}</h1>
     </header>
 
     <div className={styles.appSummary}>
-      <img className={styles.appIcon} src="/assets/xumeng/brand/xumeng-icon-192.png" width="96" height="96" alt="叙梦应用图标" />
+      <img className={styles.appIcon} src="/assets/xumeng/brand/xumeng-icon-192.png" width="96" height="96" alt={copy.appIcon} />
       <div className={styles.appInfo}>
-        <span className={styles.eyebrow}>XUMENG · 浏览器应用</span>
+        <span className={styles.eyebrow}>{copy.browserApp}</span>
         <h2>叙梦</h2>
-        <p>把角色与对话放到主屏幕，从应用图标直接打开。</p>
+        <p>{copy.installLead}</p>
       </div>
     </div>
 
@@ -157,21 +164,21 @@ export function InstallApp({ onBack }: { onBack?: () => void }) {
       <div className={styles.availability}>
         <span className={styles.statusIcon}><Icon type={complete ? "check" : "install"} /></span>
         <div>
-          <h3>{installation.standalone ? "正在应用窗口中" : installation.installedInSession ? "浏览器已完成安装" : installing ? "等待浏览器确认" : installation.promptAvailable ? "当前浏览器支持安装" : "通过浏览器添加"}</h3>
-          <p>{complete ? "可从主屏幕、桌面或应用列表中的图标再次打开。" : installing ? "请在浏览器弹出的窗口中选择是否安装。" : installation.promptAvailable ? "点击安装后，在浏览器弹出的窗口中确认。" : "选择下方的设备类型，按照步骤添加本站。"}</p>
+          <h3>{installation.standalone ? copy.inAppWindow : installation.installedInSession ? copy.browserInstalled : installing ? copy.waitingBrowser : installation.promptAvailable ? copy.browserCanInstall : copy.addViaBrowser}</h3>
+          <p>{complete ? copy.openFromIcon : installing ? copy.chooseInPrompt : installation.promptAvailable ? copy.confirmInPrompt : copy.pickDevice}</p>
         </div>
       </div>
       {!complete && <div className={styles.actions}>
-        {(installation.promptAvailable || installing) && <button type="button" className={styles.primary} disabled={installing} onClick={() => { void install(); }}><Icon type="install" />{installing ? "等待浏览器确认…" : "安装叙梦"}</button>}
-        <button type="button" className={styles.secondary} onClick={showInstructions}>查看安装步骤</button>
+        {(installation.promptAvailable || installing) && <button type="button" className={styles.primary} disabled={installing} onClick={() => { void install(); }}><Icon type="install" />{installing ? copy.waitingDots : copy.installXumeng}</button>}
+        <button type="button" className={styles.secondary} onClick={showInstructions}>{copy.viewSteps}</button>
       </div>}
       <p className={styles.message} role="status" aria-live="polite">{message}</p>
     </div>
 
     <div className={styles.instructions}>
-      <h2 ref={instructions} tabIndex={-1}>手工安装</h2>
-      <div className={styles.tabs} role="tablist" aria-label="安装设备">
-        {(Object.keys(guides) as Platform[]).map((item) => <button key={item} type="button" role="tab" id={`install-tab-${item}`} aria-selected={platform === item} aria-controls="install-guide" tabIndex={platform === item ? 0 : -1} className={platform === item ? styles.activeTab : undefined} onClick={() => setChosenPlatform(item)} onKeyDown={(event) => changeTab(event, item)}><Icon type={item === "desktop" ? "desktop" : "phone"} />{guides[item].title}</button>)}
+      <h2 ref={instructions} tabIndex={-1}>{copy.manualInstall}</h2>
+      <div className={styles.tabs} role="tablist" aria-label={copy.installDevice}>
+        {(Object.keys(localizedGuides) as Platform[]).map((item) => <button key={item} type="button" role="tab" id={`install-tab-${item}`} aria-selected={platform === item} aria-controls="install-guide" tabIndex={platform === item ? 0 : -1} className={platform === item ? styles.activeTab : undefined} onClick={() => setChosenPlatform(item)} onKeyDown={(event) => changeTab(event, item)}><Icon type={item === "desktop" ? "desktop" : "phone"} />{localizedGuides[item].title}</button>)}
       </div>
       <div id="install-guide" role="tabpanel" aria-labelledby={`install-tab-${platform}`} className={styles.guide}>
         <ol>{guide.steps.map((step) => <li key={step}><span>{step}</span></li>)}</ol>
@@ -180,9 +187,9 @@ export function InstallApp({ onBack }: { onBack?: () => void }) {
     </div>
 
     <footer className={styles.details}>
-      <h2>使用说明</h2>
-      <p>本站提供浏览器版应用，目前没有原生 APK 或应用商店安装包。角色、云端记录和 AI 对话需要联网。</p>
-      <p>建议先注册并同步资料。部分系统会为浏览器应用使用独立登录；重新登录同一账户即可读取云端角色和会话。</p>
+      <h2>{copy.howToUse}</h2>
+      <p>{copy.installNote1}</p>
+      <p>{copy.installNote2}</p>
     </footer>
   </section>;
 }

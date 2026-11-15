@@ -157,7 +157,7 @@ function fetchShelfPage(current: DzmmCatalogRequest, offset: number, requestKey:
     let total = rankedIds.length;
     let hasMore = cursor < rankedIds.length;
     let nextOffset = cursor;
-    if (characters.length < DZMM_PUBLIC_SHELF_PAGE_SIZE) {
+    if (!current.closedIds && characters.length < DZMM_PUBLIC_SHELF_PAGE_SIZE) {
       const { ids: ignoredIds, ...rest } = current;
       void ignoredIds;
       const page = await fetchDzmmPublicCharacters({ ...rest, offset: catalogOffset, limit: DZMM_PUBLIC_SHELF_PAGE_SIZE, view: "card" });

@@ -18,6 +18,8 @@ export type DzmmCatalogRequest = {
   view?: "card" | "full";
   authorIds?: readonly string[];
   ids?: readonly string[];
+  /** When set, a short id list is not filled from the rest of the catalog. */
+  closedIds?: boolean;
   since?: number;
   look?: DzmmCatalogLook;
 };
@@ -81,6 +83,14 @@ export function parseDzmmCatalogQuery(params: { get(name: string): string | null
   return { offset, limit, q, tags, sort: sort as DzmmCatalogSort, view, authorIds, ids, since, look: look as DzmmCatalogLook | null };
 }
 
+/** Keep a translated shelf on cards that have copy in that language. */
+export function dzmmShelfTranslatedRequest(request: DzmmCatalogRequest, translatedIds: readonly string[]): DzmmCatalogRequest {
+  const allow = new Set(translatedIds);
+  const preferred = (request.ids ?? []).filter((id) => allow.has(id));
+  const ids = preferred.length ? [...preferred, ...translatedIds.filter((id) => !preferred.includes(id))] : [...translatedIds];
+  return { ...request, ids, closedIds: true };
+}
+
 export function dzmmCatalogRequestKey(request: DzmmCatalogRequest): string {
   return JSON.stringify({
     q: request.q?.trim().toLocaleLowerCase() ?? "",
@@ -88,6 +98,7 @@ export function dzmmCatalogRequestKey(request: DzmmCatalogRequest): string {
     sort: request.sort ?? "new",
     authorIds: [...(request.authorIds ?? [])].sort(),
     ids: request.ids ?? [],
+    closedIds: request.closedIds === true,
     since: request.since ?? 0,
     look: request.look ?? "",
   });

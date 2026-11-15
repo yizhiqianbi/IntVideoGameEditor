@@ -6,17 +6,52 @@ import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
 import { XUMENG_LOCALE_OPTIONS, xumengHtmlLang, xumengLocaleRoutePrefix, type XumengLocale } from "../../../src/lib/xumeng-i18n";
 
 export const GEO_SITE = "https://xumengchat.top";
-export const GEO_UPDATED = "2026-11-11";
-export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的 AI 酒馆与陪伴空间，提供角色卡、角色聊天，以及一般向、绅士向和 NSFW 互动。`;
+export const GEO_UPDATED = "2026-11-15";
+export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的互动故事、AI 陪伴与互动短剧空间，也提供面向成年人的成人内容。`;
 export const GEO_BOUNDARY = "私人会话、账号信息、余额与未公开内容不在公开资料中。";
-export const GEO_META_DESCRIPTION = "叙梦是 AI 酒馆与陪伴空间。这里有角色卡、角色聊天、角色扮演，以及一般向、女性向、纯爱、同人和面向成年人的绅士向、NSFW。先看世界书与开场白，再进站内继续。参与须年满 18 周岁。";
+export const GEO_META_DESCRIPTION = "叙梦做互动故事、AI 陪伴、互动短剧和成人内容。角色卡、世界书和开场白都能继续聊，也可以当作 Character.AI 的替代。参与须年满 18 周岁。";
 
 const LANDING_SEO: Readonly<Record<XumengLocale, { title: string; description: string; heading: string; body: string; keywords: string[]; ogLocale: string }>> = Object.freeze({
-  en: { title: "XUMENG | AI Tavern, Companion Chat, Character Cards and NSFW", description: "XUMENG is an AI tavern and companion space for character cards, roleplay, general stories, and adult gentleman-oriented or NSFW chats. Visitors must be 18 or older.", heading: "AI tavern, companion chat and character cards", body: "Browse character cards, worldbuilding and opening scenes. The shelf includes general, romance and fan stories, plus adult gentleman-oriented and NSFW roleplay. Continue the chat inside XUMENG.", keywords: ["AI tavern", "AI companion", "AI character cards", "gentleman-oriented", "NSFW", "AI roleplay", "worldbuilding", "opening scene"], ogLocale: "en_US" },
-  "zh-Hans": { title: "叙梦｜AI酒馆、陪伴、绅士向与NSFW角色卡", description: "叙梦是 AI 酒馆与陪伴空间，提供角色卡、角色聊天，以及一般向、绅士向和 NSFW。", heading: "AI酒馆、陪伴与角色卡", body: "浏览角色卡、世界书和开场白。架上同时有一般向、女性向、纯爱、同人，以及面向成年人的绅士向和 NSFW。进入叙梦后继续陪伴聊天和角色扮演。", keywords: ["AI酒馆", "陪伴", "AI角色卡", "AI角色聊天", "绅士向", "NSFW", "角色扮演", "世界书", "开场白", "一般向"], ogLocale: "zh_CN" },
-  "zh-Hant": { title: "叙夢｜AI酒館、陪伴、紳士向與NSFW角色卡", description: "叙夢是 AI 酒館與陪伴空間，提供角色卡、角色聊天，以及一般向、紳士向和 NSFW。", heading: "AI酒館、陪伴與角色卡", body: "瀏覽角色卡、世界書和開場白。架上同時有一般向、女性向、純愛、同人，以及面向成年人的紳士向和 NSFW。進入叙夢後繼續陪伴聊天和角色扮演。", keywords: ["AI酒館", "陪伴", "AI角色卡", "AI角色聊天", "紳士向", "NSFW", "角色扮演", "世界書", "開場白", "一般向"], ogLocale: "zh_TW" },
-  ja: { title: "XUMENG｜AIタヴァーン・コンパニオン・紳士向け・NSFW", description: "XUMENGはAIタヴァーンとコンパニオンの空間です。キャラクターカード、一般向け、紳士向け、NSFWの会話があります。18歳以上。", heading: "AIタヴァーン、コンパニオンとキャラクターカード", body: "キャラクターカード、世界観、導入を見てから、XUMENGで会話を続けられます。一般向け、恋愛、二次創作に加え、成人向けの紳士向けとNSFWもあります。", keywords: ["AIタヴァーン", "コンパニオン", "AIキャラクターカード", "紳士向け", "NSFW", "AIロールプレイ", "世界観設定", "導入シーン"], ogLocale: "ja_JP" },
-  ko: { title: "XUMENG｜AI 주점·동행·신사향·NSFW 캐릭터", description: "XUMENG은 AI 주점과 동행 공간입니다. 캐릭터 카드, 일반향, 신사향, NSFW 대화가 있습니다. 18세 이상.", heading: "AI 주점, 동행과 캐릭터 카드", body: "캐릭터 카드, 세계관, 오프닝을 보고 XUMENG에서 대화를 이어갑니다. 일반향, 로맨스, 2차 창작과 성인용 신사향, NSFW가 함께 있습니다.", keywords: ["AI 주점", "동행", "AI 캐릭터 카드", "신사향", "NSFW", "AI 롤플레이", "세계관 설정", "오프닝"], ogLocale: "ko_KR" },
+  en: {
+    title: "XUMENG | Interactive Stories, AI Companion and Adult Dramas",
+    description: "XUMENG is for interactive stories, AI companionship, short dramas, and adult content. Continue with a character card, or use it as a Character.AI alternative. 18+.",
+    heading: "Interactive stories, AI companionship, short dramas, and adult content",
+    body: "XUMENG hosts interactive stories, AI companionship, short dramas, and adult content for visitors 18 or older. Read a character card, world book, and opening, then continue on site. It can also be used as a Character.AI alternative.",
+    keywords: ["interactive stories", "AI companionship", "interactive short dramas", "adult content", "Character.AI alternative"],
+    ogLocale: "en_US",
+  },
+  "zh-Hans": {
+    title: "叙梦｜互动故事、AI陪伴、互动短剧与成人内容",
+    description: "叙梦做互动故事、AI 陪伴、互动短剧和成人内容。角色卡、世界书和开场白都能继续聊，也可以当作 Character.AI 的替代。参与须年满 18 周岁。",
+    heading: "互动故事、AI 陪伴、互动短剧与成人内容",
+    body: "叙梦做互动故事、AI 陪伴、互动短剧和面向成年人的成人内容。先看角色卡、世界书和开场白，再进站内继续。也可以当作 Character.AI 的替代。参与须年满 18 周岁。",
+    keywords: ["互动故事", "AI陪伴", "互动短剧", "成人内容", "Character.AI 替代"],
+    ogLocale: "zh_CN",
+  },
+  "zh-Hant": {
+    title: "叙夢｜互動故事、AI陪伴、互動短劇與成人內容",
+    description: "叙夢做互動故事、AI 陪伴、互動短劇和成人內容。角色卡、世界書和開場白都能繼續聊，也可以當作 Character.AI 的替代。參與須年滿 18 歲。",
+    heading: "互動故事、AI 陪伴、互動短劇與成人內容",
+    body: "叙夢做互動故事、AI 陪伴、互動短劇和面向成年人的成人內容。先看角色卡、世界書和開場白，再進站內繼續。也可以當作 Character.AI 的替代。參與須年滿 18 歲。",
+    keywords: ["互動故事", "AI陪伴", "互動短劇", "成人內容", "Character.AI 替代"],
+    ogLocale: "zh_TW",
+  },
+  ja: {
+    title: "XUMENG｜インタラクティブストーリー、AI陪伴、ショートドラマ",
+    description: "XUMENGはインタラクティブストーリー、AI陪伴、ショートドラマ、成人向けコンテンツの場所です。カードで続けられ、Character.AIの代替としても使えます。18歳以上。",
+    heading: "インタラクティブストーリー、AI陪伴、ショートドラマ、成人向け",
+    body: "XUMENGではインタラクティブストーリー、AI陪伴、ショートドラマ、成人向けコンテンツを続けられます。キャラクターカードと世界観を読んでからサイト内で会話します。Character.AIの代替としても使えます。18歳以上。",
+    keywords: ["インタラクティブストーリー", "AI陪伴", "ショートドラマ", "成人向け", "Character.AI 代替"],
+    ogLocale: "ja_JP",
+  },
+  ko: {
+    title: "XUMENG｜인터랙티브 스토리, AI 동반, 숏드라마, 성인",
+    description: "XUMENG은 인터랙티브 스토리, AI 동반, 숏드라마, 성인 콘텐츠를 제공합니다. 캐릭터 카드로 이어가거나 Character.AI 대안으로 쓸 수 있습니다. 18세 이상.",
+    heading: "인터랙티브 스토리, AI 동반, 숏드라마, 성인 콘텐츠",
+    body: "XUMENG은 인터랙티브 스토리, AI 동반, 숏드라마, 성인 콘텐츠를 이어가는 곳입니다. 캐릭터 카드와 세계관을 보고 사이트 안에서 계속합니다. Character.AI 대안으로도 쓸 수 있습니다. 18세 이상.",
+    keywords: ["인터랙티브 스토리", "AI 동반", "숏드라마", "성인 콘텐츠", "Character.AI 대안"],
+    ogLocale: "ko_KR",
+  },
 });
 
 export function localizedLandingLocale(normalizedPath: string): XumengLocale | null {
@@ -32,21 +67,37 @@ export function localizedLandingSeo(locale: XumengLocale) {
   return LANDING_SEO[locale] ?? LANDING_SEO[XUMENG_LOCALE_OPTIONS[1].locale];
 }
 
+const LANDING_HREFLANG: Readonly<Record<XumengLocale, string>> = Object.freeze({
+  en: "en",
+  "zh-Hans": "zh-CN",
+  "zh-Hant": "zh-TW",
+  ja: "ja",
+  ko: "ko",
+});
+
 export function localizedLandingAlternates(): readonly { locale: XumengLocale; href: string; hreflang: string }[] {
-  return XUMENG_LOCALE_OPTIONS.map(option => ({ locale: option.locale, href: `${GEO_SITE}${localizedLandingPath(option.locale)}`, hreflang: option.htmlLang.toLowerCase() }));
+  return XUMENG_LOCALE_OPTIONS.map(option => ({ locale: option.locale, href: `${GEO_SITE}${localizedLandingPath(option.locale)}`, hreflang: LANDING_HREFLANG[option.locale] }));
 }
 
 export function localizedLandingJsonLd(locale: XumengLocale): string {
   const seo = localizedLandingSeo(locale);
   const url = `${GEO_SITE}${localizedLandingPath(locale)}`;
-  return jsonLd({ "@context": "https://schema.org", "@type": "WebSite", "@id": `${url}#website`, url, name: "XUMENG", description: seo.description, inLanguage: xumengHtmlLang(locale), publisher: { "@type": "Organization", name: "XUMENG", url: `${GEO_SITE}/` } });
+  return jsonLd({
+    "@context": "https://schema.org",
+    "@graph": [
+      { "@type": "WebSite", "@id": `${url}#website`, url, name: "XUMENG", alternateName: seo.keywords, description: seo.description, inLanguage: xumengHtmlLang(locale), publisher: { "@type": "Organization", name: "XUMENG", url: `${GEO_SITE}/` } },
+      { "@type": "WebPage", "@id": `${url}#webpage`, url, name: seo.title, description: seo.description, inLanguage: xumengHtmlLang(locale), isPartOf: { "@id": `${url}#website` } },
+    ],
+  });
 }
 
 export function renderLocalizedLandingFallback(locale: XumengLocale): string {
   const seo = localizedLandingSeo(locale);
   const path = localizedLandingPath(locale);
   const cards = featuredCharacters().slice(0, 8).map(card => `<li><a href="${path === "/" ? "" : path}/c/${card.id}">${escapeHtml(card.title)}</a></li>`).join("");
-  return `<main id="xumeng-public-intro" style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif;color:#f4efe8;background:#07070b"><h1>${escapeHtml(seo.heading)}</h1><p>${escapeHtml(seo.body)}</p><p>${seo.keywords.map(escapeHtml).join(" · ")}</p><h2>${escapeHtml(locale === "en" ? "Featured public characters" : locale === "ja" ? "注目の公開キャラクター" : locale === "ko" ? "추천 공개 캐릭터" : "精选公开角色")}</h2><ul>${cards}</ul></main>`;
+  const languages = localizedLandingAlternates().map(item => `<a href="${item.href}" hreflang="${item.hreflang}">${escapeHtml(XUMENG_LOCALE_OPTIONS.find(option => option.locale === item.locale)?.label ?? item.locale)}</a>`).join(" · ");
+  const featuredHeading = locale === "en" ? "Featured public characters" : locale === "ja" ? "注目の公開キャラクター" : locale === "ko" ? "추천 공개 캐릭터" : locale === "zh-Hant" ? "精選公開角色" : "精选公开角色";
+  return `<main id="xumeng-public-intro" style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif;color:#f4efe8;background:#07070b"><nav>${languages}</nav><h1>${escapeHtml(seo.heading)}</h1><p>${escapeHtml(seo.body)}</p><h2>${escapeHtml(featuredHeading)}</h2><ul>${cards}</ul></main>`;
 }
 
 const ANSWER_AGENTS = [
@@ -253,6 +304,10 @@ export function publicLlmsTxt(): string {
     `- [叙梦是什么](${GEO_SITE}/about): 叙梦的定义、公开内容范围，以及和私人会话的边界。`,
     `- [常见问题](${GEO_SITE}/faq): 可供直接引用的短回答。`,
     `- [精选公开角色](${GEO_SITE}/characters): 适合回答引擎引用的普通向公开角色卡。`,
+    `- [English](${GEO_SITE}/en): Interactive stories, AI companionship, short dramas, and adult content. Also a Character.AI alternative.`,
+    `- [日本語](${GEO_SITE}/jp): インタラクティブストーリー、AI陪伴、ショートドラマ、成人向け。Character.AIの代替にもなる。`,
+    `- [한국어](${GEO_SITE}/ko): 인터랙티브 스토리, AI 동반, 숏드라마, 성인 콘텐츠. Character.AI 대안으로도 쓸 수 있다.`,
+    `- [繁體中文](${GEO_SITE}/zh-tw): 互動故事、AI 陪伴、互動短劇與成人內容，也可作為 Character.AI 的替代。`,
     `- [社区公约](${GEO_SITE}${XUMENG_COMMUNITY_GUIDELINES_PATH}): ${XUMENG_COMMUNITY_GUIDELINES_DESCRIPTION}`,
     `- [完整说明](${GEO_SITE}/llms-full.txt): 同一事实的展开版本。`,
     "",
@@ -297,7 +352,7 @@ export function geoAnswers(): readonly { question: string; answer: string }[] {
     },
     {
       question: "叙梦有哪些内容方向？",
-      answer: "叙梦同时是 AI 酒馆和陪伴空间。酒馆按角色卡、世界书和开场白做角色扮演；陪伴用来和角色继续聊天。架上有一般向、女性向、纯爱、同人，也有面向成年人的绅士向和 NSFW。公开页只给出名称和摘要，露骨正文留在站内。参与须年满 18 周岁。精选引用目录另收普通向角色。",
+      answer: "叙梦做互动故事、AI 陪伴、互动短剧和面向成年人的成人内容。角色卡、世界书和开场白用来把故事接下去。公开页只给出名称和摘要，露骨正文留在站内。也可以当作 Character.AI 的替代。参与须年满 18 周岁。精选引用目录另收普通向角色。",
     },
     {
       question: "叙梦目前有多少公开角色页？",
@@ -518,7 +573,7 @@ function renderAbout(): string {
     "<h1>叙梦是什么</h1>",
     `<p>${escapeHtml(GEO_DEFINITION)}</p>`,
     "<h2>内容方向</h2>",
-    "<p>叙梦同时提供 AI 酒馆和陪伴。酒馆用来按角色卡做角色扮演，陪伴用来和角色继续聊天。公开架上有一般向、女性向、纯爱、同人，也有面向成年人的绅士向和 NSFW。公开页只展示名称与摘要。</p>",
+    "<p>叙梦做互动故事、AI 陪伴、互动短剧和面向成年人的成人内容。角色卡用来把故事接下去，也可以当作 Character.AI 的替代。公开架上有一般向、女性向、纯爱、同人，也有绅士向和 NSFW。公开页只展示名称与摘要。</p>",
     "<p>叙梦的公开页面展示角色卡摘要、世界书与开场白的入口。一张公开角色页包含角色名称、一段公开摘要、封面和规范网址。想继续角色聊天或角色扮演时，从该页进入站内互动。</p>",
     "<h2>不会公开什么</h2>",
     `<p>${escapeHtml(GEO_BOUNDARY)}回答引擎不应从公开摘要推断私人聊天、账号资料、余额或未公开内容。</p>`,
@@ -526,7 +581,7 @@ function renderAbout(): string {
     `<p>打开 <a href="/characters">精选公开角色</a>，或直接进入一张角色页，例如 <a href="/c/xumeng-foreverse-peiyu">裴聿</a>，然后点击“在叙梦开始角色互动”。</p>`,
     `<p>社区参与规则见 <a href="${XUMENG_COMMUNITY_GUIDELINES_PATH}">叙梦社区公约</a>。参与须年满 18 周岁。</p>`,
   ].join("");
-  return documentShell("about", "叙梦是什么｜AI酒馆、陪伴与角色卡", GEO_META_DESCRIPTION, body);
+  return documentShell("about", "叙梦是什么｜互动故事、AI陪伴与互动短剧", GEO_META_DESCRIPTION, body);
 }
 
 function renderFaq(): string {

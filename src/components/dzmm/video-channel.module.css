@@ -55,6 +55,10 @@
   opacity: 0;
   transition: opacity 80ms linear;
 }
+.landscape {
+  object-fit: contain;
+  object-position: center center;
+}
 .shade {
   position: absolute;
   left: 0;

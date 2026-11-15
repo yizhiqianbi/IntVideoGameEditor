@@ -18,19 +18,22 @@ import { compileGenerationTemplateDraft, createGenerationTemplateDraft, restoreG
 import GenerationTemplateLibrary from "./generation-template-library";
 import GenerationReferenceInput from "./generation-reference";
 import GenerationActionPreview from "./generation-action-preview";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengStudio, xumengStudioFill } from "../../lib/xumeng-studio-copy";
 import Icon from "./icons";
 import s from "./generation-studio.module.css";
 
-type Props = { userId: string; isGuest: boolean; onRequireAccount: () => void; onRecharge?: () => void; onBack?: () => void };
-const names: Record<GenerationJob["status"], string> = { pending: "已提交", processing: "生成中", ready: "已完成", failed: "未完成", unknown: "等待提交核对" };
+type Props = { userId: string; isGuest: boolean; locale?: XumengLocale; onRequireAccount: () => void; onRecharge?: () => void; onBack?: () => void };
 const running = (job: GenerationJob) => job.finalizedAt === null;
-const message = (error: unknown) => error instanceof Error ? error.message : "连接中断，请刷新任务核对。";
+const message = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 const points = (value: number) => value.toLocaleString("zh-CN");
 const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const jobTemplateLabel = (job: GenerationJob) => { const template = getGenerationTemplate(job.templateId); return template?.kind === job.kind ? template.label : null; };
 type Submission = { fingerprint: string; requestId: string; expectedMaxCredits?: number; status: "submitted" | "awaiting_confirmation" };
 
-export default function GenerationStudio({ userId, isGuest, onRequireAccount, onRecharge, onBack }: Props) {
+export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", onRequireAccount, onRecharge, onBack }: Props) {
+  const c = xumengStudio(locale);
+  const jobName = (status: GenerationJob["status"]) => ({ pending: c.gsSubmitted, processing: c.gsProcessing, ready: c.gsReady, failed: c.gsFailedStatus, unknown: c.gsUnknownStatus }[status]);
   const [kind, setKind] = useState<GenerationKind>("image");
   const [useReferenceImage, setUseReferenceImage] = useState(true);
   const [referenceImage, setReferenceImage] = useState<GenerationReference | null>(null);
@@ -109,7 +112,7 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
   let templateError = "";
   if (template && templateDraft) {
     try { compiledPrompt = compileGenerationTemplateDraft(template, templateDraft); }
-    catch (failure) { compiledPrompt = ""; templateError = message(failure); }
+    catch (failure) { compiledPrompt = ""; templateError = message(failure, c.gsDisconnect); }
   }
   const hasLegacyDraft = editorMode === "legacy";
   const draftKey = `xumeng-generation-draft:${userId}`;
@@ -137,13 +140,13 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       if (active()) {
         if (failure instanceof GenerationError && failure.status === 404 && failure.code === "generation_reference_missing") {
           setReferenceImage(null);
-          setError("参考图已过期或删除，请重新上传；画面描述已保留。");
+          setError(c.gsRefExpired);
         } else {
           // A failed lookup does not prove deletion. Preserve the saved identity
           // so the draft can recover after a temporary service/network failure.
           setReferenceRecoveryError(failure instanceof GenerationError && failure.code === "generation_reference_timeout"
-            ? "参考图验证超时，原图信息和描述已保留。请重试恢复后再生成。"
-            : "暂时无法验证参考图，原图和描述已保留。请重试恢复后再生成。");
+            ? c.gsRefTimeout
+            : c.gsRefUnknown);
         }
       }
     } finally {
@@ -166,7 +169,7 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       const usage = !isGuest ? await fetchDzmmBillingUsage(userId).catch(() => null) : null;
       if (!mounted.current || collectionEpoch.current !== epoch) return;
       setJobs(list); setBalance(usage?.availableBalance ?? null);
-    } catch (failure) { if (mounted.current) setError(message(failure)); }
+    } catch (failure) { if (mounted.current) setError(message(failure, c.gsDisconnect)); }
     finally { refreshing.current = false; }
   }, [userId, isGuest]);
 
@@ -200,7 +203,7 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
           const savedReference = parseGenerationReference(value.referenceImage);
           setReferenceImage(savedReference);
           void restoreReference(savedReference, controller.signal);
-        } catch { setReferenceImage(null); setError("保存的参考图信息已失效，请重新上传；画面描述已保留。"); } }
+        } catch { setReferenceImage(null); setError(c.gsSavedRefGone); } }
         setKind(value.kind); setPrompt(value.prompt); setModelId(typeof value.modelId === "string" ? value.modelId : "");
         setAspectRatio(typeof value.aspectRatio === "string" ? value.aspectRatio : "1:1"); setDuration(Number.isInteger(value.duration) ? value.duration : 5);
         setTemplateId(value.templateId); setEditorMode(value.editorMode);
@@ -211,7 +214,7 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
     // The epoch excludes stale renders during a same-account rehydration.
     setDraftReady({ key: draftKey, epoch: hydrationEpoch });
     void fetchGenerationConfig(userId, controller.signal).then(value => { if (mounted.current) setConfig(value); })
-      .catch(failure => { if (!controller.signal.aborted && mounted.current) setError(message(failure)); })
+      .catch(failure => { if (!controller.signal.aborted && mounted.current) setError(message(failure, c.gsDisconnect)); })
       .finally(() => { if (mounted.current) setLoading(false); });
     void refresh();
     return () => { mounted.current = false; controller.abort(); action.current?.abort(); referenceAction.current?.abort(); };
@@ -293,16 +296,16 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
   async function getQuote() {
     if (creating.current || busy) return;
     if (isGuest) { onRequireAccount(); return; }
-    if (!template && !hasLegacyDraft) { setWorkspaceMode("templates"); setError("请先选择一个生成模板。"); return; }
+    if (!template && !hasLegacyDraft) { setWorkspaceMode("templates"); setError(c.gsNeedTemplate); return; }
     if (templateError) { setError(templateError); return; }
     if (uploadingReference || checkingReference || (needsReference && referenceRecoveryError)) return;
-    if (needsReference && !referenceImage) { setError("请先上传参考图。"); return; }
-    if (needsReference && !model?.supportsReferenceImage) { setError("当前模型不支持参考图，请选择支持的模型。"); return; }
-    if (!input.prompt) { setError(needsReference ? "请描述你希望怎样修改这张图，或画面接下来怎样运动。" : "先描述你想生成的画面。"); return; }
+    if (needsReference && !referenceImage) { setError(c.gsNeedUpload); return; }
+    if (needsReference && !model?.supportsReferenceImage) { setError(c.gsModelRef); return; }
+    if (!input.prompt) { setError(needsReference ? c.gsNeedEdit : c.gsNeedScene); return; }
     creating.current = true; setBusy(true); setError(""); setNotice("");
     const controller = new AbortController(); action.current = controller;
     try { const value = await quoteGeneration(input, controller.signal); if (mounted.current) setQuote({ input, value }); }
-    catch (failure) { if (!controller.signal.aborted && mounted.current) setError(message(failure)); }
+    catch (failure) { if (!controller.signal.aborted && mounted.current) setError(message(failure, c.gsDisconnect)); }
     finally { creating.current = false; if (mounted.current) setBusy(false); }
   }
   function rememberSubmission(value: Submission) {
@@ -318,14 +321,14 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       if (!mounted.current) return;
       collectionEpoch.current++;
       setJobs(previous => [job, ...previous.filter(item => item.id !== job.id)]); setSelectedId(job.id); setQuote(null);
-      setNotice("已找到原任务，未重复提交或预留 Credit。新一轮生成请点击“新任务”。");
+      setNotice(c.gsFoundJob);
       await refresh();
     } catch (failure) {
       if (!controller.signal.aborted && mounted.current) {
         if (failure instanceof GenerationError && failure.code === "generation_request_missing") {
           rememberSubmission({ fingerprint, requestId: previousSubmission.requestId, status: "awaiting_confirmation" });
-          setQuote(null); setNotice("未找到已提交任务。请重新查看报价并确认，系统会沿用原请求编号防止重复提交。");
-        } else setError(message(failure));
+          setQuote(null); setNotice(c.gsMissingJob);
+        } else setError(message(failure, c.gsDisconnect));
       }
     } finally { creating.current = false; if (mounted.current) setBusy(false); }
   }
@@ -342,14 +345,14 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       setJobs(previous => [job, ...previous.filter(item => item.id !== job.id)]); setSelectedId(job.id); setQuote(null);
       // Keep the ID until this result is acknowledged. Explicit new generation
       // clears it; lost responses can recover the original job without a second submission.
-      setNotice(job.status === "ready" ? "生成完成，结果已保存。" : "任务已保存，可以离开页面，稍后在历史里查看。");
+      setNotice(job.status === "ready" ? c.gsDoneSaved : c.gsJobSaved);
       await refresh();
     } catch (failure) {
       if (!controller.signal.aborted && mounted.current) {
         if (failure instanceof GenerationError && failure.code === "generation_quote_changed") {
           rememberSubmission({ fingerprint, requestId, status: "awaiting_confirmation" });
-          setQuote(null); setError(message(failure));
-        } else setError(`${message(failure)} 请先刷新任务；相同内容重试会核对原任务。`);
+          setQuote(null); setError(message(failure, c.gsDisconnect));
+        } else setError(`${message(failure, c.gsDisconnect)} ${c.gsRetryNote}`);
         void refresh();
       }
     } finally { creating.current = false; if (mounted.current) setBusy(false); }
@@ -368,12 +371,12 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       gpuReferenceImage.current = prepared.dataUrl.slice(prepared.dataUrl.indexOf(",") + 1);
       setGpuReference({ name: prepared.file.name, url: prepared.dataUrl, width: prepared.width, height: prepared.height, byteLength: prepared.file.size });
     }).catch(failure => {
-      if (mounted.current && referencePick.current === pick) setError(failure instanceof Error ? failure.message : "这张参考图无法读取，请换一张。");
+      if (mounted.current && referencePick.current === pick) setError(failure instanceof Error ? failure.message : c.gsBadRef);
     });
   }
   async function generateOnGpu() {
     if (!template || !gpuStill || busy) return;
-    if (!gpuReferenceImage.current) { setError("请先上传参考图。"); return; }
+    if (!gpuReferenceImage.current) { setError(c.gsNeedUpload); return; }
     action.current?.abort();
     const controller = new AbortController();
     action.current = controller;
@@ -385,20 +388,20 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       if (controller.signal.aborted || !mounted.current) return;
       setGpuResultKind("image");
       replaceGpuPreview(URL.createObjectURL(still.image));
-      setNotice(`已扣 ${points(still.chargedCredits)} Credit。`);
+      setNotice(xumengStudioFill(c.gsCharged, { credits: points(still.chargedCredits) }));
       const usage = await fetchDzmmBillingUsage(userId).catch(() => null);
       if (mounted.current && usage && usage.accountId === userId) setBalance(usage.availableBalance);
     } catch (failure) {
-      if (!controller.signal.aborted && mounted.current) setError(message(failure));
+      if (!controller.signal.aborted && mounted.current) setError(message(failure, c.gsDisconnect));
     } finally { if (action.current === controller && mounted.current) setBusy(false); }
   }
   async function generateOnH3() {
     if (!h3Video || !template || busy) return;
-    if (!gpuReferenceImage.current) { setError("请先上传参考图。"); return; }
+    if (!gpuReferenceImage.current) { setError(c.gsNeedUpload); return; }
     action.current?.abort();
     const controller = new AbortController();
     action.current = controller;
-    setBusy(true); setError(""); setNotice("正在按参考图和动作模板出片。"); setSelectedId("");
+    setBusy(true); setError(""); setNotice(c.gsRendering); setSelectedId("");
     try {
       const video = channelEngine === "channel"
         ? await requestAiapiVideo({ templateId: template.id, prompt: compiledPrompt, image: gpuReferenceImage.current, ratio: "9:16" }, controller.signal)
@@ -406,9 +409,9 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       if (controller.signal.aborted || !mounted.current) return;
       setGpuResultKind("video");
       replaceGpuPreview(URL.createObjectURL(video));
-      setNotice("成片已生成。");
+      setNotice(c.gsFilmReady);
     } catch (failure) {
-      if (!controller.signal.aborted && mounted.current) { setNotice(""); setError(message(failure)); }
+      if (!controller.signal.aborted && mounted.current) { setNotice(""); setError(message(failure, c.gsDisconnect)); }
     } finally { if (action.current === controller && mounted.current) setBusy(false); }
   }
   function playTogether() {
@@ -425,68 +428,68 @@ export default function GenerationStudio({ userId, isGuest, onRequireAccount, on
       if (!mounted.current) return;
       collectionEpoch.current++;
       setJobs(previous => previous.filter(item => item.id !== id)); setSelectedId(""); setConfirmDelete("");
-    } catch (failure) { if (mounted.current) setError(message(failure)); }
+    } catch (failure) { if (mounted.current) setError(message(failure, c.gsDisconnect)); }
     finally { creating.current = false; if (mounted.current) setBusy(false); }
   }
   function newGeneration() { requestIds.current.clear(); setSubmission(null); try { sessionStorage.removeItem(submitKey); } catch {} setQuote(null); setSelectedId("");
-    setWorkspaceMode(template || hasLegacyDraft ? "create" : "templates"); setNotice(template ? "修改模板参数，查看报价后创建新任务。" : hasLegacyDraft ? "旧描述已保留，可修改后查看报价，或选择模板。" : "选择模板，填写参数后查看报价。"); }
+    setWorkspaceMode(template || hasLegacyDraft ? "create" : "templates"); setNotice(template ? c.gsNewFromTemplate : hasLegacyDraft ? c.gsOldKept : c.gsPickThenQuote); }
 
   return <main className={s.workspace}>
-    <header className={s.header}><div>{onBack && <button type="button" className={s.backLink} onClick={onBack}><Icon name="back" size={15} />创作</button>}<span className={s.eyebrow}>叙梦</span><h1>生图与视频</h1><p>选一张模板，放进参考图。</p></div>{isGuest ? <button className={s.wallet} onClick={onRequireAccount}>登录使用<Icon name="chevron" size={14} /></button> : onRecharge ? <button className={s.wallet} onClick={onRecharge}>{balance === null ? "查看钱包" : `${points(balance)} Credit`}<Icon name="chevron" size={14} /></button> : <span className={s.wallet}>收款暂时关闭</span>}</header>
-    {error && <div className={s.error} role="alert">{error}<button onClick={() => setError("")} aria-label="关闭生成错误"><Icon name="close" size={16} /></button></div>}
+    <header className={s.header}><div>{onBack && <button type="button" className={s.backLink} onClick={onBack}><Icon name="back" size={15} />{c.gsCreate}</button>}<span className={s.eyebrow}>叙梦</span><h1>{c.gsImageVideo}</h1><p>{c.gsLead}</p></div>{isGuest ? <button className={s.wallet} onClick={onRequireAccount}>{c.gsLoginUse}<Icon name="chevron" size={14} /></button> : onRecharge ? <button className={s.wallet} onClick={onRecharge}>{balance === null ? c.gsWallet : `${points(balance)} Credit`}<Icon name="chevron" size={14} /></button> : <span className={s.wallet}>{c.gsPaymentsClosed}</span>}</header>
+    {error && <div className={s.error} role="alert">{error}<button onClick={() => setError("")} aria-label={c.gsCloseError}><Icon name="close" size={16} /></button></div>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
-    {recovering && workspaceMode === "templates" && <div className={s.recoveryBanner} role="status"><p>有一笔生成提交需要核对。你可以先读取原任务，再继续编辑模板。</p><button type="button" className={s.secondary} disabled={busy || loading} onClick={() => { setWorkspaceMode("create"); void recoverSubmission(); }}>核对原任务</button></div>}
-    <div className={s.workspaceNav}><div role="group" aria-label="生成工作台视图"><button type="button" aria-pressed={workspaceMode === "templates"} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16}/>模板广场</button><button type="button" aria-pressed={workspaceMode === "create"} disabled={busy || uploadingReference || checkingReference || (!template && !hasLegacyDraft && !recovering)} onClick={() => setWorkspaceMode("create")}><Icon name="sparkles" size={16}/>{hasLegacyDraft ? "已保存的描述" : "模板生成"}</button></div><button type="button" className={s.historyLink} disabled={busy || uploadingReference || checkingReference} onClick={() => { setWorkspaceMode("create"); requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" })); }}><Icon name="book" size={15}/>生成历史</button></div>
-    <GenerationTemplateLibrary userId={userId} visible={workspaceMode === "templates"} busy={busy || uploadingReference || checkingReference} onSelect={selectTemplate}/>
-    {workspaceMode === "create" && <div className={s.layout}><section className={s.controls} aria-label="生成设置">
-      <div className={s.templateHeading}><div><span>{kind === "image" ? "图片生成" : "视频生成"}</span><h2 ref={templateHeading} tabIndex={-1}>{template?.label ?? (hasLegacyDraft ? "已保存的描述" : "先选择一个模板")}</h2><p>{template?.description ?? (hasLegacyDraft ? "原描述已保留。选择模板后，会先向你确认替换。" : "按用途选择模板，再填写画面中的内容。")}</p></div><button className={s.secondary} type="button" disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}>{template ? "更换模板" : "选择模板"}</button></div>
-      {hasLegacyDraft && <div className={s.creationModes} role="group" aria-label="生成素材方式">{([
-        { reference: true, label: kind === "image" ? "参考图生图" : "参考图生视频" },
-        { reference: false, label: kind === "image" ? "文字生图" : "文字生视频" },
+    {recovering && workspaceMode === "templates" && <div className={s.recoveryBanner} role="status"><p>{c.gsRecoverBanner}</p><button type="button" className={s.secondary} disabled={busy || loading} onClick={() => { setWorkspaceMode("create"); void recoverSubmission(); }}>{c.gsCheckJob}</button></div>}
+    <div className={s.workspaceNav}><div role="group" aria-label={c.gsViews}><button type="button" aria-pressed={workspaceMode === "templates"} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16}/>{c.gsTemplateSquare}</button><button type="button" aria-pressed={workspaceMode === "create"} disabled={busy || uploadingReference || checkingReference || (!template && !hasLegacyDraft && !recovering)} onClick={() => setWorkspaceMode("create")}><Icon name="sparkles" size={16}/>{hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}</button></div><button type="button" className={s.historyLink} disabled={busy || uploadingReference || checkingReference} onClick={() => { setWorkspaceMode("create"); requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" })); }}><Icon name="book" size={15}/>{c.gsHistory}</button></div>
+    <GenerationTemplateLibrary locale={locale} userId={userId} visible={workspaceMode === "templates"} busy={busy || uploadingReference || checkingReference} onSelect={selectTemplate}/>
+    {workspaceMode === "create" && <div className={s.layout}><section className={s.controls} aria-label={c.gsSettings}>
+      <div className={s.templateHeading}><div><span>{kind === "image" ? c.gsImage : c.gsVideo}</span><h2 ref={templateHeading} tabIndex={-1}>{template?.label ?? (hasLegacyDraft ? c.gsSavedPrompt : c.gsPickFirst)}</h2><p>{template?.description ?? (hasLegacyDraft ? c.gsLegacyKept : c.gsPickUse)}</p></div><button className={s.secondary} type="button" disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}>{template ? c.gsChangeTemplate : c.gsChooseTemplate}</button></div>
+      {hasLegacyDraft && <div className={s.creationModes} role="group" aria-label={c.gsMaterial}>{([
+        { reference: true, label: kind === "image" ? c.gsRefImage : c.gsRefVideo },
+        { reference: false, label: kind === "image" ? c.gsTextImage : c.gsTextVideo },
       ] as const).map(value => <button key={value.label} type="button" aria-pressed={useReferenceImage === value.reference} disabled={busy || uploadingReference || checkingReference} onClick={() => chooseReference(value.reference)}><Icon name={value.reference ? "image" : kind} size={17}/>{value.label}</button>)}</div>}
-      {gpuStill && <section className={s.styleChoices} aria-label="风格">
-        <div className={s.referenceHeading}><strong>风格</strong></div>
+      {gpuStill && <section className={s.styleChoices} aria-label={c.gsStyle}>
+        <div className={s.referenceHeading}><strong>{c.gsStyle}</strong></div>
         <div role="group">{KREA2_STYLES.map(item => <button type="button" key={item.id} aria-pressed={styleId === item.id} disabled={busy} onClick={() => setStyleId(item.id)}>{item.label}</button>)}</div>
       </section>}
-      {(gpuStill || h3Video) && <section className={s.reference} aria-label="参考图片">
-        <div className={s.referenceHeading}><strong>参考图片</strong><span>必填 · 1 张</span></div>
-        {gpuReference ? <div className={s.referenceSelected}><img src={gpuReference.url} alt={`参考图：${gpuReference.name}`} /><div><strong>{gpuReference.name}</strong><span>{gpuReference.width} × {gpuReference.height} · {(gpuReference.byteLength / 1024).toFixed(0)} KB</span><div><label className={s.replaceFile}>更换图片<input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label="更换参考图片文件" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /></label><button type="button" disabled={busy} onClick={() => { gpuReferenceImage.current = ""; setGpuReference(null); }}>移除</button></div></div></div>
-          : <label className={s.referenceUpload}><input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label="选择参考图片文件" disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /><Icon name="plus" size={22} /><strong>上传参考图</strong><span>PNG / JPG / WebP</span></label>}
-        <p>{h3Video ? "把参考图里的人放进这条动作模板。动作、服装、房间和镜头跟着模板。" : freeStill ? "参考图只提供人物外貌。动作、服装、地点和光线按下面的关键词重画。" : "把参考图里的人放进这张模板图。姿势、服装和画面跟着模板。"}</p>
+      {(gpuStill || h3Video) && <section className={s.reference} aria-label={c.gsReference}>
+        <div className={s.referenceHeading}><strong>{c.gsReference}</strong><span>{c.gsRequiredOne}</span></div>
+        {gpuReference ? <div className={s.referenceSelected}><img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /><div><strong>{gpuReference.name}</strong><span>{gpuReference.width} × {gpuReference.height} · {(gpuReference.byteLength / 1024).toFixed(0)} KB</span><div><label className={s.replaceFile}>{c.gsReplaceImage}<input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label={c.gsReplaceFile} disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /></label><button type="button" disabled={busy} onClick={() => { gpuReferenceImage.current = ""; setGpuReference(null); }}>{c.gsRemove}</button></div></div></div>
+          : <label className={s.referenceUpload}><input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label={c.gsPickFile} disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /><Icon name="plus" size={22} /><strong>{c.gsUploadRef}</strong><span>PNG / JPG / WebP</span></label>}
+        <p>{h3Video ? c.gsH3Help : freeStill ? c.gsFreeHelp : c.gsStillHelp}</p>
       </section>}
-      {(gpuStill || h3Video) && <div className={s.options}><label>{h3Video ? "出片通道" : "出图通道"}<select aria-label={h3Video ? "出片通道" : "出图通道"} disabled={busy} value={channelEngine} onChange={event => setChannelEngine(event.target.value === "channel" ? "channel" : "local")}><option value="local">现有通道</option><option value="channel">{h3Video ? "渠道试接 · MiniMax H3 参考" : "渠道试接 · Qwen 多图编辑"}</option></select></label></div>}
-      {needsReference && <GenerationReferenceInput accountId={userId} value={referenceImage} required={Boolean(template)} actionParticipants={actionTemplate?.actionParticipants} disabled={busy || checkingReference} isGuest={isGuest} video={kind === "video"} onRequireAccount={onRequireAccount} onUploading={setUploadingReference} onError={setError} onChange={value => { setReferenceImage(value); setReferenceRecoveryError(""); setQuote(null); }} />}
-      {checkingReference && <p className={s.fine} role="status">正在恢复参考图片…</p>}
-      {needsReference && referenceRecoveryError && <div className={s.error} role="alert"><span>{referenceRecoveryError}</span><button type="button" disabled={busy || uploadingReference || checkingReference} onClick={retryReference}>重试恢复参考图</button></div>}
-      {template && templateDraft && <div className={s.parameterFields} role="group" aria-label="模板参数">
+      {(gpuStill || h3Video) && <div className={s.options}><label>{h3Video ? c.gsVideoChannel : c.gsImageChannel}<select aria-label={h3Video ? c.gsVideoChannel : c.gsImageChannel} disabled={busy} value={channelEngine} onChange={event => setChannelEngine(event.target.value === "channel" ? "channel" : "local")}><option value="local">{c.gsLocalChannel}</option><option value="channel">{h3Video ? c.gsH3Trial : c.gsQwenTrial}</option></select></label></div>}
+      {needsReference && <GenerationReferenceInput locale={locale} accountId={userId} value={referenceImage} required={Boolean(template)} actionParticipants={actionTemplate?.actionParticipants} disabled={busy || checkingReference} isGuest={isGuest} video={kind === "video"} onRequireAccount={onRequireAccount} onUploading={setUploadingReference} onError={setError} onChange={value => { setReferenceImage(value); setReferenceRecoveryError(""); setQuote(null); }} />}
+      {checkingReference && <p className={s.fine} role="status">{c.gsRestoring}</p>}
+      {needsReference && referenceRecoveryError && <div className={s.error} role="alert"><span>{referenceRecoveryError}</span><button type="button" disabled={busy || uploadingReference || checkingReference} onClick={retryReference}>{c.gsRetryRef}</button></div>}
+      {template && templateDraft && <div className={s.parameterFields} role="group" aria-label={c.gsParams}>
         {template.fields.map((field, index) => <label key={`${template.id}-${field.id}`}>{field.label}<span>{(templateDraft.values[field.id] ?? "").length} / 1,000</span><textarea ref={index === 0 ? promptInput : undefined} rows={2} maxLength={1000} required disabled={busy} placeholder={field.placeholder} value={templateDraft.values[field.id] ?? ""} onChange={event => changeTemplateField(field.id, event.target.value)}/>{field.description && <small>{field.description}</small>}</label>)}
-        <label>{actionTemplate ? "动作补充" : "补充要求"} <em>选填</em><span>{templateDraft.additionalRequirements.length} / 1,000</span><textarea rows={2} maxLength={1000} disabled={busy} placeholder={actionTemplate ? "可不填。例如：动作轻一些、节奏慢一些。" : "例如：保留原图的人物和服装，调整背景或动作。"} value={templateDraft.additionalRequirements} onChange={event => changeAdditionalRequirements(event.target.value)}/></label>
+        <label>{actionTemplate ? c.gsMotionExtra : c.gsExtra} <em>{c.gsOptionalMark}</em><span>{templateDraft.additionalRequirements.length} / 1,000</span><textarea rows={2} maxLength={1000} disabled={busy} placeholder={actionTemplate ? c.gsMotionPh : c.gsExtraPh} value={templateDraft.additionalRequirements} onChange={event => changeAdditionalRequirements(event.target.value)}/></label>
         {templateError && <p className={s.parameterError} role="status">{templateError}</p>}
-        <details className={s.descriptionPreview}><summary>查看生成描述<span>{compiledPrompt.length} / 4,000</span></summary><p>{compiledPrompt || "填写完整参数后，生成描述会显示在这里。"}</p></details>
+        <details className={s.descriptionPreview}><summary>{c.gsViewPrompt}<span>{compiledPrompt.length} / 4,000</span></summary><p>{compiledPrompt || c.gsPromptEmpty}</p></details>
       </div>}
-      {hasLegacyDraft && <label className={s.prompt}>原画面描述<span>{prompt.length} / 4,000</span><textarea ref={promptInput} rows={7} maxLength={4000} disabled={busy} value={prompt} onChange={event => { setPrompt(event.target.value); setQuote(null); }} /></label>}
-      {!gpuStill && !h3Video && <div className={s.options}><label>生成模型<select disabled={busy || loading} value={model?.id ?? ""} onChange={event => { setModelId(event.target.value); setQuote(null); }}>{models.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>画面比例<select disabled={busy || loading} value={aspect} onChange={event => { setAspectRatio(event.target.value); setQuote(null); }}>{model?.aspectRatios.map(value => <option key={value}>{value}</option>)}</select></label>{kind === "video" && <label>片段时长<select disabled={busy || loading} value={seconds} onChange={event => { setDuration(Number(event.target.value)); setQuote(null); }}>{model?.durations.map(value => <option key={value} value={value}>{value} 秒</option>)}</select></label>}</div>}
-      {needsReference && model && !model.supportsReferenceImage && <p className={s.error}>当前模型不支持参考图，请更换模型。</p>}
-      {!gpuStill && !h3Video && template && aspect !== aspectRatio && <p className={s.fine}>当前模型使用 {aspect}；模板建议 {aspectRatio}。</p>}
-      <p className={s.fine}>{channelEngine === "channel" && h3Video ? "渠道试接 · MiniMax H3。约 8 秒。现有本机 H3 保持默认，这次不预留 Credit。" : channelEngine === "channel" && gpuStill ? `渠道试接 · Qwen 多图编辑。现有 Krea2 保持默认。每次扣除 ${points(STUDIO_STILL_CREDITS)} Credit。失败不扣。风格只作用于现有通道。` : h3Video ? "参考图和这条动作模板一起出片，大约几分钟。这次不预留 Credit。" : gpuStill ? `${freeStill ? "风格、参考图和关键词" : "风格、参考图和模板图"}一起出图，每次扣除 ${points(STUDIO_STILL_CREDITS)} Credit。失败不扣。` : stillBlocked ? "这个画面先记下来，现在还不能生成。" : `${model?.resolutions[0] ?? (kind === "image" ? "1K" : "720p")} · 每次生成一个${kind === "image" ? "图片" : "无声视频"} · 成本 × 3`}</p>
-      {gpuStill && <div className={s.quote}><strong>每次 {points(STUDIO_STILL_CREDITS)} Credit</strong><span>出图成功后扣除，失败会退回预留。</span></div>}
-      {gpuStill && studioStillShort && <p className={s.error}>可用 Credit 不足，每次出图需要 {points(STUDIO_STILL_CREDITS)} Credit。{onRecharge ? <button onClick={onRecharge}>去充值</button> : <span>收款暂时关闭，请稍后再试。</span>}</p>}
-      {!gpuStill && !h3Video && !recovering && currentQuote && <div className={s.quote}><strong>预计 {points(currentQuote.estimatedCredits)} Credit</strong><span>最多预留 {points(currentQuote.maxCredits)}，完成后按费用结算并返还剩余。</span></div>}
-      {!gpuStill && !h3Video && !recovering && balance !== null && currentQuote && balance < currentQuote.maxCredits && <p className={s.error}>可用余额不足以预留本次任务。{onRecharge ? <button onClick={onRecharge}>去充值</button> : <span>收款暂时关闭，请稍后再试。</span>}</p>}
-      <button className={s.primary} disabled={busy || loading || (h3Video ? Boolean(templateError) || (!isGuest && !gpuReference) : gpuStill ? Boolean(templateError) || (!isGuest && !gpuReference) || studioStillShort : (stillBlocked && !recovering) || (!recovering && (uploadingReference || checkingReference || (!template && !hasLegacyDraft) || Boolean(templateError) || (!isGuest && needsReference && (!referenceImage || !model?.supportsReferenceImage || Boolean(referenceRecoveryError))) || (!isGuest && !config?.enabled) || (currentQuote !== null && balance !== null && balance < currentQuote.maxCredits))))} onClick={h3Video ? (isGuest ? onRequireAccount : () => void generateOnH3()) : gpuStill ? (isGuest ? onRequireAccount : () => void generateOnGpu()) : isGuest ? onRequireAccount : recovering ? recoverSubmission : currentQuote ? generate : getQuote}><Icon name={busy || recovering ? "refresh" : "sparkles"} size={17} />{busy && h3Video ? "正在出片…" : busy && gpuStill ? "正在出图…" : busy ? "正在处理，请稍候…" : h3Video ? (isGuest ? "登录后生成" : !gpuReference ? "请先上传参考图" : "生成这条视频") : gpuStill ? (isGuest ? "登录后生成" : !gpuReference ? "请先上传参考图" : `生成这张图 · ${points(STUDIO_STILL_CREDITS)} Credit`) : stillBlocked && !recovering ? "暂时不能生成" : isGuest ? "登录并开始" : recovering ? "核对原任务" : uploadingReference ? "正在上传参考图…" : checkingReference ? "正在恢复参考图…" : needsReference && !referenceImage ? "请先上传参考图" : currentQuote ? `确认生成 · 预留 ${points(currentQuote.maxCredits)} Credit` : "查看本次报价"}</button>
-      {recovering && <p className={s.fine}>核对只读取原任务{previousSubmission.expectedMaxCredits ? `（原确认上限 ${points(previousSubmission.expectedMaxCredits)} Credit）` : ""}，不会重复生成或新增预留。</p>}
-      {!gpuStill && !h3Video && !loading && config && !config.enabled && <p className={s.fine}>生成服务尚未连接，可先填写和保存描述。</p>}
-    </section><section ref={results} className={s.results} aria-label="生成结果">
-      <div className={s.sectionTitle}><h2>{selected ? names[selected.status] : h3Video && actionTemplate ? (gpuPreview ? "生成结果" : "模板动作示范") : gpuStill && stillTemplate ? "参考图、模板和成图" : gpuPreview ? "生成结果" : actionTemplate ? "模板动作示范" : stillTemplate ? "画面模板" : "生成预览"}</h2><button className={s.secondary} disabled={busy} onClick={newGeneration}><Icon name="plus" size={14} />新任务</button></div>
-      {!selected && h3Video && actionTemplate ? <div className={s.r2vCompare} ref={compare}><figure><figcaption>参考图</figcaption>{gpuReference ? <img src={gpuReference.url} alt={`参考图：${gpuReference.name}`} /> : <div className={s.empty}><p>上传参考图后显示在这里。</p></div>}</figure><figure><figcaption>模板</figcaption><video src={actionTemplate.demoVideoUrl} controls muted playsInline preload="metadata" /></figure><figure><figcaption>成片</figcaption>{gpuPreview && gpuResultKind === "video" ? <video src={gpuPreview} controls playsInline preload="metadata" /> : <div className={s.empty}><p>{busy ? "正在出片…" : "生成后显示在这里。"}</p></div>}</figure><button type="button" className={s.secondary} onClick={playTogether}>同时播放</button></div> : !selected && gpuStill && stillTemplate ? <div className={s.r2vCompare}><figure><figcaption>参考图</figcaption>{gpuReference ? <img src={gpuReference.url} alt={`参考图：${gpuReference.name}`} /> : <div className={s.empty}><p>上传参考图后显示在这里。</p></div>}</figure><figure><figcaption>模板</figcaption><img src={stillTemplate.demoPosterUrl} alt={`${stillTemplate.label}模板`} /></figure><figure><figcaption>成图</figcaption>{gpuPreview && gpuResultKind === "image" ? <img src={gpuPreview} alt={`${stillTemplate.label}成图`} /> : <div className={s.empty}><p>{busy ? "正在出图…" : "生成后显示在这里。"}</p></div>}</figure></div> : !selected && gpuPreview ? <div className={s.preview}><img src={gpuPreview} alt={template?.label ?? "生成结果"} /></div> : !selected && actionTemplate ? <GenerationActionPreview template={actionTemplate}/> : !selected && stillTemplate ? <figure className={s.actionPreview} aria-label={`${stillTemplate.label}画面模板`}><img src={stillTemplate.demoPosterUrl} alt="" /><figcaption><strong>画面模板 · {stillTemplate.label}</strong><span>把参考图里的人放进这张模板。</span></figcaption></figure> : <div className={s.preview}>{selected?.status === "ready" && selected.assetUrl ? selected.kind === "image" ? <img src={selected.assetUrl} alt={selected.prompt} /> : <video key={selected.id} controls preload="metadata" src={selected.assetUrl} /> : <div className={s.empty}><Icon name={selected?.kind ?? kind} size={42} /><h3>{selected ? names[selected.status] : "生成结果会显示在这里"}</h3><p>{selected?.error ?? (selected && running(selected) ? selected.status === "unknown" ? "提交结果尚未确认。请刷新任务核对；系统不会重复提交，预留最多保留 30 分钟。" : "任务已提交，页面每 30 秒核对进度。" : freeStill ? "上传参考图，写好关键词就可以出图。" : needsReference ? "上传参考图，填写模板参数，查看报价后再生成。" : "填写模板参数，查看报价后再生成。")}</p></div>}</div>}
-      {!selected && gpuPreview && gpuResultKind === "image" && <a className={s.secondary} href={gpuPreview} download={`${template?.id ?? "krea2"}.png`}><Icon name="download" size={15} />下载这张图</a>}
-      {!selected && gpuPreview && gpuResultKind === "video" && <a className={s.secondary} href={gpuPreview} download={`${template?.id ?? "h3"}.mp4`}><Icon name="download" size={15} />下载这条视频</a>}
-      {selected && <div className={s.resultInfo}>{jobTemplateLabel(selected) && <span className={s.referenceTag}><Icon name="grid" size={14}/>模板 · {jobTemplateLabel(selected)}</span>}{selected.referenceImage && <span className={s.referenceTag}><Icon name="image" size={14}/>使用参考图 · {selected.referenceImage.name}</span>}<p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ? ` · ${selected.duration} 秒` : ""}</span><strong>{selected.status === "ready" ? `已扣 ${points(selected.chargedCredits)} Credit` : running(selected) ? `预留 ${points(selected.reservedCredits)} Credit` : "本次未扣费"}</strong></div>{selected.status === "ready" && <p className={s.fine}>{selected.costBasis === "frozen_sku" ? "供应商未返回独立费用，按任务创建时冻结的官方单价结算。" : "根据供应商返回的费用结算。"}{selected.exceedsReservation ? "本次费用超过预留，扣费已按预留上限封顶。" : ""}</p>}{selected.assetUrl && <a className={s.secondary} href={selected.assetUrl} download={`${selected.id}.${selected.mimeType === "image/jpeg" ? "jpg" : selected.mimeType === "image/webp" ? "webp" : selected.kind === "image" ? "png" : "mp4"}`}><Icon name="download" size={15} />下载结果</a>}{!running(selected) && (confirmDelete === selected.id ? <div className={s.deleteConfirm}><span>删除结果文件和历史？已消费 Credit 不会退还。</span><button disabled={busy} onClick={() => void remove(selected.id)}>确认删除</button><button disabled={busy} onClick={() => setConfirmDelete("")}>取消</button></div> : <button className={s.textButton} disabled={busy} onClick={() => setConfirmDelete(selected.id)}>删除此任务</button>)}</div>}
-      <div className={s.sectionTitle}><h2>我的生成历史</h2><button className={s.secondary} disabled={busy} onClick={() => { setError(""); void refresh(true); }}><Icon name="refresh" size={14} />刷新任务</button></div>
-      {jobs.length ? <div className={s.history}>{jobs.map(job => <button key={job.id} aria-pressed={job.id === selectedId} onClick={() => { setSelectedId(job.id); setConfirmDelete(""); }}><Icon name={job.kind} size={20} /><span><strong>{job.prompt}</strong><small>{date(job.createdAt)}{jobTemplateLabel(job) ? ` · ${jobTemplateLabel(job)}` : ""} · {names[job.status]}</small></span><b>{job.status === "ready" ? `${points(job.chargedCredits)} Credit` : names[job.status]}</b></button>)}</div> : <p className={s.fine}>{loading ? "正在读取…" : "还没有生成任务。完成的图片和视频会保存在这里。"}</p>}
+      {hasLegacyDraft && <label className={s.prompt}>{c.gsOldPrompt}<span>{prompt.length} / 4,000</span><textarea ref={promptInput} rows={7} maxLength={4000} disabled={busy} value={prompt} onChange={event => { setPrompt(event.target.value); setQuote(null); }} /></label>}
+      {!gpuStill && !h3Video && <div className={s.options}><label>{c.gsModel}<select disabled={busy || loading} value={model?.id ?? ""} onChange={event => { setModelId(event.target.value); setQuote(null); }}>{models.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>{c.gsRatio}<select disabled={busy || loading} value={aspect} onChange={event => { setAspectRatio(event.target.value); setQuote(null); }}>{model?.aspectRatios.map(value => <option key={value}>{value}</option>)}</select></label>{kind === "video" && <label>{c.gsDuration}<select disabled={busy || loading} value={seconds} onChange={event => { setDuration(Number(event.target.value)); setQuote(null); }}>{model?.durations.map(value => <option key={value} value={value}>{xumengStudioFill(c.gsSeconds, { n: value })}</option>)}</select></label>}</div>}
+      {needsReference && model && !model.supportsReferenceImage && <p className={s.error}>{c.gsModelNoRef}</p>}
+      {!gpuStill && !h3Video && template && aspect !== aspectRatio && <p className={s.fine}>{xumengStudioFill(c.gsAspectNote, { current: aspect, suggested: aspectRatio })}</p>}
+      <p className={s.fine}>{channelEngine === "channel" && h3Video ? c.gsH3Fine : channelEngine === "channel" && gpuStill ? xumengStudioFill(c.gsQwenFine, { credits: points(STUDIO_STILL_CREDITS) }) : h3Video ? c.gsH3Together : gpuStill ? xumengStudioFill(c.gsStillFine, { parts: freeStill ? c.gsFreeParts : c.gsStillParts, credits: points(STUDIO_STILL_CREDITS) }) : stillBlocked ? c.gsBlocked : xumengStudioFill(c.gsSkuFine, { size: model?.resolutions[0] ?? (kind === "image" ? "1K" : "720p"), kind: kind === "image" ? c.gsPicture : c.gsSilentVideo })}</p>
+      {gpuStill && <div className={s.quote}><strong>{xumengStudioFill(c.gsEachCredits, { credits: points(STUDIO_STILL_CREDITS) })}</strong><span>{c.gsStillSettle}</span></div>}
+      {gpuStill && studioStillShort && <p className={s.error}>{xumengStudioFill(c.gsShort, { credits: points(STUDIO_STILL_CREDITS) })}{onRecharge ? <button onClick={onRecharge}>{c.gsTopUp}</button> : <span>{c.gsPayLater}</span>}</p>}
+      {!gpuStill && !h3Video && !recovering && currentQuote && <div className={s.quote}><strong>{xumengStudioFill(c.gsEstimate, { credits: points(currentQuote.estimatedCredits) })}</strong><span>{xumengStudioFill(c.gsReserveNote, { credits: points(currentQuote.maxCredits) })}</span></div>}
+      {!gpuStill && !h3Video && !recovering && balance !== null && currentQuote && balance < currentQuote.maxCredits && <p className={s.error}>{c.gsNeedReserve}{onRecharge ? <button onClick={onRecharge}>{c.gsTopUp}</button> : <span>{c.gsPayLater}</span>}</p>}
+      <button className={s.primary} disabled={busy || loading || (h3Video ? Boolean(templateError) || (!isGuest && !gpuReference) : gpuStill ? Boolean(templateError) || (!isGuest && !gpuReference) || studioStillShort : (stillBlocked && !recovering) || (!recovering && (uploadingReference || checkingReference || (!template && !hasLegacyDraft) || Boolean(templateError) || (!isGuest && needsReference && (!referenceImage || !model?.supportsReferenceImage || Boolean(referenceRecoveryError))) || (!isGuest && !config?.enabled) || (currentQuote !== null && balance !== null && balance < currentQuote.maxCredits))))} onClick={h3Video ? (isGuest ? onRequireAccount : () => void generateOnH3()) : gpuStill ? (isGuest ? onRequireAccount : () => void generateOnGpu()) : isGuest ? onRequireAccount : recovering ? recoverSubmission : currentQuote ? generate : getQuote}><Icon name={busy || recovering ? "refresh" : "sparkles"} size={17} />{busy && h3Video ? c.gsMakingVideo : busy && gpuStill ? c.gsMakingImage : busy ? c.gsWorking : h3Video ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : c.gsMakeVideo) : gpuStill ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : xumengStudioFill(c.gsMakeImage, { credits: points(STUDIO_STILL_CREDITS) })) : stillBlocked && !recovering ? c.gsCannot : isGuest ? c.gsLoginStart : recovering ? c.gsCheckJob : uploadingReference ? c.gsUploading : checkingReference ? c.gsRestoring : needsReference && !referenceImage ? c.gsNeedRef : currentQuote ? xumengStudioFill(c.gsConfirm, { credits: points(currentQuote.maxCredits) }) : c.gsSeeQuote}</button>
+      {recovering && <p className={s.fine}>{xumengStudioFill(c.gsRecoverFine, { cap: previousSubmission.expectedMaxCredits ? xumengStudioFill(c.gsOldCap, { credits: points(previousSubmission.expectedMaxCredits) }) : "" })}</p>}
+      {!gpuStill && !h3Video && !loading && config && !config.enabled && <p className={s.fine}>{c.gsNotConnected}</p>}
+    </section><section ref={results} className={s.results} aria-label={c.gsResults}>
+      <div className={s.sectionTitle}><h2>{selected ? jobName(selected.status) : h3Video && actionTemplate ? (gpuPreview ? c.gsResults : c.gsDemo) : gpuStill && stillTemplate ? c.gsCompare : gpuPreview ? c.gsResults : actionTemplate ? c.gsDemo : stillTemplate ? c.gsFrameTemplate : c.gsPreview}</h2><button className={s.secondary} disabled={busy} onClick={newGeneration}><Icon name="plus" size={14} />{c.gsNewJob}</button></div>
+      {!selected && h3Video && actionTemplate ? <div className={s.r2vCompare} ref={compare}><figure><figcaption>{c.gsRefCaption}</figcaption>{gpuReference ? <img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /> : <div className={s.empty}><p>{c.gsUploadShows}</p></div>}</figure><figure><figcaption>{c.gsTemplateCaption}</figcaption><video src={actionTemplate.demoVideoUrl} controls muted playsInline preload="metadata" /></figure><figure><figcaption>{c.gsFilm}</figcaption>{gpuPreview && gpuResultKind === "video" ? <video src={gpuPreview} controls playsInline preload="metadata" /> : <div className={s.empty}><p>{busy ? c.gsMakingVideo : c.gsShowsHere}</p></div>}</figure><button type="button" className={s.secondary} onClick={playTogether}>{c.gsPlayTogether}</button></div> : !selected && gpuStill && stillTemplate ? <div className={s.r2vCompare}><figure><figcaption>{c.gsRefCaption}</figcaption>{gpuReference ? <img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /> : <div className={s.empty}><p>{c.gsUploadShows}</p></div>}</figure><figure><figcaption>{c.gsTemplateCaption}</figcaption><img src={stillTemplate.demoPosterUrl} alt={xumengStudioFill(c.gsNamedTemplate, { label: stillTemplate.label })} /></figure><figure><figcaption>{c.gsStillResult}</figcaption>{gpuPreview && gpuResultKind === "image" ? <img src={gpuPreview} alt={xumengStudioFill(c.gsNamedResult, { label: stillTemplate.label })} /> : <div className={s.empty}><p>{busy ? c.gsMakingImage : c.gsShowsHere}</p></div>}</figure></div> : !selected && gpuPreview ? <div className={s.preview}><img src={gpuPreview} alt={template?.label ?? c.gsResults} /></div> : !selected && actionTemplate ? <GenerationActionPreview template={actionTemplate}/> : !selected && stillTemplate ? <figure className={s.actionPreview} aria-label={xumengStudioFill(c.gsNamedFrame, { label: stillTemplate.label })}><img src={stillTemplate.demoPosterUrl} alt="" /><figcaption><strong>{xumengStudioFill(c.gsFrameLabel, { label: stillTemplate.label })}</strong><span>{c.gsPutIn}</span></figcaption></figure> : <div className={s.preview}>{selected?.status === "ready" && selected.assetUrl ? selected.kind === "image" ? <img src={selected.assetUrl} alt={selected.prompt} /> : <video key={selected.id} controls preload="metadata" src={selected.assetUrl} /> : <div className={s.empty}><Icon name={selected?.kind ?? kind} size={42} /><h3>{selected ? jobName(selected.status) : c.gsResultHere}</h3><p>{selected?.error ?? (selected && running(selected) ? selected.status === "unknown" ? c.gsUnknown : c.gsPolling : freeStill ? c.gsFreeEmpty : needsReference ? c.gsRefEmpty : c.gsTextEmpty)}</p></div>}</div>}
+      {!selected && gpuPreview && gpuResultKind === "image" && <a className={s.secondary} href={gpuPreview} download={`${template?.id ?? "krea2"}.png`}><Icon name="download" size={15} />{c.gsDownloadImage}</a>}
+      {!selected && gpuPreview && gpuResultKind === "video" && <a className={s.secondary} href={gpuPreview} download={`${template?.id ?? "h3"}.mp4`}><Icon name="download" size={15} />{c.gsDownloadVideo}</a>}
+      {selected && <div className={s.resultInfo}>{jobTemplateLabel(selected) && <span className={s.referenceTag}><Icon name="grid" size={14}/>{xumengStudioFill(c.gsTemplateTag, { label: jobTemplateLabel(selected) ?? "" })}</span>}{selected.referenceImage && <span className={s.referenceTag}><Icon name="image" size={14}/>{xumengStudioFill(c.gsUsedRef, { name: selected.referenceImage.name })}</span>}<p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ?  ` · ${xumengStudioFill(c.gsSeconds, { n: selected.duration })}` : ""}</span><strong>{selected.status === "ready" ? xumengStudioFill(c.gsCharged, { credits: points(selected.chargedCredits) }) : running(selected) ? xumengStudioFill(c.gsReserved, { credits: points(selected.reservedCredits) }) : c.gsNotCharged}</strong></div>{selected.status === "ready" && <p className={s.fine}>{selected.costBasis === "frozen_sku" ? c.gsFrozen : c.gsProviderCost}{selected.exceedsReservation ? c.gsCapped : ""}</p>}{selected.assetUrl && <a className={s.secondary} href={selected.assetUrl} download={`${selected.id}.${selected.mimeType === "image/jpeg" ? "jpg" : selected.mimeType === "image/webp" ? "webp" : selected.kind === "image" ? "png" : "mp4"}`}><Icon name="download" size={15} />{c.gsDownload}</a>}{!running(selected) && (confirmDelete === selected.id ? <div className={s.deleteConfirm}><span>{c.gsDeleteAsk}</span><button disabled={busy} onClick={() => void remove(selected.id)}>{c.gsConfirmDelete}</button><button disabled={busy} onClick={() => setConfirmDelete("")}>{c.gsCancel}</button></div> : <button className={s.textButton} disabled={busy} onClick={() => setConfirmDelete(selected.id)}>{c.gsDeleteTask}</button>)}</div>}
+      <div className={s.sectionTitle}><h2>{c.gsMyHistory}</h2><button className={s.secondary} disabled={busy} onClick={() => { setError(""); void refresh(true); }}><Icon name="refresh" size={14} />{c.gsRefreshJobs}</button></div>
+      {jobs.length ? <div className={s.history}>{jobs.map(job => <button key={job.id} aria-pressed={job.id === selectedId} onClick={() => { setSelectedId(job.id); setConfirmDelete(""); }}><Icon name={job.kind} size={20} /><span><strong>{job.prompt}</strong><small>{date(job.createdAt)}{jobTemplateLabel(job) ? ` · ${jobTemplateLabel(job)}` : ""} · {jobName(job.status)}</small></span><b>{job.status === "ready" ? `${points(job.chargedCredits)} Credit` : jobName(job.status)}</b></button>)}</div> : <p className={s.fine}>{loading ? c.gsReading : c.gsNoJobs}</p>}
     </section></div>}
     <dialog ref={replacementDialog} className={s.replacementDialog} aria-labelledby="generation-template-replace-title" onCancel={event => { event.preventDefault(); setPendingTemplate(null); }}>
-      {pendingTemplate && <><h2 id="generation-template-replace-title">改用“{pendingTemplate.label}”？</h2><p>{template ? `当前“${template.label}”的参数已保留，之后可以切回继续编辑。` : "当前原描述会保留到你确认替换为止。"}参考图保持不变，生成前需重新查看报价。</p><div><button type="button" className={s.secondary} onClick={() => setPendingTemplate(null)}>取消，保留当前内容</button><button type="button" className={s.primary} disabled={busy || uploadingReference || checkingReference} onClick={() => applyTemplate(pendingTemplate)}>确认使用模板</button></div></>}
+      {pendingTemplate && <><h2 id="generation-template-replace-title">{xumengStudioFill(c.gsReplaceQ, { label: pendingTemplate.label })}</h2><p>{template ? xumengStudioFill(c.gsReplaceKept, { label: template.label }) : c.gsReplaceOld}{c.gsReplaceRef}</p><div><button type="button" className={s.secondary} onClick={() => setPendingTemplate(null)}>{c.gsKeepCurrent}</button><button type="button" className={s.primary} disabled={busy || uploadingReference || checkingReference} onClick={() => applyTemplate(pendingTemplate)}>{c.gsUseTemplate}</button></div></>}
     </dialog>
   </main>;
 }

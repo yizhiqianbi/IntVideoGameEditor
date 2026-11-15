@@ -6,6 +6,8 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { DZMM_PERSONA_LIMIT, type DzmmSavedConversation, type DzmmPreferences } from "../../lib/dzmm-storage";
 import { parseStoryState, type DzmmStoryState } from "../../lib/dzmm-story-memory";
 import type { DzmmWorldClockMode } from "../../lib/dzmm-world-state";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengModelBlurb, xumengPage } from "../../lib/xumeng-page-copy";
 import Icon from "./icons";
 import styles from "./chat-settings.module.css";
 
@@ -16,6 +18,7 @@ type Props = {
   onClose: () => void; busy: boolean;
   onMemory: (next: DzmmStoryState | undefined) => void;
   onWorldClockMode: (mode: DzmmWorldClockMode) => void;
+  locale?: XumengLocale;
 };
 type Section = "conversation" | "persona" | "model" | "memory" | "world";
 const SECTIONS: { id: Section; name: string; icon: "chat" | "user" | "sliders" }[] = [
@@ -30,7 +33,9 @@ const MEMORY_FIELDS = [
   ["pending", "未解决的线索"], ["relationships", "人物关系"], ["items", "物品变化"],
 ] as const;
 
-export default function ChatSettings({ conversation, preferences, onPreferences, onRename, onBranch, onDelete, onExport, onPresets, onClose, busy, onMemory, onWorldClockMode }: Props) {
+export default function ChatSettings({ conversation, preferences, locale = "zh-Hans", onPreferences, onRename, onBranch, onDelete, onExport, onPresets, onClose, busy, onMemory, onWorldClockMode }: Props) {
+  const copy = xumengPage(locale);
+  const sectionName: Record<Section, string> = { conversation: copy.sectionConversation, persona: copy.sectionPersona, model: copy.sectionModel, memory: copy.sectionMemory, world: copy.sectionWorld };
   const [section, setSection] = useState<Section>("conversation");
   const [title, setTitle] = useState(conversation.title);
   const [nickname, setNickname] = useState(preferences.nickname);
@@ -143,7 +148,7 @@ export default function ChatSettings({ conversation, preferences, onPreferences,
     <div ref={dialog} className={styles.dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="chat-settings-title">
       <header className={styles.header}><div><h2 id="chat-settings-title">聊天设置</h2><p>{conversation.title}</p></div><button type="button" className={styles.close} disabled={busy} onClick={onClose} aria-label="关闭聊天设置"><Icon name="close" size={19} /></button></header>
       <div className={styles.body}>
-        <nav className={styles.navigation} aria-label="聊天设置分类">{SECTIONS.map((item) => <button type="button" key={item.id} className={section === item.id ? styles.selected : ""} aria-current={section === item.id ? "page" : undefined} onClick={() => changeSection(item.id)}><Icon name={item.icon} size={16} />{item.name}</button>)}</nav>
+        <nav className={styles.navigation} aria-label={copy.chatSettings}>{SECTIONS.map((item) => <button type="button" key={item.id} className={section === item.id ? styles.selected : ""} aria-current={section === item.id ? "page" : undefined} onClick={() => changeSection(item.id)}><Icon name={item.icon} size={16} />{sectionName[item.id]}</button>)}</nav>
         <div className={styles.content}>
           {section === "conversation" ? <section aria-labelledby="chat-settings-conversation">
             <h3 id="chat-settings-conversation">会话管理</h3><p className={styles.hint}>管理当前聊天，保留你想继续探索的故事。</p>

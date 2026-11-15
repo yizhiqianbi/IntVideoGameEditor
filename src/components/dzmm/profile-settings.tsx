@@ -10,7 +10,7 @@ import type { Character } from "@/lib/dzmm-characters";
 import { DZMM_PERSONA_LIMIT, type DzmmChatFont, type DzmmChatFontSize, type DzmmPreferences, type DzmmSavedConversation, type DzmmSavedPersona, type DzmmSavedPreset } from "@/lib/dzmm-storage";
 import { dzmmChatDisplayStyle } from "@/lib/dzmm-chat-display";
 import type { DzmmAuthor } from "@/lib/dzmm-discovery";
-import { XUMENG_LOCALES, xumengLocaleLabel } from "@/lib/xumeng-i18n";
+import { XUMENG_LOCALES, xumengLocaleLabel, type XumengLocale } from "@/lib/xumeng-i18n";
 import { changeDzmmPassword, requestDzmmEmailBind, verifyDzmmEmailBind } from "@/lib/dzmm-account";
 import { fetchDzmmReferral, type DzmmReferralInfo } from "@/lib/dzmm-referral";
 import { posterShareLocation, XUMENG_POSTERS } from "@/lib/xumeng-acquisition";
@@ -19,6 +19,8 @@ import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
 import { DreamCoinPanel } from "./dream-coin-panel";
 import { UserMark } from "./user-mark";
 import { characterCreateLabel, useCharacterCreateCost } from "@/lib/dzmm-scene-prices";
+import { xumengTranslate } from "@/lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import Icon from "./icons";
 import s from "./profile-settings.module.css";
 
@@ -71,16 +73,18 @@ export type ProfileViewProps = {
 };
 
 export function ProfileView({ user, characters, custom, favorites, conversations, authors, preferences, onCharacter, onAuthor, onConversation, onEditCharacter, onCreateCharacter, onEditProfile, onSettings, onPresets, onRecharge, onVip, onInvite, onLogin, onRegister, onBrowse, onDeleteCharacter, onAdmin }: ProfileViewProps) {
-  const createLabel = characterCreateLabel(useCharacterCreateCost());
+  const copy = xumengPage(preferences.locale ?? "zh-Hans");
+  const createLabel = characterCreateLabel(useCharacterCreateCost(), copy.createRole);
   const [tab, setTab] = useState<"timeline" | "characters" | "favorites" | "conversations" | "following">("characters");
   const [credits, setCredits] = useState<number | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const [deleting, setDeleting] = useState<Character | null>(null);
-  const followed = authors.filter((author) => preferences.followedAuthors?.includes(author.id));
+  const followedIds = preferences.followedAuthors ?? [];
+  const followed = followedIds.map((id) => authors.find((author) => author.id === id) ?? { id, name: copy.followedAuthor, sourceUrl: "", characterIds: [] });
   const favoriteRoles = characters.filter((character) => favorites.includes(character.id));
   const events = [
-    ...custom.map((character) => ({ id: `role-${character.id}`, text: `创建了角色「${character.name}」`, date: Date.parse(character.createdAt), action: () => onCharacter(character) })),
-    ...conversations.map((conversation) => ({ id: `chat-${conversation.id}`, text: `与「${conversation.title}」继续了故事`, date: conversation.updatedAt, action: () => onConversation(conversation) })),
+    ...custom.map((character) => ({ id: `role-${character.id}`, text: xumengPageFill(copy.createdRole, { name: character.name }), date: Date.parse(character.createdAt), action: () => onCharacter(character) })),
+    ...conversations.map((conversation) => ({ id: `chat-${conversation.id}`, text: xumengPageFill(copy.continuedWith, { name: conversation.title }), date: conversation.updatedAt, action: () => onConversation(conversation) })),
   ].filter((event) => Number.isFinite(event.date)).sort((a, b) => b.date - a.date);
   useEffect(() => {
     if (!user || user.isGuest) return;
@@ -90,28 +94,28 @@ export function ProfileView({ user, characters, custom, favorites, conversations
     }).catch(() => { if (!abort.signal.aborted) setCredits(null); });
     return () => abort.abort();
   }, [user]);
-  async function copyId() { if (!user) return; try { await navigator.clipboard.writeText(user.id); setCopyStatus("用户 ID 已复制。"); } catch { setCopyStatus("复制失败，请选择 ID 手动复制。"); } }
+  async function copyId() { if (!user) return; try { await navigator.clipboard.writeText(user.id); setCopyStatus(copy.userCopied); } catch { setCopyStatus(copy.copyFailedSelect); } }
   if (!user || user.isGuest) {
     return <main className={`${s.page} ${s.guestPage}`}>
       <header className={s.pageTopline}>
-        <div className={s.guestIdentity}><span className={s.avatar}><UserMark /></span><div><h1>游客</h1><p>未登录</p></div></div>
-        <span className={s.guestPill}><span className={s.guestDot} />游客模式</span>
+        <div className={s.guestIdentity}><span className={s.avatar}><UserMark /></span><div><h1>{xumengTranslate(preferences.locale ?? "zh-Hans", "guestName")}</h1><p>{copy.notSignedIn}</p></div></div>
+        <span className={s.guestPill}><span className={s.guestDot} />{copy.guestMode}</span>
       </header>
-      <section className={s.accountSummary} aria-label="账户信息">
-        <div className={s.balanceBlock}><span>Credit 余额</span><strong>—</strong><small>登录后查看</small></div>
-        <div className={s.authActions}><button type="button" className={s.primary} onClick={onLogin}>登录</button><button type="button" className={s.outline} onClick={onRegister}>注册账号</button></div>
+      <section className={s.accountSummary} aria-label={copy.accountInfo}>
+        <div className={s.balanceBlock}><span>{copy.creditBalance}</span><strong>—</strong><small>{copy.loginToView}</small></div>
+        <div className={s.authActions}><button type="button" className={s.primary} onClick={onLogin}>{copy.login}</button><button type="button" className={s.outline} onClick={onRegister}>{copy.registerAccount}</button></div>
       </section>
-      <section className={s.compactStats} aria-label="账户内容">
-        <button type="button" onClick={onRegister}><strong>{custom.length}</strong><span>角色</span></button>
-        <button type="button" onClick={onRegister}><strong>{favorites.length}</strong><span>收藏</span></button>
-        <button type="button" onClick={onRegister}><strong>{conversations.length}</strong><span>会话</span></button>
-        <button type="button" onClick={onRegister}><strong>{preferences.followedAuthors?.length ?? 0}</strong><span>关注</span></button>
+      <section className={s.compactStats} aria-label={copy.accountContents}>
+        <button type="button" onClick={onRegister}><strong>{custom.length}</strong><span>{copy.roles}</span></button>
+        <button type="button" onClick={onRegister}><strong>{favorites.length}</strong><span>{copy.saved}</span></button>
+        <button type="button" onClick={onRegister}><strong>{conversations.length}</strong><span>{copy.sessions}</span></button>
+        <button type="button" onClick={onRegister}><strong>{followedIds.length}</strong><span>{copy.follow}</span></button>
       </section>
-      <section className={s.accountMenu} aria-label="账户操作">
-        <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>设置</b></span><Icon name="chevron" size={16} /></button>
-        {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>充值与 VIP</b></span><Icon name="chevron" size={16} /></button>}
-        {onInvite && <button type="button" onClick={onInvite}><span><Icon name="users" size={17} /><b>邀请好友</b></span><Icon name="chevron" size={16} /></button>}
-        <button type="button" onClick={onBrowse}><span><Icon name="compass" size={17} /><b>角色广场</b></span><Icon name="chevron" size={16} /></button>
+      <section className={s.accountMenu} aria-label={copy.accountActions}>
+        <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>{copy.settings}</b></span><Icon name="chevron" size={16} /></button>
+        {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{copy.rechargeVip}</b></span><Icon name="chevron" size={16} /></button>}
+        {onInvite && <button type="button" onClick={onInvite}><span><Icon name="users" size={17} /><b>{copy.inviteFriends}</b></span><Icon name="chevron" size={16} /></button>}
+        <button type="button" onClick={onBrowse}><span><Icon name="compass" size={17} /><b>{copy.characterSquare}</b></span><Icon name="chevron" size={16} /></button>
       </section>
     </main>;
   }
@@ -121,17 +125,17 @@ export function ProfileView({ user, characters, custom, favorites, conversations
       <span className={`${s.avatar} ${s.mineAvatar}`}><UserMark /></span>
       <div className={s.profileInfo}>
         <h1>{preferences.nickname}</h1>
-        <button className={s.idButton} onClick={() => void copyId()} aria-label="复制用户 ID">ID {user.id}<Icon name="copy" size={13} /></button>
-        <p>{user.email || "已注册，尚未绑定邮箱"}{dateLabel(user.createdAt) && ` · ${dateLabel(user.createdAt)} 加入`}</p>
+        <button className={s.idButton} onClick={() => void copyId()} aria-label={copy.copyUserId}>ID {user.id}<Icon name="copy" size={13} /></button>
+        <p>{user.email || copy.noEmailYet}{dateLabel(user.createdAt) && ` · ${xumengPageFill(copy.joinedOn, { date: dateLabel(user.createdAt) })}`}</p>
         {preferences.bio && <p className={s.bio}>{preferences.bio}</p>}
       </div>
-      <button type="button" className={s.mineGear} aria-label="设置" onClick={onSettings}><Icon name="sliders" size={18} /></button>
+      <button type="button" className={s.mineGear} aria-label={copy.settings} onClick={onSettings}><Icon name="sliders" size={18} /></button>
     </header>
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
     <div className={s.mineAssets}>
       <button type="button" className={s.mineVip} onClick={openVip} disabled={!openVip}>
         <span className={s.mineAssetIcon}><Icon name="crown" size={18} /></span>
-        <span><small>叙梦会员</small><strong>查看权益</strong></span>
+        <span><small>{copy.membership}</small><strong>{copy.viewPerks}</strong></span>
         <Icon name="chevron" size={16} />
       </button>
       <button type="button" className={s.mineWallet} onClick={onRecharge} disabled={!onRecharge}>
@@ -141,37 +145,38 @@ export function ProfileView({ user, characters, custom, favorites, conversations
       </button>
     </div>
     {openVip && <button type="button" className={s.minePromo} onClick={openVip}>
-      <span><strong>会员限时权益</strong><small>开通后每天可领取 Credit，聊天和语音按会员规则结算。</small></span>
-      <b>去开通</b>
+      <span><strong>{copy.memberOffer}</strong><small>{copy.memberOfferBody}</small></span>
+      <b>{copy.joinNow}</b>
     </button>}
-    <div className={s.mineShortcuts} aria-label="我的内容">
-      <button type="button" className={tab === "characters" ? s.mineOn : ""} onClick={() => setTab("characters")}><Icon name="user" size={18} /><span>角色</span><strong>{custom.length}</strong></button>
-      <button type="button" className={tab === "favorites" ? s.mineOn : ""} onClick={() => setTab("favorites")}><Icon name="heart" size={18} /><span>收藏</span><strong>{favorites.length}</strong></button>
-      <button type="button" className={tab === "conversations" ? s.mineOn : ""} onClick={() => setTab("conversations")}><Icon name="chat" size={18} /><span>会话</span><strong>{conversations.length}</strong></button>
-      <button type="button" className={tab === "following" ? s.mineOn : ""} onClick={() => setTab("following")}><Icon name="users" size={18} /><span>关注</span><strong>{preferences.followedAuthors?.length ?? 0}</strong></button>
+    <div className={s.mineShortcuts} aria-label={copy.myContent}>
+      <button type="button" className={tab === "characters" ? s.mineOn : ""} onClick={() => setTab("characters")}><Icon name="user" size={18} /><span>{copy.roles}</span><strong>{custom.length}</strong></button>
+      <button type="button" className={tab === "favorites" ? s.mineOn : ""} onClick={() => setTab("favorites")}><Icon name="heart" size={18} /><span>{copy.saved}</span><strong>{favorites.length}</strong></button>
+      <button type="button" className={tab === "conversations" ? s.mineOn : ""} onClick={() => setTab("conversations")}><Icon name="chat" size={18} /><span>{copy.sessions}</span><strong>{conversations.length}</strong></button>
+      <button type="button" className={tab === "following" ? s.mineOn : ""} onClick={() => setTab("following")}><Icon name="users" size={18} /><span>{copy.follow}</span><strong>{followedIds.length}</strong></button>
     </div>
-    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>邀请好友</span><h2>邀请好友一起聊</h2></div><button type="button" className={s.outline} onClick={onInvite}>立即邀请 <Icon name="chevron" size={14} /></button></div></section>}
-    <nav className={s.accountMenu} aria-label="账户操作">
-      <button type="button" onClick={onEditProfile}><span><Icon name="edit" size={17} /><b>编辑资料</b></span><Icon name="chevron" size={16} /></button>
+    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.inviteFriends}</span><h2>{copy.inviteTogether}</h2></div><button type="button" className={s.outline} onClick={onInvite}>{copy.inviteNow} <Icon name="chevron" size={14} /></button></div></section>}
+    <nav className={s.accountMenu} aria-label={copy.accountActions}>
+      <button type="button" onClick={onEditProfile}><span><Icon name="edit" size={17} /><b>{copy.editProfile}</b></span><Icon name="chevron" size={16} /></button>
       <button type="button" onClick={onCreateCharacter}><span><Icon name="plus" size={17} /><b>{createLabel}</b></span><Icon name="chevron" size={16} /></button>
-      <button type="button" onClick={onPresets}><span><Icon name="book" size={17} /><b>我的预设</b></span><Icon name="chevron" size={16} /></button>
-      {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{XUMENG_PAYMENTS_ENABLED ? "充值与 VIP" : "余额与权益"}</b></span><Icon name="chevron" size={16} /></button>}
-      <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>设置</b></span><Icon name="chevron" size={16} /></button>
-      {user.role === "super" && onAdmin && <button type="button" onClick={onAdmin}><span><Icon name="grid" size={17} /><b>管理</b></span><Icon name="chevron" size={16} /></button>}
+      <button type="button" onClick={onPresets}><span><Icon name="book" size={17} /><b>{copy.myPresets}</b></span><Icon name="chevron" size={16} /></button>
+      {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{XUMENG_PAYMENTS_ENABLED ? copy.rechargeVip : copy.balancePerks}</b></span><Icon name="chevron" size={16} /></button>}
+      <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>{copy.settings}</b></span><Icon name="chevron" size={16} /></button>
+      {user.role === "super" && onAdmin && <button type="button" onClick={onAdmin}><span><Icon name="grid" size={17} /><b>{copy.admin}</b></span><Icon name="chevron" size={16} /></button>}
     </nav>
     {!user.isGuest && <DreamCoinPanel userId={user.id} compact />}
-    <div className={`${s.tabs} ${s.contentTabs}`} role="tablist" aria-label="我的内容">{([{ id: "timeline", label: "时间线" }, { id: "characters", label: "角色" }, { id: "favorites", label: "收藏" }, { id: "conversations", label: "会话" }, { id: "following", label: "关注" }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
-    {tab === "timeline" && (events.length ? <div className={s.timeline}>{events.map((event) => <button key={event.id} onClick={event.action}><span className={s.timelineDot} /><span><time>{dateLabel(event.date)}</time><strong>{event.text}</strong></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>还没有活动记录，创建角色或开始一段故事吧。</Empty>)}
-    {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={`查看 ${character.name}`}><img src={xumengCardCoverUrl(character.cover)} alt={character.name} /></button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button className={s.iconButton} onClick={() => onEditCharacter(character)} aria-label={`编辑 ${character.name}`}><Icon name="edit" size={17} /></button>{onDeleteCharacter && <button className={s.deleteButton} onClick={() => setDeleting(character)} aria-label={`删除 ${character.name}`}>删除</button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? "还没有创建角色，把脑海里的故事带到这里。" : "还没有收藏角色，遇见喜欢的角色时点击爱心。"}</Empty>)}
-    {tab === "conversations" && (conversations.length ? <div className={s.conversations}>{conversations.map((conversation) => <button key={conversation.id} onClick={() => onConversation(conversation)}><Icon name="chat" size={20} /><span><strong>{conversation.title}</strong><small>{conversation.messages.at(-1)?.content || "还没有发送消息"}</small></span><time>{dateLabel(conversation.updatedAt)}</time></button>)}</div> : <Empty>还没有会话，选一个角色开始对话。</Empty>)}
-    {tab === "following" && (followed.length ? <div className={s.authorList}>{followed.map((author) => <button key={author.id} onClick={() => onAuthor(author)}><span className={s.smallAvatar}><UserMark /></span><span><strong>{author.name}</strong><small>{author.characterIds.length} 个已收录作品</small></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>还没有关注作者，进入作者主页即可关注。</Empty>)}
-    {deleting && <Dialog title="删除角色" onClose={() => setDeleting(null)}><p className={s.confirmText}>删除「{deleting.name}」及它的收藏和关联会话？此操作无法撤销。</p><div className={s.dialogActions}><button className={s.outline} onClick={() => setDeleting(null)}>取消</button><button className={s.danger} onClick={() => { onDeleteCharacter?.(deleting); setDeleting(null); }}>删除角色</button></div></Dialog>}
+    <div className={`${s.tabs} ${s.contentTabs}`} role="tablist" aria-label={copy.myContent}>{([{ id: "timeline", label: copy.timeline }, { id: "characters", label: copy.roles }, { id: "favorites", label: copy.saved }, { id: "conversations", label: copy.sessions }, { id: "following", label: copy.follow }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+    {tab === "timeline" && (events.length ? <div className={s.timeline}>{events.map((event) => <button key={event.id} onClick={event.action}><span className={s.timelineDot} /><span><time>{dateLabel(event.date)}</time><strong>{event.text}</strong></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>{copy.noActivity}</Empty>)}
+    {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={xumengPageFill(copy.viewNamed, { name: character.name })}><img src={xumengCardCoverUrl(character.cover)} alt={character.name} /></button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button className={s.iconButton} onClick={() => onEditCharacter(character)} aria-label={xumengPageFill(copy.editNamed, { name: character.name })}><Icon name="edit" size={17} /></button>{onDeleteCharacter && <button className={s.deleteButton} onClick={() => setDeleting(character)} aria-label={xumengPageFill(copy.deleteNamed, { name: character.name })}>{copy.deleteWord}</button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? copy.noRolesYet : copy.noSavesYet}</Empty>)}
+    {tab === "conversations" && (conversations.length ? <div className={s.conversations}>{conversations.map((conversation) => <button key={conversation.id} onClick={() => onConversation(conversation)}><Icon name="chat" size={20} /><span><strong>{conversation.title}</strong><small>{conversation.messages.at(-1)?.content || copy.noMessagesYet}</small></span><time>{dateLabel(conversation.updatedAt)}</time></button>)}</div> : <Empty>{copy.noSessionsYet}</Empty>)}
+    {tab === "following" && (followed.length ? <div className={s.authorList}>{followed.map((author) => <button key={author.id} onClick={() => onAuthor(author)}><span className={s.smallAvatar}><UserMark /></span><span><strong>{author.name}</strong><small>{xumengPageFill(copy.worksCount, { count: author.characterIds.length })}</small></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>{copy.noFollowsYet}</Empty>)}
+    {deleting && <Dialog title={copy.deleteRoleTitle} onClose={() => setDeleting(null)}><p className={s.confirmText}>{xumengPageFill(copy.deleteRoleBody, { name: deleting.name })}</p><div className={s.dialogActions}><button className={s.outline} onClick={() => setDeleting(null)}>{copy.cancel}</button><button className={s.danger} onClick={() => { onDeleteCharacter?.(deleting); setDeleting(null); }}>{copy.deleteRole}</button></div></Dialog>}
   </main>;
 }
 
-export function InviteCenter({ user, onBack, onRegister, onWallet }: {
-  user: DzmmProfileUser | null; onBack: () => void; onRegister: () => void; onWallet: () => void;
+export function InviteCenter({ user, locale = "zh-Hans", onBack, onRegister, onWallet }: {
+  user: DzmmProfileUser | null; locale?: XumengLocale; onBack: () => void; onRegister: () => void; onWallet: () => void;
 }) {
+  const copy = xumengPage(locale);
   const [referral, setReferral] = useState<DzmmReferralInfo | null>(null);
   const [error, setError] = useState("");
   const [copyStatus, setCopyStatus] = useState("");
@@ -179,46 +184,46 @@ export function InviteCenter({ user, onBack, onRegister, onWallet }: {
     let active = true;
     if (!user || user.isGuest) return () => { active = false; };
     void fetchDzmmReferral().then(value => { if (active && value.accountId === user.id) setReferral(value); }).catch(failure => {
-      if (active) setError(failure instanceof Error ? failure.message : "邀请码暂时无法加载。");
+      if (active) setError(failure instanceof Error ? failure.message : copy.inviteLoadFailed);
     });
     return () => { active = false; };
   }, [user]);
   const reward = referral?.rewardPoints ?? 20;
   const activityReward = referral?.activityRewardPoints ?? 500;
   const activityDays = referral?.activityRewardDays ?? 3;
-  async function copy(value: string, success: string) {
+  async function copyText(value: string, success: string) {
     try { await navigator.clipboard.writeText(value); setCopyStatus(success); }
-    catch { setCopyStatus(`复制失败，请手动复制：${value}`); }
+    catch { setCopyStatus(xumengPageFill(copy.copyFailedValue, { value })); }
   }
   return <main className={s.page}>
     <header className={s.pageHeading}>
-      <button type="button" className={s.outline} onClick={onBack}>返回</button>
-      <div><h1>邀请好友</h1><p className={s.lead}>把专属链接发给朋友。朋友注册并充值后，奖励记在你的账上。</p></div>
+      <button type="button" className={s.outline} onClick={onBack}>{copy.back}</button>
+      <div><h1>{copy.inviteFriends}</h1><p className={s.lead}>{copy.inviteStep1}</p></div>
     </header>
-    <section className={s.referralCard} aria-label="邀请如何运作">
-      <div className={s.referralHeading}><div><span className={s.referralEyebrow}>如何运作</span><h2>注册一笔，活跃日再发</h2></div><strong>+{reward} / +{activityReward}</strong></div>
+    <section className={s.referralCard} aria-label={copy.inviteHow}>
+      <div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.howItWorks}</span><h2>{copy.inviteHeadline}</h2></div><strong>+{reward} / +{activityReward}</strong></div>
       <ol className={s.steps}>
-        <li>分享你的专属链接。朋友打开后，注册页会带上邀请码。</li>
-        <li>朋友完成注册，你获得 {reward} Credit。之后朋友每个北京时间日完成一轮成功对话，你再获得 {activityReward} Credit，最多 {activityDays} 天，同一天只发一次。已经发出的奖励不变。邀请码不能用于邀请自己。</li>
-        <li>朋友之后用微信支付充值或开通会员，实付金额按 {referral?.rebatePercent ?? "…"}% 记入人民币余额。这笔余额可兑换 Credit，也可申请提现。</li>
+        <li>{copy.inviteStep1}</li>
+        <li>{xumengPageFill(copy.inviteStep2, { reward, activity: activityReward, days: activityDays })}</li>
+        <li>{xumengPageFill(copy.inviteStep3, { percent: referral?.rebatePercent ?? "…" })}</li>
       </ol>
     </section>
-    {!user || user.isGuest ? <section className={s.referralCard}><h2>注册后获得邀请链接</h2><p>游客账号没有邀请码。注册正式账号后，才能把链接发给朋友。</p><button type="button" className={s.primary} onClick={onRegister}>注册并获取邀请码</button></section>
+    {!user || user.isGuest ? <section className={s.referralCard}><h2>{copy.inviteAfterRegister}</h2><p>{copy.guestNoCode}</p><button type="button" className={s.primary} onClick={onRegister}>{copy.registerForCode}</button></section>
       : error ? <p className={s.error} role="alert">{error}</p>
-      : referral ? <section className={s.referralCard} aria-label="我的邀请">
-        <div className={s.referralHeading}><div><span className={s.referralEyebrow}>我的邀请</span><h2>链接和邀请码</h2></div></div>
-        <div className={s.referralCode}><span>邀请链接</span><code className={s.referralLink}>{referral.inviteUrl}</code><button type="button" className={s.outline} disabled={!referral.inviteUrl} onClick={() => referral.inviteUrl && void copy(referral.inviteUrl, "邀请链接已复制。")}><Icon name="copy" size={14} />复制链接</button></div>
-        <div className={s.referralCode}><span>邀请码</span><code>{referral.inviteCode}</code><button type="button" className={s.outline} disabled={!referral.inviteCode} onClick={() => referral.inviteCode && void copy(referral.inviteCode, "邀请码已复制，粘贴到注册表单即可。")}><Icon name="copy" size={14} />复制邀请码</button></div>
-        <div className={s.referralStats}><span>已邀请 <strong>{referral.invitedCount}</strong> 人</span><span>累计获得 <strong>{referral.earnedPoints}</strong> Credit</span></div>
-        <div className={s.referralStats}><span>链接打开 <strong>{referral.opens ?? 0}</strong></span><span>完成注册 <strong>{referral.registrations ?? 0}</strong></span><span>开始聊天 <strong>{referral.startedChats ?? 0}</strong></span></div>
+      : referral ? <section className={s.referralCard} aria-label={copy.myInvites}>
+        <div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.myInvites}</span><h2>{copy.linkAndCode}</h2></div></div>
+        <div className={s.referralCode}><span>{copy.inviteLink}</span><code className={s.referralLink}>{referral.inviteUrl}</code><button type="button" className={s.outline} disabled={!referral.inviteUrl} onClick={() => referral.inviteUrl && void copyText(referral.inviteUrl, copy.linkCopied)}><Icon name="copy" size={14} />{copy.copyLink}</button></div>
+        <div className={s.referralCode}><span>{copy.inviteCode}</span><code>{referral.inviteCode}</code><button type="button" className={s.outline} disabled={!referral.inviteCode} onClick={() => referral.inviteCode && void copyText(referral.inviteCode, copy.codeCopied)}><Icon name="copy" size={14} />{copy.copyCode}</button></div>
+        <div className={s.referralStats}><span>{xumengPageFill(copy.invitedPeople, { count: referral.invitedCount })}</span><span>{xumengPageFill(copy.earnedCredit, { count: referral.earnedPoints })}</span></div>
+        <div className={s.referralStats}><span>{xumengPageFill(copy.opens, { count: referral.opens ?? 0 })}</span><span>{xumengPageFill(copy.registrations, { count: referral.registrations ?? 0 })}</span><span>{xumengPageFill(copy.startedChats, { count: referral.startedChats ?? 0 })}</span></div>
         {XUMENG_POSTERS.map((poster) => {
-          const label = poster === "catch" ? "今晚想被谁抓住" : poster === "waiting" ? "她已经在等你了" : "准备好被盯着了吗";
+          const label = poster === "catch" ? copy.posterCatch : poster === "waiting" ? copy.posterWaiting : copy.posterStare;
           const url = `${window.location.origin}${posterShareLocation(poster, referral.inviteCode)}`;
-          return <div className={s.referralCode} key={poster}><span>海报 · {label}</span><code className={s.referralLink}>{url}</code><button type="button" className={s.outline} onClick={() => void copy(url, "海报链接已复制。")}><Icon name="copy" size={14} />复制链接</button></div>;
+          return <div className={s.referralCode} key={poster}><span>{xumengPageFill(copy.posterLabel, { label })}</span><code className={s.referralLink}>{url}</code><button type="button" className={s.outline} onClick={() => void copyText(url, copy.posterCopied)}><Icon name="copy" size={14} />{copy.copyLink}</button></div>;
         })}
-      </section> : <p className={s.lead}>正在读取邀请码…</p>}
+      </section> : <p className={s.lead}>{copy.loadingCode}</p>}
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
-    <p className={s.lead}>梦币余额、兑换和提现记录在个人主页。<button type="button" className={s.textLink} onClick={onWallet}>查看梦币</button></p>
+    <p className={s.lead}>{copy.dreamCoinNote}<button type="button" className={s.textLink} onClick={onWallet}>{copy.viewDreamCoin}</button></p>
   </main>;
 }
 

@@ -12,6 +12,7 @@ import { DzmmValidationError } from "../../../src/lib/dzmm-chat";
 import { handleDzmmNovelPost } from "../../../src/lib/dzmm-novel-handler";
 import { handleDzmmReplySuggestionsPost } from "../../../src/lib/dzmm-reply-suggestions-handler";
 import { handleDzmmIllustrationsPost } from "../../../src/lib/dzmm-illustration-handler";
+import { handleCoverCaptionPost } from "../../../src/lib/dzmm-cover-caption-handler";
 import { dzmmModelCostPolicy, findDzmmProviderModel } from "../../../src/lib/dzmm-models";
 import { DzmmBillingError, readDzmmProviderMaxPrice, type DzmmBillingLifecycle, type DzmmBillingRpcBinding } from "../../../src/lib/dzmm-generation-billing";
 import { readDzmmProviderConfig } from "../../../src/lib/dzmm-chat";
@@ -1080,9 +1081,9 @@ function billingLifecycle(request: Request, env: Env, accountId: string, request
   } };
 }
 
-async function chat(request: Request, env: Env, options: DzmmChatHandlerOptions, memory = false, novel = false, suggestions = false, illustrations = false): Promise<Response> {
-  if (request.method === "GET" && !memory && !novel && !suggestions && !illustrations) return handleDzmmChatGet(chatEnvironment(env));
-  if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: memory || novel || suggestions || illustrations ? "POST" : "GET, POST" });
+async function chat(request: Request, env: Env, options: DzmmChatHandlerOptions, memory = false, novel = false, suggestions = false, illustrations = false, coverCaption = false): Promise<Response> {
+  if (request.method === "GET" && !memory && !novel && !suggestions && !illustrations && !coverCaption) return handleDzmmChatGet(chatEnvironment(env));
+  if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: memory || novel || suggestions || illustrations || coverCaption ? "POST" : "GET, POST" });
   if (request.headers.get("Content-Type")?.split(";", 1)[0].trim().toLowerCase() !== "application/json") {
     return json({ error: "聊天请求应为 JSON。" }, 415);
   }
@@ -1096,7 +1097,7 @@ async function chat(request: Request, env: Env, options: DzmmChatHandlerOptions,
   // IP limits survive guest-cookie rotation; user limits follow an account
   // across IPs. Cloudflare counters are per location and eventually consistent.
   const limiter = memory ? env.MEMORY_RATE_LIMITER ?? env.CHAT_RATE_LIMITER : env.CHAT_RATE_LIMITER;
-  const kind = memory ? "memory" : illustrations ? "illustration" : suggestions ? "reply-suggestions" : "chat";
+  const kind = memory ? "memory" : coverCaption ? "cover-caption" : illustrations ? "illustration" : suggestions ? "reply-suggestions" : "chat";
   const ipLimit = await limiter.limit({ key: `${kind}:ip:${ip}` });
   const userLimit = ipLimit.success && await limiter.limit({ key: `${kind}:user:${userId}` });
   if (!ipLimit.success || !userLimit || !userLimit.success) {
@@ -1106,6 +1107,7 @@ async function chat(request: Request, env: Env, options: DzmmChatHandlerOptions,
   const handlerOptions = { ...options, billing };
   const response = await (memory ? handleDzmmMemoryPost(request, chatEnvironment(env), handlerOptions)
     : novel ? handleDzmmNovelPost(request, chatEnvironment(env), handlerOptions)
+      : coverCaption ? handleCoverCaptionPost(request, chatEnvironment(env), handlerOptions)
       : illustrations ? handleDzmmIllustrationsPost(request, chatEnvironment(env), handlerOptions)
         : suggestions ? handleDzmmReplySuggestionsPost(request, chatEnvironment(env), handlerOptions) : handleDzmmChatPost(request, chatEnvironment(env), handlerOptions));
   const headers = new Headers(response.headers);
@@ -1361,6 +1363,7 @@ export async function fetchRequest(
       if (path === "/api/novel-generation") return await chat(request, env, options, false, true);
       if (path === "/api/reply-suggestions" || path === "/api/dzmm/reply-suggestions") return await chat(request, env, options, false, false, true);
       if (path === "/api/illustrations" || path === "/api/dzmm/illustrations") return await chat(request, env, options, false, false, false, true);
+      if (path === "/api/cover-caption") return await chat(request, env, options, false, false, false, false, true);
       if (path === "/api/live" || path.startsWith("/api/live/")) return await handleLiveGateway(request, env);
       return json({ error: "接口不存在。" }, 404);
     }

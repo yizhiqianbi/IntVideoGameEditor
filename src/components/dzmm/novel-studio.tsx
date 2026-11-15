@@ -13,6 +13,8 @@ import type { Character } from "../../lib/dzmm-characters";
 import { parseXumengNovelCharacters, xumengPerformanceFromCard, xumengPerformanceFromNovel,
   type XumengLiveVoice, type XumengNovelCharacter, type XumengPerformanceCharacter } from "../../lib/xumeng-performance-character";
 import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE } from "../../lib/xumeng-feature-availability";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengStudio, xumengStudioFill } from "../../lib/xumeng-studio-copy";
 import Icon from "./icons";
 import { XUMENG_DEFAULT_SPEECH_VOICE, XUMENG_SPEECH_VOICE_GROUPS, XUMENG_SPEECH_VOICES, XUMENG_LIVE_VOICE_OPTIONS, type XumengSpeechVoiceId } from "../../lib/xumeng-voices";
 import s from "./novel-studio.module.css";
@@ -24,6 +26,7 @@ export type NovelStudioProps = {
   userId?: string; isGuest: boolean; onRequireAccount: () => void; onBack?: () => void;
   onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void;
   characters?: Character[]; onPerformCharacter?: (profile: XumengPerformanceCharacter, target: "live" | "voice") => void;
+  locale?: XumengLocale;
 };
 type Editor = Omit<DzmmNovelRecovery, "updatedAt">;
 type Section = "settings" | "outline" | "characters" | "chapter" | "read";
@@ -32,9 +35,8 @@ type Preview = { accountId: string; workId: string; chapterId: string | null; op
 type PerformanceRequest = { id: string; target: "live" | "voice"; includeContext: boolean; accountId: string; workId: string; generation: number };
 type Dialog = { type: "leave" | "preview"; action: () => void; label: string } | { type: "chapter" | "character"; id: string }
   | { type: "perform"; request: PerformanceRequest } | { type: "work" } | { type: "recovery"; entry: DzmmNovelRecoveryEntry };
-const errorText = (error: unknown) => error instanceof Error ? error.message : "操作失败，当前正文已保留。";
-const date = (timestamp: number) => new Date(timestamp).toLocaleString("zh-CN", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
-const filename = (title: string) => (title.trim() || "未命名作品").replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-");
+const errorText = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
+const filename = (title: string, untitled: string) => (title.trim() || untitled).replace(/[\\/:*?"<>|\u0000-\u001f]/g, "-");
 function characterImage(value: string) {
   if (!value) return null;
   if (value.startsWith("/") && !value.startsWith("//") && !value.includes("\\")) return value;
@@ -51,7 +53,9 @@ function download(name: string, text: string, mime: string) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-export default function NovelStudio({ onSaved, onNavigate, initialId, initialType, userId, isGuest, onRequireAccount, onBack, onDirtyChange, onBusyChange, characters = [], onPerformCharacter }: NovelStudioProps) {
+export default function NovelStudio({ onSaved, onNavigate, initialId, initialType, userId, isGuest, locale = "zh-Hans", onRequireAccount, onBack, onDirtyChange, onBusyChange, characters = [], onPerformCharacter }: NovelStudioProps) {
+  const c = xumengStudio(locale);
+  const stamp = (timestamp: number) => new Date(timestamp).toLocaleString(locale === "zh-Hans" ? "zh-CN" : locale === "zh-Hant" ? "zh-TW" : locale === "ja" ? "ja" : locale === "ko" ? "ko" : "en", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   const [library, setLibrary] = useState<{ accountId: string; works: DzmmNovelWorkSummary[] } | null>(null);
   const [editor, setEditor] = useState<Editor | null>(null);
   const [section, setSection] = useState<Section>("settings");
@@ -119,7 +123,7 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
         if (valid()) replaceEditor({ accountId, draft, baseVersion: null, selectedChapterId: draft.chapters[0]?.id ?? null }, true);
       }
     })
-      .catch(failure => { if (valid() && !abort.signal.aborted) setError(errorText(failure)); })
+      .catch(failure => { if (valid() && !abort.signal.aborted) setError(errorText(failure, c.nvFailed)); })
       .finally(() => { if (valid()) { actionRef.current = null; setAction(null); } });
     return () => abort.abort();
   }, [userId, isGuest, initialId, initialType]);
@@ -188,11 +192,11 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
     if (entry.accountId !== activeAccount.current || guestRef.current || !mounted.current || actionRef.current) return;
     try {
       const latest = readDzmmNovelRecoveries(entry.accountId).find(candidate => candidate.storageKey === entry.storageKey);
-      if (!latest) { syncRecoveries(entry.accountId); setNotice("这份恢复副本已更新或被放弃，请选择当前显示的版本。"); return; }
+      if (!latest) { syncRecoveries(entry.accountId); setNotice(c.nvRecoveryStale); return; }
       copySources.current.delete(latest.draft.id);
       replaceEditor({ accountId: latest.accountId, draft: latest.draft, baseVersion: latest.baseVersion, selectedChapterId: latest.selectedChapterId }, true);
       callbacks.current.onNavigate?.(latest.baseVersion === null ? "new" : latest.draft.id, latest.draft.type);
-      setNotice("已载入恢复稿。原恢复副本仍保留，需要时可单独放弃。");
+      setNotice(c.nvRecoveryLoaded);
     } catch { setStorageError(true); }
   }
   function clearPreview() { previewRef.current = null; setPreview(null); callbacks.current.onDirtyChange?.(dirtyRef.current); }
@@ -218,7 +222,7 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
     const valid = () => mounted.current && generation === epoch.current && accountId === activeAccount.current && !guestRef.current;
     try { await task(accountId, abort.signal, valid); return valid(); }
     catch (failure) {
-      if (valid()) { setError(errorText(failure)); if (failure instanceof DzmmNovelClientError && failure.status === 409) setConflict(true); }
+      if (valid()) { setError(errorText(failure, c.nvFailed)); if (failure instanceof DzmmNovelClientError && failure.status === 409) setConflict(true); }
       return false;
     } finally { if (valid()) { actionRef.current = null; controller.current = null; setAction(null); callbacks.current.onBusyChange?.(false); } }
   }
@@ -228,7 +232,7 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
       const draft = createDzmmNovelDraft(type);
       replaceEditor({ accountId, draft, baseVersion: null, selectedChapterId: draft.chapters[0]?.id ?? null }, true);
       callbacks.current.onNavigate?.("new", type);
-    }, "创建新作品");
+    }, c.nvCreateWork);
   }
   async function open(workId: string) {
     await run("load", async (accountId, signal, valid) => {
@@ -248,7 +252,7 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
     if (!snapshot || snapshot.accountId !== activeAccount.current || guestRef.current || !mounted.current || actionRef.current) return false;
     const originalRecovery = ownRecovery.current;
     if (copy) {
-      const draft = { ...cloneDzmmNovelDraft(snapshot.draft), title: `${snapshot.draft.title.slice(0, 116)}（副本）` };
+      const draft = { ...cloneDzmmNovelDraft(snapshot.draft), title: xumengStudioFill(c.nvCopySuffix, { title: snapshot.draft.title.slice(0, 116) }) };
       const sourcePreview = previewRef.current;
       // A copy has new chapter IDs. Keep an uninserted preview attached to the
       // corresponding copied chapter, even when the save fails. A deleted
@@ -273,7 +277,7 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
       for (const entry of migratedRecoveries) forgetRecovery(entry);
       copySources.current.delete(saving.draft.id);
       if (copy) copySources.current.delete(snapshot.draft.id);
-      setConflict(false); setNotice("私人作品已保存。"); saved = true; callbacks.current.onSaved?.(detail.work.id);
+      setConflict(false); setNotice(c.nvWorkSaved); saved = true; callbacks.current.onSaved?.(detail.work.id);
       // A list refresh failure must never turn a confirmed save into a failed save.
       try { const page = await fetchDzmmNovels(accountId, signal); if (valid()) setLibrary(page); } catch { /* The saved detail remains authoritative. */ }
     });
@@ -303,23 +307,23 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
   async function importFile(file?: File) {
     if (!file) return;
     await run("import", async (accountId, _signal, valid) => {
-      if (file.size > 1_500_000) throw new Error("导入文件不能超过 1.5 MB。");
+      if (file.size > 1_500_000) throw new Error(c.nvImportBig);
       const format = /\.json$/i.test(file.name) ? "json" : /\.txt$/i.test(file.name) ? "txt" : null;
-      if (!format) throw new Error("请选择 TXT 故事或叙梦导出的 JSON 作品。");
+      if (!format) throw new Error(c.nvImportType);
       const draft = parseDzmmNovelImport(decodeDzmmNovelImportBytes(await file.arrayBuffer()), { format, filename: file.name });
-      if (valid()) { replaceEditor({ accountId, draft, baseVersion: null, selectedChapterId: draft.chapters[0]?.id ?? null }, true); callbacks.current.onNavigate?.("new", draft.type); setNotice("已载入编辑器。保存后成为新的私人作品。"); }
+      if (valid()) { replaceEditor({ accountId, draft, baseVersion: null, selectedChapterId: draft.chapters[0]?.id ?? null }, true); callbacks.current.onNavigate?.("new", draft.type); setNotice(c.nvImported); }
     });
   }
   function exportWork(format: "json" | "txt") {
     const snapshot = editorRef.current; if (!snapshot || snapshot.accountId !== activeAccount.current) return;
     try {
-      download(`${filename(snapshot.draft.title)}.${format}`, format === "json" ? exportDzmmNovelJson(snapshot.draft) : exportDzmmNovelText(snapshot.draft), format === "json" ? "application/json;charset=utf-8" : "text/plain;charset=utf-8");
-      setNotice("已导出当前稿件，包含尚未保存的修改。");
-    } catch (failure) { setError(errorText(failure)); }
+      download(`${filename(snapshot.draft.title, c.nvUntitled)}.${format}`, format === "json" ? exportDzmmNovelJson(snapshot.draft) : exportDzmmNovelText(snapshot.draft), format === "json" ? "application/json;charset=utf-8" : "text/plain;charset=utf-8");
+      setNotice(c.nvExported);
+    } catch (failure) { setError(errorText(failure, c.nvFailed)); }
   }
   function addChapter() {
     if (!current || current.draft.chapters.length >= 100) return;
-    const added = { id: crypto.randomUUID(), title: `第${current.draft.chapters.length + 1}章`, content: "" };
+    const added = { id: crypto.randomUUID(), title: xumengStudioFill(c.nvChapterN, { n: current.draft.chapters.length + 1 }), content: "" };
     commit({ ...current, selectedChapterId: added.id, draft: { ...current.draft, chapters: [...current.draft.chapters, added] } }, true); setIncludeChapterContext(false); setSection("chapter");
   }
   function selectChapter(id: string) {
@@ -340,14 +344,14 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
     if (!snapshot || snapshot.accountId !== activeAccount.current || guestRef.current || actionRef.current || (snapshot.draft.characters?.length ?? 0) >= 30) return;
     const imported = card ? xumengPerformanceFromCard(card) : copy;
     const profile: XumengNovelCharacter = imported ? {
-      id: crypto.randomUUID(), name: imported.name.trim() || "导入人物", avatar: imported.avatar,
+      id: crypto.randomUUID(), name: imported.name.trim() || c.nvImportPerson, avatar: imported.avatar,
       description: imported.description, personality: imported.personality, scenario: imported.scenario,
       dialogue: imported.dialogue, liveVoice: imported.liveVoice, speechVoice: imported.speechVoice ?? XUMENG_DEFAULT_SPEECH_VOICE,
-    } : { id: crypto.randomUUID(), name: `人物 ${(snapshot.draft.characters?.length ?? 0) + 1}`, avatar: "",
+    } : { id: crypto.randomUUID(), name: xumengStudioFill(c.nvPersonIndex, { n: (snapshot.draft.characters?.length ?? 0) + 1 }), avatar: "",
       description: "", personality: "", scenario: "", dialogue: "", liveVoice: "zh_female_liuchangnv_uranus_bigtts", speechVoice: XUMENG_DEFAULT_SPEECH_VOICE };
     updateDraft(draft => ({ ...draft, characters: [...(draft.characters ?? []), profile] }));
     setSelectedCharacterId(profile.id); setIncludeChapterContext(false); setSection("characters");
-    if (card) { setImportCharacterId(""); setNotice("已复制角色卡的形象与人物设定。可在这部作品中独立修改。"); }
+    if (card) { setImportCharacterId(""); setNotice(c.nvPersonCopied); }
   }
   function updateCharacter(id: string, field: Exclude<keyof XumengNovelCharacter, "id">, value: string) {
     updateDraft(draft => ({ ...draft, characters: (draft.characters ?? []).map(item => item.id === id ? { ...item, [field]: value } : item) }));
@@ -364,14 +368,14 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
       const context = request.includeContext ? snapshot.draft.chapters.find(item => item.id === snapshot.selectedChapterId)?.content ?? "" : "";
       const performance = xumengPerformanceFromNovel(validated, snapshot.draft, context);
       setDialog(null); callbacks.current.onPerformCharacter(performance, request.target);
-    } catch (failure) { setError(errorText(failure)); }
+    } catch (failure) { setError(errorText(failure, c.nvFailed)); }
   }
   function requestPerformance(id: string, target: "live" | "voice") {
     if (target === "live" && !XUMENG_CALLS_ENABLED) { setNotice(XUMENG_CALLS_LOCKED_MESSAGE); return; }
     const snapshot = editorRef.current;
     if (!snapshot || !callbacks.current.onPerformCharacter || snapshot.accountId !== activeAccount.current || guestRef.current || actionRef.current) return;
     if (previewRef.current?.text) {
-      setError("请先把 AI 预览插入稿件，或手动放弃预览，再给人物打电话或生成语音。");
+      setError(c.nvPreviewBeforeCall);
       document.getElementById("novel-ai-preview")?.scrollIntoView({ behavior: "smooth", block: "start" }); return;
     }
     const request: PerformanceRequest = { id, target, includeContext: includeChapterContext, accountId: snapshot.accountId,
@@ -390,13 +394,13 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
       if (entry.accountId !== activeAccount.current || guestRef.current || !mounted.current || actionRef.current) return;
       try {
         dismissDzmmNovelRecovery(entry); syncRecoveries(entry.accountId); setDialog(null);
-        setNotice("已放弃所选恢复版本。其他页面继续编辑后，新版本仍会显示。");
-      } catch { setStorageError(true); setError("无法放弃这份恢复副本，内容仍保留。请先导出备份后重试。"); }
+        setNotice(c.nvRecoveryDropped);
+      } catch { setStorageError(true); setError(c.nvRecoveryDropFailed); }
     } else if (dialog?.type === "character") {
       const id = dialog.id;
       if (actionRef.current || !editorRef.current) return;
       updateDraft(draft => ({ ...draft, characters: (draft.characters ?? []).filter(item => item.id !== id) }));
-      setDialog(null); setIncludeChapterContext(false); setNotice("人物档案已移除，保存后生效。");
+      setDialog(null); setIncludeChapterContext(false); setNotice(c.nvPersonRemoved);
     } else if (dialog?.type === "chapter") {
       const id = dialog.id, snapshot = editorRef.current;
       if (snapshot && !actionRef.current) {
@@ -404,14 +408,14 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
         commit({ ...snapshot, draft: { ...snapshot.draft, chapters }, selectedChapterId: snapshot.selectedChapterId === id ? chapters[0]?.id ?? null : snapshot.selectedChapterId }, true);
         setIncludeChapterContext(false);
         const preservesPreview = previewRef.current?.chapterId === id && Boolean(previewRef.current.text);
-        setDialog(null); setNotice(preservesPreview ? "章节已从草稿移除，保存后生效。AI 预览仍保留，可导出或插入新章节。" : "章节已从草稿移除，保存后生效。");
+        setDialog(null); setNotice(preservesPreview ? c.nvChapterRemovedPreview : c.nvChapterRemoved);
       }
     } else if (dialog?.type === "work") {
       const snapshot = editorRef.current; if (!snapshot || snapshot.baseVersion === null) return;
       const deletingRecovery = ownRecovery.current?.draft.id === snapshot.draft.id ? ownRecovery.current : null;
       await run("delete", async (accountId, signal, valid) => {
         await deleteDzmmNovel(accountId, snapshot.draft.id, snapshot.baseVersion!, signal);
-        if (valid()) { forgetRecovery(deletingRecovery); editorRef.current = null; dirtyRef.current = false; setEditor(null); setDirty(false); clearPreview(); setDialog(null); setConflict(false); setNotice("私人作品已删除。");
+        if (valid()) { forgetRecovery(deletingRecovery); editorRef.current = null; dirtyRef.current = false; setEditor(null); setDirty(false); clearPreview(); setDialog(null); setConflict(false); setNotice(c.nvWorkDeleted);
           try { const value = await fetchDzmmNovels(accountId, signal); if (valid()) setLibrary(value); } catch { if (valid()) setLibrary(previous => previous ? { ...previous, works: previous.works.filter(item => item.id !== snapshot.draft.id) } : null); }
         }
       });
@@ -419,9 +423,9 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
   }
   async function generate(operation: "outline" | "continue") {
     const snapshot = editorRef.current; if (!snapshot || snapshot.accountId !== activeAccount.current) return;
-    if (!snapshot.draft.title.trim()) { setSection("settings"); setError("请先填写作品标题，再开始 AI 创作。"); return; }
+    if (!snapshot.draft.title.trim()) { setSection("settings"); setError(c.nvNeedTitle); return; }
     const target = snapshot.draft.chapters.find(item => item.id === snapshot.selectedChapterId);
-    if (operation === "continue" && !target) { setError("请先创建并选择一个章节。"); return; }
+    if (operation === "continue" && !target) { setError(c.nvNeedChapter); return; }
     await run("generate", async (accountId, signal, valid) => {
       const initial: Preview = { accountId, workId: snapshot.draft.id, chapterId: operation === "continue" ? target!.id : null, operation, text: "", state: "running" };
       previewRef.current = initial; setPreview(initial);
@@ -432,10 +436,10 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
         await generateDzmmNovel({ operation, work, model, maxTokens: 2048,
           ...(operation === "continue" ? { chapter: { title: target!.title, content: target!.content.slice(-12000) }, ...(recentContext ? { recentContext } : {}) } : {}) },
         { signal, onDelta: delta => { if (!valid()) return; const value = previewRef.current; if (!value || value.accountId !== accountId) return; const next = { ...value, text: value.text + delta }; previewRef.current = next; setPreview(next); } });
-        if (valid()) { const value = previewRef.current!; const next = { ...value, state: "ready" as const }; previewRef.current = next; setPreview(next); if (!value.text.trim()) throw new Error("本次生成没有正文，原稿未改变。"); }
+        if (valid()) { const value = previewRef.current!; const next = { ...value, state: "ready" as const }; previewRef.current = next; setPreview(next); if (!value.text.trim()) throw new Error(c.nvNoGenerated); }
       } catch (failure) {
         if (valid() && previewRef.current) { const next = { ...previewRef.current, state: signal.aborted ? "stopped" as const : "failed" as const }; previewRef.current = next; setPreview(next);
-          if (signal.aborted) { setNotice("已停止生成，收到的内容仍保留在预览中。"); return; }
+          if (signal.aborted) { setNotice(c.nvStoppedNotice); return; }
         }
         throw failure;
       }
@@ -446,104 +450,104 @@ export default function NovelStudio({ onSaved, onNavigate, initialId, initialTyp
     if (!value?.text.trim() || !snapshot || actionRef.current || guestRef.current || !mounted.current
       || value.accountId !== activeAccount.current || snapshot.accountId !== activeAccount.current || value.workId !== snapshot.draft.id) return;
     if (value.operation === "outline") {
-      if (value.text.length > 20000) { setError("预览大纲超过 20,000 字，请复制后缩短，再填写到大纲中。"); return; }
+      if (value.text.length > 20000) { setError(c.nvOutlineLong); return; }
       updateDraft(draft => ({ ...draft, outline: value.text })); setSection("outline");
     } else {
       const target = snapshot.draft.chapters.find(item => item.id === value.chapterId);
       if (!target) {
-        if (snapshot.draft.chapters.length >= 100) { setError("作品已达到 100 章，预览仍保留。请先导出预览，或移除一个章节后重试。"); return; }
-        if (value.text.length > 50000) { setError("预览超过 50,000 字，无法插入新章节。请先导出预览并拆分正文。"); return; }
-        const added = { id: crypto.randomUUID(), title: `第${snapshot.draft.chapters.length + 1}章`, content: value.text };
+        if (snapshot.draft.chapters.length >= 100) { setError(c.nvChapterLimit); return; }
+        if (value.text.length > 50000) { setError(c.nvPreviewLong); return; }
+        const added = { id: crypto.randomUUID(), title: xumengStudioFill(c.nvChapterN, { n: snapshot.draft.chapters.length + 1 }), content: value.text };
         commit({ ...snapshot, selectedChapterId: added.id, draft: { ...snapshot.draft, chapters: [...snapshot.draft.chapters, added] } }, true);
       } else {
         const content = target.content + (target.content ? "\n\n" : "") + value.text;
-        if (content.length > 50000) { setError("追加后章节超过 50,000 字。请复制预览内容并创建新章节。"); return; }
+        if (content.length > 50000) { setError(c.nvAppendLong); return; }
         updateDraft(draft => ({ ...draft, chapters: draft.chapters.map(item => item.id === target.id ? { ...item, content } : item) }));
         const next = editorRef.current!; commit({ ...next, selectedChapterId: target.id }, true);
       }
       setSection("chapter");
     }
-    clearPreview(); setNotice("预览内容已加入稿件，请保存作品。");
+    clearPreview(); setNotice(c.nvPreviewInserted);
   }
   function requestGenerate(operation: "outline" | "continue") {
     if (actionRef.current) return;
-    if (previewRef.current?.text) setDialog({ type: "preview", action: () => { void generate(operation); }, label: "生成新的 AI 预览" });
+    if (previewRef.current?.text) setDialog({ type: "preview", action: () => { void generate(operation); }, label: c.nvNewPreview });
     else void generate(operation);
   }
   function renderCharacters() {
     if (!current) return null;
     return <>
-      <div className={s.sectionHead}><div><p className={s.eyebrow}>作品人物</p><h2>人物 <span>{cast.length} / 30</span></h2></div><button type="button" className={s.primary} disabled={busy || cast.length >= 30} onClick={() => addCharacter()}><Icon name="plus" size={15} />新建人物</button></div>
-      <p className={s.help}>人物档案随作品保存。可以手动填写，也可以复制已有角色卡的设定。</p>
-      {characters.length > 0 && <div className={s.castImport}><label htmlFor="novel-import-character">从角色卡导入<select id="novel-import-character" value={importCharacterId} disabled={busy || cast.length >= 30} onChange={event => setImportCharacterId(event.target.value)}><option value="">选择已有角色卡</option>{characters.map(item => <option key={item.id} value={item.id}>{item.name}{item.author ? ` · ${item.author}` : ""}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy || cast.length >= 30 || !characters.some(item => item.id === importCharacterId)} onClick={() => { const card = characters.find(item => item.id === importCharacterId); if (card) addCharacter(card); }}><Icon name="upload" size={15} />导入人物</button></div>}
-      {cast.length >= 30 && <p className={s.help}>已达到 30 位人物。移除一位后可以继续添加。</p>}
+      <div className={s.sectionHead}><div><p className={s.eyebrow}>{c.nvPeopleEyebrow}</p><h2>{c.nvPeople} <span>{cast.length} / 30</span></h2></div><button type="button" className={s.primary} disabled={busy || cast.length >= 30} onClick={() => addCharacter()}><Icon name="plus" size={15} />{c.nvNewPerson}</button></div>
+      <p className={s.help}>{c.nvPeopleHelp}</p>
+      {characters.length > 0 && <div className={s.castImport}><label htmlFor="novel-import-character">{c.nvImportCard}<select id="novel-import-character" value={importCharacterId} disabled={busy || cast.length >= 30} onChange={event => setImportCharacterId(event.target.value)}><option value="">{c.nvPickCard}</option>{characters.map(item => <option key={item.id} value={item.id}>{item.name}{item.author ? ` · ${item.author}` : ""}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy || cast.length >= 30 || !characters.some(item => item.id === importCharacterId)} onClick={() => { const card = characters.find(item => item.id === importCharacterId); if (card) addCharacter(card); }}><Icon name="upload" size={15} />{c.nvImportPerson}</button></div>}
+      {cast.length >= 30 && <p className={s.help}>{c.nvPeopleLimit}</p>}
       {selectedCharacter ? <div className={s.castWorkspace}>
-        <nav className={s.castList} aria-label="作品人物列表">{cast.map(item => <button key={item.id} type="button" className={item.id === selectedCharacter.id ? s.selectedCharacter : ""} aria-pressed={item.id === selectedCharacter.id} disabled={busy} onClick={() => selectCharacter(item.id)}><CharacterAvatar profile={item} /><span><strong>{item.name || "未命名人物"}</strong><small>{item.description || "尚未填写人物描述"}</small></span></button>)}</nav>
+        <nav className={s.castList} aria-label={c.nvPeopleList}>{cast.map(item => <button key={item.id} type="button" className={item.id === selectedCharacter.id ? s.selectedCharacter : ""} aria-pressed={item.id === selectedCharacter.id} disabled={busy} onClick={() => selectCharacter(item.id)}><CharacterAvatar profile={item} /><span><strong>{item.name || c.nvUnnamedPerson}</strong><small>{item.description || c.nvNoPersonDesc}</small></span></button>)}</nav>
         <div className={s.castInspector}>
-          <div className={s.castIdentity}><CharacterAvatar profile={selectedCharacter} large /><div><p className={s.eyebrow}>人物档案</p><h3>{selectedCharacter.name || "未命名人物"}</h3></div><div className={s.castTools}><button type="button" className={s.iconButton} aria-label="复制当前人物" title="复制人物" disabled={busy || cast.length >= 30} onClick={() => addCharacter(undefined, selectedCharacter)}><Icon name="copy" size={16} /></button><button type="button" className={s.iconButton} aria-label="删除当前人物" title="删除人物" disabled={busy} onClick={() => setDialog({ type: "character", id: selectedCharacter.id })}><Icon name="close" size={16} /></button></div></div>
-          <label className={s.field}><span>姓名 <small>{selectedCharacter.name.length} / 120</small></span><input value={selectedCharacter.name} maxLength={120} disabled={busy} placeholder="人物姓名" onChange={event => updateCharacter(selectedCharacter.id, "name", event.target.value)} /></label>
-          <label className={s.field}><span>形象图片 <small>选填</small></span><input value={selectedCharacter.avatar} maxLength={2048} disabled={busy} placeholder="HTTPS 图片地址或本站图片路径" onChange={event => updateCharacter(selectedCharacter.id, "avatar", event.target.value)} /><em>导入角色卡会带入封面，也可以填写自己的图片地址。</em></label>
-          <label className={s.field}><span>人物描述 <small>{selectedCharacter.description.length} / 2,000</small></span><textarea value={selectedCharacter.description} maxLength={2000} disabled={busy} rows={4} placeholder="身份、背景、外貌，以及人物当前的目标。" onChange={event => updateCharacter(selectedCharacter.id, "description", event.target.value)} /></label>
-          <label className={s.field}><span>性格与表达 <small>{selectedCharacter.personality.length} / 2,000</small></span><textarea value={selectedCharacter.personality} maxLength={2000} disabled={busy} rows={4} placeholder="人物如何待人、面对冲突、表达情绪？有什么说话习惯？" onChange={event => updateCharacter(selectedCharacter.id, "personality", event.target.value)} /></label>
-          <label className={s.field}><span>初始场景 <small>{selectedCharacter.scenario.length} / 2,000</small></span><textarea value={selectedCharacter.scenario} maxLength={2000} disabled={busy} rows={4} placeholder="人物在哪里？正面对什么处境？与观众从什么关系开始？" onChange={event => updateCharacter(selectedCharacter.id, "scenario", event.target.value)} /></label>
-          <label className={s.field}><span>台词示例 <small>{selectedCharacter.dialogue.length} / 2,000</small></span><textarea value={selectedCharacter.dialogue} maxLength={2000} disabled={busy} rows={5} placeholder="写下能体现人物口吻的台词，也可以作为生成语音的起点。" onChange={event => updateCharacter(selectedCharacter.id, "dialogue", event.target.value)} /></label>
-          <label className={s.field}><span>通话音色</span><select aria-label="人物通话音色" value={selectedCharacter.liveVoice} disabled={busy} onChange={event => updateCharacter(selectedCharacter.id, "liveVoice", event.target.value as XumengLiveVoice)}>{["默认", "女声", "男声"].map(group => <optgroup key={group} label={group}>{XUMENG_LIVE_VOICE_OPTIONS.filter(item => item.group === group).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select></label>
-          <label className={s.field}><span>朗读音色</span><select aria-label="人物朗读音色" value={selectedCharacter.speechVoice ?? XUMENG_DEFAULT_SPEECH_VOICE} disabled={busy} onChange={event => updateCharacter(selectedCharacter.id, "speechVoice", event.target.value as XumengSpeechVoiceId)}>{XUMENG_SPEECH_VOICE_GROUPS.map(group => <optgroup key={group} label={group}>{XUMENG_SPEECH_VOICES.filter(voice => voice.group === group).map(voice => <option key={voice.id} value={voice.id}>{voice.label}</option>)}</optgroup>)}</select></label>
-          {onPerformCharacter && <div className={s.castHandoff}><p className={s.help}>用这位人物的形象与设定拨打电话，或生成角色语音。</p><label className={s.castContext}><input type="checkbox" checked={includeChapterContext && Boolean(chapter?.content.trim())} disabled={busy || !chapter?.content.trim()} onChange={event => setIncludeChapterContext(event.target.checked)} /><span>{chapter?.content.trim() ? <>附带「{chapter.title || "当前章节"}」章末最多 2,000 字作为剧情参考</> : "选择有正文的章节后，可附带章末剧情参考"}</span></label><div className={s.castHandoffActions}><button type="button" className={s.primary} disabled={busy} title={XUMENG_CALLS_ENABLED ? "语音通话和视频通话" : XUMENG_CALLS_LOCKED_MESSAGE} onClick={() => requestPerformance(selectedCharacter.id, "live")}><Icon name={XUMENG_CALLS_ENABLED ? "video" : "lock"} size={16} />{XUMENG_CALLS_ENABLED ? "打电话" : "通话已锁"}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => requestPerformance(selectedCharacter.id, "voice")}><Icon name="volume" size={16} />生成语音</button></div></div>}
+          <div className={s.castIdentity}><CharacterAvatar profile={selectedCharacter} large /><div><p className={s.eyebrow}>{c.nvProfile}</p><h3>{selectedCharacter.name || c.nvUnnamedPerson}</h3></div><div className={s.castTools}><button type="button" className={s.iconButton} aria-label={c.nvCopyPerson} title={c.nvCopyPersonTitle} disabled={busy || cast.length >= 30} onClick={() => addCharacter(undefined, selectedCharacter)}><Icon name="copy" size={16} /></button><button type="button" className={s.iconButton} aria-label={c.nvDeletePersonAria} title={c.nvDeletePersonTitle} disabled={busy} onClick={() => setDialog({ type: "character", id: selectedCharacter.id })}><Icon name="close" size={16} /></button></div></div>
+          <label className={s.field}><span>{c.nvName} <small>{selectedCharacter.name.length} / 120</small></span><input value={selectedCharacter.name} maxLength={120} disabled={busy} placeholder={c.nvNamePh} onChange={event => updateCharacter(selectedCharacter.id, "name", event.target.value)} /></label>
+          <label className={s.field}><span>{c.nvAvatar} <small>{c.nvOptional}</small></span><input value={selectedCharacter.avatar} maxLength={2048} disabled={busy} placeholder={c.nvAvatarPh} onChange={event => updateCharacter(selectedCharacter.id, "avatar", event.target.value)} /><em>{c.nvAvatarHint}</em></label>
+          <label className={s.field}><span>{c.nvDescription} <small>{selectedCharacter.description.length} / 2,000</small></span><textarea value={selectedCharacter.description} maxLength={2000} disabled={busy} rows={4} placeholder={c.nvDescPh} onChange={event => updateCharacter(selectedCharacter.id, "description", event.target.value)} /></label>
+          <label className={s.field}><span>{c.nvPersonality} <small>{selectedCharacter.personality.length} / 2,000</small></span><textarea value={selectedCharacter.personality} maxLength={2000} disabled={busy} rows={4} placeholder={c.nvPersonalityPh} onChange={event => updateCharacter(selectedCharacter.id, "personality", event.target.value)} /></label>
+          <label className={s.field}><span>{c.nvScenario} <small>{selectedCharacter.scenario.length} / 2,000</small></span><textarea value={selectedCharacter.scenario} maxLength={2000} disabled={busy} rows={4} placeholder={c.nvScenarioPh} onChange={event => updateCharacter(selectedCharacter.id, "scenario", event.target.value)} /></label>
+          <label className={s.field}><span>{c.nvDialogue} <small>{selectedCharacter.dialogue.length} / 2,000</small></span><textarea value={selectedCharacter.dialogue} maxLength={2000} disabled={busy} rows={5} placeholder={c.nvDialoguePh} onChange={event => updateCharacter(selectedCharacter.id, "dialogue", event.target.value)} /></label>
+          <label className={s.field}><span>{c.nvCallVoice}</span><select aria-label={c.nvLiveVoiceAria} value={selectedCharacter.liveVoice} disabled={busy} onChange={event => updateCharacter(selectedCharacter.id, "liveVoice", event.target.value as XumengLiveVoice)}>{([["默认", c.nvVoiceDefault], ["女声", c.nvVoiceFemale], ["男声", c.nvVoiceMale]] as const).map(([group, label]) => <optgroup key={group} label={label}>{XUMENG_LIVE_VOICE_OPTIONS.filter(item => item.group === group).map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</optgroup>)}</select></label>
+          <label className={s.field}><span>{c.nvSpeechVoice}</span><select aria-label={c.nvSpeechAria} value={selectedCharacter.speechVoice ?? XUMENG_DEFAULT_SPEECH_VOICE} disabled={busy} onChange={event => updateCharacter(selectedCharacter.id, "speechVoice", event.target.value as XumengSpeechVoiceId)}>{XUMENG_SPEECH_VOICE_GROUPS.map(group => <optgroup key={group} label={group === "默认" ? c.nvVoiceDefault : group === "女声" ? c.nvVoiceFemale : group === "男声" ? c.nvVoiceMale : c.nvVoiceSuccubus}>{XUMENG_SPEECH_VOICES.filter(voice => voice.group === group).map(voice => <option key={voice.id} value={voice.id}>{voice.label}</option>)}</optgroup>)}</select></label>
+          {onPerformCharacter && <div className={s.castHandoff}><p className={s.help}>{c.nvPerformHelp}</p><label className={s.castContext}><input type="checkbox" checked={includeChapterContext && Boolean(chapter?.content.trim())} disabled={busy || !chapter?.content.trim()} onChange={event => setIncludeChapterContext(event.target.checked)} /><span>{chapter?.content.trim() ? xumengStudioFill(c.nvAttachChapter, { title: chapter.title || c.nvCurrentChapter }) : c.nvNoAttach}</span></label><div className={s.castHandoffActions}><button type="button" className={s.primary} disabled={busy} title={XUMENG_CALLS_ENABLED ? c.nvCallTitle : XUMENG_CALLS_LOCKED_MESSAGE} onClick={() => requestPerformance(selectedCharacter.id, "live")}><Icon name={XUMENG_CALLS_ENABLED ? "video" : "lock"} size={16} />{XUMENG_CALLS_ENABLED ? c.nvCall : c.nvCallLocked}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => requestPerformance(selectedCharacter.id, "voice")}><Icon name="volume" size={16} />{c.nvMakeVoice}</button></div></div>}
         </div>
-      </div> : <section className={s.castEmpty}><Icon name="users" size={30} /><h3>还没有人物档案</h3><p>新建人物，或从已有角色卡导入。</p><button type="button" className={s.secondary} disabled={busy} onClick={() => addCharacter()}><Icon name="plus" size={15} />添加第一位人物</button></section>}
+      </div> : <section className={s.castEmpty}><Icon name="users" size={30} /><h3>{c.nvNoPeople}</h3><p>{c.nvNoPeopleBody}</p><button type="button" className={s.secondary} disabled={busy} onClick={() => addCharacter()}><Icon name="plus" size={15} />{c.nvAddFirst}</button></section>}
     </>;
   }
 
-  if (!userId || isGuest) return <main className={s.studio}><header className={s.header}><div><p className={s.eyebrow}>叙梦 · 私人创作</p><h1>小说工作台</h1></div>{onBack && <button type="button" className={s.quiet} onClick={onBack}>返回创作中心</button>}</header><section className={s.empty}><Icon name="book" size={42} /><h2>把你的故事写成作品</h2><p>登录后保存小说、章节和大纲，随时回来继续写。</p><button type="button" className={s.primary} onClick={onRequireAccount}>注册或登录</button></section></main>;
-  return <main className={s.studio} aria-label="小说私人工作台">
+  if (!userId || isGuest) return <main className={s.studio}><header className={s.header}><div><p className={s.eyebrow}>{c.nvEyebrow}</p><h1>{c.nvTitle}</h1></div>{onBack && <button type="button" className={s.quiet} onClick={onBack}>{c.nvBackCenter}</button>}</header><section className={s.empty}><Icon name="book" size={42} /><h2>{c.nvGuestTitle}</h2><p>{c.nvGuestBody}</p><button type="button" className={s.primary} onClick={onRequireAccount}>{c.nvLogin}</button></section></main>;
+  return <main className={s.studio} aria-label={c.nvWorkspace}>
     <input ref={importInput} type="file" accept=".txt,.json,text/plain,application/json" hidden onChange={event => { const file = event.currentTarget.files?.[0]; event.currentTarget.value = ""; void importFile(file); }} />
     <header className={s.header}>
-      <div className={s.heading}>{(current || onBack) && <button type="button" className={s.back} disabled={busy} aria-label={current ? "返回作品列表" : "返回创作中心"} onClick={() => guardNavigation(current ? libraryView : () => onBack?.(), current ? "返回作品列表" : "返回创作中心")}><Icon name="back" size={20} /></button>}
-        <div><p className={s.eyebrow}>叙梦 · 私人创作</p><h1>{current ? current.draft.title || "未命名作品" : "小说工作台"}</h1><p className={s.status} role="status">{current ? `${action === "save" ? "正在保存…" : dirty ? "有未保存的修改" : "已保存"} · ${totalWords.toLocaleString()} 字${current.baseVersion === null ? " · 新作品" : ` · v${current.baseVersion}`}` : "仅自己可见 · 小说与故事"}</p></div>
+      <div className={s.heading}>{(current || onBack) && <button type="button" className={s.back} disabled={busy} aria-label={current ? c.nvBackList : c.nvBackCenter} onClick={() => guardNavigation(current ? libraryView : () => onBack?.(), current ? c.nvBackList : c.nvBackCenter)}><Icon name="back" size={20} /></button>}
+        <div><p className={s.eyebrow}>{c.nvEyebrow}</p><h1>{current ? current.draft.title || c.nvUntitled : c.nvTitle}</h1><p className={s.status} role="status">{current ? `${action === "save" ? c.nvSaving : dirty ? c.nvUnsaved : c.nvSaved} · ${xumengStudioFill(c.nvWordCount, { count: totalWords.toLocaleString() })}${current.baseVersion === null ? ` · ${c.nvNewBadge}` : ` · ${xumengStudioFill(c.nvVersion, { version: current.baseVersion })}`}` : c.nvPrivateNote}</p></div>
       </div>
-      <div className={s.headerActions}><button type="button" className={s.quiet} disabled={busy} onClick={() => guardNavigation(() => importInput.current?.click(), "导入新作品")}><Icon name="upload" size={15} />导入</button>
-        {current ? <><button type="button" className={s.secondary} disabled={busy} onClick={() => exportWork("txt")}>导出 TXT</button><button type="button" className={s.secondary} disabled={busy} onClick={() => exportWork("json")}>导出 JSON</button><button type="button" className={s.primary} disabled={busy || (!dirty && current.baseVersion !== null)} onClick={() => void save()}><Icon name="check" size={16} />{action === "save" ? "正在保存…" : "保存作品"}</button></>
-          : <><button type="button" className={s.secondary} disabled={busy} onClick={() => create("story")}>创作故事</button><button type="button" className={s.primary} disabled={busy} onClick={() => create("novel")}><Icon name="plus" size={16} />开始创作</button></>}
+      <div className={s.headerActions}><button type="button" className={s.quiet} disabled={busy} onClick={() => guardNavigation(() => importInput.current?.click(), c.nvImportWork)}><Icon name="upload" size={15} />{c.nvImport}</button>
+        {current ? <><button type="button" className={s.secondary} disabled={busy} onClick={() => exportWork("txt")}>{c.nvExportTxt}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => exportWork("json")}>{c.nvExportJson}</button><button type="button" className={s.primary} disabled={busy || (!dirty && current.baseVersion !== null)} onClick={() => void save()}><Icon name="check" size={16} />{action === "save" ? c.nvSaving : c.nvSave}</button></>
+          : <><button type="button" className={s.secondary} disabled={busy} onClick={() => create("story")}>{c.nvWriteStory}</button><button type="button" className={s.primary} disabled={busy} onClick={() => create("novel")}><Icon name="plus" size={16} />{c.nvStart}</button></>}
       </div>
     </header>
     <div className={s.messages}>
-      <p className={s.help}>导入支持 UTF-8 编码的 TXT 或叙梦 JSON，每个文件不超过 1.5 MB。</p>
+      <p className={s.help}>{c.nvImportHelp}</p>
       {error && <p className={s.error} role="alert">{error}</p>}{notice && <p className={s.notice} role="status">{notice}</p>}
-      {storageError && <p className={s.error} role="alert">浏览器无法保存恢复副本，请及时导出 JSON 备份。</p>}
-      {conflict && current && <div className={s.recovery}><div><strong>当前稿件已保留</strong><p>云端版本已改变。可先导出备份，或将当前稿件另存为新作品。</p></div><button type="button" className={s.secondary} disabled={busy} onClick={() => void save(true)}>另存为新作品</button><button type="button" className={s.quiet} disabled={busy} onClick={() => guardNavigation(() => { void open(current.draft.id); }, "加载云端版本")}>加载云端版本</button></div>}
-      {!current && recoveries.length > 0 && <section aria-label="小说恢复副本"><p className={s.help}>恢复副本分别保留。继续编辑会载入一份独立稿件；原副本可单独导出或放弃。</p>{recoveries.filter(entry => entry.accountId === userId).map((entry, index) => <div className={s.recovery} key={entry.storageKey} role="region" aria-label={`恢复草稿：${entry.draft.title || "未命名作品"}（${date(entry.updatedAt)}，${index + 1}）`}><div><strong>{entry.draft.title || "未命名作品"}</strong><p>{date(entry.updatedAt)} · 恢复副本</p></div><button type="button" className={s.secondary} disabled={busy} onClick={() => resumeRecovery(entry)}>继续编辑</button><button type="button" className={s.quiet} disabled={busy} onClick={() => { try { download(`${filename(entry.draft.title)}.json`, exportDzmmNovelJson(entry.draft), "application/json;charset=utf-8"); } catch (failure) { setError(errorText(failure)); } }}>导出备份</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog({ type: "recovery", entry })}>放弃此恢复版本</button></div>)}</section>}
+      {storageError && <p className={s.error} role="alert">{c.nvStorageError}</p>}
+      {conflict && current && <div className={s.recovery}><div><strong>{c.nvConflictTitle}</strong><p>{c.nvConflictBody}</p></div><button type="button" className={s.secondary} disabled={busy} onClick={() => void save(true)}>{c.nvSaveAsNew}</button><button type="button" className={s.quiet} disabled={busy} onClick={() => guardNavigation(() => { void open(current.draft.id); }, c.nvLoadCloud)}>{c.nvLoadCloud}</button></div>}
+      {!current && recoveries.length > 0 && <section aria-label={c.nvRecovery}><p className={s.help}>{c.nvRecoveryHelp}</p>{recoveries.filter(entry => entry.accountId === userId).map((entry, index) => <div className={s.recovery} key={entry.storageKey} role="region" aria-label={xumengStudioFill(c.nvRecoveryLabel, { title: entry.draft.title || c.nvUntitled, time: stamp(entry.updatedAt), index: index + 1 })}><div><strong>{entry.draft.title || c.nvUntitled}</strong><p>{stamp(entry.updatedAt)} · {c.nvRecoveryCopy}</p></div><button type="button" className={s.secondary} disabled={busy} onClick={() => resumeRecovery(entry)}>{c.nvResume}</button><button type="button" className={s.quiet} disabled={busy} onClick={() => { try { download(`${filename(entry.draft.title, c.nvUntitled)}.json`, exportDzmmNovelJson(entry.draft), "application/json;charset=utf-8"); } catch (failure) { setError(errorText(failure, c.nvFailed)); } }}>{c.nvExportBackup}</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog({ type: "recovery", entry })}>{c.nvDropRecovery}</button></div>)}</section>}
     </div>
-    {!current ? <section className={s.library} aria-label="我的私人作品"><div className={s.sectionHead}><h2>我的作品 <span>{works.length}</span></h2><button type="button" className={s.quiet} disabled={busy} onClick={() => void refresh()}><Icon name="refresh" size={14} />{action === "load" ? "加载中…" : "刷新"}</button></div>
-      {action === "load" && !library ? <p className={s.loading} role="status">正在加载私人作品…</p> : !works.length ? <div className={s.empty}><Icon name="book" size={42} /><h2>还没有作品</h2><p>先写一个故事，或从章节开始一部小说。</p><button type="button" className={s.primary} disabled={busy} onClick={() => create("novel")}>创建第一部作品</button><small>也可以导入 TXT 或叙梦 JSON 备份。</small></div>
-        : <div className={s.workList}>{works.map(work => <button type="button" key={work.id} className={s.workRow} disabled={busy} onClick={() => guardNavigation(() => { void open(work.id); }, "打开其他作品")}><span className={s.bookMark}><Icon name="book" size={22} /></span><div><div className={s.workTitle}><h3>{work.title}</h3><span>{work.type === "novel" ? "小说" : "故事"}</span></div><p>{work.synopsis || "尚未填写简介"}</p><div className={s.workMeta}><span>{work.chapterCount} 章 · {work.wordCount.toLocaleString()} 字</span><span>{date(work.updatedAt)}</span>{work.tags.length > 0 && <span>{work.tags.slice(0, 3).join(" · ")}</span>}</div></div><Icon name="chevron" size={18} /></button>)}</div>}
+    {!current ? <section className={s.library} aria-label={c.nvLibrary}><div className={s.sectionHead}><h2>{c.nvMyWorks} <span>{works.length}</span></h2><button type="button" className={s.quiet} disabled={busy} onClick={() => void refresh()}><Icon name="refresh" size={14} />{action === "load" ? c.nvLoading : c.nvRefresh}</button></div>
+      {action === "load" && !library ? <p className={s.loading} role="status">{c.nvLoadingWorks}</p> : !works.length ? <div className={s.empty}><Icon name="book" size={42} /><h2>{c.nvNoWorks}</h2><p>{c.nvNoWorksBody}</p><button type="button" className={s.primary} disabled={busy} onClick={() => create("novel")}>{c.nvFirstWork}</button><small>{c.nvImportSmall}</small></div>
+        : <div className={s.workList}>{works.map(work => <button type="button" key={work.id} className={s.workRow} disabled={busy} onClick={() => guardNavigation(() => { void open(work.id); }, c.nvOpenOther)}><span className={s.bookMark}><Icon name="book" size={22} /></span><div><div className={s.workTitle}><h3>{work.title}</h3><span>{work.type === "novel" ? c.nvNovel : c.nvStory}</span></div><p>{work.synopsis || c.nvNoBlurb}</p><div className={s.workMeta}><span>{xumengStudioFill(c.nvChapterMeta, { chapters: work.chapterCount, words: work.wordCount.toLocaleString() })}</span><span>{stamp(work.updatedAt)}</span>{work.tags.length > 0 && <span>{work.tags.slice(0, 3).join(" · ")}</span>}</div></div><Icon name="chevron" size={18} /></button>)}</div>}
     </section> : <div className={s.workspace}>
-      <aside className={s.sidebar} aria-label="作品目录"><p>作品</p><button type="button" className={section === "settings" ? s.active : ""} disabled={busy} onClick={() => setSection("settings")}><Icon name="sliders" size={16} />作品设置</button><button type="button" className={section === "outline" ? s.active : ""} disabled={busy} onClick={() => setSection("outline")}><Icon name="sparkles" size={16} />大纲与创作指令</button><button type="button" className={section === "characters" ? s.active : ""} disabled={busy} onClick={() => setSection("characters")}><Icon name="users" size={16} />人物{cast.length > 0 && <span className={s.castNavCount}>{cast.length}</span>}</button><button type="button" className={section === "read" ? s.active : ""} disabled={busy} onClick={() => setSection("read")}><Icon name="book" size={16} />阅读作品</button>
-        <div className={s.chapterHead}><p>章节 <span>{current.draft.chapters.length}</span></p><button type="button" className={s.iconButton} aria-label="添加章节" title="添加章节" disabled={busy || current.draft.chapters.length >= 100} onClick={addChapter}><Icon name="plus" size={16} /></button></div>
-        <ol className={s.chapterList}>{current.draft.chapters.map((item, index) => <li key={item.id} className={section === "chapter" && chapter?.id === item.id ? s.selectedChapter : ""}><button type="button" className={s.chapterLink} disabled={busy} onClick={() => selectChapter(item.id)}><span>{String(index + 1).padStart(2, "0")}</span><span>{item.title || "未命名章节"}</span></button><div className={s.chapterControls}><button type="button" aria-label={`上移${item.title || `第${index + 1}章`}`} title="上移章节" disabled={busy || index === 0} onClick={() => moveChapter(item.id, -1)}>↑</button><button type="button" aria-label={`下移${item.title || `第${index + 1}章`}`} title="下移章节" disabled={busy || index === current.draft.chapters.length - 1} onClick={() => moveChapter(item.id, 1)}>↓</button><button type="button" aria-label={`删除${item.title || `第${index + 1}章`}`} title="删除章节" disabled={busy} onClick={() => setDialog({ type: "chapter", id: item.id })}><Icon name="close" size={12} /></button></div></li>)}</ol>
-        {!current.draft.chapters.length && <p className={s.help}>尚无章节，点击 + 开始写。</p>}
+      <aside className={s.sidebar} aria-label={c.nvCatalog}><p>{c.nvWork}</p><button type="button" className={section === "settings" ? s.active : ""} disabled={busy} onClick={() => setSection("settings")}><Icon name="sliders" size={16} />{c.nvSettings}</button><button type="button" className={section === "outline" ? s.active : ""} disabled={busy} onClick={() => setSection("outline")}><Icon name="sparkles" size={16} />{c.nvOutlineNav}</button><button type="button" className={section === "characters" ? s.active : ""} disabled={busy} onClick={() => setSection("characters")}><Icon name="users" size={16} />{c.nvPeople}{cast.length > 0 && <span className={s.castNavCount}>{cast.length}</span>}</button><button type="button" className={section === "read" ? s.active : ""} disabled={busy} onClick={() => setSection("read")}><Icon name="book" size={16} />{c.nvRead}</button>
+        <div className={s.chapterHead}><p>{c.nvChapters} <span>{current.draft.chapters.length}</span></p><button type="button" className={s.iconButton} aria-label={c.nvAddChapter} title={c.nvAddChapter} disabled={busy || current.draft.chapters.length >= 100} onClick={addChapter}><Icon name="plus" size={16} /></button></div>
+        <ol className={s.chapterList}>{current.draft.chapters.map((item, index) => <li key={item.id} className={section === "chapter" && chapter?.id === item.id ? s.selectedChapter : ""}><button type="button" className={s.chapterLink} disabled={busy} onClick={() => selectChapter(item.id)}><span>{String(index + 1).padStart(2, "0")}</span><span>{item.title || c.nvUntitledChapter}</span></button><div className={s.chapterControls}><button type="button" aria-label={xumengStudioFill(c.nvMoveUp, { name: item.title || xumengStudioFill(c.nvChapterN, { n: index + 1 }) })} title={c.nvMoveUpTitle} disabled={busy || index === 0} onClick={() => moveChapter(item.id, -1)}>↑</button><button type="button" aria-label={xumengStudioFill(c.nvMoveDown, { name: item.title || xumengStudioFill(c.nvChapterN, { n: index + 1 }) })} title={c.nvMoveDownTitle} disabled={busy || index === current.draft.chapters.length - 1} onClick={() => moveChapter(item.id, 1)}>↓</button><button type="button" aria-label={xumengStudioFill(c.nvDeleteNamed, { name: item.title || xumengStudioFill(c.nvChapterN, { n: index + 1 }) })} title={c.nvDeleteChapterTitle} disabled={busy} onClick={() => setDialog({ type: "chapter", id: item.id })}><Icon name="close" size={12} /></button></div></li>)}</ol>
+        {!current.draft.chapters.length && <p className={s.help}>{c.nvNoChapterYet}</p>}
       </aside>
-      <section className={s.editor} aria-label={section === "read" ? "作品阅读" : "作品编辑"}>
-        {section === "settings" && <><div className={s.sectionHead}><div><p className={s.eyebrow}>作品设置</p><h2>给故事一个名字</h2></div><span className={s.privateLabel}>私人作品</span></div><div className={s.fields}><label className={s.field}><span>作品标题 <small>{current.draft.title.length} / 120</small></span><input value={current.draft.title} maxLength={120} disabled={busy} placeholder="输入作品标题" onChange={event => updateDraft(draft => ({ ...draft, title: event.target.value }))} /></label><label className={s.field}><span>作品类型</span><select value={current.draft.type} disabled={busy} onChange={event => updateDraft(draft => ({ ...draft, type: event.target.value as "novel" | "story" }))}><option value="novel">小说 · 按章节创作</option><option value="story">故事 · 短篇或片段</option></select></label><label className={s.field}><span>作品简介 <small>{current.draft.synopsis.length} / 4,000</small></span><textarea value={current.draft.synopsis} maxLength={4000} disabled={busy} rows={5} placeholder="故事发生在哪里？主角要面对什么？" onChange={event => updateDraft(draft => ({ ...draft, synopsis: event.target.value }))} /></label><label className={s.field}><span>标签 <small>最多 20 个，每个 40 字</small></span><input value={tagText} disabled={busy} placeholder="用逗号分隔，例如：悬疑，成长，奇幻" onChange={event => { const value = event.target.value; setTagText(value); updateDraft(draft => ({ ...draft, tags: [...new Set(value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean))] })); }} /></label></div><div className={s.settingsEnd}><button type="button" className={s.primary} disabled={busy} onClick={() => setSection("outline")}>完善大纲与指令<Icon name="chevron" size={14} /></button>{current.baseVersion !== null && <button type="button" className={s.danger} disabled={busy} onClick={() => guardNavigation(() => setDialog({ type: "work" }), "删除作品")}>删除作品</button>}</div></>}
-        {section === "outline" && <><div className={s.sectionHead}><div><p className={s.eyebrow}>大纲与创作指令</p><h2>安排故事的走向</h2></div></div><label className={s.field}><span>创作指令 <small>{current.draft.notes.length} / 8,000</small></span><textarea value={current.draft.notes} maxLength={8000} disabled={busy} rows={5} placeholder="记录视角、节奏、人物目标、世界规则和写作要求。" onChange={event => updateDraft(draft => ({ ...draft, notes: event.target.value }))} /></label><div className={s.aiToolbar}><label>创作模型<select aria-label="小说大纲模型" disabled={busy} value={model} onChange={event => setModel(event.target.value as DzmmModelPreset)}>{DZMM_OFFERED_MODEL_OPTIONS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy} onClick={() => requestGenerate("outline")}><Icon name="sparkles" size={15} />AI 生成大纲</button><p>结果先显示预览。</p></div><label className={s.field}><span>作品大纲 <small>{current.draft.outline.length} / 20,000</small></span><textarea value={current.draft.outline} maxLength={20000} disabled={busy} rows={15} placeholder="世界观、角色、关键情节和章节安排。也可以先生成一个大纲，再由你修改。" onChange={event => updateDraft(draft => ({ ...draft, outline: event.target.value }))} /></label><button type="button" className={s.primary} disabled={busy} onClick={() => { if (current.draft.chapters.length) { selectChapter(current.draft.chapters[0].id); } else addChapter(); }}>开始写正文<Icon name="chevron" size={14} /></button></>}
+      <section className={s.editor} aria-label={section === "read" ? c.nvReading : c.nvEditing}>
+        {section === "settings" && <><div className={s.sectionHead}><div><p className={s.eyebrow}>{c.nvSettings}</p><h2>{c.nvNameStory}</h2></div><span className={s.privateLabel}>{c.nvPrivateWork}</span></div><div className={s.fields}><label className={s.field}><span>{c.nvWorkTitle} <small>{current.draft.title.length} / 120</small></span><input value={current.draft.title} maxLength={120} disabled={busy} placeholder={c.nvTitlePh} onChange={event => updateDraft(draft => ({ ...draft, title: event.target.value }))} /></label><label className={s.field}><span>{c.nvWorkType}</span><select value={current.draft.type} disabled={busy} onChange={event => updateDraft(draft => ({ ...draft, type: event.target.value as "novel" | "story" }))}><option value="novel">{c.nvTypeNovel}</option><option value="story">{c.nvTypeStory}</option></select></label><label className={s.field}><span>{c.nvSynopsis} <small>{current.draft.synopsis.length} / 4,000</small></span><textarea value={current.draft.synopsis} maxLength={4000} disabled={busy} rows={5} placeholder={c.nvSynopsisPh} onChange={event => updateDraft(draft => ({ ...draft, synopsis: event.target.value }))} /></label><label className={s.field}><span>{c.nvTags} <small>{c.nvTagsHint}</small></span><input value={tagText} disabled={busy} placeholder={c.nvTagsPh} onChange={event => { const value = event.target.value; setTagText(value); updateDraft(draft => ({ ...draft, tags: [...new Set(value.split(/[,，]/).map(tag => tag.trim()).filter(Boolean))] })); }} /></label></div><div className={s.settingsEnd}><button type="button" className={s.primary} disabled={busy} onClick={() => setSection("outline")}>{c.nvNextOutline}<Icon name="chevron" size={14} /></button>{current.baseVersion !== null && <button type="button" className={s.danger} disabled={busy} onClick={() => guardNavigation(() => setDialog({ type: "work" }), c.nvDeleteWork)}>{c.nvDeleteWork}</button>}</div></>}
+        {section === "outline" && <><div className={s.sectionHead}><div><p className={s.eyebrow}>{c.nvOutlineNav}</p><h2>{c.nvPlotHeading}</h2></div></div><label className={s.field}><span>{c.nvNotes} <small>{current.draft.notes.length} / 8,000</small></span><textarea value={current.draft.notes} maxLength={8000} disabled={busy} rows={5} placeholder={c.nvNotesPh} onChange={event => updateDraft(draft => ({ ...draft, notes: event.target.value }))} /></label><div className={s.aiToolbar}><label>{c.nvModel}<select aria-label={c.nvOutlineModel} disabled={busy} value={model} onChange={event => setModel(event.target.value as DzmmModelPreset)}>{DZMM_OFFERED_MODEL_OPTIONS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy} onClick={() => requestGenerate("outline")}><Icon name="sparkles" size={15} />{c.nvGenerateOutline}</button><p>{c.nvPreviewFirst}</p></div><label className={s.field}><span>{c.nvOutline} <small>{current.draft.outline.length} / 20,000</small></span><textarea value={current.draft.outline} maxLength={20000} disabled={busy} rows={15} placeholder={c.nvOutlinePh} onChange={event => updateDraft(draft => ({ ...draft, outline: event.target.value }))} /></label><button type="button" className={s.primary} disabled={busy} onClick={() => { if (current.draft.chapters.length) { selectChapter(current.draft.chapters[0].id); } else addChapter(); }}>{c.nvStartBody}<Icon name="chevron" size={14} /></button></>}
         {section === "characters" && renderCharacters()}
-        {section === "chapter" && (chapter ? <><div className={s.sectionHead}><div><p className={s.eyebrow}>章节正文</p><h2>{chapter.title || "未命名章节"}</h2></div><span className={s.count}>{countDzmmNovelWords(chapter.content).toLocaleString()} 字</span></div><label className={s.field}><span>章节标题</span><input value={chapter.title} maxLength={120} disabled={busy} onChange={event => updateDraft(draft => ({ ...draft, chapters: draft.chapters.map(item => item.id === chapter.id ? { ...item, title: event.target.value } : item) }))} /></label><label className={`${s.field} ${s.manuscript}`}><span>正文 <small>{chapter.content.length.toLocaleString()} / 50,000</small></span><textarea value={chapter.content} maxLength={50000} disabled={busy} rows={22} placeholder="从第一句话开始。" onChange={event => updateDraft(draft => ({ ...draft, chapters: draft.chapters.map(item => item.id === chapter.id ? { ...item, content: event.target.value } : item) }))} /></label><div className={s.aiToolbar}><label>创作模型<select aria-label="小说章节模型" disabled={busy} value={model} onChange={event => setModel(event.target.value as DzmmModelPreset)}>{DZMM_OFFERED_MODEL_OPTIONS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy} onClick={() => requestGenerate("continue")}><Icon name="sparkles" size={15} />AI 续写当前章节</button><p>续写参考大纲和创作指令、当前章末 12,000 字，以及前两章各末 3,000 字。先预览，再插入。</p></div></> : <div className={s.empty}><h2>选择或创建一个章节</h2><button type="button" className={s.primary} disabled={busy} onClick={addChapter}>添加章节</button></div>)}
-        {section === "read" && <article className={s.reading}><p className={s.eyebrow}>阅读作品 · 当前稿件</p><h2>{current.draft.title || "未命名作品"}</h2>{dirty && <p className={s.readingNote}>包含尚未保存的修改。</p>}{current.draft.synopsis && <p className={s.synopsis}>{current.draft.synopsis}</p>}<nav aria-label="阅读章节目录">{current.draft.chapters.map((item, index) => <a key={item.id} href={`#novel-reading-${item.id}`} onClick={event => { event.preventDefault(); document.getElementById(`novel-reading-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{item.title || `第${index + 1}章`}</a>)}</nav>{current.draft.chapters.map((item, index) => <section key={item.id} id={`novel-reading-${item.id}`}><h3>{item.title || `第${index + 1}章`}</h3><p>{item.content || "这一章还没有正文。"}</p></section>)}{!current.draft.chapters.length && <p className={s.help}>尚未添加章节。</p>}</article>}
-        {currentPreview && <section id="novel-ai-preview" className={s.preview} aria-label="AI 创作预览"><div className={s.sectionHead}><div><p className={s.eyebrow}>AI 创作预览</p><h2>{currentPreview.operation === "outline" ? "大纲建议" : "续写建议"}</h2></div>{currentPreview.state === "running" ? <button type="button" className={s.secondary} onClick={() => controller.current?.abort()}><Icon name="stop" size={14} />停止生成</button> : <span className={s.count}>{currentPreview.state === "stopped" ? "已停止" : currentPreview.state === "failed" ? "生成中断" : "等待插入"}</span>}</div><p className={s.help}>{orphanedPreview ? "原章节已删除，AI 预览仍保留。可导出预览，或插入为新章节。" : <>原稿尚未改变。{currentPreview.operation === "outline" && current.draft.outline ? "点击替换会更新当前大纲。" : "你可以检查、复制，再决定是否插入。"}</>}</p><textarea aria-label="AI 预览正文" value={currentPreview.text} readOnly rows={12} placeholder="正在生成…" /><div className={s.previewActions}><button type="button" className={s.primary} disabled={busy || !currentPreview.text.trim()} onClick={insertPreview}>{currentPreview.operation === "outline" ? current.draft.outline ? "替换当前大纲" : "插入大纲" : orphanedPreview ? "插入新章节" : "追加到原章节"}</button><button type="button" className={s.secondary} disabled={!currentPreview.text} onClick={() => download(`${filename(current.draft.title)}-AI预览.txt`, currentPreview.text, "text/plain;charset=utf-8")}>导出预览</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog({ type: "preview", action: clearPreview, label: "放弃 AI 预览" })}>放弃预览</button></div></section>}
+        {section === "chapter" && (chapter ? <><div className={s.sectionHead}><div><p className={s.eyebrow}>{c.nvChapterBody}</p><h2>{chapter.title || c.nvUntitledChapter}</h2></div><span className={s.count}>{xumengStudioFill(c.nvWordCount, { count: countDzmmNovelWords(chapter.content).toLocaleString() })}</span></div><label className={s.field}><span>{c.nvChapterTitle}</span><input value={chapter.title} maxLength={120} disabled={busy} onChange={event => updateDraft(draft => ({ ...draft, chapters: draft.chapters.map(item => item.id === chapter.id ? { ...item, title: event.target.value } : item) }))} /></label><label className={`${s.field} ${s.manuscript}`}><span>{c.nvBody} <small>{chapter.content.length.toLocaleString()} / 50,000</small></span><textarea value={chapter.content} maxLength={50000} disabled={busy} rows={22} placeholder={c.nvBodyPh} onChange={event => updateDraft(draft => ({ ...draft, chapters: draft.chapters.map(item => item.id === chapter.id ? { ...item, content: event.target.value } : item) }))} /></label><div className={s.aiToolbar}><label>{c.nvModel}<select aria-label={c.nvModel} disabled={busy} value={model} onChange={event => setModel(event.target.value as DzmmModelPreset)}>{DZMM_OFFERED_MODEL_OPTIONS.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><button type="button" className={s.secondary} disabled={busy} onClick={() => requestGenerate("continue")}><Icon name="sparkles" size={15} />{c.nvContinue}</button><p>{c.nvContinueHelp}</p></div></> : <div className={s.empty}><h2>{c.nvPickChapter}</h2><button type="button" className={s.primary} disabled={busy} onClick={addChapter}>{c.nvAddChapter}</button></div>)}
+        {section === "read" && <article className={s.reading}><p className={s.eyebrow}>{c.nvReadingNow}</p><h2>{current.draft.title || c.nvUntitled}</h2>{dirty && <p className={s.readingNote}>{c.nvIncludesUnsaved}</p>}{current.draft.synopsis && <p className={s.synopsis}>{current.draft.synopsis}</p>}<nav aria-label={c.nvReadingNav}>{current.draft.chapters.map((item, index) => <a key={item.id} href={`#novel-reading-${item.id}`} onClick={event => { event.preventDefault(); document.getElementById(`novel-reading-${item.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" }); }}>{item.title || xumengStudioFill(c.nvChapterN, { n: index + 1 })}</a>)}</nav>{current.draft.chapters.map((item, index) => <section key={item.id} id={`novel-reading-${item.id}`}><h3>{item.title || xumengStudioFill(c.nvChapterN, { n: index + 1 })}</h3><p>{item.content || c.nvEmptyChapter}</p></section>)}{!current.draft.chapters.length && <p className={s.help}>{c.nvNoChaptersRead}</p>}</article>}
+        {currentPreview && <section id="novel-ai-preview" className={s.preview} aria-label={c.nvPreview}><div className={s.sectionHead}><div><p className={s.eyebrow}>{c.nvPreview}</p><h2>{currentPreview.operation === "outline" ? c.nvOutlineSuggest : c.nvContinueSuggest}</h2></div>{currentPreview.state === "running" ? <button type="button" className={s.secondary} onClick={() => controller.current?.abort()}><Icon name="stop" size={14} />{c.nvStop}</button> : <span className={s.count}>{currentPreview.state === "stopped" ? c.nvStopped : currentPreview.state === "failed" ? c.nvInterrupted : c.nvWaiting}</span>}</div><p className={s.help}>{orphanedPreview ? c.nvOrphan : <>{c.nvUnchanged}{currentPreview.operation === "outline" && current.draft.outline ? c.nvReplaceNote : c.nvCheckInsert}</>}</p><textarea aria-label={c.nvPreviewBody} value={currentPreview.text} readOnly rows={12} placeholder={c.nvGenerating} /><div className={s.previewActions}><button type="button" className={s.primary} disabled={busy || !currentPreview.text.trim()} onClick={insertPreview}>{currentPreview.operation === "outline" ? current.draft.outline ? c.nvReplaceOutline : c.nvInsertOutline : orphanedPreview ? c.nvInsertChapter : c.nvAppend}</button><button type="button" className={s.secondary} disabled={!currentPreview.text} onClick={() => download(`${filename(current.draft.title, c.nvUntitled)}-preview.txt`, currentPreview.text, "text/plain;charset=utf-8")}>{c.nvExportPreview}</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog({ type: "preview", action: clearPreview, label: c.nvDropPreviewLabel })}>{c.nvDropPreview}</button></div></section>}
       </section>
     </div>}
     {dialog && <div className={s.overlay}><div className={s.dialog} ref={dialogElement} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="novel-confirm-title">
-      <h2 id="novel-confirm-title">{dialog.type === "preview" ? "放弃当前 AI 预览？" : dialog.type === "leave" ? "有未保存的内容" : dialog.type === "perform" ? "先保存人物与作品" : dialog.type === "recovery" ? "放弃这份恢复副本？" : dialog.type === "character" ? "删除这个人物？" : dialog.type === "chapter" ? "删除这个章节？" : "删除这部私人作品？"}</h2>
-      <p>{dialog.type === "preview" ? "已编辑的稿件会保留。继续操作将放弃当前预览内容。" : dialog.type === "leave" ? `保存作品后再${dialog.label}，或放弃本次未保存的内容。${currentPreview?.text ? "AI 预览尚未插入，继续操作会放弃预览。" : ""}` : dialog.type === "perform" ? `作品有未保存的修改。保存成功后，再${dialog.request.target === "live" ? "给所选人物打电话" : "带所选人物到语音工作台"}。` : dialog.type === "recovery" ? "只放弃所选恢复版本。其他作品和其他页面的修改会保留；来源继续编辑后，新版本仍可恢复。" : dialog.type === "character" ? "人物档案会从当前草稿移除，章节正文会保留，保存后生效。" : dialog.type === "chapter" ? "正文会从当前草稿移除，保存后生效。未插入的 AI 预览会保留。" : "作品及所有章节将一并删除，请先导出需要保留的内容。"}</p>
+      <h2 id="novel-confirm-title">{dialog.type === "preview" ? c.nvDropPreviewQ : dialog.type === "leave" ? c.nvUnsavedQ : dialog.type === "perform" ? c.nvSaveFirstQ : dialog.type === "recovery" ? c.nvDropRecoveryQ : dialog.type === "character" ? c.nvDeletePersonQ : dialog.type === "chapter" ? c.nvDeleteChapterQ : c.nvDeleteWorkQ}</h2>
+      <p>{dialog.type === "preview" ? c.nvPreviewKept : dialog.type === "leave" ? `${xumengStudioFill(c.nvLeaveBody, { action: dialog.label })}${currentPreview?.text ? c.nvLeavePreview : ""}` : dialog.type === "perform" ? xumengStudioFill(c.nvPerformBody, { action: dialog.request.target === "live" ? c.nvCallPerson : c.nvVoicePerson }) : dialog.type === "recovery" ? c.nvRecoveryBody : dialog.type === "character" ? c.nvPersonBody : dialog.type === "chapter" ? c.nvChapterBodyConfirm : c.nvWorkBody}</p>
       {error && <p className={s.error} role="alert">{error}</p>}
       <div className={s.dialogActions}>{dialog.type === "preview" ? <>
-        <button type="button" className={s.primary} disabled={busy} onClick={() => { if (dialog.type !== "preview") return; const pending = dialog; clearPreview(); setDialog(null); pending.action(); }}>继续操作</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>保留预览</button>
+        <button type="button" className={s.primary} disabled={busy} onClick={() => { if (dialog.type !== "preview") return; const pending = dialog; clearPreview(); setDialog(null); pending.action(); }}>{c.nvContinueAction}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>{c.nvKeepPreview}</button>
       </> : dialog.type === "leave" ? <>
-        {current && <button type="button" className={s.primary} disabled={busy} onClick={() => void saveAndLeave()}>{action === "save" ? "正在保存…" : currentPreview?.text ? "保存原稿并继续" : "保存并继续"}</button>}<button type="button" className={s.secondary} disabled={busy} onClick={discardAndLeave}>放弃未保存内容</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog(null)}>继续编辑</button>
+        {current && <button type="button" className={s.primary} disabled={busy} onClick={() => void saveAndLeave()}>{action === "save" ? c.nvSaving : currentPreview?.text ? c.nvSaveOriginal : c.nvSaveContinue}</button>}<button type="button" className={s.secondary} disabled={busy} onClick={discardAndLeave}>{c.nvDiscard}</button><button type="button" className={s.quiet} disabled={busy} onClick={() => setDialog(null)}>{c.nvResume}</button>
       </> : dialog.type === "perform" ? <>
-        <button type="button" className={s.primary} disabled={busy} onClick={() => void saveAndPerform()}>{action === "save" ? "正在保存…" : dialog.request.target === "live" ? "保存并打电话" : "保存并生成语音"}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>继续编辑</button>
+        <button type="button" className={s.primary} disabled={busy} onClick={() => void saveAndPerform()}>{action === "save" ? c.nvSaving : dialog.request.target === "live" ? c.nvSaveCall : c.nvSaveVoice}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>{c.nvResume}</button>
       </> : <>
-        <button type="button" className={s.dangerButton} disabled={busy} onClick={() => void confirmDelete()}>{action === "delete" ? "正在删除…" : dialog.type === "recovery" ? "确认放弃恢复版本" : "确认删除"}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>取消</button>
+        <button type="button" className={s.dangerButton} disabled={busy} onClick={() => void confirmDelete()}>{action === "delete" ? c.nvDeleting : dialog.type === "recovery" ? c.nvConfirmDrop : c.nvConfirmDelete}</button><button type="button" className={s.secondary} disabled={busy} onClick={() => setDialog(null)}>{c.nvCancel}</button>
       </>}</div>
     </div></div>}
   </main>;

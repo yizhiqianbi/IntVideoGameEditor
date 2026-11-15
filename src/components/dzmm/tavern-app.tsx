@@ -126,6 +126,8 @@ import { fetchHomeBanners, type PublicHomeBanner } from "@/lib/home-banners-clie
 import ReplySuggestions from "./reply-suggestions";
 import { fetchDzmmLikeStats, setDzmmCharacterLike, submitDzmmCharacter, fetchDzmmPublishingMine, type DzmmLikeStats, type DzmmPublishingSubmission } from "@/lib/dzmm-publishing";
 import { XUMENG_LOCALES, resolveXumengLocale, xumengHtmlLang, xumengLocaleLabel, xumengTranslate, type XumengMessageKey } from "@/lib/xumeng-i18n";
+import { xumengStudio } from "@/lib/xumeng-studio-copy";
+import { xumengCategoryName, xumengModelBlurb, xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import { hasXumengCardTranslation, loadXumengCardTranslations, localizeCharacter, localizedCharacterTags, sourceCharacterTag, xumengCardTranslationsLoaded, xumengLocalizedAuthorName } from "@/lib/xumeng-card-localization";
 import { xumengLocaleFromPathname, xumengLocalePathname, XUMENG_DEFAULT_LOCALE, type XumengLocale } from "@/lib/xumeng-i18n";
 import { XUMENG_TELEGRAM_GROUP_URL } from "@/lib/xumeng-links";
@@ -203,10 +205,8 @@ const BROWSE_TAG_LIMIT = 3;
 function isBrowseLook(id: string): id is DzmmCatalogLook {
   return id === "photo" || id === "anime";
 }
-function browseTagName(id: string): string {
-  if (id === "photo") return "真人";
-  if (id === "anime") return "动漫";
-  return DZMM_DISCOVERY_CATEGORIES.find((item) => item.slug === id)?.name ?? id;
+function browseTagName(id: string, locale: XumengLocale): string {
+  return xumengCategoryName(locale, id, DZMM_DISCOVERY_CATEGORIES.find((item) => item.slug === id)?.name ?? id);
 }
 type CoverTagTone = "rose" | "violet" | "gold" | "blue" | "plum";
 function coverTagTone(tag: string): CoverTagTone {
@@ -397,21 +397,23 @@ function storyUnread(messages: { id: string; role: string; content: string }[], 
   return messages.slice(index + 1).filter(message => message.role === "assistant" && message.content.trim()).length;
 }
 
-function formatConversationStamp(updatedAt: number): string {
+function formatConversationStamp(updatedAt: number, locale: XumengLocale): string {
   const date = new Date(updatedAt);
   const now = new Date();
-  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" });
+  const lang = xumengHtmlLang(locale);
+  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
   const yesterday = new Date(now);
   yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return "昨天";
-  if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return `周${"日一二三四五六"[date.getDay()]}`;
-  return date.toLocaleDateString("zh-CN", { month: "numeric", day: "numeric" });
+  if (date.toDateString() === yesterday.toDateString()) return xumengPage(locale).yesterday;
+  if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return date.toLocaleDateString(lang, { weekday: "short" });
+  return date.toLocaleDateString(lang, { month: "numeric", day: "numeric" });
 }
 
-function chatPresence(character: { description: string; tags: string[] }, typing: boolean): string {
-  if (typing) return "正在输入…";
+function chatPresence(character: { description: string; tags: string[] }, typing: boolean, locale: XumengLocale): string {
+  const copy = xumengPage(locale);
+  if (typing) return copy.typing;
   const line = character.description.replace(/\s+/g, " ").trim();
-  if (!line) return character.tags[0] || "在线";
+  if (!line) return character.tags[0] || copy.online;
   const chars = Array.from(line);
   return chars.length > 18 ? `${chars.slice(0, 18).join("")}…` : line;
 }
@@ -495,7 +497,7 @@ export default function TavernApp() {
     return !hash || hash === "videos" || Boolean(xumengVideoDramaIdFromRoute(hash)) ? "videos" : "characters";
   });
   const [routeLocale, setRouteLocale] = useState<XumengLocale | null>(() => typeof window === "undefined" ? null : xumengLocaleFromPathname(window.location.pathname));
-  const [, setCardTranslationRevision] = useState(0);
+  const [cardTranslationRevision, setCardTranslationRevision] = useState(0);
   const [tab, setTab] = useState("新手");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [appliedTags, setAppliedTags] = useState<string[]>(readStoredBrowseSelection);
@@ -703,6 +705,7 @@ export default function TavernApp() {
     return rotateRecommendationPage(recommendation.ids, recommendEpoch, DZMM_PUBLIC_SHELF_PAGE_SIZE * 4);
   }, [rankReady, rankQuery?.surface, recommendation.ids, recommendEpoch]);
   const homeRecommendationPage = rankReady && rankQuery?.surface === "home" ? displayRecommendationIds : null;
+  const locale = routeLocale ?? state.preferences.locale ?? XUMENG_DEFAULT_LOCALE;
   const shelfRequest = useMemo((): DzmmCatalogRequest | null => {
     const authorKey = /^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/;
     const scoped = (request: DzmmCatalogRequest): DzmmCatalogRequest => look ? { ...request, look } : request;
@@ -710,6 +713,10 @@ export default function TavernApp() {
     if (view === "search") return { q: deferredQuery, sort: "hot" };
     if (view === "author" && authorId && authorKey.test(authorId)) return scoped({ authorIds: [authorId], sort: "new" });
     if (view === "forum") return scoped({ sort: "hot" });
+    if (view === "profile") {
+      const authorIds = (state.preferences.followedAuthors ?? []).filter((id) => authorKey.test(id)).slice(0, 20);
+      return authorIds.length ? scoped({ authorIds, sort: "new" }) : null;
+    }
     if (view !== "characters" && view !== "play-games") return null;
     if (tab === "分类") {
       if (!category) return null;
@@ -735,7 +742,13 @@ export default function TavernApp() {
     }
     return scoped({ tags: selectedShelfTags(genres), sort: xumengPlayCatalogSort(tab, sortMode) });
   }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, sortMode, genres, look, displayRecommendationIds]);
-  const publicShelf = usePublicCharacterShelf(shelfRequest);
+  const localizedShelfRequest = useMemo(() => {
+    // Other languages only show cards that have a translation. Those cards are
+    // already in the local directory, so the public catalog is not paged.
+    if (locale !== "zh-Hans") return null;
+    return shelfRequest;
+  }, [shelfRequest, locale]);
+  const publicShelf = usePublicCharacterShelf(localizedShelfRequest);
   const shelfPaintKey = [view, tab, sortMode, look ?? "", category ?? "", selectedShelfTags(genres).join(","), discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, homeRecommendationPage?.join("\n") ?? ""].join("\0");
   const paintedShelf = useRef<{ key: string; characters: Character[] }>({ key: "", characters: [] });
   if (publicShelf.characters.length > 0) paintedShelf.current = { key: shelfPaintKey, characters: publicShelf.characters };
@@ -855,8 +868,12 @@ export default function TavernApp() {
     return () => media.removeEventListener("change", update);
   }, []);
   const dark = state.preferences.theme === "system" ? systemDark : state.preferences.theme ? state.preferences.theme === "dark" : state.preferences.dark;
-  const locale = routeLocale ?? state.preferences.locale ?? XUMENG_DEFAULT_LOCALE;
   const t = (key: XumengMessageKey) => xumengTranslate(locale, key);
+  const copy = xumengPage(locale);
+  const fill = (template: string, values: Record<string, string | number>) => xumengPageFill(template, values);
+  const tagName = (id: string) => browseTagName(id, locale);
+  const storedName = state.preferences.nickname.trim();
+  const accountLabel = cloud.user?.isGuest && (!storedName || storedName === "游客") ? t("guestName") : (storedName || t("navProfile"));
   const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
@@ -1628,7 +1645,7 @@ export default function TavernApp() {
         location.hash = creatorRoute.current; return;
       }
       if (novelRouteActive.current && target !== novelRoute.current && (novelDirty.current || novelBusy.current)) {
-        setNotice(novelBusy.current ? "请先完成或停止小说创作操作。" : "小说有未保存的修改，请先在工作台保存或放弃修改。");
+        setNotice(novelBusy.current ? xumengStudio(locale).nvFinishFirst : xumengStudio(locale).nvSaveBeforeLeave);
         location.hash = novelRoute.current; return;
       }
       if (studioRoute.current && target !== studioRoute.current && (studioDirty.current || studioBusy.current)) {
@@ -1792,7 +1809,7 @@ export default function TavernApp() {
       setNotice(creatorBusy.current ? "请等待当前创作操作完成。" : "有未保存的修改，请用工作台返回按钮保存或放弃修改。"); return false;
     }
     if ((view === "novels" || novelRouteActive.current) && (target !== "novels" || novelRoute.current !== "novels") && (novelBusy.current || novelDirty.current)) {
-      setNotice(novelBusy.current ? "请先完成或停止小说创作操作。" : "小说有未保存的修改，请用工作台的返回按钮保存或放弃修改。");
+      setNotice(novelBusy.current ? xumengStudio(locale).nvFinishFirst : xumengStudio(locale).nvSaveBeforeBack);
       return false;
     }
     if (view === "studio-edit" && (studioBusy.current || studioDirty.current)) {
@@ -2656,13 +2673,18 @@ export default function TavernApp() {
     const pinLocal = view === "characters" && tab === "新手" && !rankedFeed;
     const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
       && !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && characterMatchesShelfTags(character.tags, selectedShelfTags(genres))) : [];
+    const translatedLocal = view !== "search" && locale !== XUMENG_DEFAULT_LOCALE && translatedShelfReady
+      ? characters.filter((character) => hasXumengCardTranslation(character.id, locale)
+        && !isDzmmCharacterBlocked(character, state.preferences.blockedTags)
+        && !(hideRanked && hiddenIds.has(character.id)))
+      : [];
     const followed = new Set(state.preferences.followedAuthors ?? []);
     const followedLocal = tab === "关注" ? characters.filter((character) => {
       const author = findCharacterAuthor(authors, character.id);
       return !character.publication && author ? followed.has(author.id) : false;
     }) : [];
     const orderedRemote = tab === "最新" ? orderDzmmShelfByTime(remote) : remote;
-    const visible = [...searchLocalMatches, ...followedLocal, ...pinned, ...orderedRemote].filter((character) => {
+    const visible = [...searchLocalMatches, ...followedLocal, ...pinned, ...translatedLocal, ...orderedRemote].filter((character) => {
       if (view !== "search" && (!character.cover || character.cover.includes("placeholder"))) return false;
       if (view !== "search" && look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
       if (seen.has(character.id)) return false;
@@ -2678,10 +2700,10 @@ export default function TavernApp() {
       const placed = new Set(ranked.map((character) => character.id));
       return [...ranked, ...visible.filter((character) => !placed.has(character.id))];
     }
-    if (!rankedFeed || !rankReady || (publicShelf.loading && publicShelf.characters.length === 0)) return visible;
+    if (locale !== XUMENG_DEFAULT_LOCALE || !rankedFeed || !rankReady || (publicShelf.loading && publicShelf.characters.length === 0)) return visible;
     const order = new Map(displayRecommendationIds.map((id, index) => [id, index]));
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
-  }, [shelfCharacters, publicShelf.characters.length, publicShelf.loading, characters, searchLocalMatches, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, displayRecommendationIds, homeRecommendationPage, sortMode, locale]);
+  }, [shelfCharacters, publicShelf.characters.length, publicShelf.loading, characters, searchLocalMatches, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, displayRecommendationIds, homeRecommendationPage, sortMode, locale, cardTranslationRevision]);
   const homeBatchLoading = Boolean(homeRecommendationPage?.length) && shelfList.length === 0
     && (publicShelf.loading || publicShelf.characters.some((character) => !homeRecommendationPage?.includes(character.id)));
   const relatedCards = useMemo(() => {
@@ -2762,13 +2784,13 @@ export default function TavernApp() {
   }, [shelfList, showFeatured, showBuiltinShelf, builtinShelfItems]);
   useEffect(() => {
     const node = shelfMoreRef.current;
-    if (!node || !publicShelf.hasMore || publicShelf.loading) return;
+    if (!node || !publicShelf.hasMore || publicShelf.loading || shelfList.length === 0) return;
     const observer = new IntersectionObserver((entries) => {
       if (entries.some((entry) => entry.isIntersecting)) publicShelf.loadMore();
     }, { rootMargin: "720px" });
     observer.observe(node);
     return () => observer.disconnect();
-  }, [publicShelf.hasMore, publicShelf.loading, publicShelf.loadMore, view, detail, tab]);
+  }, [publicShelf.hasMore, publicShelf.loading, publicShelf.loadMore, view, detail, tab, shelfList.length]);
 
   async function importRole(file?: File) {
     if (!file) return;
@@ -3075,7 +3097,7 @@ export default function TavernApp() {
                       const displayCharacter = localizeCharacter(item.character, locale);
                       const displayTags = coverShelfTags(displayCharacter.tags, 2);
                       return <>
-                    {tab === "榜单" && <span className={`${s.rankBadge} ${index < 3 ? s.rankTop : ""}`} aria-label={`第${index + 1}名`}>#{index + 1}</span>}
+                    {tab === "榜单" && <span className={`${s.rankBadge} ${index < 3 ? s.rankTop : ""}`} aria-label={fill(copy.rankPlace, { n: index + 1 })}>#{index + 1}</span>}
                     <CoverReel className={s.coverButton} character={displayCharacter} onOpen={() => showDetail(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
@@ -3121,7 +3143,7 @@ export default function TavernApp() {
                   </article>
                 );
 
-  const rankingPeriodCopy = rankingPeriod === "day" ? "今日互动，实时更新" : rankingPeriod === "week" ? "本周互动，周一重置" : "累计互动，长期沉淀";
+  const rankingPeriodCopy = rankingPeriod === "day" ? copy.rankDayCopy : rankingPeriod === "week" ? copy.rankWeekCopy : copy.rankAllCopy;
   const quietTop = !detail && (view === "profile" || view === "settings" || view === "presets"
     || view === "studio" || view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation");
 
@@ -3130,8 +3152,8 @@ export default function TavernApp() {
       ref={appRef}
       className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
     >
-      <aside className={s.appRail} aria-label="主导航">
-        <a href="#characters" className={s.railBrand} aria-label="叙梦角色广场" onClick={(event) => { event.preventDefault(); navigate("characters"); }}>
+      <aside className={s.appRail} aria-label={copy.mainNav}>
+        <a href="#characters" className={s.railBrand} aria-label={copy.brandSquare} onClick={(event) => { event.preventDefault(); navigate("characters"); }}>
           <img src="/assets/xumeng/brand/xumeng-mark.svg" width="36" height="36" alt="" />
           <span>叙梦<small>XUMENG</small></span>
         </a>
@@ -3155,7 +3177,7 @@ export default function TavernApp() {
         </nav>
         <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
           <span className={s.avatar}><UserMark /></span>
-          <strong>{state.preferences.nickname || "我的"}</strong>
+          <strong>{accountLabel}</strong>
         </button>
       </aside>
       <header className={s.topbar}>
@@ -3166,7 +3188,7 @@ export default function TavernApp() {
             e.preventDefault();
             navigate("characters");
           }}
-          aria-label="叙梦角色广场"
+          aria-label={copy.brandSquare}
         >
           <img
             src="/assets/xumeng/brand/xumeng-mark.svg"
@@ -3179,7 +3201,7 @@ export default function TavernApp() {
             叙梦 <small>XUMENG</small>
           </span>
         </a>
-        <nav className={s.mainNav} aria-label="主导航">
+        <nav className={s.mainNav} aria-label={copy.mainNav}>
           {localizedNav.map((n) => (
             <a
               key={n.view}
@@ -3197,7 +3219,7 @@ export default function TavernApp() {
           <a
             href="#invite"
             className={`${s.mainReferralEntry} ${view === "invite" ? s.navActive : ""}`}
-            aria-label="邀请好友并获得聊天 Credit"
+            aria-label={copy.inviteAria}
             onClick={(event) => { event.preventDefault(); navigate("invite"); }}
           >
             <Icon name="users" size={17} />
@@ -3228,8 +3250,8 @@ export default function TavernApp() {
         {XUMENG_PAYMENTS_ENABLED && <a href="#vip" className={s.vipEntry} aria-label={t("vipCenter")} onClick={event => { event.preventDefault(); navigate("vip"); }}>
           <Icon name="crown" size={17} /><span>VIP</span>
         </a>}
-        <a href="#invite" className={s.referralTopEntry} aria-label="邀请好友并获得聊天 Credit" onClick={event => { event.preventDefault(); navigate("invite"); }}>
-          <Icon name="users" size={16} /><span>邀请好友</span><strong>赚 Credit</strong>
+        <a href="#invite" className={s.referralTopEntry} aria-label={copy.inviteAria} onClick={event => { event.preventDefault(); navigate("invite"); }}>
+          <Icon name="users" size={16} /><span>{copy.inviteFriends}</span><strong>{copy.earnCredit}</strong>
         </a>
         <button
           className={s.iconButton}
@@ -3250,10 +3272,10 @@ export default function TavernApp() {
           </select>
         </label>
         <div className={s.topEnd}>
-          <a className={s.telegramTop} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title="加入 Telegram 群（新标签页打开）"><Icon name="send" size={16} /></a>
+          <a className={s.telegramTop} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title={copy.telegramJoin}><Icon name="send" size={16} /></a>
           <button className={s.account} onClick={() => navigate("profile")}>
             <span className={s.avatar}><UserMark /></span>
-            <span>{state.preferences.nickname}</span>
+            <span>{accountLabel}</span>
           </button>
         </div>
       </header>
@@ -3263,7 +3285,7 @@ export default function TavernApp() {
           <div className={s.browseNav}>
             <div className={s.browseHead}>
             <div className={s.tabScroll} ref={tabsRef}>
-            <nav className={s.tabs} aria-label="浏览">
+            <nav className={s.tabs} aria-label={copy.browse}>
               {TABS.map((tabKey) => (
                 <button
                   key={tabKey}
@@ -3278,30 +3300,30 @@ export default function TavernApp() {
                     setTagPickerOpen(false); setTab(tabKey); setQuery(""); location.hash = "characters";
                   }}
                 >
-                  {tabKey === "榜单" && <Icon name="trophy" size={15} />} {tabKey === "分类" && appliedTags.length ? `${t("tabCategories")} · ${appliedTags.map(browseTagName).join("、")}` : (({ "关注": t("tabFollowing"), "最新": t("tabLatest"), "新手": t("tabNew"), "猜你喜欢": t("tabRecommended"), "榜单": t("tabRanking"), "分类": t("tabCategories") } as Record<string, string>)[tabKey] ?? tabKey)}
+                  {tabKey === "榜单" && <Icon name="trophy" size={15} />} {tabKey === "分类" && appliedTags.length ? `${t("tabCategories")} · ${appliedTags.map(tagName).join("、")}` : (({ "关注": t("tabFollowing"), "最新": t("tabLatest"), "新手": t("tabNew"), "猜你喜欢": t("tabRecommended"), "榜单": t("tabRanking"), "分类": t("tabCategories") } as Record<string, string>)[tabKey] ?? tabKey)}
                 </button>
               ))}
             </nav>
             </div>
-            {rankQuery?.surface === "home" && canRank && <button type="button" className={`${s.secondary} ${s.recommendRefresh}`} aria-label="换一批推荐角色" disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />换一批</button>}
+            {rankQuery?.surface === "home" && canRank && <button type="button" className={`${s.secondary} ${s.recommendRefresh}`} aria-label={copy.refreshBatch} disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />{copy.refreshBatch}</button>}
             </div>
           </div>
-          <DiscoveryTagPicker open={tagPickerOpen} onClose={() => setTagPickerOpen(false)} options={browseTagChoices} selected={appliedTags} limit={BROWSE_TAG_LIMIT} onToggle={toggleBrowseTag} onClear={() => setAppliedTags([])} />
+          <DiscoveryTagPicker open={tagPickerOpen} onClose={() => setTagPickerOpen(false)} options={browseTagChoices.map(item => ({ ...item, name: tagName(item.id) }))} selected={appliedTags} limit={BROWSE_TAG_LIMIT} onToggle={toggleBrowseTag} onClear={() => setAppliedTags([])} locale={locale} />
           <>
           <main className={s.catalog} ref={catalogRef}>
             {tab === "榜单" && <div className={s.rankingPanel}>
               <div className={s.rankingPanelCopy}>
-                <strong><Icon name="trophy" size={16} /> 实时榜单</strong>
+                <strong><Icon name="trophy" size={16} /> {copy.rankingLive}</strong>
                 <span>{rankingPeriodCopy}</span>
               </div>
-              <div className={s.rankingBar} role="tablist" aria-label="榜单周期">{([ ["day", "日榜"], ["week", "周榜"], ["all", "总榜"] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>
-              <button type="button" className={s.rankingRefresh} aria-label="刷新榜单" disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />刷新</button>
+              <div className={s.rankingBar} role="tablist" aria-label={copy.rankingLive}>{([ ["day", copy.rankDay], ["week", copy.rankWeek], ["all", copy.rankAll] ] as const).map(([period, label]) => <button key={period} role="tab" aria-selected={rankingPeriod === period} className={rankingPeriod === period ? s.rankActive : ""} onClick={() => setRankingPeriod(period)}>{label}</button>)}</div>
+              <button type="button" className={s.rankingRefresh} aria-label={copy.refreshRank} disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />{copy.refresh}</button>
             </div>}
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
-              : <section key={banner.id} className={s.homeBanner} aria-label="首页横幅"><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
+              : <section key={banner.id} className={s.homeBanner} aria-label={copy.homeBanner}><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
             {(homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
-              <div className={s.empty} role="status"><h2>正在加载角色</h2><p>马上就好。</p></div>
+              <div className={s.empty} role="status"><h2>{copy.loadingRoles}</h2><p>{copy.loadingSoon}</p></div>
             ) : featured.length || shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
                 {(featured.length ? [...featured, ...shelf] : shelf).map(renderShelfItem)}
@@ -3310,18 +3332,18 @@ export default function TavernApp() {
               <div className={s.empty}>
                 <Icon name={tab === "关注" ? "heart" : tab === "榜单" ? "trophy" : "search"} size={38} />
                 <h2>
-                  {tab === "关注" ? "还没有关注作者" : tab === "榜单" && usesServerRank ? "榜单" : "没有找到相关角色"}
+                  {tab === "关注" ? copy.emptyFollowingTitle : tab === "榜单" && usesServerRank ? copy.emptyRankTitle : copy.emptySearchTitle}
                 </h2>
                 <p>
                   {tab === "关注"
-                    ? "进入作者主页，关注后就能在这里看到他的作品。"
+                    ? copy.emptyFollowingBody
                     : tab === "榜单" && usesServerRank && recommendation.status !== "ready"
-                      ? (recommendation.status === "error" ? "榜单暂时没有更新，请稍后再看。" : "正在统计这个周期的真实互动。")
+                      ? (recommendation.status === "error" ? copy.rankStale : copy.rankCounting)
                     : tab === "榜单" && usesServerRank && recommendation.ids.length === 0
-                      ? "这个周期还没有足够的真实互动。"
+                      ? copy.rankEmptyPeriod
                     : appliedTags.length
-                      ? `「${appliedTags.map(browseTagName).join("、")}」下还没有角色。创作时加上这个标签，或换一个看看。`
-                      : "试试其他关键词，或者定制你自己的角色。"}
+                      ? fill(copy.emptyTagged, { tags: appliedTags.map(tagName).join("、") })
+                      : copy.emptySearchBody}
                 </p>
                 <button
                   className={s.primary}
@@ -3331,32 +3353,30 @@ export default function TavernApp() {
                     setTab("新手");
                   }}
                 >
-                  浏览角色
+                  {copy.browseRoles}
                 </button>
               </div>
             )}
             <div className={s.shelfMore} ref={shelfMoreRef}>
-              {publicShelf.total > 0 && <p>已显示 {publicShelf.characters.length} / {publicShelf.total}</p>}
+              {shelfList.length > 0 && publicShelf.total > 0 && <p>{fill(copy.shownOf, { shown: shelfList.length, total: publicShelf.total })}</p>}
               {publicShelf.error && <p role="alert">{publicShelf.error}</p>}
-              {publicShelf.loading && publicShelf.characters.length > 0 && <p>正在往下加载…</p>}
+              {publicShelf.loading && publicShelf.characters.length > 0 && <p>{copy.loadingMore}</p>}
             </div>
           </main></>
           <footer className={s.footer}>
-            <span>叙梦 · 与角色相遇，让故事继续。</span>
-            <a href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" title="加入 Telegram 群（新标签页打开）">Telegram</a>
+            <span>{copy.footerLine}</span>
+            <a href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" title={copy.telegramJoin}>Telegram</a>
             <button
               onClick={() =>
-                setNotice(
-                  "角色目录包含公开介绍原文和原创改写样本，作者与出处见角色详情。",
-                )
+                setNotice(copy.contentSourceNotice)
               }
             >
-              内容来源
+              {copy.contentSource}
             </button>
             <button title="JSON 或带有角色卡的 PNG" onClick={() => importRef.current?.click()}>
-              导入角色卡
+              {copy.importCard}
             </button>
-            <button onClick={() => navigate("presets")}>模型与预设</button>
+            <button onClick={() => navigate("presets")}>{copy.modelsPresets}</button>
             {!XUMENG_PAYMENT_INFO_DRAFT && XUMENG_PAYMENT_INFO_PAGES.map(page => (
               <a key={page.path} href={page.path}>{page.label}</a>
             ))}
@@ -3372,29 +3392,29 @@ export default function TavernApp() {
           >
             <label className={s.conversationSearch}>
               <Icon name="search" size={16} />
-              <input aria-label={conversationType === "stories" ? "搜索故事" : conversationType === "chats" ? "搜索聊天对象" : "搜索游戏"} placeholder={conversationType === "stories" ? "搜索故事、角色或剧情" : conversationType === "chats" ? "搜索聊天对象" : "搜索游戏作品"} maxLength={120}
+              <input aria-label={conversationType === "stories" ? copy.searchStories : conversationType === "chats" ? copy.searchCompanions : copy.searchGames} placeholder={conversationType === "stories" ? copy.searchStoriesPh : conversationType === "chats" ? copy.searchCompanionsPh : copy.searchGamesPh} maxLength={120}
                 value={conversationQuery} onChange={event => setConversationQuery(event.target.value)}
                 onKeyDown={event => { if (event.key === "Escape") setConversationQuery(""); }} />
-              {conversationQuery && <button type="button" aria-label="清除会话搜索" onClick={() => setConversationQuery("")}><Icon name="close" size={14} /></button>}
+              {conversationQuery && <button type="button" aria-label={copy.clearConversationSearch} onClick={() => setConversationQuery("")}><Icon name="close" size={14} /></button>}
             </label>
-            <div className={gameNavigation.filters} role="tablist" aria-label="消息类型" aria-orientation="horizontal">
-              {([ ["stories", "故事", state.conversations.length], ["chats", "陪伴", girlfriends.length + chatPeople.length], ["games", "游戏", visibleBuiltinGames.length + visibleGames.length] ] as const).map(([type,label,count]) => <button key={type} role="tab" aria-selected={conversationType === type} aria-controls="xumeng-chat-list-content" onClick={() => selectChatSection(type)}>{label}<span className={gameNavigation.filterCount} aria-hidden="true">{count}</span></button>)}
+            <div className={gameNavigation.filters} role="tablist" aria-label={copy.messageTypes} aria-orientation="horizontal">
+              {([ ["stories", copy.stories, state.conversations.length], ["chats", copy.companionTab, girlfriends.length + chatPeople.length], ["games", copy.gamesTab, visibleBuiltinGames.length + visibleGames.length] ] as const).map(([type,label,count]) => <button key={type} role="tab" aria-selected={conversationType === type} aria-controls="xumeng-chat-list-content" onClick={() => selectChatSection(type)}>{label}<span className={gameNavigation.filterCount} aria-hidden="true">{count}</span></button>)}
             </div>
             {conversationType === "games" && gameLibrary.recentError && <p className={gameNavigation.cacheWarning} role="status">{gameLibrary.recentError}</p>}
-            <div id="xumeng-chat-list-content" className={s.conversationList} aria-label={conversationType === "stories" ? "故事列表" : conversationType === "chats" ? "陪伴列表" : "游戏列表"}>
+            <div id="xumeng-chat-list-content" className={s.conversationList} aria-label={conversationType === "stories" ? copy.stories : conversationType === "chats" ? copy.companionTab : copy.gamesTab}>
               {conversationType === "games" && <>
-                {visibleBuiltinGames.map(game => <button key={game.id} className={`${s.conversation} ${gameSelection?.kind === "builtin" && gameSelection.id === game.id ? s.conversationActive : ""}`} aria-label={`游玩${game.title}`} onClick={() => playGame({ kind: "builtin", id: game.id })}>
+                {visibleBuiltinGames.map(game => <button key={game.id} className={`${s.conversation} ${gameSelection?.kind === "builtin" && gameSelection.id === game.id ? s.conversationActive : ""}`} aria-label={fill(copy.playNamed, { title: game.title })} onClick={() => playGame({ kind: "builtin", id: game.id })}>
                   <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong><small>{game.synopsis}</small></span>
                 </button>)}
-                {cloud.user?.isGuest ? <div className={gameNavigation.listState}><p>登录后可以保存你自己的游戏作品。</p><button onClick={() => openAccount("login")}>登录</button></div>
-                : gameLibrary.loading || !cloud.user ? <p className={s.sidebarEmpty} role="status">正在加载游戏…</p>
-                : gameLibrary.error ? <div className={gameNavigation.listState} role="alert"><p>{gameLibrary.error}</p><button onClick={gameLibrary.refresh}>重新加载</button></div>
-                : visibleGames.length ? <><div className={gameNavigation.listState}><button onClick={() => openCreatorRoute("studio/games")}>上传游戏</button></div>{visibleGames.map(game => <button key={game.id} className={`${s.conversation} ${gameSelection?.kind === "private" && gameSelection.id === game.id ? s.conversationActive : ""}`} aria-label={`游玩${game.title}`} onClick={() => playGame({ kind: "private", id: game.id })}>
-                  <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong>{gameLastPlayed.has(game.id) && <time className={s.conversationTime}>{new Date(gameLastPlayed.get(game.id)!).toLocaleDateString("zh-CN", {month:"numeric",day:"numeric"})}</time>}<small>{game.synopsis || "私人游戏作品"}</small></span>
+                {cloud.user?.isGuest ? <div className={gameNavigation.listState}><p>{copy.loginSaveGames}</p><button onClick={() => openAccount("login")}>{copy.login}</button></div>
+                : gameLibrary.loading || !cloud.user ? <p className={s.sidebarEmpty} role="status">{copy.loadingGames}</p>
+                : gameLibrary.error ? <div className={gameNavigation.listState} role="alert"><p>{gameLibrary.error}</p><button onClick={gameLibrary.refresh}>{copy.reload}</button></div>
+                : visibleGames.length ? <><div className={gameNavigation.listState}><button onClick={() => openCreatorRoute("studio/games")}>{copy.uploadGame}</button></div>{visibleGames.map(game => <button key={game.id} className={`${s.conversation} ${gameSelection?.kind === "private" && gameSelection.id === game.id ? s.conversationActive : ""}`} aria-label={fill(copy.playNamed, { title: game.title })} onClick={() => playGame({ kind: "private", id: game.id })}>
+                  <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong>{gameLastPlayed.has(game.id) && <time className={s.conversationTime}>{new Date(gameLastPlayed.get(game.id)!).toLocaleDateString(xumengHtmlLang(locale), {month:"numeric",day:"numeric"})}</time>}<small>{game.synopsis || copy.privateGame}</small></span>
                 </button>)}</>
-                : <div className={gameNavigation.listState}><p>{conversationQuery && visibleBuiltinGames.length === 0 ? "没有找到匹配的游戏。" : "还没有你自己的游戏作品。"}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>上传游戏</button>}</div>}
+                : <div className={gameNavigation.listState}><p>{conversationQuery && visibleBuiltinGames.length === 0 ? copy.noMatchGames : copy.noOwnGames}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>{copy.uploadGame}</button>}</div>}
               </>}
-              {conversationType === "chats" && <div className={gameNavigation.listState}><button onClick={() => openGirlfriendStudio("new")}>上传女友</button></div>}
+              {conversationType === "chats" && <div className={gameNavigation.listState}><button onClick={() => openGirlfriendStudio("new")}>{copy.uploadGirlfriend}</button></div>}
               {conversationType === "chats" && visibleGirlfriends.map(person => <button key={person.id} className={gameNavigation.companionEntry} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
                 <span className={gameNavigation.companionFace}><span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span></span>
                 <span className={gameNavigation.companionCopy}><strong>{person.nickname}</strong><small>{person.lines[0]}</small></span>
@@ -3404,19 +3424,19 @@ export default function TavernApp() {
                 const row = chatInbox.get(lane);
                 const preview = row?.preview || person.line;
                 const unread = row?.unread ?? 0;
-                return <button key={person.castId || person.variant} className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === person.variant && (person.variant !== "cast" || castCompanion?.id === person.castId) ? "page" : undefined} aria-label={unread ? `${person.name}，${unread}条未读，${preview}` : `${person.name}，${preview}`} onMouseEnter={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onFocus={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onClick={() => openCompanion(person.variant, undefined, person.castId || undefined)}>
+                return <button key={person.castId || person.variant} className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === person.variant && (person.variant !== "cast" || castCompanion?.id === person.castId) ? "page" : undefined} aria-label={unread ? fill(copy.namedPreview, { name: `${person.name}，${unread}`, preview }) : fill(copy.namedPreview, { name: person.name, preview })} onMouseEnter={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onFocus={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onClick={() => openCompanion(person.variant, undefined, person.castId || undefined)}>
                   <span className={gameNavigation.companionFace}>
                     <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span>
                     {unread > 0 && <b className={gameNavigation.companionBadge} aria-hidden="true">{unread > 99 ? "99+" : unread}</b>}
                   </span>
                   <span className={gameNavigation.companionCopy}>
                     <strong>{person.name}</strong>
-                    {row?.at ? <time dateTime={new Date(row.at).toISOString()}>{chatListStamp(row.at)}</time> : null}
+                    {row?.at ? <time dateTime={new Date(row.at).toISOString()}>{chatListStamp(row.at, Date.now(), locale)}</time> : null}
                     <small>{preview}</small>
                   </span>
                 </button>;
               })}
-              {conversationType === "chats" && !visibleGirlfriends.length && !chatPeople.length && <div className={s.sidebarEmpty} role="status"><p>没有找到匹配的陪伴对象</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>清除搜索</button>}</div>}
+              {conversationType === "chats" && !visibleGirlfriends.length && !chatPeople.length && <div className={s.sidebarEmpty} role="status"><p>{copy.noMatchCompanions}</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>{copy.clearSearch}</button>}</div>}
               {conversationType === "stories" && visibleConversations.map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
                 const unread = activeId === c.id ? 0 : storyUnread(c.messages, storySeen[c.id]);
@@ -3424,27 +3444,27 @@ export default function TavernApp() {
                   <button
                     key={c.id}
                     className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""} ${!ch ? s.conversationUnavailable : ""}`}
-                    aria-label={`${!ch ? "角色暂不可用，" : ""}${c.title}${unread ? `，${unread}条未读` : ""}`}
+                    aria-label={`${!ch ? copy.roleUnavailablePrefix : ""}${c.title}${unread ? ` ${unread}` : ""}`}
                     onClick={() => selectConversation(c)}
                   >
                     <span className={s.conversationAvatar}>
                       {ch ? <Cover character={ch} /> : <div className={s.unavailableAvatar} aria-hidden="true"><Icon name="chat" size={20} /></div>}
-                      {unread > 0 && <b className={s.unreadBadge} aria-label={`${unread}条未读`}>{unread > 99 ? "99+" : unread}</b>}
+                      {unread > 0 && <b className={s.unreadBadge} aria-label={String(unread)}>{unread > 99 ? "99+" : unread}</b>}
                     </span>
                     <span className={s.conversationMeta}>
                       <strong>{c.title}</strong>
-                      <time className={s.conversationTime}>{formatConversationStamp(c.updatedAt)}</time>
+                      <time className={s.conversationTime}>{formatConversationStamp(c.updatedAt, locale)}</time>
                       <small>
-                        {generating[c.id] && <span className={s.conversationGenerating}>正在回复… </span>}
-                        {!ch && <span className={s.conversationState}>{pendingCharacterIds.has(c.characterId) ? "正在读取角色" : "角色暂不可用 · 可导出或删除"}</span>}
-                        {xumengConversationPreview(c.messages.at(-1)?.content ?? "") || (c.messages.at(-1)?.content ? "查看对话" : "开始新的故事")}
+                        {generating[c.id] && <span className={s.conversationGenerating}>{copy.replying}</span>}
+                        {!ch && <span className={s.conversationState}>{pendingCharacterIds.has(c.characterId) ? copy.readingRole : copy.roleUnavailableExport}</span>}
+                        {xumengConversationPreview(c.messages.at(-1)?.content ?? "") || (c.messages.at(-1)?.content ? copy.viewChat : copy.startStory)}
                       </small>
                     </span>
                   </button>
                 );
               })}
               {conversationType === "stories" && !visibleConversations.length && (
-                <div className={s.sidebarEmpty} role="status"><p>{state.conversations.length ? "没有找到匹配的故事" : "还没有故事记录"}</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>清除搜索</button>}</div>
+                <div className={s.sidebarEmpty} role="status"><p>{state.conversations.length ? copy.noMatchStories : copy.noStories}</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>{copy.clearSearch}</button>}</div>
               )}
             </div>
             {conversationType === "stories" && <button
@@ -3452,7 +3472,7 @@ export default function TavernApp() {
               onClick={() => importChatRef.current?.click()}
             >
               <Icon name="upload" size={16} />
-              导入会话
+              {copy.importSession}
             </button>}
           </aside>
           <button
@@ -3460,7 +3480,7 @@ export default function TavernApp() {
             className={s.chatListToggle}
             aria-expanded={chatListOpen}
             aria-controls="xumeng-chat-list"
-            aria-label={chatListOpen ? "收起会话列表" : "展开会话列表"}
+            aria-label={chatListOpen ? copy.collapseList : copy.expandList}
             onClick={toggleChatList}
           >
             <Icon name="chevron" size={16} />
@@ -3470,14 +3490,14 @@ export default function TavernApp() {
               <Deferred>
               {companionVariant === "qwen"
                 ? <QwenCompanion key={`${cloud.user?.id ?? "loading"}:qwen`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} avatar={CONTENT_PEOPLE.find(person => person.variant === "qwen")?.cover} onBack={leaveCompanion} onVoiceCall={() => callCompanion("qwen", "phone")} onVideoCall={() => callCompanion("qwen", "video")}/>
-                : mineId && !minePerson && !girlfriendsReady ? <main className={s.profileEmpty}><p>正在打开这个女友…</p></main>
-                : mineId && !minePerson && customCompanion?.id !== mineId ? <main className={s.profileEmpty}><p>这台设备上没有这个女友。</p><button className={s.secondary} onClick={() => openGirlfriendStudio("new")}>上传女友</button></main>
+                : mineId && !minePerson && !girlfriendsReady ? <main className={s.profileEmpty}><p>{copy.openingGirlfriend}</p></main>
+                : mineId && !minePerson && customCompanion?.id !== mineId ? <main className={s.profileEmpty}><p>{copy.girlfriendMissing}</p><button className={s.secondary} onClick={() => openGirlfriendStudio("new")}>{copy.uploadGirlfriend}</button></main>
                 : <CompanionPage key={`${cloud.user?.id ?? "loading"}:${companionVariant}:${companionVariant === "cast" ? castCompanion?.id ?? "" : mineId || customCompanion?.id || ""}`} accountId={cloud.user && !cloud.user.isGuest ? cloud.user.id : undefined} variant={companionVariant === "custom" ? "custom" : companionVariant} cast={companionVariant === "cast" ? castCompanion ?? undefined : undefined} lane={mineId ? `mine-${mineId}` : undefined} album={minePerson?.album ?? []} profile={minePerson ? girlfriendProfile(minePerson) : companionVariant === "custom" ? customCompanion ?? REALISTIC_COMPANION_PROFILES[0] : undefined} avatar={companionVariant === "cast" ? castCompanion?.cover : minePerson?.cover || (companionVariant === "custom" ? customCompanion?.cover : CONTENT_PEOPLE.find(person => person.variant === companionVariant)?.cover)} onBack={leaveCompanion} onLogin={() => { openAccount("login"); }} onVoiceCall={() => startCompanionCall("phone")} onVideoCall={() => startCompanionCall("video")}/>}
               </Deferred>
             ) : gameSelection ? (
               gameSelection.kind === "builtin"
-                ? (gameLibrary.builtinGame ? <Deferred><GamePlayer key={`${cloud.user?.id}:builtin:${gameSelection.id}`} game={gameLibrary.builtinGame} onBack={leaveGame}/></Deferred> : <div className={gameNavigation.gameLoading} role={gameLibrary.builtinError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.builtinError || "正在打开游戏…"}</p>{gameLibrary.builtinError && <button onClick={gameLibrary.refresh}>重试打开</button>}<button onClick={leaveGame}>返回游戏列表</button></div>)
-                : (gameLibrary.privateGame ? <Deferred><GamePlayer key={`${cloud.user?.id}:private:${gameSelection.id}:${gameLibrary.privateGame.version}`} game={gameLibrary.privateGame} onBack={leaveGame}/></Deferred> : <div className={gameNavigation.gameLoading} role={gameLibrary.privateError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.privateError || "正在打开游戏…"}</p>{gameLibrary.privateError && <button onClick={cloud.user?.isGuest ? () => openAccount("login") : gameLibrary.refresh}>{cloud.user?.isGuest ? "登录" : "重试打开"}</button>}<button onClick={leaveGame}>返回游戏列表</button></div>)
+                ? (gameLibrary.builtinGame ? <Deferred><GamePlayer key={`${cloud.user?.id}:builtin:${gameSelection.id}`} game={gameLibrary.builtinGame} onBack={leaveGame}/></Deferred> : <div className={gameNavigation.gameLoading} role={gameLibrary.builtinError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.builtinError || copy.openingGame}</p>{gameLibrary.builtinError && <button onClick={gameLibrary.refresh}>{copy.retryOpen}</button>}<button onClick={leaveGame}>{copy.backToGames}</button></div>)
+                : (gameLibrary.privateGame ? <Deferred><GamePlayer key={`${cloud.user?.id}:private:${gameSelection.id}:${gameLibrary.privateGame.version}`} game={gameLibrary.privateGame} onBack={leaveGame}/></Deferred> : <div className={gameNavigation.gameLoading} role={gameLibrary.privateError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.privateError || copy.openingGame}</p>{gameLibrary.privateError && <button onClick={cloud.user?.isGuest ? () => openAccount("login") : gameLibrary.refresh}>{cloud.user?.isGuest ? copy.login : copy.retryOpen}</button>}<button onClick={leaveGame}>{copy.backToGames}</button></div>)
             ) : activeCharacter && active ? (
               <>
                 {playBackdrop && <PlayBackdrop cover={activeCharacter.cover} scene={sceneUrl} />}
@@ -3485,7 +3505,7 @@ export default function TavernApp() {
                 <header className={s.chatHeader}>
                   <button
                     className={`${s.iconButton} ${s.mobileBack}`}
-                    aria-label="返回会话列表"
+                    aria-label={copy.backToList}
                     onClick={() => {
                       setActiveId(null);
                     }}
@@ -3499,13 +3519,13 @@ export default function TavernApp() {
                     <Cover character={activeCharacter} />
                     <span>
                       <strong>{activeCharacter.name}</strong>
-                      <small><span className={s.onlineDot} />{chatPresence(activeCharacter, busy)}</small>
+                      <small><span className={s.onlineDot} />{chatPresence(activeCharacter, busy, locale)}</small>
                     </span>
                   </button>
                   <div className={s.modelPicker} ref={modelPickerRef}>
                     <button
                       className={s.modelButton}
-                      aria-label="选择 AI 模型"
+                      aria-label={copy.chooseModel}
                       aria-expanded={modelMenuOpen}
                       disabled={busy}
                       onClick={() => { if (!activeReplyActive()) { setChatToolsOpen(false); setModelMenuOpen((open) => !open); } }}
@@ -3516,12 +3536,12 @@ export default function TavernApp() {
                     {modelMenuOpen && (
                       <div className={s.modelMenu}>
                         <div className={s.modelMenuTitle}>
-                          AI 模型
-                          <button className={s.iconButton} aria-label="关闭模型菜单" onClick={() => setModelMenuOpen(false)}>
+                          {copy.aiModels}
+                          <button className={s.iconButton} aria-label={copy.closeModelMenu} onClick={() => setModelMenuOpen(false)}>
                             <Icon name="close" size={14} />
                           </button>
                         </div>
-                        <div role="listbox" aria-label="模型模式">
+                        <div role="listbox" aria-label={copy.modelModes}>
                           {MODEL_MODES.map((mode) => (
                             <button
                               key={mode.id}
@@ -3534,7 +3554,7 @@ export default function TavernApp() {
                                 setModelMenuOpen(false);
                               }}
                             >
-                              <span><strong>{mode.label}</strong><small>{mode.description}</small></span>
+                              <span><strong>{mode.label}</strong><small>{xumengModelBlurb(locale, mode.id, mode.description)}</small></span>
                               <span>{normalizeDzmmModelSelection(state.preferences.model) === mode.id && <Icon name="check" size={15} />}</span>
                             </button>
                           ))}
@@ -3545,8 +3565,8 @@ export default function TavernApp() {
                   <div className={s.chatHeaderTools}>
                     <button
                       className={s.iconButton}
-                      aria-label="对话相册"
-                      title="对话相册"
+                      aria-label={copy.chatAlbum}
+                      title={copy.chatAlbum}
                       aria-pressed={chatAlbumOpen}
                       onClick={() => setChatAlbumOpen(open => !open)}
                     >
@@ -3554,8 +3574,8 @@ export default function TavernApp() {
                     </button>
                     <button
                       className={s.iconButton}
-                      aria-label="查看当前角色"
-                      title="查看角色"
+                      aria-label={copy.viewRole}
+                      title={copy.viewRoleShort}
                       disabled={busy}
                       onClick={() => showDetail(activeCharacter)}
                     >
@@ -3563,25 +3583,25 @@ export default function TavernApp() {
                     </button>
                     <button
                       className={s.iconButton}
-                      aria-label="开启新会话"
-                      title={getDzmmNewConversationBlockReason(activeCharacter) ?? "开启新会话，保留当前记录"}
+                      aria-label={copy.newSession}
+                      title={getDzmmNewConversationBlockReason(activeCharacter) ?? copy.newSessionKeep}
                       disabled={busy || getDzmmNewConversationBlockReason(activeCharacter) !== null}
                       onClick={() => startChat(activeCharacter, true)}
                     >
                       <Icon name="plus" size={18} />
                     </button>
                     <div className={s.chatToolsMenu} ref={chatToolsRef}>
-                      <button className={s.iconButton} aria-label="更多聊天操作" title="更多聊天操作" aria-haspopup="menu" aria-expanded={chatToolsOpen} onClick={() => { setModelMenuOpen(false); setChatToolsOpen(open => !open); }}>
+                      <button className={s.iconButton} aria-label={copy.moreChat} title={copy.moreChat} aria-haspopup="menu" aria-expanded={chatToolsOpen} onClick={() => { setModelMenuOpen(false); setChatToolsOpen(open => !open); }}>
                         <Icon name="more" size={18} />
                       </button>
-                      {chatToolsOpen && <div className={s.chatToolsPopover} role="menu" aria-label="聊天操作">
-                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("voice"); }}><Icon name="volume" size={15} />角色语音</button>
-                        <button type="button" role="menuitemcheckbox" className={state.favorites.includes(activeCharacter.id) ? s.favorited : ""} aria-checked={state.favorites.includes(activeCharacter.id)} onClick={() => { setChatToolsOpen(false); toggleFavorite(activeCharacter.id); }}><Icon name="heart" size={15} />{state.favorites.includes(activeCharacter.id) ? "已收藏角色" : "收藏角色"}</button>
-                        <button type="button" role="menuitem" onClick={() => { setChatToolsOpen(false); exportConversation(); }}><Icon name="download" size={15} />导出会话</button>
-                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); setChatSettingsOpen(true); }}><Icon name="sliders" size={15} />聊天设置</button>
+                      {chatToolsOpen && <div className={s.chatToolsPopover} role="menu" aria-label={copy.chatActions}>
+                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("voice"); }}><Icon name="volume" size={15} />{copy.characterVoice}</button>
+                        <button type="button" role="menuitemcheckbox" className={state.favorites.includes(activeCharacter.id) ? s.favorited : ""} aria-checked={state.favorites.includes(activeCharacter.id)} onClick={() => { setChatToolsOpen(false); toggleFavorite(activeCharacter.id); }}><Icon name="heart" size={15} />{state.favorites.includes(activeCharacter.id) ? copy.favoritedRole : copy.favoriteRole}</button>
+                        <button type="button" role="menuitem" onClick={() => { setChatToolsOpen(false); exportConversation(); }}><Icon name="download" size={15} />{copy.exportSession}</button>
+                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); setChatSettingsOpen(true); }}><Icon name="sliders" size={15} />{copy.chatSettings}</button>
                         {XUMENG_CALLS_ENABLED && <>
-                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "phone"); }}><Icon name="phone" size={15} />语音通话 · 200 Credit</button>
-                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "video"); }}><Icon name="video" size={15} />视频通话 · 200 Credit</button>
+                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "phone"); }}><Icon name="phone" size={15} />{copy.voiceCall}</button>
+                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "video"); }}><Icon name="video" size={15} />{copy.videoCall}</button>
                         </>}
                       </div>}
                     </div>
@@ -3602,7 +3622,7 @@ export default function TavernApp() {
                         className={`${s.messageRow} ${m.role === "user" ? s.userRow : ""} ${index > 0 && active.messages[index - 1]?.role === m.role ? s.messageGrouped : ""}`}
                       >
                         {m.role === "assistant" ? (
-                          <button type="button" className={s.messageAvatarButton} aria-label={`查看${activeCharacter.name}`} onClick={() => showDetail(activeCharacter)}>
+                          <button type="button" className={s.messageAvatarButton} aria-label={fill(copy.viewNamed, { name: activeCharacter.name })} onClick={() => showDetail(activeCharacter)}>
                             <Cover character={activeCharacter} className={s.messageAvatar} />
                           </button>
                         ) : (
@@ -3612,9 +3632,9 @@ export default function TavernApp() {
                           <span className={s.srOnly}>{m.role === "user" ? state.preferences.nickname : activeCharacter.name}</span>
                           {m.role === "assistant" && activeOpening?.messages[index]?.role === m.role
                             && activeOpening.messages[index].content.trim() === m.content.trim() && (
-                            <small className={s.openingTag}>{activeOpening.kind === "background" ? "故事背景" : activeOpening.kind === "welcome" ? "故事起点" : "开场白"}</small>
+                            <small className={s.openingTag}>{activeOpening.kind === "background" ? copy.storyBackground : activeOpening.kind === "welcome" ? copy.storyStart : copy.openingLine}</small>
                           )}
-                          <ChatMessageMedia message={m} disabled={busy} label={`第 ${index + 1} 条消息`}
+                          <ChatMessageMedia message={m} disabled={busy} label={fill(copy.messageN, { n: index + 1 })}
                             moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: m.id === streamingAssistantId ? [] : momentFields, sections: m.id === streamingAssistantId ? [] : momentSections, open: m.id !== streamingAssistantId, pending: m.id === streamingAssistantId } : undefined}
                             onCopy={() => { void copyMessage(splitXumengMomentTail(splitXumengPanelTail(m.content).body).body); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
@@ -3631,20 +3651,20 @@ export default function TavernApp() {
                           {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
                             contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
                             accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false}
-                            label={`第 ${index + 1} 条回复`} disabled={busy || cloud.authBusy || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
+                            label={fill(copy.replyN, { n: index + 1 })} disabled={busy || cloud.authBusy || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
                             historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
                             onChoose={reply => chooseReplySuggestion(m.id, reply)} />}
                         </div>
                       </div>
                     ))}
                     {busy && active.messages.at(-1)?.role !== "assistant" && (
-                      <div className={s.typing} role="status" aria-label="正在输入">
+                      <div className={s.typing} role="status" aria-label={copy.typingLabel}>
                         <span />
                         <span />
                         <span />
                       </div>
                     )}
-                    {busy && summarizing && <p className={s.memoryProgress} role="status">正在整理较早的剧情，完成后继续回复…</p>}
+                    {busy && summarizing && <p className={s.memoryProgress} role="status">{copy.summarizing}</p>}
                     {!busy && !active.messages.some(message => message.role === "user") && (
                       <div className={s.quickStarts}>
                         <button
@@ -3652,17 +3672,17 @@ export default function TavernApp() {
                           disabled={cloud.authBusy}
                           onClick={() => { void sendSuggested("请随机生成我的身份和起始地点，从第一场事件开始。"); }}
                         >
-                          随机开局 <Icon name="shuffle" size={12} />
+                          {copy.randomStart} <Icon name="shuffle" size={12} />
                         </button>
                       </div>
                     )}
-                    {!busy && !active.messages.some(message => message.role === "user") && Boolean(activeCharacter.suggestedReplies?.length) && <div className={s.quickStarts} aria-label="角色建议回复">{activeCharacter.suggestedReplies?.map((reply, index) => <button key={`${index}:${reply}`} type="button" disabled={cloud.authBusy} onClick={() => { void sendSuggested(reply); }}>{reply}</button>)}</div>}
+                    {!busy && !active.messages.some(message => message.role === "user") && Boolean(activeCharacter.suggestedReplies?.length) && <div className={s.quickStarts} aria-label={copy.suggestedReplies}>{activeCharacter.suggestedReplies?.map((reply, index) => <button key={`${index}:${reply}`} type="button" disabled={cloud.authBusy} onClick={() => { void sendSuggested(reply); }}>{reply}</button>)}</div>}
                     <div ref={endRef} />
                   </div>
                   </ChatMediaProvider>
                 </div>
                 {showNewReply && <button type="button" className={s.messageJump} onClick={scrollToLatestMessage}>
-                  {chatBusy ? "新回复" : "回到最新"}<Icon name="chevron" size={14} />
+                  {chatBusy ? copy.newReply : copy.latest}<Icon name="chevron" size={14} />
                 </button>}
                 <div className={s.composerWrap}>
                   {error && (
@@ -3670,24 +3690,24 @@ export default function TavernApp() {
                       {error}
                       <button
                         onClick={() => setError("")}
-                        aria-label="关闭错误提示"
+                        aria-label={copy.closeError}
                       >
                         <Icon name="close" size={14} />
                       </button>
                     </p>
                   )}
-                    {composerStorageWarning && <div className={s.chatError} role="alert"><p>{composerStorageWarning}</p><button type="button" className={s.secondary} onClick={() => download("输入草稿.json", JSON.stringify({ version: 1, accountId: cloud.user?.id, drafts: composerDrafts, ...(composerOriginalCache !== undefined ? { originalCache: composerOriginalCache } : {}) }, null, 2))}>导出输入草稿</button></div>}
-                    {pendingDraft && !busy && <details className={s.chatError}><summary>上次发送的内容</summary><p style={{ whiteSpace: "pre-wrap" }}>{pendingDraft.text}</p><button type="button" onClick={() => {
+                    {composerStorageWarning && <div className={s.chatError} role="alert"><p>{composerStorageWarning}</p><button type="button" className={s.secondary} onClick={() => download("输入草稿.json", JSON.stringify({ version: 1, accountId: cloud.user?.id, drafts: composerDrafts, ...(composerOriginalCache !== undefined ? { originalCache: composerOriginalCache } : {}) }, null, 2))}>{copy.exportInputDraft}</button></div>}
+                    {pendingDraft && !busy && <details className={s.chatError}><summary>{copy.lastSent}</summary><p style={{ whiteSpace: "pre-wrap" }}>{pendingDraft.text}</p><button type="button" onClick={() => {
                       const combined = draft ? `${draft}\n${pendingDraft.text}` : pendingDraft.text;
-                      if (combined.length > 12000) { setNotice("合并后超过输入上限，请先导出或发送当前输入，再恢复原文。"); return; }
+                      if (combined.length > 12000) { setNotice(copy.mergeTooLong); return; }
                       if (activeId) setComposerDrafts(previous => ({ ...previous, [activeId]: { text: combined, failed: previous[activeId]?.failed ?? [] } }));
-                    }}>恢复到输入框</button><button type="button" onClick={() => {
+                    }}>{copy.restoreInput}</button><button type="button" onClick={() => {
                       if (activeId) setComposerDrafts(previous => {
                         const current = previous[activeId]; if (!current) return previous;
                         const { pending: confirmed, ...rest } = current; void confirmed;
                         return { ...previous, [activeId]: rest };
                       });
-                    }}>移除</button></details>}
+                    }}>{copy.remove}</button></details>}
                   <ChatBillingStatus key={cloud.user?.id ?? "offline"} accountId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true}
                     enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onUsage={usage => setChatBalance(usage ? usage.availableBalance : null)}
                     onRequireAccount={() => openAccount("login")} onRecharge={() => navigate("recharge")} />
@@ -3700,13 +3720,13 @@ export default function TavernApp() {
                   >
                     <div className={s.composerBar}>
                       <ComposerQuickInsert disabled={!loaded || cloud.authBusy} onInsert={insertComposerSnippet} />
-                      <span className={s.composerHint}>{enterSends ? "Enter 发送，Shift+Enter 换行" : "点发送按钮发出"}</span>
+                      <span className={s.composerHint}>{enterSends ? copy.enterHint : copy.clickSendHint}</span>
                     </div>
                     <textarea
                       ref={composerInputRef}
-                      aria-label="发送消息"
+                      aria-label={copy.sendMessage}
                       disabled={!loaded || cloud.authBusy}
-                      placeholder="输入消息"
+                      placeholder={copy.messagePlaceholder}
                       enterKeyHint={enterSends ? "send" : "enter"}
                       value={draft}
                       maxLength={12000}
@@ -3731,9 +3751,9 @@ export default function TavernApp() {
                         className={`${s.sendButton} ${s.stopButton}`}
                         type="button"
                         onClick={(e) => { e.preventDefault(); if (activeId) replyRequests.current.get(activeId)?.abort(); }}
-                        aria-label="停止生成"
+                        aria-label={copy.stopGenerate}
                       >
-                        停止
+                        {copy.stop}
                       </button>
                     ) : (
                       <button
@@ -3741,9 +3761,9 @@ export default function TavernApp() {
                         className={s.sendButton}
                         type="submit"
                         disabled={!loaded || cloud.authBusy || !draft.trim() || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
-                        aria-label="发送"
+                        aria-label={copy.send}
                       >
-                        发送
+                        {copy.send}
                       </button>
                     )}
                     </div>
@@ -3751,11 +3771,11 @@ export default function TavernApp() {
                 </div>
               </>
             ) : active && pendingCharacterIds.has(active.characterId) ? (
-              <div className={s.empty} role="status"><p>正在读取角色…</p></div>
+              <div className={s.empty} role="status"><p>{copy.readingRoleEllipsis}</p></div>
             ) : active ? (
               <UnavailableConversation key={`${profileUser.id}:${active.id}`} conversation={active} nickname={state.preferences.nickname}
                 onBack={() => {
-                  if (activeReplyActive()) { setNotice("正在停止当前回复，请稍候再返回。"); return; }
+                  if (activeReplyActive()) { setNotice(copy.stoppingReply); return; }
                   setActiveId(null);
                 }} onExport={exportConversation} onDelete={removeActiveConversation}
                 onCopy={text => { void copyMessage(text); }} />
@@ -3764,20 +3784,20 @@ export default function TavernApp() {
                 <span className={s.emptyChatIcon}>
                   <Icon name={conversationType === "games" ? "game" : conversationType === "chats" ? "heart" : "book"} size={38} />
                 </span>
-                <h2>{conversationType === "chats" ? "聊聊今天的小事" : conversationType === "games" ? "选一部游戏，开始游玩" : state.conversations.length ? "选择一段故事继续" : "开启你的第一段故事"}</h2>
-                <p>{conversationType === "chats" ? "从左边选一个人，慢慢认识彼此。" : conversationType === "games" ? "从左边选一部你自己的游戏，或导入新作品。" : state.conversations.length ? "从列表继续剧情，或遇见一个新的角色。" : "去找一个心仪的角色吧"}</p>
+                <h2>{conversationType === "chats" ? copy.chatToday : conversationType === "games" ? copy.pickGameTitle : state.conversations.length ? copy.continueStory : copy.firstStory}</h2>
+                <p>{conversationType === "chats" ? copy.chatTodayBody : conversationType === "games" ? copy.pickGameBody : state.conversations.length ? copy.continueStoryBody : copy.firstStoryBody}</p>
                 {conversationType !== "games" && <button
                   className={s.primary}
                   onClick={() => conversationType === "chats" ? openCompanion() : navigate("characters")}
                 >
-                  {conversationType === "chats" ? "开始聊天" : "选择角色"} <Icon name="chevron" size={16} />
+                  {conversationType === "chats" ? copy.startChatting : copy.chooseRole} <Icon name="chevron" size={16} />
                 </button>}
                 {conversationType === "stories" && <button
                   className={s.textButton}
                   onClick={() => importChatRef.current?.click()}
                 >
                   <Icon name="upload" size={15} />
-                  导入会话
+                  {copy.importSession}
                 </button>}
               </div>
             )}
@@ -3786,71 +3806,71 @@ export default function TavernApp() {
       )}
 
       <Deferred>
-      {view === "videos" && !detail && <VideoChannel characters={characters} onOpenCharacter={id => { const character = characters.find(item => item.id === id); if (character) showDetail(character); }} onRequireAccount={() => openAccount("login")} />}
-      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? (cloud.user ? <GenerationStudio key={cloud.user.id} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} onBack={() => navigate("studio")} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>) : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
+      {view === "videos" && !detail && <VideoChannel locale={locale} characters={characters} onOpenCharacter={id => { const character = characters.find(item => item.id === id); if (character) showDetail(character); }} onRequireAccount={() => openAccount("login")} />}
+      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? (cloud.user ? <GenerationStudio locale={locale} key={cloud.user.id} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} onBack={() => navigate("studio")} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>) : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
 
-      {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
-      {view === "app" && !detail && <InstallApp onBack={() => navigate("characters")} />}
-      {view === "checkin" && !detail && (cloud.user ? <DailyCheckin key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onBack={() => navigate("tasks")} onTasks={() => navigate("tasks")} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
-      {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
-      {view === "studio" && !detail && <CreatorCenter key={profileUser.id} section={creatorSection} user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("register")} onCatalogChanged={cloud.refreshCatalog} onRoute={openCreatorRoute} />}
+      {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} locale={locale} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
+      {view === "app" && !detail && <InstallApp locale={locale} onBack={() => navigate("characters")} />}
+      {view === "checkin" && !detail && (cloud.user ? <DailyCheckin locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onBack={() => navigate("tasks")} onTasks={() => navigate("tasks")} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
+      {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
+      {view === "studio" && !detail && <CreatorCenter locale={locale} key={profileUser.id} section={creatorSection} user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("register")} onCatalogChanged={cloud.refreshCatalog} onRoute={openCreatorRoute} />}
       {(view === "live" || view === "voice") && !detail && performanceLibrary.error && <div className={s.error} role="alert">{performanceLibrary.error}<button onClick={performanceLibrary.refresh}>重试加载人物</button></div>}
-      {view === "live" && !detail && !XUMENG_CALLS_ENABLED && <main className={s.profileEmpty}><h1>通话暂时关闭</h1><p>{XUMENG_CALLS_LOCKED_MESSAGE}</p><button className={s.secondary} onClick={() => navigate("characters")}>回到角色</button></main>}
+      {view === "live" && !detail && !XUMENG_CALLS_ENABLED && <main className={s.profileEmpty}><h1>{copy.callsClosed}</h1><p>{XUMENG_CALLS_LOCKED_MESSAGE}</p><button className={s.secondary} onClick={() => navigate("characters")}>{copy.backToRoles}</button></main>}
       {view === "live" && !detail && XUMENG_CALLS_ENABLED && (performanceCharacter ? (liveMode === "phone"
         ? <MiniCpmPhone key={`${profileUser.id}:${cloud.user?.isGuest}:${performanceCharacter.key}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} userName={playUserName} initialCharacter={performanceCharacter} onRequireAccount={() => openAccount("login")} onBack={returnFromCall} onVideo={() => setLiveMode("video")} onBusyChange={(working) => { liveBusy.current = working; }} />
         : <LiveStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} preferVideo userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} isSuper={cloud.user?.role === "super"} userName={playUserName} characters={[performanceCharacter]} sources={performanceLibrary.sources} initialCharacter={performanceCharacter} onVoice={(character) => performCharacter(character, "voice")} onRequireAccount={() => openAccount("login")} onBack={() => setLiveMode("phone")} onBusyChange={(working) => { liveBusy.current = working; }} />)
-        : <main className={s.profileEmpty}><p>打开一段聊天，再给对方打电话。</p><button className={s.secondary} onClick={() => navigate("chat", "chat/chats")}>去消息</button></main>)}
+        : <main className={s.profileEmpty}><p>{copy.callFromChat}</p><button className={s.secondary} onClick={() => navigate("chat", "chat/chats")}>{copy.goMessages}</button></main>)}
       {view === "voice" && !detail && <VoiceStudio key={`${profileUser.id}:${cloud.user?.isGuest}`} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} characters={performanceLibrary.characters} initialCharacter={performanceCharacter ?? undefined} onRequireAccount={() => openAccount("login")} onBack={() => navigate("characters")} onBusyChange={(working) => { voiceBusy.current = working; }} />}
-      {view === "novels" && !detail && <NovelStudio key={`${profileUser.id}:${novelInitial.id ?? novelInitial.type ?? "library"}`} initialId={novelInitial.id} initialType={novelInitial.type} onNavigate={(id, type) => { novelRoute.current = id === null ? "novels" : id === "new" ? `novels/new/${type ?? "novel"}` : `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} onSaved={id => { novelRoute.current = `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} characters={characters} onPerformCharacter={performCharacter} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} onBack={() => navigate("studio")} onDirtyChange={(dirty) => { novelDirty.current = dirty; }} onBusyChange={(working) => { novelBusy.current = working; }} />}
+      {view === "novels" && !detail && <NovelStudio locale={locale} key={`${profileUser.id}:${novelInitial.id ?? novelInitial.type ?? "library"}`} initialId={novelInitial.id} initialType={novelInitial.type} onNavigate={(id, type) => { novelRoute.current = id === null ? "novels" : id === "new" ? `novels/new/${type ?? "novel"}` : `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} onSaved={id => { novelRoute.current = `novels/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${novelRoute.current}`); }} characters={characters} onPerformCharacter={performCharacter} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} onBack={() => navigate("studio")} onDirtyChange={(dirty) => { novelDirty.current = dirty; }} onBusyChange={(working) => { novelBusy.current = working; }} />}
       {view === "girlfriends" && !detail && <GirlfriendStudio key={`${profileUser.id}:${creatorInitial.id ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} onRequireAccount={() => openAccount("login")} onBack={() => { creatorDirty.current = false; navigate("chat", "chat/chats"); }} onOpen={openMineGirlfriend} onSaved={rememberGirlfriend} onDeleted={id => setGirlfriends(people => people.filter(item => item.id !== id))} onDirtyChange={dirty => { creatorDirty.current = dirty; }} />}
       {view === "games" && !detail && <GameStudio key={`${profileUser.id}:${creatorInitial.id ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} onNavigate={id => { creatorRoute.current = id ? `studio/games/${encodeURIComponent(id)}` : "studio/games"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/games/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
       {view === "scenarios" && !detail && <ScenarioStudio key={`${profileUser.id}:${creatorInitial.id ?? creatorInitial.roomCode ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} initialRoomCode={creatorInitial.roomCode} onNavigate={id => { creatorRoute.current = id ? `studio/scenarios/${encodeURIComponent(id)}` : "studio/scenarios"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/scenarios/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRoom={code => { creatorRoute.current = `studio/room/${encodeURIComponent(code)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
-      {view === "studio-edit" && !detail && editor && <CharacterStudio key={`${profileUser.id}:${studioSession}`} character={editor === "new" ? null : editor} nickname={state.preferences.nickname} user={cloud.user} submission={studioSubmission} onClose={() => { studioDirty.current = false; studioBusy.current = false; setEditor(null); navigate("studio"); }} onDirtyChange={(dirty) => { studioDirty.current = dirty; }} onBusyChange={(working) => { studioBusy.current = working; }} onSave={saveStudioCharacter} onRetrySave={(character) => saveStudioCharacter(character, true)} onSubmit={submitStudioCharacter} onLoadCloud={async () => { if (!await cloud.reloadCloud()) throw new Error("云端版本没有载入，当前编辑内容仍保留。请再加载云端版本。"); }} onTest={testStudioCharacter} onRequireAccount={() => openAccount("register")} />}
+      {view === "studio-edit" && !detail && editor && <CharacterStudio locale={locale} key={`${profileUser.id}:${studioSession}`} character={editor === "new" ? null : editor} nickname={state.preferences.nickname} user={cloud.user} submission={studioSubmission} onClose={() => { studioDirty.current = false; studioBusy.current = false; setEditor(null); navigate("studio"); }} onDirtyChange={(dirty) => { studioDirty.current = dirty; }} onBusyChange={(working) => { studioBusy.current = working; }} onSave={saveStudioCharacter} onRetrySave={(character) => saveStudioCharacter(character, true)} onSubmit={submitStudioCharacter} onLoadCloud={async () => { if (!await cloud.reloadCloud()) throw new Error("云端版本没有载入，当前编辑内容仍保留。请再加载云端版本。"); }} onTest={testStudioCharacter} onRequireAccount={() => openAccount("register")} />}
       {view === "profile" && !detail && <>
         <ProfileView key={profileUser.id} user={cloud.user} characters={characters} custom={state.custom} favorites={state.favorites} conversations={state.conversations} authors={authors} preferences={state.preferences} onCharacter={showDetail} onAuthor={showAuthor} onConversation={(conversation) => { selectConversation(conversation); navigate("chat"); }} onEditCharacter={openStudio} onCreateCharacter={() => openStudio("new")} onEditProfile={() => navigate("settings")} onSettings={() => navigate("settings")} onPresets={() => navigate("presets")} onRecharge={() => navigate("recharge")} onVip={() => navigate("vip")} onInvite={() => navigate("invite")} onLogin={() => openAccount("login")} onRegister={() => openAccount("register")} onBrowse={() => navigate("characters")} onDeleteCharacter={deleteCharacter} onAdmin={cloud.user?.role === "super" ? () => navigate("admin") : undefined} />
         <div className={s.profile}>
           {cloud.user && !cloud.user.isGuest && <>
-          <section className={`${s.cloudAccount} ${cloud.user?.isGuest ? s.cloudAccountGuest : ""}`} aria-label="账号与数据库同步">
+          <section className={`${s.cloudAccount} ${cloud.user?.isGuest ? s.cloudAccountGuest : ""}`} aria-label={copy.accountSync}>
             <div className={s.cloudStatus} data-status={cloud.syncStatus} role="status">
               <span className={s.syncDot} />
-              <div><strong>{cloud.syncMessage}</strong>{cloud.syncStatus === "synced" && cloud.lastSyncedAt && <small>最近同步 {new Date(cloud.lastSyncedAt).toLocaleTimeString("zh-CN", { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit" })}</small>}</div>
+              <div><strong>{cloud.syncMessage}</strong>{cloud.syncStatus === "synced" && cloud.lastSyncedAt && <small>{fill(copy.lastSync, { time: new Date(cloud.lastSyncedAt).toLocaleTimeString(xumengHtmlLang(locale), { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit" }) })}</small>}</div>
             </div>
             <div className={s.cloudActions}>
-              {cloud.authenticated && <button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>退出账号</button>}
-              <button className={s.secondary} disabled={cloud.authBusy || busy || cloud.syncStatus === "saving" || cloud.syncStatus === "loading"} onClick={() => void (cloud.syncStatus === "conflict" ? cloud.reloadCloud() : cloud.retrySync())}><Icon name="refresh" size={14} />{cloud.syncStatus === "conflict" ? "加载云端版本" : "重新同步"}</button>
+              {cloud.authenticated && <button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>{copy.logout}</button>}
+              <button className={s.secondary} disabled={cloud.authBusy || busy || cloud.syncStatus === "saving" || cloud.syncStatus === "loading"} onClick={() => void (cloud.syncStatus === "conflict" ? cloud.reloadCloud() : cloud.retrySync())}><Icon name="refresh" size={14} />{cloud.syncStatus === "conflict" ? copy.loadCloud : copy.resync}</button>
               {cloud.backupAvailable && <>
-                <label className={s.backupChoice}>本地恢复版本
-                  <select aria-label="选择本地备份" value={selectedBackup} disabled={cloud.authBusy || busy} onChange={event => setBackupSelection({ accountId: cloud.user?.id ?? "offline", key: event.target.value })}>
-                    {cloud.backupChoices.map(item => <option key={item.key} value={item.key}>{new Date(item.updatedAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" })} · {item.messageCount} 条消息 · 云端版本 {item.version}</option>)}
+                <label className={s.backupChoice}>{copy.localRestore}
+                  <select aria-label={copy.chooseBackup} value={selectedBackup} disabled={cloud.authBusy || busy} onChange={event => setBackupSelection({ accountId: cloud.user?.id ?? "offline", key: event.target.value })}>
+                    {cloud.backupChoices.map(item => <option key={item.key} value={item.key}>{fill(copy.backupOption, { time: new Date(item.updatedAt).toLocaleString(xumengHtmlLang(locale), { timeZone: "Asia/Shanghai", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }), count: item.messageCount, version: item.version })}</option>)}
                   </select>
                 </label>
-                <button className={s.secondary} disabled={cloud.authBusy || busy || !selectedBackup} onClick={() => cloud.restoreBackup(selectedBackup)}><Icon name="upload" size={14} />恢复本地备份</button>
+                <button className={s.secondary} disabled={cloud.authBusy || busy || !selectedBackup} onClick={() => cloud.restoreBackup(selectedBackup)}><Icon name="upload" size={14} />{copy.restoreLocal}</button>
                 <button className={s.secondary} disabled={cloud.authBusy || busy || !selectedBackup} onClick={() => {
                   const backup = cloud.readBackupForExport(selectedBackup);
                   if (backup) download("xumeng-recovery-backup.json", JSON.stringify(backup, null, 2));
-                }}><Icon name="download" size={14} />导出所选备份</button>
+                }}><Icon name="download" size={14} />{copy.exportChosen}</button>
                 <button className={s.secondary} disabled={cloud.authBusy || busy || !selectedBackup} onClick={() => {
-                  if (window.confirm("删除所选本地恢复版本？它可能来自另一个标签页。请先导出需要保留的内容；删除后无法从此备份恢复。")) cloud.discardBackup(selectedBackup);
-                }}>删除所选备份</button>
+                  if (window.confirm(copy.deleteBackupConfirm)) cloud.discardBackup(selectedBackup);
+                }}>{copy.deleteChosen}</button>
               </>}
             </div>
           </section>
-          <button className={s.secondary} onClick={() => download("dzmm-account-backup.json", JSON.stringify(state, null, 2))}><Icon name="download" />导出记录备份</button>
+          <button className={s.secondary} onClick={() => download("dzmm-account-backup.json", JSON.stringify(state, null, 2))}><Icon name="download" />{copy.exportRecords}</button>
           </>}
         </div>
       </>}
-      {view === "invite" && !detail && <InviteCenter key={profileUser.id} user={cloud.user} onBack={() => navigate("profile")} onRegister={() => openAccount("register")} onWallet={() => navigate("profile")} />}
+      {view === "invite" && !detail && <InviteCenter locale={locale} key={profileUser.id} user={cloud.user} onBack={() => navigate("profile")} onRegister={() => openAccount("register")} onWallet={() => navigate("profile")} />}
       {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} onEmailBound={cloud.emailBound} />}
       {view === "presets" && !detail && <PresetLibrary key={profileUser.id} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} />}
-      {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={[...characters, ...publicShelf.characters]} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : publicShelf.loading ? <main className={s.profileEmpty}><p>正在加载作者…</p></main> : <main className={s.profileEmpty}><p>没有找到这位作者。</p><button className={s.secondary} onClick={() => navigate("characters")}>返回角色广场</button></main>)}
+      {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={[...characters, ...publicShelf.characters]} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : publicShelf.loading ? <main className={s.profileEmpty}><p>{copy.loadingAuthor}</p></main> : <main className={s.profileEmpty}><p>{copy.authorMissing}</p><button className={s.secondary} onClick={() => navigate("characters")}>{copy.backToSquare}</button></main>)}
       {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} locale={locale} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }} reasons={showRecommendationReasons ? recommendation.reasons : undefined} trackRecommendations={rankReady} searchTopics={XUMENG_FORUM_ENABLED ? searchForumTopics : undefined} onTopic={XUMENG_FORUM_ENABLED ? (topic) => showForumPost(topic.id) : undefined} more={{ total: publicShelf.total + searchLocalMatches.filter((character) => !publicShelf.characters.some((remote) => remote.id === character.id)).length, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
-      {view === "forum" && !detail && XUMENG_FORUM_ENABLED && <ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={shelfList} onCharacter={showDetail} shelfMore={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, onLoad: publicShelf.loadMore }} />}
-      {view === "admin" && !detail && <AdminDashboard key={`${cloud.user?.id}:${cloud.user?.role}`} user={cloud.user} onRequireAccount={() => openAccount("login")} onAccountChanged={() => setBillingRefresh(value => value + 1)}
-        publishingReview={<PublishingCenter key={`review:${profileUser.id}`} admin user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("login")} onCatalogChanged={cloud.refreshCatalog} onNovels={() => navigate("novels")} />}
-        forumModeration={<ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />} />}
+      {view === "forum" && !detail && XUMENG_FORUM_ENABLED && <ForumView locale={locale} key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={shelfList} onCharacter={showDetail} shelfMore={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, onLoad: publicShelf.loadMore }} />}
+      {view === "admin" && !detail && <AdminDashboard locale={locale} key={`${cloud.user?.id}:${cloud.user?.role}`} user={cloud.user} onRequireAccount={() => openAccount("login")} onAccountChanged={() => setBillingRefresh(value => value + 1)}
+        publishingReview={<PublishingCenter locale={locale} key={`review:${profileUser.id}`} admin user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("login")} onCatalogChanged={cloud.refreshCatalog} onNovels={() => navigate("novels")} />}
+        forumModeration={<ForumView locale={locale} key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />} />}
       </Deferred>
 
-      <nav className={s.mobileNav} aria-label="移动端导航">
+      <nav className={s.mobileNav} aria-label={copy.mainNav}>
         {localizedNav.map((n) => (
           <a
             href={`#${n.view}`}
@@ -3870,7 +3890,7 @@ export default function TavernApp() {
         <button
           className={s.floatingChat}
           style={{ opacity: (state.preferences.floatingOpacity ?? 100) / 100, width: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54, height: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54 }}
-          aria-label="打开聊天"
+          aria-label={copy.openChat}
           onClick={() => navigate("chat")}
         >
           <Icon name="chat" size={24} />
@@ -3899,6 +3919,7 @@ export default function TavernApp() {
 
       {detail && (
         <CharacterDetail
+          locale={locale}
           character={localizeCharacter(detail, locale)}
           favorites={state.favorites.includes(detail.id)}
           liked={likedForCurrentAccount.includes(detail.id)}
@@ -3940,28 +3961,28 @@ export default function TavernApp() {
           following={Boolean(findCharacterAuthor(authors, detail.id) && state.preferences.followedAuthors?.includes(findCharacterAuthor(authors, detail.id)!.id))}
         />
       )}
-      {chatSettingsOpen && active && activeCharacter && <ChatSettings key={`${profileUser.id}:${active.id}`} conversation={active} preferences={state.preferences} onPreferences={savePreferences} onMemory={saveStoryMemory} onWorldClockMode={saveWorldClockMode} busy={busy} onClose={() => setChatSettingsOpen(false)} onRename={(title) => setState((previous) => ({ ...previous, conversations: previous.conversations.map((conversation) => conversation.id === active.id ? { ...conversation, title, updatedAt: Date.now() } : conversation) }))} onBranch={branchConversation} onDelete={removeActiveConversation} onExport={exportConversation} onPresets={() => navigate("presets")} />}
+      {chatSettingsOpen && active && activeCharacter && <ChatSettings locale={locale} key={`${profileUser.id}:${active.id}`} conversation={active} preferences={state.preferences} onPreferences={savePreferences} onMemory={saveStoryMemory} onWorldClockMode={saveWorldClockMode} busy={busy} onClose={() => setChatSettingsOpen(false)} onRename={(title) => setState((previous) => ({ ...previous, conversations: previous.conversations.map((conversation) => conversation.id === active.id ? { ...conversation, title, updatedAt: Date.now() } : conversation) }))} onBranch={branchConversation} onDelete={removeActiveConversation} onExport={exportConversation} onPresets={() => navigate("presets")} />}
       {activeCharacter && editingMessage && editingMessage.accountId === activeAccount.current && editingMessage.conversationId === active?.id && view === "chat" &&
         <ChatMessageEditor key={`${editingMessage.conversationId}:${editingMessage.messageId}`} content={splitXumengMomentTail(splitXumengPanelTail(editingMessage.original).body).body} disabled={busy}
           onSave={saveEditedMessage} onClose={() => setEditingMessage(null)} />}
       {rechargeNeeded && <div className={s.overlay} role="presentation" onClick={() => setRechargeNeeded(false)}>
         <div className={s.balanceDialog} role="dialog" aria-modal="true" aria-labelledby="balance-gate-title" onClick={event => event.stopPropagation()}>
-          <h2 id="balance-gate-title">余额不够</h2>
-          <p>{rechargeMessage || "这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。"}
-            {(!cloud.user || cloud.user.isGuest) && " 新设备赠送的 100 Credit 用完了，注册再送 100 Credit 就能接着聊。"}</p>
+          <h2 id="balance-gate-title">{copy.lowBalance}</h2>
+          <p>{rechargeMessage || copy.lowBalanceBody}
+            {(!cloud.user || cloud.user.isGuest) && copy.guestCreditsUsed}</p>
           {!cloud.user || cloud.user.isGuest ? <div className={s.balanceActions}>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}>注册领 100 Credit</button>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("login"); }}>我已有账号，登录</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}>{copy.registerGift}</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("login"); }}>{copy.haveAccount}</button>
           </div> : <div className={s.balanceActions}>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}>去邀请</button>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("checkin"); }}>去签到</button>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("recharge"); }}>{XUMENG_PAYMENTS_ENABLED ? "充值" : "查看余额"}</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}>{copy.goInvite}</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("checkin"); }}>{copy.goCheckin}</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("recharge"); }}>{XUMENG_PAYMENTS_ENABLED ? copy.topUp : copy.viewBalance}</button>
           </div>}
-          <button type="button" className={s.secondary} onClick={() => setRechargeNeeded(false)}>先留在这里</button>
+          <button type="button" className={s.secondary} onClick={() => setRechargeNeeded(false)}>{copy.stay}</button>
         </div>
       </div>}
-      {accountMode && <AccountModal mode={accountMode} initialReferralCode={pendingInvite} onModeChange={(mode) => { cloud.clearAuthError(); setAccountMode(mode); }} onClose={() => { setAccountMode(null); setGuestGate(gate => gate?.stage === "account" ? null : gate); }} onSubmit={submitAccount} onEmailSubmit={async (values, signal) => { const registered = await cloud.authenticateEmailCode(values, signal); setAccountMode(null); finishGuestGate(registered); }} onPasswordReset={async (values, signal) => { await cloud.resetPassword(values, signal); setAccountMode(null); finishGuestGate(false); }} onClearError={cloud.clearAuthError} submitting={cloud.authBusy} error={cloud.authError} intro={guestGate?.stage === "account" ? `注册并领取新手 Credit 后，即可使用「${guestGate.character.name}」。` : undefined} />}
-      {guestGate?.stage === "welcome" && cloud.user && !cloud.user.isGuest && <SignupWelcome accountId={cloud.user.id} characterName={guestGate.character.name} onStart={() => setGuestGate({ ...guestGate, stage: "open" })} onTasks={() => { setGuestGate(null); navigate("tasks"); }} onClose={() => setGuestGate(null)} />}
+      {accountMode && <AccountModal locale={locale} mode={accountMode} initialReferralCode={pendingInvite} onModeChange={(mode) => { cloud.clearAuthError(); setAccountMode(mode); }} onClose={() => { setAccountMode(null); setGuestGate(gate => gate?.stage === "account" ? null : gate); }} onSubmit={submitAccount} onEmailSubmit={async (values, signal) => { const registered = await cloud.authenticateEmailCode(values, signal); setAccountMode(null); finishGuestGate(registered); }} onPasswordReset={async (values, signal) => { await cloud.resetPassword(values, signal); setAccountMode(null); finishGuestGate(false); }} onClearError={cloud.clearAuthError} submitting={cloud.authBusy} error={cloud.authError} intro={guestGate?.stage === "account" ? fill(copy.welcomeHint, { name: guestGate.character.name }) : undefined} />}
+      {guestGate?.stage === "welcome" && cloud.user && !cloud.user.isGuest && <SignupWelcome locale={locale} accountId={cloud.user.id} characterName={guestGate.character.name} onStart={() => setGuestGate({ ...guestGate, stage: "open" })} onTasks={() => { setGuestGate(null); navigate("tasks"); }} onClose={() => setGuestGate(null)} />}
 
     </div>
   );

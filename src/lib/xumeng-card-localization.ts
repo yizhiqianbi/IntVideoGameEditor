@@ -23,6 +23,15 @@ export function hasXumengCardTranslation(characterId: string, locale: XumengLoca
   return Boolean(table[characterId]?.[locale]);
 }
 
+export function xumengTranslatedCharacterIds(locale: XumengLocale): string[] {
+  if (locale === "zh-Hans") return [];
+  const ids: string[] = [];
+  for (const [id, row] of Object.entries(table)) {
+    if (row?.[locale]) ids.push(id);
+  }
+  return ids;
+}
+
 /** The translation table stays out of the first script. Chinese never downloads it. */
 export async function loadXumengCardTranslations(locale: XumengLocale): Promise<boolean> {
   if (locale === "zh-Hans" || loadedLocales.has(locale)) return false;

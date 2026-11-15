@@ -12,6 +12,8 @@ import { recommendationReasonText, type RecommendationReason } from "@/lib/xumen
 import { coverShelfTags, visibleShelfTags } from "@/lib/xumeng-shelf-tags";
 import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import { groupRelationshipAlbum, parseRelationshipAlbum, relationshipAlbumAssetUrl, type RelationshipAlbumItem } from "@/lib/relationship-album";
+import type { XumengLocale } from "@/lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import Icon from "./icons";
 import CharacterIntroduction from "./character-introduction";
 import s from "./character-detail.module.css";
@@ -44,6 +46,7 @@ export type CharacterDetailProps = {
   galleryPaths?: string[];
   openingOrigin?: "public-rendered";
   userName?: string;
+  locale?: XumengLocale;
 };
 
 function RoleImage({
@@ -123,7 +126,9 @@ export default function CharacterDetail({
   following = false,
   galleryPaths = [],
   userName,
+  locale = "zh-Hans",
 }: CharacterDetailProps) {
+  const copy = xumengPage(locale);
   const [menuFor, setMenuFor] = useState<string | null>(null);
   const [album, setAlbum] = useState<{ characterId: string; items: RelationshipAlbumItem[] } | null>(null);
   const [picture, setPicture] = useState({ characterId: character.id, index: 0 });
@@ -218,20 +223,20 @@ export default function CharacterDetail({
   }
 
   async function share() {
-    if (shareRequiresAccount) { onRequireAccount?.(); onNotice("请先注册或登录，再分享角色。"); return; }
-    if (character.authoringDraft) { onNotice("这张角色还有未完成的世界书，请先完善草稿再分享角色卡。"); return; }
+    if (shareRequiresAccount) { onRequireAccount?.(); onNotice(copy.shareLogin); return; }
+    if (character.authoringDraft) { onNotice(copy.shareDraft); return; }
     if (!isPublicSample && !character.publication) {
       onExport();
-      onNotice("私人角色卡已导出，可以分享这个 JSON 文件。");
+      onNotice(copy.shareExported);
       return;
     }
     const sharePath = characterShareLocation(character.id, inviteCode);
     const url = `${location.origin}${sharePath}`;
     try {
       await navigator.clipboard.writeText(url);
-      onNotice("角色链接已复制。");
+      onNotice(copy.linkCopiedRole);
     } catch {
-      onNotice(`角色链接：${url}`);
+      onNotice(xumengPageFill(copy.roleLink, { url }));
     }
   }
 
@@ -241,8 +246,8 @@ export default function CharacterDetail({
         className={s.back}
         type="button"
         onClick={onBack}
-        aria-label="返回角色广场"
-        title="返回角色广场"
+        aria-label={copy.backToSquare}
+        title={copy.backToSquare}
       >
         <Icon name="back" size={20} />
       </button>
@@ -295,7 +300,7 @@ export default function CharacterDetail({
                 aria-pressed={following}
               >
                 <Icon name={following ? "check" : "plus"} size={15} />
-                {following ? "已关注" : "关注"}
+                {following ? copy.following : copy.follow}
               </button>}
             </div>
           </div>
@@ -325,11 +330,11 @@ export default function CharacterDetail({
               aria-pressed={favorites}
             >
               <Icon name={favorites ? "check" : "book"} size={17} />
-              {favorites ? "已收藏" : "收藏"}
+              {favorites ? copy.savedAlready : copy.favorite}
             </button>
             <button type="button" onClick={() => void share()}>
               <Icon name="send" size={16} />
-              分享
+              {copy.share}
             </button>
             {exportedCard ? <a href={exportedCard.downloadUrl} download>
               <Icon name="download" size={16} />导出原卡
@@ -342,7 +347,7 @@ export default function CharacterDetail({
           <div className={s.primaryActions}>
             <button className={s.start} type="button" onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}>
               <Icon name="chat" size={18} />
-              {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始对话"}
+              {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
             </button>
             <button
               className={`${s.outline} ${s.customize}`}
@@ -350,7 +355,7 @@ export default function CharacterDetail({
               onClick={onEdit}
             >
               <Icon name="edit" size={17} />
-              定制
+              {copy.customize}
             </button>
           </div>
           {!contextMissing && (XUMENG_CALLS_ENABLED || XUMENG_CHARACTER_VOICE_ENABLED) && <div className={s.performanceActions}>
@@ -367,7 +372,7 @@ export default function CharacterDetail({
           onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}
         >
           <Icon name="chat" size={17} />
-          {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始对话"}
+          {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
         </button>
         <button
           className={s.stickyFavorite}

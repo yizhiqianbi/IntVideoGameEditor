@@ -4,10 +4,12 @@ import { KREA2_IMAGE_GROUPS } from "../../lib/xumeng-krea2-stills";
 import { GENERATION_TEMPLATE_CATEGORIES, filterGenerationTemplates,
   type GenerationTemplate, type GenerationTemplateCategory } from "../../lib/xumeng-generation-templates";
 import type { GenerationKind } from "../../lib/xumeng-generation";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengStudio, xumengStudioFill, xumengStudioGroupLabel } from "../../lib/xumeng-studio-copy";
 import Icon from "./icons";
 import s from "./generation-template-library.module.css";
 
-type Props = { userId: string; visible: boolean; busy: boolean; onSelect: (template: GenerationTemplate) => void };
+type Props = { userId: string; visible: boolean; busy: boolean; locale?: XumengLocale; onSelect: (template: GenerationTemplate) => void };
 type LibraryFilters = {
   key: string;
   kind: GenerationKind | "all";
@@ -41,7 +43,8 @@ function readLibrary(key: string): { value: Record<string, unknown>; writable: b
   } catch { return { value: {}, writable: false }; }
 }
 
-export default function GenerationTemplateLibrary({ userId, visible, busy, onSelect }: Props) {
+export default function GenerationTemplateLibrary({ userId, visible, busy, locale = "zh-Hans", onSelect }: Props) {
+  const c = xumengStudio(locale);
   const storageKey = `xumeng-generation-library:${userId}`;
   const [filters, setFilters] = useState<LibraryFilters>({ key: "", ...defaultFilters });
   const [imageGroup, setImageGroup] = useState("all");
@@ -110,7 +113,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, onSel
   };
   const stopPreview = (id: string) => setPreviewId(current => current === id ? null : current);
   const posterCard = (item: GenerationTemplate) => <button type="button" className={`${s.card} ${s.poster}`} key={item.id}
-    disabled={busy || !ready} aria-label={`使用模板：${item.label}`} onClick={() => { if (!busy && ready) onSelect(item); }}
+    disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}
     onMouseEnter={() => startPreview(item)} onMouseLeave={() => stopPreview(item.id)}
     onFocus={() => startPreview(item)} onBlur={() => stopPreview(item.id)}>
     <span className={s.cardImage}><img src={item.demoPosterUrl} alt="" loading="lazy" decoding="async" />
@@ -118,7 +121,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, onSel
       <strong>{item.label}</strong></span>
   </button>;
   const stillCard = (item: GenerationTemplate) => <button type="button" className={s.still} key={item.id}
-    disabled={busy || !ready} aria-label={`使用模板：${item.label}`} onClick={() => { if (!busy && ready) onSelect(item); }}>
+    disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}>
     <strong>{item.label}</strong><span>{item.description}</span></button>;
   const videoPool = matching.filter(item => item.kind === "video" && item.demoVideoUrl);
   const videoGroups = KREA2_IMAGE_GROUPS.filter(group => videoPool.some(item => item.h3Lora?.group === group.id));
@@ -128,39 +131,39 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, onSel
   const imageGroups = KREA2_IMAGE_GROUPS.filter(group => imagePool.some(item => item.krea2Lora?.group === group.id));
   const images = imageGroup === "all" ? imagePool : imagePool.filter(item => item.krea2Lora?.group === imageGroup);
 
-  return <section className={s.library} hidden={!visible} aria-label="生成模板广场" aria-busy={!ready}>
+  return <section className={s.library} hidden={!visible} aria-label={c.gsShelf} aria-busy={!ready}>
     <div className={s.toolbar}>
-      <div className={s.search}><Icon name="search" size={17}/><input aria-label="搜索生成模板" disabled={!ready}
-        maxLength={120} placeholder="搜索动作或静帧" value={query} onChange={event => updateFilters({ query: event.target.value })}/>
-        {query && <button type="button" aria-label="清除模板搜索" disabled={!ready} onClick={() => updateFilters({ query: "" })}><Icon name="close" size={15}/></button>}</div>
+      <div className={s.search}><Icon name="search" size={17}/><input aria-label={c.gsSearchTemplates} disabled={!ready}
+        maxLength={120} placeholder={c.gsSearchPh} value={query} onChange={event => updateFilters({ query: event.target.value })}/>
+        {query && <button type="button" aria-label={c.gsClearSearch} disabled={!ready} onClick={() => updateFilters({ query: "" })}><Icon name="close" size={15}/></button>}</div>
     </div>
     <div className={s.parts}>
-      {videos.length > 0 && <section className={s.part} aria-label="生视频">
-        <div className={s.listHeader}><div><h2>生视频</h2>
-          <p>选一个动作，再上传你的参考图。</p></div><span>{videos.length}</span></div>
-        <div className={s.groupTabs} role="tablist" aria-label="生视频分类">
-          <button type="button" aria-pressed={videoGroup === "all"} disabled={!ready} onClick={() => setVideoGroup("all")}>全部</button>
+      {videos.length > 0 && <section className={s.part} aria-label={c.gsMakeVideos}>
+        <div className={s.listHeader}><div><h2>{c.gsMakeVideos}</h2>
+          <p>{c.gsVideoLead}</p></div><span>{videos.length}</span></div>
+        <div className={s.groupTabs} role="tablist" aria-label={c.gsVideoCats}>
+          <button type="button" aria-pressed={videoGroup === "all"} disabled={!ready} onClick={() => setVideoGroup("all")}>{c.gsAll}</button>
           {videoGroups.map(group => <button type="button" key={group.id} aria-pressed={videoGroup === group.id} disabled={!ready}
-            onClick={() => setVideoGroup(group.id)}>{group.label}<em>{videoPool.filter(item => item.h3Lora?.group === group.id).length}</em></button>)}
+            onClick={() => setVideoGroup(group.id)}>{xumengStudioGroupLabel(locale, group.id, group.label)}<em>{videoPool.filter(item => item.h3Lora?.group === group.id).length}</em></button>)}
         </div>
         <div className={s.posterGrid}>{videos.map(posterCard)}</div>
       </section>}
-      {(imagePool.length > 0 || freeStill) && <section className={s.part} aria-label="生图">
-        <div className={s.listHeader}><div><h2>生图</h2>
-          <p>选一张清楚的模板图。生成时再配风格和参考图。</p></div><span>{images.length}</span></div>
-        {freeStill && <button type="button" className={s.freeEntry} disabled={busy || !ready} aria-label={`使用模板：${freeStill.label}`}
+      {(imagePool.length > 0 || freeStill) && <section className={s.part} aria-label={c.gsMakeImages}>
+        <div className={s.listHeader}><div><h2>{c.gsMakeImages}</h2>
+          <p>{c.gsImageLead}</p></div><span>{images.length}</span></div>
+        {freeStill && <button type="button" className={s.freeEntry} disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: freeStill.label })}
           onClick={() => { if (!busy && ready) onSelect(freeStill); }}>
-          <Icon name="sparkles" size={20}/><span><strong>{freeStill.label}</strong><small>不选模板，上传参考图，写关键词出图</small></span><Icon name="chevron" size={16}/></button>}
-        <div className={s.groupTabs} role="tablist" aria-label="生图分类">
-          <button type="button" aria-pressed={imageGroup === "all"} disabled={!ready} onClick={() => setImageGroup("all")}>全部</button>
+          <Icon name="sparkles" size={20}/><span><strong>{freeStill.label}</strong><small>{c.gsFreeEntry}</small></span><Icon name="chevron" size={16}/></button>}
+        <div className={s.groupTabs} role="tablist" aria-label={c.gsImageCats}>
+          <button type="button" aria-pressed={imageGroup === "all"} disabled={!ready} onClick={() => setImageGroup("all")}>{c.gsAll}</button>
           {imageGroups.map(group => <button type="button" key={group.id} aria-pressed={imageGroup === group.id} disabled={!ready}
-            onClick={() => setImageGroup(group.id)}>{group.label}<em>{imagePool.filter(item => item.krea2Lora?.group === group.id).length}</em></button>)}
+            onClick={() => setImageGroup(group.id)}>{xumengStudioGroupLabel(locale, group.id, group.label)}<em>{imagePool.filter(item => item.krea2Lora?.group === group.id).length}</em></button>)}
         </div>
         <div className={s.posterGrid}>{images.map(item => item.demoPosterUrl ? posterCard(item) : stillCard(item))}</div>
       </section>}
     </div>
-    {!matching.length && <div className={s.empty}><Icon name="search" size={28}/><h3>没有找到匹配的模板</h3>
-      <p>换个关键词，或清除搜索。</p><button type="button" disabled={!ready}
-        onClick={() => updateFilters(defaultFilters)}>清除搜索</button></div>}
+    {!matching.length && <div className={s.empty}><Icon name="search" size={28}/><h3>{c.gsNoTemplate}</h3>
+      <p>{c.gsNoTemplateBody}</p><button type="button" disabled={!ready}
+        onClick={() => updateFilters(defaultFilters)}>{c.gsClear}</button></div>}
   </section>;
 }

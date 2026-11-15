@@ -189,7 +189,7 @@ test("homepage html repeats the citable definition and featured catalog", async 
   const html = await readFile(resolve(root, "../index.html"), "utf8");
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1] ?? "";
   const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
-  assert.equal(title, "叙梦官网｜AI酒馆、陪伴与NSFW角色卡");
+  assert.equal(title, "叙梦｜互动故事、AI陪伴、互动短剧与成人内容");
   assert.ok(title.length >= 10 && title.length <= 65);
   assert.equal(description, GEO_META_DESCRIPTION);
   assert.ok(description.length >= 40 && description.length <= 180);

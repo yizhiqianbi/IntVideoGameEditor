@@ -11,10 +11,12 @@ import { SubscriptionCenter } from "./subscription-center";
 import { BillingCenter } from "./billing-center";
 import s from "./recharge.module.css";
 import { XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 
 export type RechargeProps = {
   userId: string; isGuest: boolean; onRequireAccount: () => void;
-  returnOrderId?: string; cancelled?: boolean; onBack?: () => void; focusVip?: boolean;
+  returnOrderId?: string; cancelled?: boolean; onBack?: () => void; focusVip?: boolean; locale?: XumengLocale;
 };
 const STATUS: Record<DzmmPaymentStatus, string> = {
   pending: "待支付确认", paid: "已到账", partially_refunded: "部分退款", refunded: "已退款", expired: "已过期", failed: "未完成支付",
@@ -27,7 +29,9 @@ function money(amountMinor: number, currency: string) {
 }
 const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-export function Recharge({ userId, isGuest, onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false }: RechargeProps) {
+export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false }: RechargeProps) {
+  const copy = xumengPage(locale);
+  const statusText = (status: DzmmPaymentStatus) => status === "pending" ? copy.payPending : status === "paid" ? copy.payPaid : status === "partially_refunded" ? copy.payPartial : status === "refunded" ? copy.payRefunded : status === "expired" ? copy.payExpired : copy.payFailed;
   const [config, setConfig] = useState<DzmmPaymentConfig | null>(null);
   const [wallet, setWallet] = useState<DzmmPaymentWallet | null>(null);
   const [selected, setSelected] = useState("");
@@ -270,24 +274,24 @@ export function Recharge({ userId, isGuest, onRequireAccount, returnOrderId, can
   return <main className={s.page}>
     <header className={s.header}>
       <div>
-        {onBack && <button type="button" className={s.back} onClick={onBack}><Icon name="back" size={16} />充值中心</button>}
-        {!onBack && <h1>充值中心</h1>}
-        <p>可用 {currentWallet ? points(currentWallet.balance) : "—"} Credit</p>
+        {onBack && <button type="button" className={s.back} onClick={onBack}><Icon name="back" size={16} />{copy.rechargeCenter}</button>}
+        {!onBack && <h1>{copy.rechargeCenter}</h1>}
+        <p>{xumengPageFill(copy.availableAmount, { balance: currentWallet ? points(currentWallet.balance) : "—" })}</p>
       </div>
     </header>
 
-    <div className={s.tabs} role="tablist" aria-label="充值类型">
-      <button type="button" role="tab" aria-selected={pane === "vip"} className={pane === "vip" ? s.tabOn : ""} onClick={() => setPane("vip")}>会员</button>
-      <button type="button" role="tab" aria-selected={pane === "points"} className={pane === "points" ? s.tabOn : ""} onClick={() => setPane("points")}>点数充值</button>
+    <div className={s.tabs} role="tablist" aria-label={copy.rechargeType}>
+      <button type="button" role="tab" aria-selected={pane === "vip"} className={pane === "vip" ? s.tabOn : ""} onClick={() => setPane("vip")}>{copy.member}</button>
+      <button type="button" role="tab" aria-selected={pane === "points"} className={pane === "points" ? s.tabOn : ""} onClick={() => setPane("points")}>{copy.pointTopUp}</button>
     </div>
 
-    {!XUMENG_PAYMENTS_ENABLED && <p className={s.notice} role="note">新的付款暂未开放。已有余额、订单和会员仍可查看。</p>}
+    {!XUMENG_PAYMENTS_ENABLED && <p className={s.notice} role="note">{copy.paymentsClosed}</p>}
     {XUMENG_PAYMENTS_ENABLED && config && !config.enabled && <p className={s.notice} role="note">{config.note || "微信支付暂未开通。已有余额和订单仍可查看。"}</p>}
 
-    {isGuest && <section className={s.guest}><div><strong>登录后充值</strong><p>余额和订单保存在账户里。</p></div><button type="button" className={s.primary} onClick={onRequireAccount}>登录</button></section>}
+    {isGuest && <section className={s.guest}><div><strong>{copy.loginToTopUp}</strong><p>{copy.balanceStays}</p></div><button type="button" className={s.primary} onClick={onRequireAccount}>{copy.login}</button></section>}
     {error && <p className={s.error} role="alert">{error}</p>}
     {activeOrderId && <section className={s.returnState} aria-live="polite" aria-label="支付返回订单状态">
-      <div className={s.returnTitle}><h2>{currentOrder ? STATUS[currentOrder.status] : cancelledReturn ? "已返回" : "正在核对"}</h2>{verifying && <span className={s.polling}>核对中</span>}</div>
+      <div className={s.returnTitle}><h2>{currentOrder ? statusText(currentOrder.status) : cancelledReturn ? copy.back : copy.confirming}</h2>{verifying && <span className={s.polling}>{copy.confirming}</span>}</div>
       <p>{isGuest ? "登录订单所属账号后，可以核对是否到账。" : orderMessage}</p>
       <details className={s.orderId}><summary>订单编号</summary><code>{activeOrderId}</code></details>
       {verificationError && <p className={s.error} role="alert">{verificationError}</p>}
@@ -357,7 +361,7 @@ export function Recharge({ userId, isGuest, onRequireAccount, returnOrderId, can
           <time dateTime={new Date(entry.createdAt).toISOString()}>{date(entry.createdAt)} · {channelName(entry.provider, entry.method)}</time>
         </div>
         <div className={s.orderAction}>
-          <span className={entry.status === "paid" ? s.paid : s.orderStatus}>{STATUS[entry.status]}</span>
+          <span className={entry.status === "paid" ? s.paid : s.orderStatus}>{statusText(entry.status)}</span>
           <button type="button" className={s.textButton} disabled={checkoutBusy} onClick={() => { setInspectedOrderId(entry.id); setVerificationRetry(previous => previous + 1); }}>核对</button>
           {canResume(entry) && <button type="button" className={s.outline} disabled={working} onClick={() => void resumePayment(entry)}>继续支付</button>}
         </div>

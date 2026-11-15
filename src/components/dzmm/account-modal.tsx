@@ -6,6 +6,8 @@ import {
   fetchDzmmEmailAuthConfig, requestDzmmEmailCode, requestDzmmPasswordResetCode, type DzmmEmailAuthConfig, type DzmmEmailCodeValues,
   type DzmmPasswordResetValues,
 } from "@/lib/dzmm-email-auth";
+import type { XumengLocale } from "@/lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import Icon from "./icons";
 import s from "./account-modal.module.css";
 
@@ -21,9 +23,11 @@ export type AccountModalProps = {
   submitting: boolean;
   error: string | null;
   intro?: string;
+  locale?: XumengLocale;
 };
 
-export default function AccountModal({ mode, initialReferralCode = "", onModeChange, onClose, onSubmit, onEmailSubmit, onPasswordReset, onClearError, submitting, error, intro }: AccountModalProps) {
+export default function AccountModal({ mode, initialReferralCode = "", locale = "zh-Hans", onModeChange, onClose, onSubmit, onEmailSubmit, onPasswordReset, onClearError, submitting, error, intro }: AccountModalProps) {
+  const copy = xumengPage(locale);
   const [signupGift, setSignupGift] = useState<{ credits: number; targetConversationRounds: number } | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -77,7 +81,7 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
       if (!mounted.current || controller.signal.aborted) return;
       setConfiguration(result);
     }).catch(failure => {
-      if (!controller.signal.aborted && mounted.current) setConfigError(failure instanceof Error ? failure.message : "验证码服务暂时无法连接，可使用密码登录。");
+      if (!controller.signal.aborted && mounted.current) setConfigError(failure instanceof Error ? failure.message : copy.codeServiceDown);
     }).finally(() => { if (!controller.signal.aborted && mounted.current) setConfigLoading(false); });
     return () => {
       mounted.current = false; requestGeneration.current += 1;
@@ -119,10 +123,10 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
     if (submitting || verifying.current) return;
     if (forgotPassword) {
       if (sending || !configuration?.enabled || !challenge || challenge.email !== emailRef.current) return;
-      if (Date.now() >= challenge.expiresAt) { setLocalError("验证码已过期，请重新获取。"); return; }
-      if (!/^[0-9]{6}$/.test(code)) { setLocalError("请输入邮件中的 6 位验证码。"); return; }
-      if (password.length < 12 || password.length > 256 || password.includes("\0")) { setLocalError("新密码需要 12 至 256 个字符。"); return; }
-      if (password !== confirmPassword) { setLocalError("两次输入的新密码不一致。"); return; }
+      if (Date.now() >= challenge.expiresAt) { setLocalError(copy.codeExpired); return; }
+      if (!/^[0-9]{6}$/.test(code)) { setLocalError(copy.enterSix); return; }
+      if (password.length < 12 || password.length > 256 || password.includes("\0")) { setLocalError(copy.passwordLength); return; }
+      if (password !== confirmPassword) { setLocalError(copy.passwordMismatch); return; }
       setLocalError(""); onClearError(); verifying.current = true;
       const controller = new AbortController(); verifyController.current = controller;
       try { await onPasswordReset({ email: challenge.email, challengeId: challenge.id, code, newPassword: password }, controller.signal); }
@@ -133,7 +137,7 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
     if (mode === "register") {
       const name = nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
       if (!name || name.length > 30 || nickname.includes("\0") || /[\u0000-\u001f\u007f]/.test(nickname) || name === "游客") {
-        setLocalError(name === "游客" ? "这个名字不能使用。" : "名字需要 1 至 30 个字符。");
+        setLocalError(name === "游客" ? copy.nameBlocked : copy.nameLength);
         return;
       }
       setLocalError(""); onClearError();
@@ -143,8 +147,8 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
     }
     if (method === "email") {
       if (sending || !configuration?.enabled || !challenge || challenge.email !== emailRef.current) return;
-      if (Date.now() >= challenge.expiresAt) { setLocalError("验证码已过期，请重新获取。"); return; }
-      if (!/^[0-9]{6}$/.test(code)) { setLocalError("请输入邮件中的 6 位验证码。"); return; }
+      if (Date.now() >= challenge.expiresAt) { setLocalError(copy.codeExpired); return; }
+      if (!/^[0-9]{6}$/.test(code)) { setLocalError(copy.enterSix); return; }
       setLocalError(""); onClearError(); verifying.current = true;
       const controller = new AbortController(); verifyController.current = controller;
       try { await onEmailSubmit({ email: challenge.email, challengeId: challenge.id, code, ...(nickname.trim() ? { nickname: nickname.trim() } : {}), ...(referralCode.trim() ? { referralCode: referralCode.trim().toUpperCase() } : {}) }, controller.signal); }
@@ -206,9 +210,9 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
       resendTimes.current.set(capturedEmail, retryAt);
       setNow(sentAt); setResendAt(retryAt);
       setChallenge({ id: result.challengeId, email: capturedEmail, expiresAt: sentAt + result.expiresIn * 1000 });
-      setSendNotice(forgotPassword ? "如果该邮箱已注册，验证码已发送，请查收邮件。" : "验证码已发送，请查收邮件。");
+      setSendNotice(forgotPassword ? copy.codeSentReset : copy.codeSent);
     } catch (failure) {
-      if (!controller.signal.aborted && mounted.current && generation === requestGeneration.current) setLocalError(failure instanceof Error ? failure.message : "验证码发送失败，请稍后重试。");
+      if (!controller.signal.aborted && mounted.current && generation === requestGeneration.current) setLocalError(failure instanceof Error ? failure.message : copy.codeSendFailed);
     } finally {
       if (sendController.current === controller) { sendController.current = null; if (mounted.current) setSending(false); }
     }
@@ -224,15 +228,15 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
     try {
       const response = await fetch(`/api/backend/v1/auth/${provider}/start`, { credentials: "same-origin", cache: "no-store" });
       const body = await response.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
-      if (!response.ok || typeof body?.url !== "string") throw new Error(typeof body?.error === "string" ? body.error : "暂时无法使用这个登录方式。");
+      if (!response.ok || typeof body?.url !== "string") throw new Error(typeof body?.error === "string" ? body.error : copy.socialUnavailable);
       const url = new URL(body.url);
       const host = provider === "google" ? "accounts.google.com" : "oauth.telegram.org";
-      if (url.protocol !== "https:" || url.hostname !== host) throw new Error("登录地址无效。");
+      if (url.protocol !== "https:" || url.hostname !== host) throw new Error(copy.badLoginUrl);
       window.location.assign(url.href);
     } catch (failure) {
       if (mounted.current) {
         setSocialBusy(null);
-        setLocalError(failure instanceof Error ? failure.message : "暂时无法使用这个登录方式。");
+        setLocalError(failure instanceof Error ? failure.message : copy.socialUnavailable);
       }
     }
   }
@@ -252,49 +256,49 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
         <aside className={s.brandPanel} aria-hidden="true">
           <img src="/assets/xumeng/brand/xumeng-mark.svg" width="38" height="38" alt="" />
           <span className={s.brandName}>叙梦<small>XUMENG</small></span>
-          <div className={s.brandCopy}><span>把故事带走</span><strong>登录叙梦，<br />让每一段关系继续。</strong><p>角色、收藏和会话会被安全保留，换设备也能接着聊。</p></div>
-          <div className={s.brandFeatures}><span><Icon name="refresh" size={15} />跨设备同步</span><span><Icon name="chat" size={15} />保留故事进度</span><span><Icon name="sparkles" size={15} />新手奖励</span></div>
+          <div className={s.brandCopy}><span>{copy.takeStory}</span><strong>{copy.loginContinue}</strong><p>{copy.loginKeep}</p></div>
+          <div className={s.brandFeatures}><span><Icon name="refresh" size={15} />{copy.syncDevices}</span><span><Icon name="chat" size={15} />{copy.keepProgress}</span><span><Icon name="sparkles" size={15} />{copy.starterReward}</span></div>
         </aside>
         <div className={s.dialog} ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="account-title">
-        <header><div><span className={s.formEyebrow}>{forgotPassword ? "账号安全" : "叙梦账户"}</span><h2 id="account-title">{forgotPassword ? "重置密码" : mode === "register" ? "创建你的账号" : method === "email" ? "邮箱验证码登录" : "欢迎回来"}</h2></div><button type="button" onClick={onClose} disabled={submitting} aria-label="关闭账号窗口"><Icon name="close" /></button></header>
-        {!forgotPassword && <div className={s.modeSwitch} role="group" aria-label="账号操作"><button type="button" aria-pressed={mode === "login"} disabled={submitting} onClick={() => { if (mode !== "login") switchMode(); }}>登录</button><button type="button" aria-pressed={mode === "register"} disabled={submitting} onClick={() => { if (mode !== "register") switchMode(); }}>注册</button></div>}
+        <header><div><span className={s.formEyebrow}>{forgotPassword ? copy.accountSecurity : copy.xumengAccount}</span><h2 id="account-title">{forgotPassword ? copy.resetPassword : mode === "register" ? copy.createYourAccount : method === "email" ? copy.emailCodeLogin : copy.welcomeBack}</h2></div><button type="button" onClick={onClose} disabled={submitting} aria-label={copy.closeAccount}><Icon name="close" /></button></header>
+        {!forgotPassword && <div className={s.modeSwitch} role="group" aria-label={copy.accountActions}><button type="button" aria-pressed={mode === "login"} disabled={submitting} onClick={() => { if (mode !== "login") switchMode(); }}>{copy.login}</button><button type="button" aria-pressed={mode === "register"} disabled={submitting} onClick={() => { if (mode !== "register") switchMode(); }}>{copy.register}</button></div>}
         {intro && !forgotPassword && <p className={s.intro}>{intro}</p>}
-        {signupGift && !forgotPassword && (mode === "register" || method === "email") && <p className={s.hint}>首次注册赠送 {signupGift.credits.toLocaleString("zh-CN")} Credit。已有账号登录不重复赠送。</p>}
+        {signupGift && !forgotPassword && (mode === "register" || method === "email") && <p className={s.hint}>{xumengPageFill(copy.signupGiftHint, { credits: signupGift.credits.toLocaleString("zh-CN") })}</p>}
         {!forgotPassword && <div className={s.social}>
-          <button type="button" onClick={() => void startSocial("google")} disabled={submitting || socialBusy !== null || !social?.google} title={social && !social.google ? "Google 登录尚未配置" : undefined}>{socialBusy === "google" ? "正在前往 Google…" : "使用 Google 继续"}</button>
-          <button type="button" onClick={() => void startSocial("telegram")} disabled={submitting || socialBusy !== null || !social?.telegram} title={social && !social.telegram ? "Telegram 登录尚未配置" : undefined}>{socialBusy === "telegram" ? "正在前往 Telegram…" : "使用 Telegram 继续"}</button>
+          <button type="button" onClick={() => void startSocial("google")} disabled={submitting || socialBusy !== null || !social?.google} title={social && !social.google ? copy.googleNotReady : undefined}>{socialBusy === "google" ? copy.goingGoogle : copy.continueGoogle}</button>
+          <button type="button" onClick={() => void startSocial("telegram")} disabled={submitting || socialBusy !== null || !social?.telegram} title={social && !social.telegram ? copy.telegramNotReady : undefined}>{socialBusy === "telegram" ? copy.goingTelegram : copy.continueTelegram}</button>
         </div>}
-        {!forgotPassword && social && !social.google && !social.telegram && <p className={s.serviceNote} role="status">Google 和 Telegram 登录尚未开通，可继续使用邮箱登录。</p>}
-        {!forgotPassword && <p className={s.divider}>或使用邮箱</p>}
-        {!forgotPassword && mode !== "register" && <div className={s.methods} role="group" aria-label="登录方式"><button type="button" aria-pressed={method === "email"} disabled={submitting} onClick={() => selectMethod("email")}>邮箱验证码</button><button type="button" aria-pressed={method === "password"} disabled={submitting} onClick={() => selectMethod("password")}>邮箱与密码</button></div>}
-        <p className={s.hint}>{forgotPassword ? "通过邮箱验证码设置新的登录密码。" : mode === "register" ? "注册后会保留当前游客的角色、收藏和会话。" : "登录后会同步你的角色、收藏和会话。"}</p>
-        {mode !== "register" && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? "正在检查验证码登录服务…" : configError || configuration?.note || "邮箱验证码发送尚未配置，可使用邮箱与密码登录。"}</p>}
+        {!forgotPassword && social && !social.google && !social.telegram && <p className={s.serviceNote} role="status">{copy.socialOff}</p>}
+        {!forgotPassword && <p className={s.divider}>{copy.orEmail}</p>}
+        {!forgotPassword && mode !== "register" && <div className={s.methods} role="group" aria-label={copy.signInMethod}><button type="button" aria-pressed={method === "email"} disabled={submitting} onClick={() => selectMethod("email")}>{copy.emailCode}</button><button type="button" aria-pressed={method === "password"} disabled={submitting} onClick={() => selectMethod("password")}>{copy.emailPassword}</button></div>}
+        <p className={s.hint}>{forgotPassword ? copy.resetByCode : mode === "register" ? copy.registerKeepsGuest : copy.loginSyncs}</p>
+        {mode !== "register" && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? copy.checkingCodeService : configError || configuration?.note || copy.codeNotConfigured}</p>}
         <form className={s.form} onSubmit={submit}>
           {mode === "register" ? <>
-            <label>名字<input autoComplete="nickname" name="nickname" required maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /><small>1 至 30 个字符，不能与已有账号重复。</small></label>
-            <label>邀请码（可选）<input name="referralCode" placeholder="粘贴好友的邀请码" inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>好友会先获得 20 Credit。之后你每个北京时间日完成一轮成功对话，好友再获得 500 Credit，最多 3 天，同一天只发一次。</small></label>
+            <label>{copy.name}<input autoComplete="nickname" name="nickname" required maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /><small>{copy.nameHint}</small></label>
+            <label>{copy.inviteOptional}<input name="referralCode" placeholder={copy.pasteCode} inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>{copy.inviteSmall}</small></label>
           </> : <>
-          <label>邮箱<input autoComplete="email" name="email" type="email" placeholder="you@example.com" required maxLength={254} value={email} onChange={(event) => updateEmail(event.target.value)} disabled={submitting} /></label>
+          <label>{copy.email}<input autoComplete="email" name="email" type="email" placeholder="you@example.com" required maxLength={254} value={email} onChange={(event) => updateEmail(event.target.value)} disabled={submitting} /></label>
           {forgotPassword ? <>
-            <div className={s.codeRow}><label>验证码<input autoComplete="one-time-code" name="resetCode" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? "正在发送…" : resendSeconds > 0 ? `${resendSeconds} 秒后重发` : challenge ? "重新发送" : "获取验证码"}</button></div>
+            <div className={s.codeRow}><label>{copy.code}<input autoComplete="one-time-code" name="resetCode" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? copy.sending : resendSeconds > 0 ? xumengPageFill(copy.resendIn, { seconds: resendSeconds }) : challenge ? copy.resend : copy.getCode}</button></div>
             {sendNotice && <p className={s.sent} role="status">{sendNotice}</p>}
-            {challenge && <small>{validChallenge ? "验证码 10 分钟内有效。" : "验证码已过期，请重新获取。"}</small>}
-            <label>新密码<span className={s.passwordField}><input autoComplete="new-password" name="newPassword" type={showPassword ? "text" : "password"} required minLength={12} maxLength={256} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? "隐藏" : "显示"}</button></span><small>至少 12 个字符。</small></label>
-            <label>确认新密码<input autoComplete="new-password" name="confirmPassword" type="password" required minLength={12} maxLength={256} value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /></label>
+            {challenge && <small>{validChallenge ? copy.codeValid : copy.codeExpired}</small>}
+            <label>{copy.newPassword}<span className={s.passwordField}><input autoComplete="new-password" name="newPassword" type={showPassword ? "text" : "password"} required minLength={12} maxLength={256} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? copy.hide : copy.show}</button></span><small>{copy.atLeast12}</small></label>
+            <label>{copy.confirmPassword}<input autoComplete="new-password" name="confirmPassword" type="password" required minLength={12} maxLength={256} value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /></label>
           </> : method === "email" ? <>
-            <div className={s.codeRow}><label>验证码<input autoComplete="one-time-code" name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? "正在发送…" : resendSeconds > 0 ? `${resendSeconds} 秒后重发` : challenge ? "重新发送" : "获取验证码"}</button></div>
+            <div className={s.codeRow}><label>{copy.code}<input autoComplete="one-time-code" name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? copy.sending : resendSeconds > 0 ? xumengPageFill(copy.resendIn, { seconds: resendSeconds }) : challenge ? copy.resend : copy.getCode}</button></div>
             {sendNotice && <p className={s.sent} role="status">{sendNotice}</p>}
-            {challenge && <small>{validChallenge ? "验证码 10 分钟内有效。" : "验证码已过期，请重新获取。"}</small>}
-            <label>昵称（首次使用可选）<input autoComplete="nickname" name="nickname" maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /></label>
-            <label>邀请码（注册时填写，可选）<input name="referralCode" placeholder="粘贴好友的邀请码" inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>注册成功后，邀请人先获得 20 Credit。之后你每个北京时间日完成一轮成功对话，邀请人再获得 500 Credit，最多 3 天，同一天只发一次。</small></label>
+            {challenge && <small>{validChallenge ? copy.codeValid : copy.codeExpired}</small>}
+            <label>{copy.nicknameOptional}<input autoComplete="nickname" name="nickname" maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /></label>
+            <label>{copy.inviteOnRegister}<input name="referralCode" placeholder={copy.pasteCode} inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>{copy.inviteOnRegisterSmall}</small></label>
           </> : <>
-            <label>密码<span className={s.passwordField}><input autoComplete="current-password" name="password" type={showPassword ? "text" : "password"} placeholder="输入密码" required minLength={1} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? "隐藏" : "显示"}</button></span>{!forgotPassword && <button type="button" className={s.forgotInline} onClick={enterForgotPassword} disabled={submitting}>忘记密码？</button>}</label>
+            <label>{copy.password}<span className={s.passwordField}><input autoComplete="current-password" name="password" type={showPassword ? "text" : "password"} placeholder={copy.passwordPlaceholder} required minLength={1} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? copy.hide : copy.show}</button></span>{!forgotPassword && <button type="button" className={s.forgotInline} onClick={enterForgotPassword} disabled={submitting}>{copy.forgotPassword}</button>}</label>
           </>}
           </>}
           {(localError || error) && <p className={s.error} role="alert">{localError || error}</p>}
-          <button className={s.submit} type="submit" disabled={submitting || (mode !== "register" && ((forgotPassword && (sending || unavailable || !validChallenge || code.length !== 6 || password.length < 12 || password !== confirmPassword)) || (!forgotPassword && method === "email" && (sending || unavailable || !validChallenge || code.length !== 6))))}>{submitting ? "正在连接…" : forgotPassword ? "重置密码" : mode === "register" ? "注册并保留记录" : method === "email" ? "验证并登录" : "登录"}</button>
+          <button className={s.submit} type="submit" disabled={submitting || (mode !== "register" && ((forgotPassword && (sending || unavailable || !validChallenge || code.length !== 6 || password.length < 12 || password !== confirmPassword)) || (!forgotPassword && method === "email" && (sending || unavailable || !validChallenge || code.length !== 6))))}>{submitting ? copy.connecting : forgotPassword ? copy.resetPassword : mode === "register" ? copy.registerKeep : method === "email" ? copy.verifyLogin : copy.login}</button>
         </form>
-        {forgotPassword ? <footer><button type="button" onClick={leaveForgotPassword} disabled={submitting}>返回登录<Icon name="chevron" size={13} /></button></footer> : (mode === "register" || method === "password") && <footer><span>{mode === "register" ? "已有账号？" : "还没有账号？"}</span><button type="button" onClick={switchMode} disabled={submitting}>{mode === "register" ? "去登录" : "注册账号"}<Icon name="chevron" size={13} /></button></footer>}
+        {forgotPassword ? <footer><button type="button" onClick={leaveForgotPassword} disabled={submitting}>{copy.backToLogin}<Icon name="chevron" size={13} /></button></footer> : (mode === "register" || method === "password") && <footer><span>{mode === "register" ? copy.haveAccountQ : copy.noAccountQ}</span><button type="button" onClick={switchMode} disabled={submitting}>{mode === "register" ? copy.goLogin : copy.registerAccountShort}<Icon name="chevron" size={13} /></button></footer>}
         </div>
       </div>
     </div>

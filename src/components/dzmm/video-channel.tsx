@@ -2,6 +2,8 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { isXumengVideoDramaId, matchXumengVideoCharacter, parseXumengVideoCatalog, rankXumengVideoDramas, rotateXumengVideoFeed, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
+import type { XumengLocale } from "@/lib/xumeng-i18n";
+import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import Icon from "./icons";
 import s from "./video-channel.module.css";
 
@@ -143,11 +145,13 @@ export type VideoCharacterLink = {
   tags?: string[];
 };
 
-export default function VideoChannel({ characters = [], onOpenCharacter, onRequireAccount }: {
+export default function VideoChannel({ characters = [], locale = "zh-Hans", onOpenCharacter, onRequireAccount }: {
   characters?: readonly VideoCharacterLink[];
+  locale?: XumengLocale;
   onOpenCharacter?: (id: string) => void;
   onRequireAccount?: () => void;
 }) {
+  const copy = xumengPage(locale);
   const [dramas, setDramas] = useState<Drama[]>([]);
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
@@ -174,6 +178,7 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
   const [unlockedIds, setUnlockedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [paying, setPaying] = useState(false);
   const [frameShown, setFrameShown] = useState(false);
+  const [landscape, setLandscape] = useState(false);
   const [blurbOpen, setBlurbOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
@@ -265,6 +270,12 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
     const hash = dramaHash(playing.dramaId);
     if (location.hash !== hash) history.replaceState(null, "", hash);
   }, [playing, dramas, index]);
+
+  useEffect(() => { setLandscape(false); }, [episode?.id]);
+
+  function noteFrame(node: HTMLVideoElement) {
+    if (node.videoWidth > 0 && node.videoHeight > 0) setLandscape(node.videoWidth > node.videoHeight);
+  }
 
   function currentVideo() {
     return videoRef.current;
@@ -712,10 +723,10 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
   const tags = drama ? feedTags(drama, linkedCharacter) : [];
 
   return <div className={s.shell}>
-    <section ref={stageRef} className={s.stage} aria-label="短剧" tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
-      {loading && <p className={s.status}>正在打开</p>}
-      {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>重新加载</button></div>}
-      {!loading && !error && !drama && <p className={s.status}>还没有可以看的短剧。</p>}
+    <section ref={stageRef} className={s.stage} aria-label={copy.shorts} tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
+      {loading && <p className={s.status}>{copy.openingShorts}</p>}
+      {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>{copy.reloadShorts}</button></div>}
+      {!loading && !error && !drama && <p className={s.status}>{copy.noShorts}</p>}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
           {panels.map(({ item, place, clip }) => <article key={item.dramaId} className={s.panel} data-place={place} aria-hidden={place !== "current"}>
@@ -725,7 +736,7 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
         </div>
         <video
           ref={videoRef}
-          className={s.video}
+          className={landscape ? `${s.video} ${s.landscape}` : s.video}
           poster={xumengVideoPosterUrl(episode.posterKey)}
           playsInline
           preload="auto"
@@ -733,13 +744,14 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
           onLoadedMetadata={() => {
             const node = videoRef.current;
             if (node) {
+              noteFrame(node);
               setDuration(Number.isFinite(node.duration) ? node.duration : 0);
               const saved = episode ? progressRef.current[episode.id] : undefined;
               const canResume = saved && saved.currentTime >= 5 && saved.currentTime < node.duration - 2;
               if (canResume) {
                 node.currentTime = saved.currentTime;
                 setCurrentTime(saved.currentTime);
-                setToast(`从 ${formatTime(saved.currentTime)} 继续`);
+                setToast(xumengPageFill(copy.resumeAt, { time: formatTime(saved.currentTime) }));
               } else setCurrentTime(node.currentTime || 0);
             }
           }}
@@ -760,7 +772,7 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
           }}
           onPlay={() => setPaused(false)}
           onPause={() => setPaused(true)}
-          onLoadedData={() => { setVideoError(false); frameReady.current = true; setFrameShown(true); revealFrame(); }}
+          onLoadedData={() => { const node = videoRef.current; if (node) noteFrame(node); setVideoError(false); frameReady.current = true; setFrameShown(true); revealFrame(); }}
           onError={() => { frameReady.current = false; setFrameShown(false); if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); setVideoError(true); }}
           onEnded={() => {
             if (episode) clearProgress(episode.id);
@@ -769,14 +781,14 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
             else settle(1);
           }}
         />
-        {!episodeOpen && <div className={s.payGate} role="dialog" aria-label="解锁剧集" onPointerDown={event => event.stopPropagation()}>
-          <p>{episode?.episode}需要 {EPISODE_CREDITS} Credit</p>
-          <small>第一集免费，之后每一集只扣一次</small>
-          <button type="button" disabled={paying} onClick={() => void payForEpisode()}>{paying ? "正在确认…" : "支付并观看"}</button>
+        {!episodeOpen && <div className={s.payGate} role="dialog" aria-label={copy.unlockEpisode} onPointerDown={event => event.stopPropagation()}>
+          <p>{xumengPageFill(copy.episodeNeeds, { episode: episode?.episode ?? "", credits: EPISODE_CREDITS })}</p>
+          <small>{copy.firstFree}</small>
+          <button type="button" disabled={paying} onClick={() => void payForEpisode()}>{paying ? copy.confirming : copy.payWatch}</button>
         </div>}
         {videoError && episodeOpen && <div className={s.videoError} role="alert">
-          <p>这一集暂时加载失败</p>
-          <button type="button" onClick={retryVideo}>重试播放</button>
+          <p>{copy.episodeFailed}</p>
+          <button type="button" onClick={retryVideo}>{copy.retryPlay}</button>
         </div>}
       </div>}
       {drama && episode && <>
@@ -785,7 +797,7 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
           data-dragging={scrubbing || undefined}
           role="slider"
           tabIndex={0}
-          aria-label="播放进度"
+          aria-label={copy.progress}
           aria-valuemin={0}
           aria-valuemax={Math.round(duration)}
           aria-valuenow={Math.round(Math.min(currentTime, duration))}
@@ -797,27 +809,27 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
           onKeyDown={onScrubKey}
         ><i /></div>}
         {episodeOpen && !videoError && (!frameShown || paused) && <div className={s.playWrap} onPointerDown={event => event.stopPropagation()}>
-          <button type="button" className={s.play} aria-label={frameShown ? "播放" : "加载中"} onClick={togglePlay}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7.2v9.6l8.2-4.8L9 7.2Z" fill="currentColor" /></svg></button>
-          {!frameShown && <span>加载中...</span>}
+          <button type="button" className={s.play} aria-label={frameShown ? copy.play : copy.loadingFrame} onClick={togglePlay}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7.2v9.6l8.2-4.8L9 7.2Z" fill="currentColor" /></svg></button>
+          {!frameShown && <span>{copy.loadingDots}</span>}
         </div>}
-        {muted && !paused && <button type="button" className={s.unmute} onClick={() => { toggleMute(); }}>轻点打开声音</button>}
+        {muted && !paused && <button type="button" className={s.unmute} onClick={() => { toggleMute(); }}>{copy.tapSound}</button>}
         <div className={s.rail}>
-          <div className={s.mark} aria-hidden="true"><span><img src="/assets/xumeng/brand/xumeng-mark.svg" alt="" /><i><Icon name="play" size={9} /></i></span><small>叙梦短剧</small></div>
-          <RailButton name="喜欢" label={liked ? "1" : ""} pressed={liked} onClick={() => toggleMark("likes")}><Heart filled={liked} /></RailButton>
-          <RailButton name="评论" label={dramaNotes.length > 0 ? String(dramaNotes.length) : ""} onClick={() => setSheet("comments")}><Icon name="chat" size={28} /></RailButton>
-          <RailButton name="收藏" label={saved ? "1" : ""} pressed={saved} onClick={() => toggleMark("saves")}><Star filled={saved} /></RailButton>
-          <RailButton name="分享" label="分享" onClick={() => void shareDrama()}><Share /></RailButton>
+          <div className={s.mark} aria-hidden="true"><span><img src="/assets/xumeng/brand/xumeng-mark.svg" alt="" /><i><Icon name="play" size={9} /></i></span><small>{copy.xumengShorts}</small></div>
+          <RailButton name={copy.liked} label={liked ? "1" : ""} pressed={liked} onClick={() => toggleMark("likes")}><Heart filled={liked} /></RailButton>
+          <RailButton name={copy.comments} label={dramaNotes.length > 0 ? String(dramaNotes.length) : ""} onClick={() => setSheet("comments")}><Icon name="chat" size={28} /></RailButton>
+          <RailButton name={copy.favorite} label={saved ? "1" : ""} pressed={saved} onClick={() => toggleMark("saves")}><Star filled={saved} /></RailButton>
+          <RailButton name={copy.share} label={copy.share} onClick={() => void shareDrama()}><Share /></RailButton>
         </div>
         <div className={s.story} onPointerDown={event => event.stopPropagation()}>
           <h1>{drama.title}</h1>
           {synopsis && <p className={blurbOpen ? s.blurbOpen : s.blurb}>
             <span>{synopsis}</span>
-            {synopsis.length > 18 && <button type="button" onClick={() => setBlurbOpen(value => !value)}>{blurbOpen ? "收起" : "展开"}</button>}
+            {synopsis.length > 18 && <button type="button" onClick={() => setBlurbOpen(value => !value)}>{blurbOpen ? copy.collapse : copy.expand}</button>}
           </p>}
           <div className={s.hashes}>{tags.map(tag => <span key={tag}>#{tag}</span>)}</div>
-          {linkedCharacter && <button type="button" className={s.playCard} onClick={openCharacter}>我来玩</button>}
+          {linkedCharacter && <button type="button" className={s.playCard} onClick={openCharacter}>{copy.playThis}</button>}
           <button type="button" className={s.watchAll} onClick={() => setSheet("episodes")}>
-            <span>观看完整短剧 · 全 {drama.episodes.length} 集</span>
+            <span>{xumengPageFill(copy.watchAll, { count: drama.episodes.length })}</span>
             <Icon name="chevron" size={16} />
           </button>
         </div>
@@ -825,29 +837,29 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
       <header className={s.top} onPointerDown={event => event.stopPropagation()}>
         {searchOpen ? <label className={s.searchBox}>
           <Icon name="search" size={16} />
-          <input aria-label="搜索短剧" placeholder="搜索短剧" value={query} maxLength={80} autoFocus onChange={event => setQuery(event.target.value)} />
-          <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }}>取消</button>
+          <input aria-label={copy.searchShorts} placeholder={copy.searchShorts} value={query} maxLength={80} autoFocus onChange={event => setQuery(event.target.value)} />
+          <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }}>{copy.cancelSearch}</button>
         </label> : <>
-          <div className={s.tabs} role="tablist" aria-label="短剧分类">
-            <button type="button" role="tab" aria-selected={category === "AI成人短剧"} onClick={() => chooseCategory("AI成人短剧")}>短剧</button>
-            <button type="button" role="tab" aria-selected={category === "AI成人漫剧"} onClick={() => chooseCategory("AI成人漫剧")}>漫剧</button>
-            <button type="button" role="tab" aria-selected={!category} onClick={() => chooseCategory("")}>推荐</button>
+          <div className={s.tabs} role="tablist" aria-label={copy.shortCategory}>
+            <button type="button" role="tab" aria-selected={category === "AI成人短剧"} onClick={() => chooseCategory("AI成人短剧")}>{copy.shorts}</button>
+            <button type="button" role="tab" aria-selected={category === "AI成人漫剧"} onClick={() => chooseCategory("AI成人漫剧")}>{copy.comics}</button>
+            <button type="button" role="tab" aria-selected={!category} onClick={() => chooseCategory("")}>{copy.recommended}</button>
           </div>
-          <button type="button" className={s.topSide} aria-label="搜索" onClick={() => setSearchOpen(true)}><Icon name="search" size={22} /></button>
+          <button type="button" className={s.topSide} aria-label={copy.search} onClick={() => setSearchOpen(true)}><Icon name="search" size={22} /></button>
         </>}
       </header>
       {searchOpen && <div className={s.results}>
-        {!keyword && <p>输入剧名</p>}
-        {keyword && found.length === 0 && <p>没有找到对应短剧。</p>}
+        {!keyword && <p>{copy.typeTitle}</p>}
+        {keyword && found.length === 0 && <p>{copy.noShortMatch}</p>}
         {keyword && found.slice(0, 40).map(item => <button type="button" key={item.dramaId} onClick={() => openDrama(item)}>
-          <span><strong>{item.title}</strong><small>{item.category || "短剧"} · {item.episodes.length} 集</small></span>
+          <span><strong>{item.title}</strong><small>{item.category || copy.shorts} · {xumengPageFill(copy.episodeCount, { count: item.episodes.length })}</small></span>
         </button>)}
       </div>}
     </section>
     {sheet === "episodes" && drama && <div className={s.mask} onClick={() => setSheet("")}>
-      <div className={s.sheet} role="dialog" aria-label="选集" onClick={event => event.stopPropagation()}>
-        <header><strong>{drama.title}</strong><button type="button" aria-label="关闭" onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
-        <p>全 {drama.episodes.length} 集</p>
+      <div className={s.sheet} role="dialog" aria-label={copy.episodes} onClick={event => event.stopPropagation()}>
+        <header><strong>{drama.title}</strong><button type="button" aria-label={copy.close} onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
+        <p>{xumengPageFill(copy.allEpisodes, { count: drama.episodes.length })}</p>
         <div className={s.episodeGrid}>
           {drama.episodes.map(item => {
             const paid = item.episodeNumber > 1 && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
@@ -857,15 +869,15 @@ export default function VideoChannel({ characters = [], onOpenCharacter, onRequi
       </div>
     </div>}
     {sheet === "comments" && drama && <div className={s.mask} onClick={() => setSheet("")}>
-      <div className={s.sheet} role="dialog" aria-label="评论" onClick={event => event.stopPropagation()}>
-        <header><strong>评论</strong><button type="button" aria-label="关闭" onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
+      <div className={s.sheet} role="dialog" aria-label={copy.comments} onClick={event => event.stopPropagation()}>
+        <header><strong>{copy.comments}</strong><button type="button" aria-label={copy.close} onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
         <div className={s.noteList}>
-          {dramaNotes.length === 0 && <p>还没有评论，来说第一句。</p>}
-          {dramaNotes.map(item => <article key={item.id}><b>我</b><span>{item.body}</span></article>)}
+          {dramaNotes.length === 0 && <p>{copy.noComments}</p>}
+          {dramaNotes.map(item => <article key={item.id}><b>{copy.me}</b><span>{item.body}</span></article>)}
         </div>
         <form className={s.composer} onSubmit={event => { event.preventDefault(); publishNote(); }}>
-          <input aria-label="写评论" placeholder="写评论" value={draft} maxLength={120} onChange={event => setDraft(event.target.value)} />
-          <button type="submit" aria-label="发送"><Icon name="send" size={16} /></button>
+          <input aria-label={copy.writeComment} placeholder={copy.writeComment} value={draft} maxLength={120} onChange={event => setDraft(event.target.value)} />
+          <button type="submit" aria-label={copy.send}><Icon name="send" size={16} /></button>
         </form>
       </div>
     </div>}

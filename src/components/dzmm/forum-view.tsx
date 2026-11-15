@@ -15,13 +15,15 @@ import {
 } from "../../lib/dzmm-forum";
 import { useDzmmForumDrafts } from "./use-forum-drafts";
 import { acknowledgeDzmmForumEditor, acknowledgeDzmmForumReply, dzmmForumEditorDraftKey, rebaseDzmmForumEditor, prepareDzmmForumCreate, submittedDzmmForumCreate, adoptDzmmForumCreatedPost, type DzmmForumEditorDraft } from "../../lib/dzmm-forum-drafts";
+import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { xumengForumCategoryName, xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 import Icon from "./icons";
 import styles from "./forum-view.module.css";
 
 type Props = {
   userId?: string; isGuest: boolean; isSuper?: boolean; nickname: string; postId?: string;
   onPostChange: (id: string | null) => void; onRequireAccount: () => void;
-  characters: Character[]; onCharacter: (character: Character) => void; initialQuery?: string;
+  characters: Character[]; onCharacter: (character: Character) => void; initialQuery?: string; locale?: XumengLocale;
   shelfMore?: { total: number; hasMore: boolean; loading: boolean; onLoad: () => void } | null;
 };
 type Editor = { id?: string; title: string; body: string; category: DzmmForumCategory; tagsText: string };
@@ -46,7 +48,8 @@ const categoryName = (id: string) => DZMM_FORUM_CATEGORIES.find((item) => item.i
 const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 const message = (error: unknown) => error instanceof Error ? error.message : "操作失败，请稍后重试。";
 
-export default function ForumView({ userId, isGuest, isSuper = false, nickname, postId, onPostChange, onRequireAccount, characters, onCharacter, initialQuery = "", shelfMore = null }: Props) {
+export default function ForumView({ userId, isGuest, isSuper = false, nickname, postId, onPostChange, onRequireAccount, characters, onCharacter, initialQuery = "", shelfMore = null, locale = "zh-Hans" }: Props) {
+  const copy = xumengPage(locale);
   const root = useRef<HTMLElement | null>(null);
   const { drafts, setDrafts, warning: draftWarning, exportDrafts, canLeave } = useDzmmForumDrafts(userId ?? null, root);
   const [view, setView] = useState<"topics" | "works">("topics");
@@ -403,21 +406,21 @@ export default function ForumView({ userId, isGuest, isSuper = false, nickname, 
     </>}
   </section>;
 
-  return <section ref={root} className={styles.layout} aria-label="论坛广场">
+  return <section ref={root} className={styles.layout} aria-label={copy.forumSquare}>
     <aside className={styles.navigation}>
-      <h2>浏览</h2>
-      <div className={styles.browseTabs} role="tablist" aria-label="浏览类型">
-        <button type="button" role="tab" aria-selected={view === "topics"} className={view === "topics" ? styles.selected : ""} onClick={() => { setView("topics"); setShowReports(false); }}><Icon name="chat" size={16} />主题</button>
-        <button type="button" role="tab" aria-selected={view === "works"} className={view === "works" ? styles.selected : ""} onClick={() => { setView("works"); setShowReports(false); onPostChange(null); }}><Icon name="grid" size={16} />作品</button>
+      <h2>{copy.browse}</h2>
+      <div className={styles.browseTabs} role="tablist" aria-label={copy.browseType}>
+        <button type="button" role="tab" aria-selected={view === "topics"} className={view === "topics" ? styles.selected : ""} onClick={() => { setView("topics"); setShowReports(false); }}><Icon name="chat" size={16} />{copy.topics}</button>
+        <button type="button" role="tab" aria-selected={view === "works"} className={view === "works" ? styles.selected : ""} onClick={() => { setView("works"); setShowReports(false); onPostChange(null); }}><Icon name="grid" size={16} />{copy.works}</button>
       </div>
-      <h2>主题分类</h2>
-      <nav aria-label="主题分类"><button type="button" className={!category && view === "topics" ? styles.selected : ""} onClick={() => selectCategory("")}><Icon name="compass" size={16} />最新</button>{DZMM_FORUM_CATEGORIES.map((item) => <button type="button" key={item.id} className={category === item.id && view === "topics" ? styles.selected : ""} onClick={() => selectCategory(item.id)}>{item.name}</button>)}</nav>
-      {isSuper && <button type="button" className={styles.adminButton} onClick={() => loadReports()}><Icon name="sliders" size={15} />举报管理</button>}
+      <h2>{copy.topicCategories}</h2>
+      <nav aria-label={copy.topicCategories}><button type="button" className={!category && view === "topics" ? styles.selected : ""} onClick={() => selectCategory("")}><Icon name="compass" size={16} />{copy.forumLatest}</button>{DZMM_FORUM_CATEGORIES.map((item) => <button type="button" key={item.id} className={category === item.id && view === "topics" ? styles.selected : ""} onClick={() => selectCategory(item.id)}>{xumengForumCategoryName(locale, item.id, item.name)}</button>)}</nav>
+      {isSuper && <button type="button" className={styles.adminButton} onClick={() => loadReports()}><Icon name="sliders" size={15} />{copy.reportAdmin}</button>}
     </aside>
 
     <div className={styles.main}>
-      <header className={styles.header}><div><h1>{showReports ? "举报管理" : postId && view === "topics" ? "主题详情" : view === "works" ? "作品" : "论坛广场"}</h1><p>{showReports ? `${reportsTotal} 条待处理举报` : view === "works" ? "已收录角色，点开查看介绍" : "分享创作，交流日常，找到同好"}</p></div>{view === "topics" && !showReports && <button type="button" className={styles.primary} onClick={() => openEditor()}><Icon name="plus" size={16} />发主题</button>}</header>
-      {!postId && !showReports && <form className={styles.search} onSubmit={search}><Icon name="search" size={18} /><input value={queryInput} maxLength={120} aria-label={view === "works" ? "搜索作品" : "搜索主题"} placeholder={view === "works" ? "搜索角色或作者…" : "搜索主题…"} onChange={(event) => setQueryInput(event.target.value)} /><button type="submit">搜索</button></form>}
+      <header className={styles.header}><div><h1>{showReports ? copy.reportAdmin : postId && view === "topics" ? copy.topicDetail : view === "works" ? copy.works : copy.forumSquare}</h1><p>{showReports ? xumengPageFill(copy.pendingReports, { count: reportsTotal }) : view === "works" ? copy.listedWorksHint : copy.forumLead}</p></div>{view === "topics" && !showReports && <button type="button" className={styles.primary} onClick={() => openEditor()}><Icon name="plus" size={16} />{copy.newTopic}</button>}</header>
+      {!postId && !showReports && <form className={styles.search} onSubmit={search}><Icon name="search" size={18} /><input value={queryInput} maxLength={120} aria-label={view === "works" ? copy.searchWorks : copy.searchTopics} placeholder={view === "works" ? copy.searchRoleAuthor : copy.searchTopicPh} onChange={(event) => setQueryInput(event.target.value)} /><button type="submit">{copy.search}</button></form>}
       {draftWarning && <div className={styles.error} role="alert">{draftWarning}<button type="button" onClick={exportDrafts}>导出论坛草稿</button></div>}
       {error && <div className={styles.error} role="alert">{error}<button type="button" disabled={busy || loading || loadingMore} onClick={retryRead}>重试</button></div>}
       {notice && <p className={styles.notice} role="status">{notice}</p>}
