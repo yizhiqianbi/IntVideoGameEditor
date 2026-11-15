@@ -11,6 +11,7 @@ export type MomentSection = { title: string; fields: MomentField[]; notes?: stri
 type CardProps = {
   name: string;
   sections: MomentSection[];
+  defaultOpen?: boolean;
   children?: ReactNode;
 };
 
@@ -18,6 +19,8 @@ type MomentProps = {
   name: string;
   fields: MomentField[];
   sections?: MomentSection[];
+  defaultOpen?: boolean;
+  pending?: boolean;
   imageLabel: string;
   imageHint: string;
   disabled: boolean;
@@ -125,11 +128,11 @@ function resolvedSections(name: string, fields: MomentField[], sections?: Moment
   }));
 }
 
-export function XumengStatusCard({ name, sections, children }: CardProps) {
+export function XumengStatusCard({ name, sections, defaultOpen = false, children }: CardProps) {
   const visible = sections.filter(section => section.fields.length || section.notes?.length);
   const sample = visible.flatMap(section => section.fields);
-  const [opened, setOpened] = useState(visible.length > 0);
-  return <section className={styles.card} aria-label={sample.length ? `${name}的此刻状态` : "解锁此刻画面"}>
+  const [opened, setOpened] = useState(defaultOpen);
+  return <section className={`${styles.card}${defaultOpen ? ` ${styles.arrive}` : ""}`} aria-label={sample.length ? `${name}的此刻状态` : "解锁此刻画面"}>
     <details open={opened} onToggle={event => setOpened(event.currentTarget.open)}>
       <summary>
         <strong>{name}</strong>
@@ -161,10 +164,11 @@ function imageAction(imageLabel: string, imageHint: string, disabled: boolean, o
   </>;
 }
 
-export default function XumengMomentStatusCard({ name, fields, sections, imageLabel, imageHint, disabled, onImage, slot }: MomentProps) {
+export default function XumengMomentStatusCard({ name, fields, sections, defaultOpen = false, pending = false, imageLabel, imageHint, disabled, onImage, slot }: MomentProps) {
+  if (pending) return null;
   const resolved = resolvedSections(name, fields, sections);
   const hasStatus = resolved.some(section => section.fields.length || section.notes?.length);
   const action = imageAction(imageLabel, imageHint, disabled, onImage, slot);
-  if (!hasStatus) return <section className={styles.card} aria-label="解锁此刻画面">{action}</section>;
-  return <XumengStatusCard name={name} sections={resolved}>{action}</XumengStatusCard>;
+  if (!hasStatus) return <section className={`${styles.card}${defaultOpen ? ` ${styles.arrive}` : ""}`} aria-label="解锁此刻画面">{action}</section>;
+  return <XumengStatusCard name={name} sections={resolved} defaultOpen={defaultOpen}>{action}</XumengStatusCard>;
 }

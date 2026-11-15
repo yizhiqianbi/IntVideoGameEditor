@@ -1,4 +1,4 @@
-import { shanghaiDayStart, shanghaiParts } from "../../../lib/shanghai-time.ts";
+import { shanghaiDayStart, shanghaiParts } from "../../../lib/shanghai-time";
 
 const TEN_MINUTES = 10 * 60 * 1000;
 

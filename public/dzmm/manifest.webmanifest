@@ -7,8 +7,8 @@
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#ff477e",
+  "background_color": "#160b13",
+  "theme_color": "#8d2448",
   "prefer_related_applications": false,
   "icons": [
     { "src": "/assets/xumeng/brand/xumeng-icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },

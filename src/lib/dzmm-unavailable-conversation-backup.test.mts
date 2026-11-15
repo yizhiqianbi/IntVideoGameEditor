@@ -77,7 +77,6 @@ test("missing private references, fabricated cards and malformed mandatory field
   const archive = createDzmmUnavailableConversationBackup(fixture(2));
   const cases = [
     { ...archive, character: { name: "假的占位卡" } }, { ...archive, character: undefined }, { ...archive, replacementCharacter: { name: "假的占位卡" } },
-    { ...archive, conversation: { ...archive.conversation, characterId: "missing-private-card" } },
     { ...archive, conversation: { ...archive.conversation, characterId: "published-forged" } },
     { ...archive, conversation: { ...archive.conversation, title: " " } },
     { ...archive, conversation: { ...archive.conversation, title: "字".repeat(12001) } },
@@ -94,7 +93,10 @@ test("missing private references, fabricated cards and malformed mandatory field
     createId: () => `unexpected-${++allocated}`,
   }));
   assert.equal(allocated, 0);
-  assert.throws(() => createDzmmUnavailableConversationBackup({ ...archive.conversation, characterId: "missing-private-card" }));
+  const legacy = createDzmmUnavailableConversationBackup({ ...archive.conversation, characterId: "1323657" });
+  assert.equal(legacy.conversation.characterId, "1323657");
+  assert.equal(parseDzmmUnavailableConversationBackup(JSON.stringify(legacy), { now: 9 })!.characterId, "1323657");
+  assert.throws(() => createDzmmUnavailableConversationBackup({ ...archive.conversation, characterId: "published-forged" }));
 });
 
 test("an existing hydrated title at 12000 characters exports and imports without narrowing or trimming", () => {

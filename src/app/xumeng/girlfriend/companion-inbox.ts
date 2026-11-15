@@ -11,7 +11,7 @@ export type InboxSourcePhoto = { id: string; createdAt: string };
 export type InboxEntry = { id: string; role: "user" | "assistant" | "photo"; text: string; at: number };
 export type InboxView = { preview: string; at: number | null; unread: number };
 
-const STYLE_BLOCK = /^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/;
+const STYLE_BLOCK = /\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/g;
 const OPENING_BLOCK = /\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g;
 
 export function companionLane(person: { variant: string; castId?: string }) {

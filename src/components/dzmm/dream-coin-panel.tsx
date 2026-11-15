@@ -16,7 +16,7 @@ function yuanInput(value: string): number | null {
   return yuan > 0 ? yuan * 100 : null;
 }
 
-export function DreamCoinPanel({ userId }: { userId: string }) {
+export function DreamCoinPanel({ userId, compact = false }: { userId: string; compact?: boolean }) {
   const [wallet, setWallet] = useState<DreamCoinWallet | null>(null);
   const [credits, setCredits] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -57,10 +57,14 @@ export function DreamCoinPanel({ userId }: { userId: string }) {
   }
   if (error && !wallet) return <p className={s.error} role="alert">{error}</p>;
   if (!wallet) return <section className={s.referralCard} aria-label="梦币"><p>正在读取梦币…</p></section>;
+  if (compact) return <section className={`${s.referralCard} ${s.balanceSummary}`} aria-label="余额">
+    <div><span>Credit 余额</span><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
+    <div><span>梦币余额</span><strong>{formatDreamCoin(wallet.balanceFen)}</strong></div>
+  </section>;
   return <section className={s.referralCard} aria-label="余额">
     <div className={s.referralHeading}><div><span className={s.referralEyebrow}>可用 Credit</span><h2>聊天、语音和图片使用 Credit</h2></div><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
     <div className={s.referralHeading}><div><span className={s.referralEyebrow}>梦币</span><h2>按人民币记账，可兑换，可申请提现</h2></div><strong>{formatDreamCoin(wallet.balanceFen)}</strong></div>
-    <p>1 梦币 = ¥1 = {wallet.creditsPerYuan} Credit。好友注册后 {wallet.earlyWindowDays} 天内的微信实付，按 {wallet.earlyRebatePercent}% 记入；之后按 {wallet.laterRebatePercent}%。创作者激励使用同一本账。提现最低 {formatDreamCoin(wallet.minWithdrawFen)}，两次成功提现至少间隔 {wallet.withdrawIntervalDays} 天，由站点人工打款。</p>
+    <p>好友微信支付的实付金额按 {wallet.rebatePercent}% 记入人民币余额。1 元 = ¥1 = {wallet.creditsPerYuan} Credit。创作者激励使用同一本账。提现最低 {formatDreamCoin(wallet.minWithdrawFen)}，两次成功提现至少间隔 {wallet.withdrawIntervalDays} 天，由站点人工打款。</p>
     {notice && <p className={s.status} role="status">{notice}</p>}
     {error && <p className={s.error} role="alert">{error}</p>}
     <form className={s.dreamForm} onSubmit={event => void submit(event, "exchange")}>

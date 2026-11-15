@@ -28,7 +28,7 @@ import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availabili
 import { xumengLocaleFromCountry } from "../../../src/lib/xumeng-region";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
 import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
-import { sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
+import { publicOauthCookie, sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
 import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
@@ -348,9 +348,11 @@ function backendHeaders(request: Request): Headers {
     const value = request.headers.get(name);
     if (value !== null) headers.set(name, value);
   }
+  const parts = (request.headers.get("Cookie") || "").split(";").map(part => part.trim());
   const session = sessionCookie(request);
-  const known = (request.headers.get("Cookie") || "").split(";").map(part => part.trim()).find(part => part === "xumeng_known=1");
-  const cookie = [session, known].filter(Boolean).join("; ");
+  const known = parts.find(part => part === "xumeng_known=1");
+  const oauth = parts.find(part => /^xumeng_oauth=[A-Za-z0-9_-]{43,128}$/.test(part));
+  const cookie = [session, known, oauth].filter(Boolean).join("; ");
   if (cookie) headers.set("Cookie", cookie);
   // The browser origin was checked at this gateway. Backend mutation checks
   // accept their own request origin, so existing backend deployment is reused.
@@ -636,7 +638,7 @@ async function proxyBackend(request: Request, env: Env, prefix: string): Promise
   for (const name of ["Access-Control-Allow-Origin", "Access-Control-Allow-Credentials",
     "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"]) headers.delete(name);
   const sessionCookies = typeof headers.getSetCookie === "function" ? headers.getSetCookie() : [];
-  const shared = sharedSessionCookies(incoming.hostname, sessionCookies);
+  const shared = sharedSessionCookies(incoming.hostname, sessionCookies.map(cookie => publicOauthCookie(cookie, prefix)));
   if (shared !== sessionCookies) {
     headers.delete("Set-Cookie");
     for (const cookie of shared) headers.append("Set-Cookie", cookie);

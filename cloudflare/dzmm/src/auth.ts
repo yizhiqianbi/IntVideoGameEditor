@@ -310,8 +310,8 @@ async function createGuest(request: Request, env: Env) {
     if (/UNIQUE constraint failed: users\.id/i.test(String(error))) throw new ApiError(409, "游客身份编号发生冲突，请重试。");
     throw error;
   }
-  // A brand-new device still gets a few free turns before the account gate.
-  // The grant is best effort: an uncredited visitor may still browse as a guest.
+  // The first guest from a network can try the tavern. Another incognito window
+  // is still a guest, but it does not receive the welcome Credit again.
   try {
     if (await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
   } catch {
@@ -320,16 +320,16 @@ async function createGuest(request: Request, env: Env) {
   return issueSession(request, env, user);
 }
 
-/** Guests are per browser, but a shared IP should not mint unlimited welcome
- * credits; the day key keeps the counter independent of the 10 minute window. */
-async function guestWelcomeAllowed(request: Request, env: Env, maximum = 5): Promise<boolean> {
+/** One welcome per network. Incognito drops cookies, so a fresh guest there is
+ * not a new person; the IP record is what stops the Credit from being repeated. */
+async function guestWelcomeAllowed(request: Request, env: Env): Promise<boolean> {
+  if (hasKnownBrowser(request)) return false;
   const ip = request.headers.get("cf-connecting-ip") || "local";
-  const day = new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
   const row = await env.DB.prepare(
     `INSERT INTO auth_rate_limits (key,count,window_start) VALUES (?,1,?)
      ON CONFLICT(key) DO UPDATE SET count=count+1 RETURNING count`,
-  ).bind(digest(`guest-welcome:${day}:${ip}`), Date.now()).first<{ count: number }>();
-  return row !== null && row.count <= maximum;
+  ).bind(digest(`guest-welcome:${ip}`), Date.now()).first<{ count: number }>();
+  return row !== null && row.count === 1;
 }
 
 async function register(request: Request, env: Env) {

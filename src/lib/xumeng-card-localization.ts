@@ -1,5 +1,4 @@
 import type { Character } from "./dzmm-characters";
-import translations from "./xumeng-card-translations.json";
 import type { XumengLocale } from "./xumeng-i18n";
 
 export type XumengCardTranslation = {
@@ -12,8 +11,9 @@ export type XumengCardTranslation = {
 };
 
 type TranslationTable = Record<string, Partial<Record<XumengLocale, XumengCardTranslation>>>;
-const table = translations as TranslationTable;
+let table: TranslationTable = {};
 const loadedLocales = new Set<XumengLocale>(["zh-Hans"]);
+let pending: Promise<boolean> | null = null;
 
 export function xumengCardTranslationsLoaded(locale: XumengLocale): boolean {
   return locale === "zh-Hans" || loadedLocales.has(locale);
@@ -23,22 +23,23 @@ export function hasXumengCardTranslation(characterId: string, locale: XumengLoca
   return Boolean(table[characterId]?.[locale]);
 }
 
-/** Load the larger public-card translation shard only when a translated locale is selected. */
+/** The translation table stays out of the first script. Chinese never downloads it. */
 export async function loadXumengCardTranslations(locale: XumengLocale): Promise<boolean> {
-  if (locale === "zh-Hans" || loadedLocales.has(locale) || typeof fetch !== "function") return false;
-  try {
-    const response = await fetch(`/api/dzmm/translations/${locale}`, { cache: "no-store" });
-    if (!response.ok) return false;
-    const payload = await response.json() as Record<string, XumengCardTranslation>;
-    for (const [id, translation] of Object.entries(payload)) {
-      if (!translation || typeof translation !== "object") continue;
-      table[id] = { ...(table[id] ?? {}), [locale]: translation };
+  if (locale === "zh-Hans" || loadedLocales.has(locale)) return false;
+  pending ??= import("./xumeng-card-translations.json").then((module) => {
+    const imported = module as { default?: TranslationTable };
+    const rows = imported.default ?? {};
+    table = rows;
+    for (const row of Object.values(rows)) {
+      if (!row) continue;
+      for (const loc of Object.keys(row) as XumengLocale[]) loadedLocales.add(loc);
     }
-    loadedLocales.add(locale);
     return true;
-  } catch {
+  }).catch(() => {
+    pending = null;
     return false;
-  }
+  });
+  return pending;
 }
 
 function nonEmpty(value: unknown, fallback: string): string {

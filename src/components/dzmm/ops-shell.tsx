@@ -84,7 +84,7 @@ export default function OpsShell() {
     void dzmmCloudRequest<unknown>("/session").then(value => {
       if (!alive) return;
       const user = readUser(value);
-      if (import.meta.env.DEV && user?.id === "local-preview-guest") {
+      if (process.env.NODE_ENV !== "production" && user?.id === "local-preview-guest") {
         setPhase({ status: "ready", user: { id: user.id, email: null, nickname: "本地预览", isGuest: false, role: "super" }, preview: true });
         return;
       }

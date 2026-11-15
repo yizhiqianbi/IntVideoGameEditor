@@ -1,6 +1,6 @@
 import type { DzmmCreditCostPolicy } from "./dzmm-credit-pricing";
 
-export type DzmmSelectableModelId = "grok" | "grok46" | "gemini31" | "cydonia" | "gemini" | "claude" | "gpt" | "deepseek" | "qwen" | "heretic" | "gemma26" | "gemma31" | "venice";
+export type DzmmSelectableModelId = "grok" | "grok46" | "gemini31" | "gemini4a" | "gemini4c" | "cydonia" | "gemini" | "claude" | "gpt" | "deepseek" | "qwen" | "heretic" | "gemma26" | "gemma31" | "venice";
 /** Legacy modes remain valid stored/request values; new choices are server-owned IDs. */
 export type DzmmModelPreset = DzmmSelectableModelId | "fast" | "balanced" | "story";
 /** Default for new XUMENG conversations, including the girlfriend chat. */
@@ -42,6 +42,12 @@ export const DZMM_MODEL_OPTIONS: readonly DzmmModelOption[] = Object.freeze([
   { id: "cydonia", label: "Cydonia 24B v4.1", description: "未审查角色", providerModel: "thedrummer/cydonia-24b-v4.1", canonicalModel: "thedrummer/cydonia-24b-v4.1",
     inputUsdPerMillion: 0.3, outputUsdPerMillion: 0.5, maxInputUsdPerMillion: 0.3, maxOutputUsdPerMillion: 0.5,
     providerMaxPromptUsdPerMillion: 0.3, contextLength: 131072, supportsTemperature: true, reasoningEffort: false },
+  { id: "gemini4a", label: "Gemini 4 Argon", description: "长上下文写作", providerModel: "google/gemini-4-argon", canonicalModel: "google/gemini-4-argon-20261013",
+    inputUsdPerMillion: 2, outputUsdPerMillion: 10, maxInputUsdPerMillion: 2, maxOutputUsdPerMillion: 10,
+    providerMaxPromptUsdPerMillion: 2, contextLength: 1048576, supportsTemperature: true, reasoningEffort: "low" },
+  { id: "gemini4c", label: "Gemini 4 Carbon", description: "同代长上下文", providerModel: "google/gemini-4-carbon", canonicalModel: "google/gemini-4-carbon-20261110",
+    inputUsdPerMillion: 2, outputUsdPerMillion: 10, maxInputUsdPerMillion: 2, maxOutputUsdPerMillion: 10,
+    providerMaxPromptUsdPerMillion: 2, contextLength: 1048576, supportsTemperature: true, reasoningEffort: "low" },
   { id: "gemini", label: "Gemini 3.8 Flash", description: "快速长上下文", providerModel: "google/gemini-3.8-flash", canonicalModel: "google/gemini-3.8-flash-20260902",
     inputUsdPerMillion: 0.75, outputUsdPerMillion: 3.75, maxInputUsdPerMillion: 0.825, maxOutputUsdPerMillion: 4.125,
     providerMaxPromptUsdPerMillion: 0.825, contextLength: 1048576, supportsTemperature: true, reasoningEffort: "low" },
@@ -75,9 +81,9 @@ export const DZMM_MODEL_OPTIONS: readonly DzmmModelOption[] = Object.freeze([
     providerMaxPromptUsdPerMillion: 0.2, contextLength: 128000, supportsTemperature: true, reasoningEffort: false },
 ].map(option => Object.freeze(option as DzmmModelOption)));
 
-/** Models shown in the product picker. Other catalogue ids stay valid for stored rows and billing. */
+/** Models shown in the character-card picker. Stored rows and billing still accept every catalogue id. */
 export const DZMM_OFFERED_MODEL_OPTIONS = Object.freeze(
-  (["gemma31", "deepseek", "grok", "grok46", "heretic", "gemma26", "cydonia", "venice"] as const).flatMap(id => {
+  (["gemma31", "deepseek", "qwen", "gemini4a", "gemini4c", "gemini31", "grok", "grok46", "gemini", "claude", "gpt", "heretic", "gemma26", "cydonia", "venice"] as const).flatMap(id => {
     const option = DZMM_MODEL_OPTIONS.find(item => item.id === id);
     return option ? [option] : [];
   }),
@@ -87,7 +93,7 @@ export function isDzmmModelPreset(value: unknown): value is DzmmModelPreset {
   return value === "fast" || value === "balanced" || value === "story" || DZMM_MODEL_OPTIONS.some(option => option.id === value);
 }
 
-/** Keep an offered choice. Legacy presets and models no longer in the picker use Grok 4.7. */
+/** Keep an offered choice. Legacy fast, balanced and story presets use the default model. */
 export function normalizeDzmmModelSelection(value: DzmmModelPreset): DzmmSelectableModelId {
   return DZMM_OFFERED_MODEL_OPTIONS.find(option => option.id === value)?.id ?? DZMM_DEFAULT_MODEL;
 }

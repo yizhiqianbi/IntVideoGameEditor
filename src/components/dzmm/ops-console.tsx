@@ -9,7 +9,7 @@ import {
   saveOpsSubtag, saveOpsVoice, syncOpsVoices,
   type OpsCharacter, type OpsDay, type OpsModelPrice, type OpsOrientation, type OpsPackage, type OpsScenePrice, type OpsSubtag, type OpsVoice,
 } from "@/lib/dzmm-ops-client";
-import { reviewDzmmSubmission } from "@/lib/dzmm-publishing";
+import { reviewDzmmSubmission, unpublishDzmmCharacter } from "@/lib/dzmm-publishing";
 import s from "./admin-dashboard.module.css";
 
 type View = "packages" | "prices" | "orientations" | "subtags" | "voices" | "characters" | "recharges" | "analytics" | "reviews" | "banners";
@@ -357,15 +357,23 @@ function Reviews({ accountId }: { accountId: string }) {
       load();
     } catch (error) { setNotice(report(error)); }
   }
-  return <Panel title="用户角色审核" note={`待审核 ${pending}。通过和拒绝走原来的审核接口。拒绝原因从目录里选。`}>
+  async function unlist(item: { publicationId: string; publicationVersion: number; name: string }) {
+    if (!window.confirm(`下架「${item.name || "未命名"}」？它会退出角色广场，作者的私人草稿还在。`)) return;
+    try {
+      await unpublishDzmmCharacter(item.publicationId, item.publicationVersion, accountId);
+      setNotice("已下架，角色广场不再显示。");
+      load();
+    } catch (error) { setNotice(report(error)); }
+  }
+  return <Panel title="用户角色审核" note={`待审核 ${pending}。已公开的角色可以在「已通过」里直接下架，退出角色广场，作者草稿还在。`}>
     <form className={s.filters} onSubmit={event => { event.preventDefault(); load(); }}>
       <label>状态<select value={status} onChange={event => setStatus(event.target.value)}><option value="pending">审核中</option><option value="approved">已通过</option><option value="rejected">已拒绝</option><option value="withdrawn">已撤回</option><option value="all">全部</option></select></label>
-      <label>搜索<input value={q} onChange={event => setQ(event.target.value)} /></label>
+      <label>搜索<input value={q} maxLength={40} placeholder="角色名、作者或编号" onChange={event => setQ(event.target.value)} /></label>
       <label>拒绝原因<select value={reason} onChange={event => setReason(event.target.value)}>{reasons.map(item => <option key={item.id}>{item.label}</option>)}</select></label>
       <button className={s.outline} type="submit">刷新</button>
     </form>
     <Notice value={notice} />
-    <ul>{items.map(item => <li key={item.id}><strong>{item.name || "未命名"}</strong> {item.label} · {item.author} <span className={s.secondaryLine}>{when(item.createdAt)}</span> {item.status === "pending" ? <><button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "approved")}>通过</button> <button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "rejected")}>拒绝</button></> : item.reason ? <span>原因：{item.reason}</span> : null}</li>)}</ul>
+    <ul>{items.map(item => <li key={item.id}><strong>{item.name || "未命名"}</strong> {item.label} · {item.author} <span className={s.secondaryLine}>{when(item.createdAt)}</span> {item.status === "pending" ? <><button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "approved")}>通过</button> <button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "rejected")}>拒绝</button></> : item.reason ? <span>原因：{item.reason}</span> : null} {item.listed ? <button className={s.text} type="button" onClick={() => void unlist(item)}>下架</button> : null}</li>)}</ul>
   </Panel>;
 }
 

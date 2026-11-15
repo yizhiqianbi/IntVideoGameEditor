@@ -20,27 +20,48 @@ test("text image keeps the sentence and chosen style", () => {
   assert.match(built.prompt, /超清/);
 });
 
+test("text image with a reference keeps the sentence and the image", () => {
+  const built = buildTextImage({ prompt: "换成夜景，人不要动。", style: "anime", clarity: "hd", image: PNG });
+  assert.equal(built.ok, true);
+  assert.match(built.prompt, /换成夜景/);
+  assert.match(built.prompt, /动漫/);
+  assert.equal(built.image, PNG);
+  assert.equal(buildTextImage({ prompt: "换成夜景，人不要动。", ratio: "landscape" }).ratio, "landscape");
+  assert.equal(buildTextImage({ prompt: "换成夜景。", images: [PNG, PNG] }).error, "参考图只能一张。");
+});
+
 test("text image rejects an empty sentence and extra fields", () => {
   assert.equal(buildTextImage({ prompt: "  " }).error, "先写下要画的画面。");
   assert.equal(buildTextImage({ prompt: "一个成年旅人。", path: "/api/public/generate/undress" }).code, "field-forbidden");
 });
 
-test("image video maps 8 and 20 seconds onto the existing modules", () => {
-  const short = buildImageVideo({ image: PNG, action: "转过身，看向镜头。", seconds: "8" });
+test("image video accepts 5, 10 or 15 seconds", () => {
+  const short = buildImageVideo({ image: PNG, action: "转过身，看向镜头。", seconds: "5" });
   assert.equal(short.ok, true);
-  assert.equal(short.id, "ai_chuangzuo_tushengshipin_8s");
-  assert.equal(short.values.duration, undefined);
+  assert.equal(short.seconds, 5);
+  assert.equal(short.values.duration, "5");
   assert.equal(short.files.img_url.type, "image/png");
-  const long = buildImageVideo({ image: PNG, seconds: "20" });
-  assert.equal(long.id, "i2v_10eros");
-  assert.equal(long.values.duration, "20");
-  assert.equal(long.values.positive_prompt, "按画面自然动起来");
+  const chosen = buildImageVideo({ image: PNG, action: "镜头缓缓向前。", seconds: 15 });
+  assert.equal(chosen.seconds, 15);
+  assert.equal(chosen.values.duration, "15");
+  assert.equal(chosen.values.positive_prompt, "镜头缓缓向前。");
+  assert.equal(short.mode, "first");
 });
 
-test("image video rejects other durations", () => {
-  const built = buildImageVideo({ image: PNG, action: "转过身。", seconds: "5" });
+test("reference video keeps every uploaded image", () => {
+  const built = buildImageVideo({ images: [PNG, PNG], mode: "reference", action: "两个人走进房间。", seconds: "10" });
+  assert.equal(built.ok, true);
+  assert.equal(built.mode, "reference");
+  assert.equal(built.images.length, 2);
+  assert.equal(buildImageVideo({ images: Array(10).fill(PNG), mode: "reference", action: "两个人走进房间。", seconds: 10 }).images.length, 10);
+  assert.equal(buildImageVideo({ images: Array(11).fill(PNG), mode: "reference", action: "两个人走进房间。", seconds: 10 }).error, "参考图最多十张。");
+});
+
+test("image video rejects durations outside 5, 10 and 15 seconds", () => {
+  const built = buildImageVideo({ image: PNG, action: "转过身看向镜头。", seconds: "8" });
   assert.equal(built.ok, false);
-  assert.equal(built.error, "时长只能是 8 秒或 20 秒。");
+  assert.equal(built.error, "时长只能是 5、10 或 15 秒。");
+  assert.equal(buildImageVideo({ image: PNG, action: "转过身看向镜头。", seconds: "30" }).ok, false);
 });
 
 test("handlers forward only the built job", async () => {
@@ -48,8 +69,8 @@ test("handlers forward only the built job", async () => {
   const image = await handleTextImage(request("http://127.0.0.1:3488/api/text-image", {
     prompt: "一个三十岁的旅人站在月台。",
   }), {
-    forwardImage(prompt) {
-      seen.push(prompt);
+    forwardImage(body) {
+      seen.push(body.prompt);
       return new Response("png", { headers: { "content-type": "image/png" } });
     },
   });

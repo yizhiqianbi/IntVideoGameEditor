@@ -505,6 +505,7 @@ async function reviews(request: Request, env: Env, user: UserRecord, url: URL) {
       const label = row.status === "pending" ? "审核中" : row.status === "rejected" ? "审核拒绝" : row.status === "withdrawn" ? "已撤回" : row.is_listed === 1 ? "已公开" : "未上架";
       return {
         id: row.id, publicationId: row.publication_id, publicationVersion: row.version, name, status: row.status, label,
+        listed: row.is_listed === 1,
         authorId: row.user_id, author: row.nickname, reason: row.review_reason, createdAt: row.created_at, reviewedAt: row.reviewed_at,
       };
     }),

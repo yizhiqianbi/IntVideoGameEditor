@@ -1,13 +1,13 @@
 import type { D1Database } from "@cloudflare/workers-types";
 
-export const DEFAULT_DAILY_CHECKIN_CREDITS = 5;
+export const DEFAULT_DAILY_CHECKIN_CREDITS = 50;
 const KEY = "daily_checkin_credits";
 
 export function validCheckinCredits(value: unknown): value is number {
   return typeof value === "number" && Number.isInteger(value) && value >= 1 && value <= 100_000;
 }
 
-/** Missing or unreadable configuration stays at the historical default of 5. */
+/** Missing or unreadable configuration stays at 50 Credit per day. */
 export async function readDailyCheckinCredits(db: D1Database): Promise<number> {
   const row = await db.prepare("SELECT value FROM platform_settings WHERE key=?").bind(KEY).first<{ value: string }>();
   const parsed = Number(row?.value);

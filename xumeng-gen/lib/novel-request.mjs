@@ -68,6 +68,16 @@ function clean(value) {
   return String(value ?? "").replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function cleanLines(value) {
+  return String(value ?? "")
+    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, " ")
+    .split("\n")
+    .map(line => line.replace(/[ \t]+/g, " ").trim())
+    .filter(Boolean)
+    .join("\n")
+    .trim();
+}
+
 export function parseCount(raw, mode) {
   const fallback = mode === "continue" ? CONTINUE_DEFAULT_COUNT : GENERATE_DEFAULT_COUNT;
   const text = clean(raw);
@@ -110,7 +120,12 @@ export function buildNovelPayload(input) {
     if (!description) return { ok: false, status: 400, error: "先写剧情。" };
     values.description = description;
     texts.push(description);
-    for (const key of ["character_setting", "location_scene", "details"]) {
+    const character = cleanLines(body.character_setting);
+    if (!character) return { ok: false, status: 400, error: "先写下人物设定。" };
+    if (character.length > 800) return { ok: false, status: 400, error: "人物设定最多 800 个字符。" };
+    values.character_setting = character;
+    texts.push(character);
+    for (const key of ["location_scene", "details"]) {
       const value = clean(body[key]);
       if (value) {
         values[key] = value;

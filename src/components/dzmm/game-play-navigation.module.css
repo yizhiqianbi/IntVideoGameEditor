@@ -3,7 +3,9 @@
 .discoveryModes button[aria-pressed="true"] { color:var(--text); border-color:var(--pink); }
 .filters { display:flex; gap:0; padding:0 8px; border-bottom:1px solid var(--line); }
 .filters button { flex:1; font-size:14px; font-weight:550; padding:10px 0 8px; border-radius:0; color:var(--muted); background:transparent; border:0; border-bottom:2px solid transparent; cursor:pointer; }
-.filters button[aria-pressed="true"] { background:transparent; color:var(--text); border-bottom-color:var(--im-accent, var(--pink)); }
+.filters button:is([aria-pressed="true"],[aria-selected="true"]) { background:transparent; color:var(--text); border-bottom-color:var(--im-accent, var(--pink)); }
+.filterCount { display:inline-flex; min-width:16px; height:16px; align-items:center; justify-content:center; padding:0 4px; border-radius:999px; color:var(--muted); background:color-mix(in srgb, var(--soft) 84%, transparent); font-size:10px; font-weight:650; line-height:1; box-sizing:border-box; }
+.filters button:is([aria-pressed="true"],[aria-selected="true"]) .filterCount { color:var(--pink); background:var(--pink-soft); }
 .group { color:var(--muted); font-size:11px; padding:13px 14px 6px; margin:0; }
 .gameAvatar { width:46px; height:46px; display:grid; place-items:center; border-radius:12px; background:var(--soft); color:var(--pink); flex-shrink:0; }
 .listState { padding:24px 18px; color:var(--muted); font-size:12px; line-height:1.8; text-align:center; }

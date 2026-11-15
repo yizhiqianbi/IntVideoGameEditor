@@ -1,0 +1,172 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "moss_image_sft_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "① MOSS-Image-SFT｜BF16 基模"
+    }
+  },
+  "2": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3.5_9b_bf16.safetensors",
+      "type": "moss_image",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "② 中文文本编码器｜MOSS 专用类型"
+    }
+  },
+  "3": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "flux2-vae_small.safetensors"
+    },
+    "_meta": {
+      "title": "③ FLUX.2 小型 VAE"
+    }
+  },
+  "4": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "moss_image_edit_lora_rank_64_bf16.safetensors",
+      "strength_model": 0.0,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "④ 风格 LoRA 插槽｜占位强度 0"
+    }
+  },
+  "5": {
+    "class_type": "SkipLayerGuidanceDiTSimple",
+    "inputs": {
+      "double_layers": "",
+      "single_layers": "22",
+      "start_percent": 0.0,
+      "end_percent": 1.0,
+      "model": [
+        "100",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑤ 负分支跳过第 22 层｜全程"
+    }
+  },
+  "9": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 42,
+      "steps": 50,
+      "cfg": 3.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": [
+        "5",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "negative": [
+        "7",
+        0
+      ],
+      "latent_image": [
+        "8",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑧ 采样｜固定种子 42"
+    }
+  },
+  "10": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "9",
+        0
+      ],
+      "vae": [
+        "3",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑨ 解码图片"
+    }
+  },
+  "11": {
+    "class_type": "SaveImage",
+    "inputs": {
+      "filename_prefix": "MOSS/zh-text2image",
+      "images": [
+        "10",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑩ 保存结果｜MOSS 中文测试"
+    }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "一张写实静物摄影：木桌中央放着一个黄色陶瓷杯，杯子左侧有一本合上的红色书本，右侧有一盆小巧的绿色盆栽。三个物体完整可见，位置清晰分开。柔和自然光，真实材质，干净背景，色彩自然。",
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑥ 中文正面提示｜黄杯 · 红书 · 绿植"
+    }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "",
+      "clip": [
+        "2",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "⑦ 负面提示｜默认留空"
+    }
+  },
+  "8": {
+    "class_type": "EmptyFlux2LatentImage",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "_meta": {
+      "title": "画布｜1024×1024 · 单张"
+    }
+  },
+  "100": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "lora_name": "MOSS-Image-NSFW-Uncensored-LoRA-ComfyUI.safetensors",
+      "strength_model": 0.8,
+      "model": [
+        "4",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "NSFW LoRA｜axiomofmind 0.8 · trigger moss_xvstyle"
+    }
+  }
+}

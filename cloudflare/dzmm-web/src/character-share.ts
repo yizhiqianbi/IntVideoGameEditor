@@ -46,6 +46,15 @@ export function characterShareGEOEntries(): readonly CharacterShareRecord[] {
     .filter((card): card is CharacterShareRecord => Boolean(card));
 }
 
+function relatedFeaturedCharacters(card: CharacterShareRecord): readonly CharacterShareRecord[] {
+  const featured = characterShareGEOEntries();
+  if (featured.length <= 1) return [];
+  const currentIndex = featured.findIndex(item => item.id === card.id);
+  const start = currentIndex >= 0 ? currentIndex + 1 : 0;
+  return Array.from({ length: Math.min(3, featured.length - 1) }, (_, offset) => featured[(start + offset) % featured.length])
+    .filter((item): item is CharacterShareRecord => Boolean(item && item.id !== card.id));
+}
+
 export function shareTitle(name: string): string {
   const clean = name.replace(/\s+/g, " ").trim() || "叙梦角色";
   const chars = [...clean];
@@ -129,7 +138,8 @@ function characterSummary(card: ShareCard): string {
   const title = escapeHtml(card.title);
   const description = escapeHtml(card.description);
   const open = `/#character/${card.id}`;
-  return `<article><nav aria-label="面包屑"><a href="/">叙梦</a> · <a href="/characters">公开角色</a></nav><h1>${title}</h1><p>${description}</p><p>这是叙梦（XUMENG）的公开角色卡摘要。私人会话、账号信息、余额与未公开内容不会出现在本页。</p><p><a id="xumeng-share-open" href="${open}">在叙梦开始角色互动</a> · <a href="/characters">更多公开角色</a></p></article>`;
+  const related = relatedFeaturedCharacters(card).map(item => `<li><a href="/c/${item.id}">${escapeHtml(item.title)}</a><span>：${escapeHtml(item.description)}</span></li>`).join("");
+  return `<article><nav aria-label="面包屑"><a href="/">叙梦</a> · <a href="/characters">公开角色</a></nav><h1>${title}</h1><p>${description}</p><p>这是叙梦（XUMENG）的公开角色卡摘要。私人会话、账号信息、余额与未公开内容不会出现在本页。</p><p><a id="xumeng-share-open" href="${open}">在叙梦开始角色互动</a> · <a href="/characters">更多公开角色</a></p><section aria-labelledby="related-characters"><h2 id="related-characters">更多精选公开角色</h2><ul>${related}</ul></section></article>`;
 }
 
 export function renderCharacterSharePage(card: ShareCard): string {
@@ -148,6 +158,8 @@ export function renderCharacterSharePage(card: ShareCard): string {
     <meta name="description" content="${description}" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="${page}" />
+    <link rel="alternate" hreflang="zh-CN" href="${page}" />
+    <link rel="alternate" hreflang="x-default" href="${page}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="叙梦" />
     <meta property="og:locale" content="zh_CN" />
@@ -158,10 +170,12 @@ export function renderCharacterSharePage(card: ShareCard): string {
     <meta property="og:image:type" content="${card.type}" />
     <meta property="og:image:width" content="${card.width}" />
     <meta property="og:image:height" content="${card.height}" />
+    <meta property="og:image:alt" content="${title}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
     <meta name="twitter:description" content="${description}" />
     <meta name="twitter:image" content="${image}" />
+    <meta name="twitter:image:alt" content="${title}" />
     <style>
       html, body { margin: 0; min-height: 100%; background: #07070b; color: #f4efe8; font: 16px/1.5 system-ui, sans-serif; }
       a { color: inherit; }

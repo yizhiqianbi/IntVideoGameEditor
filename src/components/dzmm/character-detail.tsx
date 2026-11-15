@@ -7,7 +7,7 @@ import { isXumengPinnedCard, loadXumengCardProvenance, readXumengCardProvenance,
 import { getDzmmCharacterCreatorNotes } from "@/lib/dzmm-character-presentation";
 import { getDzmmOpeningMessages } from "@/lib/dzmm-character-context";
 import { characterShareLocation } from "@/lib/xumeng-acquisition";
-import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE } from "@/lib/xumeng-feature-availability";
+import { XUMENG_CALLS_ENABLED, XUMENG_CHARACTER_VOICE_ENABLED } from "@/lib/xumeng-feature-availability";
 import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import { coverShelfTags, visibleShelfTags } from "@/lib/xumeng-shelf-tags";
 import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
@@ -164,7 +164,7 @@ export default function CharacterDetail({
   const primaryPresent = getDzmmOpeningMessages({ ...character, alternateGreetings: [] }).length > 0;
   const openingLabel = (text: string, fallback: string) => {
     const line = text.split("\n")[0]?.trim() ?? "";
-    return line && line.length <= 40 ? line : fallback;
+    return line && line.length <= 40 && !/[<>]/.test(line) ? line : fallback;
   };
   const openings = [
     ...(primaryPresent ? [{ index: 0, label: openingLabel(character.firstMessage, "开场 1") }] : []),
@@ -353,8 +353,32 @@ export default function CharacterDetail({
               定制
             </button>
           </div>
-          {!contextMissing && <div className={s.performanceActions}>{onLive && <button className={s.outline} onClick={onLive} title={XUMENG_CALLS_ENABLED ? "语音通话和视频通话" : XUMENG_CALLS_LOCKED_MESSAGE}><Icon name={XUMENG_CALLS_ENABLED ? "video" : "lock"} size={16} />{XUMENG_CALLS_ENABLED ? "给角色打电话" : "通话已锁"}</button>}{onVoice && <button className={s.outline} onClick={onVoice}><Icon name="volume" size={16} />生成角色语音</button>}</div>}
+          {!contextMissing && (XUMENG_CALLS_ENABLED || XUMENG_CHARACTER_VOICE_ENABLED) && <div className={s.performanceActions}>
+            {XUMENG_CALLS_ENABLED && onLive && <button className={s.outline} onClick={onLive} title="语音通话和视频通话"><Icon name="video" size={16} />给角色打电话</button>}
+            {XUMENG_CHARACTER_VOICE_ENABLED && onVoice && <button className={s.outline} onClick={onVoice}><Icon name="volume" size={16} />生成角色语音</button>}
+          </div>}
         </div>
+      </div>
+
+      <div className={s.stickyCta} role="region" aria-label="角色主要操作">
+        <button
+          className={s.stickyStart}
+          type="button"
+          onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}
+        >
+          <Icon name="chat" size={17} />
+          {character.authoringDraft ? "完善草稿" : contextMissing ? "补充角色设定" : "开始对话"}
+        </button>
+        <button
+          className={s.stickyFavorite}
+          type="button"
+          onClick={onFavorite}
+          aria-pressed={favorites}
+          aria-label={favorites ? "取消收藏角色" : "收藏角色"}
+        >
+          <Icon name={favorites ? "check" : "heart"} size={17} />
+          <span>{favorites ? "已收藏" : "收藏"}</span>
+        </button>
       </div>
 
       <section
@@ -371,7 +395,7 @@ export default function CharacterDetail({
           <div className={s.opening}>
             <h3>开场白</h3>
             {openings.length > 1 && <div className={s.openingPicker}><label>选择开场<select aria-label="选择开场" value={String(selectedOpening)} onChange={(event) => setOpeningSelection({ characterId: character.id, index: Number(event.target.value), touched: true })}>{openings.map(item => <option key={item.index} value={String(item.index)}>{item.label}</option>)}</select></label><button type="button" onClick={() => onStart(selectedOpening, true)}>用此开场新建聊天</button></div>}
-            <CharacterIntroduction key={selectedOpening} text={selectedOpeningText} characterName={character.name} userName={userName} />
+            <CharacterIntroduction key={selectedOpening} text={selectedOpeningText} characterName={character.name} userName={userName} frontendScripts={character.frontendScripts} />
           </div>
         )}
         {(character.personality || character.scenario || character.appearance || character.interactionSettings) && (

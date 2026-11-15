@@ -176,7 +176,7 @@ test('twenty concurrent daily claims atomically award one permanent Credit ledge
   assert.equal(earned.claim.expiresAt, null);
   assert.equal(earned.claim.period, new Date(earned.claim.claimedAt).toISOString().slice(0, 10));
   const reloaded = await center(new Client(concurrent.cookie));
-  assert.equal(reloaded.points.balance, 1505); assert.equal(reloaded.points.totalEarned, 5); assert.equal(reloaded.recentClaims.length, 1);
+  assert.equal(reloaded.points.balance, 1550); assert.equal(reloaded.points.totalEarned, 50); assert.equal(reloaded.recentClaims.length, 1);
   assert.equal(task(reloaded, 'daily_checkin').claimed, true); assert.equal(task(reloaded, 'daily_checkin').claimable, false);
   assert.equal((await center(stranger)).points.balance, 1500);
   assert.ok(!JSON.stringify(reloaded).includes(owner.user.id));
@@ -197,7 +197,7 @@ test('legacy reward expiry fields remain in audit history while merged Credit st
   assert.equal(task(before, 'daily_checkin').claimed, false); assert.equal(task(before, 'daily_checkin').claimable, true);
   assert.equal(task(before, 'first_conversation').claimed, true);
   const earned = expect(await claim(expiry, 'daily_checkin'), 201);
-  assert.equal(earned.points.balance, 1525); assert.equal(earned.points.totalEarned, 25); assert.equal(earned.points.expired, 0);
+  assert.equal(earned.points.balance, 1570); assert.equal(earned.points.totalEarned, 70); assert.equal(earned.points.expired, 0);
   expect(await claim(expiry, 'daily_checkin'), 409); expect(await claim(expiry, 'first_conversation'), 409);
   const reloaded = await center(new Client(expiry.cookie));
   assert.equal(reloaded.recentClaims.length, 5); assert.equal(reloaded.points.balance, 1525);

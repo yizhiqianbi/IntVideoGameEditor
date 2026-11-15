@@ -67,8 +67,9 @@
 
 .moodOptionActive {
   border-color: var(--pink);
-  background: var(--pink-soft);
+  background: linear-gradient(110deg, var(--pink-soft), color-mix(in srgb, var(--gold-soft) 42%, transparent));
   color: var(--pink);
+  box-shadow: 0 8px 20px var(--rose-glow);
 }
 
 .moodIcon {
@@ -83,7 +84,7 @@
 }
 
 .moodOptionActive .moodIcon {
-  background: var(--pink);
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
   color: #fff;
 }
 
@@ -324,14 +325,14 @@
   margin: auto 18px 18px;
   padding: 11px 14px;
   border-radius: 10px;
-  background: var(--pink);
+  background: linear-gradient(135deg, var(--pink), var(--pink-deep));
   color: #fff;
   font-size: 12px;
   font-weight: 700;
 }
 
 .profileCta:hover {
-  background: #c41268;
+  filter: brightness(1.06);
 }
 
 @keyframes profileFade {

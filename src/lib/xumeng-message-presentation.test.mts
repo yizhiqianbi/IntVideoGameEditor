@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import presentationModule from "./xumeng-message-presentation";
 
-const { splitXumengMessagePresentation, peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengSpeech, xumengConversationPreview } = presentationModule;
+const { splitXumengMessagePresentation, peelXumengLabeledStatusTail, xumengReplyStatus, plainXumengStoryText, splitXumengSpeech, xumengConversationPreview } = presentationModule;
 
 test("status tags with sections and pipe fields become a status card", () => {
   const card = splitXumengMessagePresentation("“跪下。”\n</theatre>\n<Status_block>\n<HR color=#987cb9>\n『日期 某月某日 时间：晚上 - 位置：酒店』\n<details>\n```\n『凛的状态』\n    当前行动:审视猎物\n    当前穿搭:黑色衬衫\n```\n</details>\n</Status_block>");
@@ -46,6 +46,21 @@ test("status labels with a parenthetical stay out of the story", () => {
   assert.equal(result.status?.fields.at(-1)?.label, "道具装备");
 });
 
+test("a bracket status tail leaves the story and a partial tail stays hidden while streaming", () => {
+  const done = peelXumengLabeledStatusTail("她靠过来。\n\n地点：[[洛杉矶公寓]]\n性欲值：[[90/100，失控]]\n精神防线：[[40/100，崩塌]]", []);
+  assert.equal(done.body, "她靠过来。");
+  assert.deepEqual(done.fields.map(field => field.value), ["洛杉矶公寓", "90/100，失控", "40/100，崩塌"]);
+  const partial = peelXumengLabeledStatusTail("她靠过来。\n\n地点：[[洛杉矶公寓]]\n性欲值：[[90", [], { streaming: true });
+  assert.equal(partial.body, "她靠过来。");
+  assert.equal(partial.fields.length, 0);
+  const interrupted = peelXumengLabeledStatusTail("她靠过来。\n\n地点：[[洛杉矶公寓]]\n性欲值：[[90", []);
+  assert.equal(interrupted.body, "她靠过来。");
+  assert.deepEqual(interrupted.fields.map(field => field.label), ["地点"]);
+  assert.equal(peelXumengLabeledStatusTail("她靠过来。\n地点：[[门口]]", []).body, "她靠过来。\n地点：[[门口]]");
+  const reply = xumengReplyStatus("她靠过来。\n\n地点：[[洛杉矶公寓]]\n性欲值：[[90/100，失控]]", []);
+  assert.equal(reply?.fields[1]?.value, "90/100，失控");
+});
+
 test("a trailing block of the card's own fields leaves the story and updates the card", () => {
   const labels = ["场景", "瞳孔", "呼吸", "渴望刻度", "此刻姿态"];
   const result = peelXumengLabeledStatusTail("“赵医生……求您。”\n\n场景：空气几乎凝固\n瞳孔：极度放大\n呼吸：沉重地娇喘\n渴望刻度：95/100\n此刻姿态：双膝跪在你面前", labels);
@@ -53,6 +68,11 @@ test("a trailing block of the card's own fields leaves the story and updates the
   assert.equal(result.fields.find(field => field.label === "渴望刻度")?.value, "95/100");
   assert.equal(peelXumengLabeledStatusTail("当前地点：书店\n她翻开地图。", ["当前地点", "场景"]).fields.length, 0);
   assert.equal(peelXumengLabeledStatusTail("她停下。\n场景：包厢", labels).fields.length, 0);
+  const streamingField = peelXumengLabeledStatusTail("她停下。\n场景：包厢", labels, { streaming: true });
+  assert.equal(streamingField.body, "她停下。");
+  assert.equal(streamingField.fields.length, 0);
+  assert.equal(peelXumengLabeledStatusTail("开场。\n\n点击查看状态栏", [], { streaming: true }).body, "开场。");
+  assert.equal(peelXumengLabeledStatusTail("开场。\n\n点击查看状态栏", []).body, "开场。\n\n点击查看状态栏");
 });
 
 test("conversation previews keep story text and drop embedded markup", () => {
@@ -60,6 +80,7 @@ test("conversation previews keep story text and drop embedded markup", () => {
   assert.equal(xumengConversationPreview("<style> @keyframes wgLantern { from { opacity: 0 } } </style>灯笼亮了。"), "灯笼亮了。");
   assert.equal(xumengConversationPreview("<style>@keyframes only {}</style>"), "");
   assert.equal(xumengConversationPreview("开场。\n\n点击查看状态栏\n\n当前场景：村口\n\n健康值：200/300\n\n[状态:执行委託]"), "开场。");
+  assert.equal(xumengConversationPreview("她靠过来。\n地点：[[公寓]]\n性欲值：[[90/100]]"), "她靠过来。");
   assert.equal(xumengConversationPreview(""), "");
 });
 

@@ -27,12 +27,16 @@ function checkSize(raw: string) {
     throw new Error("会话文件不能超过 2 MB。");
   }
 }
+function characterReference(value: unknown): value is string {
+  if (!text(value, 120)) return false;
+  return !value.startsWith("published-") || isDzmmPublishedCharacterId(value);
+}
+
 function sourceConversation(value: unknown): Record<string, unknown> & {
   id: string; characterId: string; title: string; updatedAt: number; messages: DzmmSavedMessage[];
 } {
-  if (!record(value) || !text(value.id, 120) || !text(value.characterId, 120)
-    || !isDzmmPublishedCharacterId(value.characterId) || !text(value.title, 12_000) || !timestamp(value.updatedAt)) {
-    throw new Error("缺卡会话存档需要有效的公开角色关联、会话 ID、标题与时间。");
+  if (!record(value) || !text(value.id, 120) || !characterReference(value.characterId) || !text(value.title, 12_000) || !timestamp(value.updatedAt)) {
+    throw new Error("缺卡会话存档需要有效的角色关联、会话 ID、标题与时间。");
   }
   if (!Array.isArray(value.messages) || !value.messages.every(message => record(message)
     && text(message.id, 120) && (message.role === "user" || message.role === "assistant") && text(message.content, DZMM_CHARACTER_PROSE_LIMIT))) {

@@ -14,8 +14,10 @@ import { XUMENG_LOCALES, xumengLocaleLabel } from "@/lib/xumeng-i18n";
 import { changeDzmmPassword, requestDzmmEmailBind, verifyDzmmEmailBind } from "@/lib/dzmm-account";
 import { fetchDzmmReferral, type DzmmReferralInfo } from "@/lib/dzmm-referral";
 import { posterShareLocation, XUMENG_POSTERS } from "@/lib/xumeng-acquisition";
+import { fetchDzmmPaymentWallet } from "@/lib/dzmm-payments";
 import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
 import { DreamCoinPanel } from "./dream-coin-panel";
+import { UserMark } from "./user-mark";
 import { characterCreateLabel, useCharacterCreateCost } from "@/lib/dzmm-scene-prices";
 import Icon from "./icons";
 import s from "./profile-settings.module.css";
@@ -62,14 +64,16 @@ export type ProfileViewProps = {
   preferences: DzmmPreferences; onCharacter: (character: Character) => void;
   onAuthor: (author: DzmmAuthor) => void; onConversation: (conversation: DzmmSavedConversation) => void;
   onEditCharacter: (character: Character) => void; onCreateCharacter: () => void;
-  onEditProfile: () => void; onSettings: () => void; onPresets: () => void; onRecharge?: () => void;
+  onEditProfile: () => void; onSettings: () => void; onPresets: () => void; onRecharge?: () => void; onVip?: () => void;
   onInvite?: () => void;
+  onLogin?: () => void; onRegister?: () => void; onBrowse?: () => void;
   onDeleteCharacter?: (character: Character) => void; onAdmin?: () => void;
 };
 
-export function ProfileView({ user, characters, custom, favorites, conversations, authors, preferences, onCharacter, onAuthor, onConversation, onEditCharacter, onCreateCharacter, onEditProfile, onSettings, onPresets, onRecharge, onInvite, onDeleteCharacter, onAdmin }: ProfileViewProps) {
+export function ProfileView({ user, characters, custom, favorites, conversations, authors, preferences, onCharacter, onAuthor, onConversation, onEditCharacter, onCreateCharacter, onEditProfile, onSettings, onPresets, onRecharge, onVip, onInvite, onLogin, onRegister, onBrowse, onDeleteCharacter, onAdmin }: ProfileViewProps) {
   const createLabel = characterCreateLabel(useCharacterCreateCost());
   const [tab, setTab] = useState<"timeline" | "characters" | "favorites" | "conversations" | "following">("characters");
+  const [credits, setCredits] = useState<number | null>(null);
   const [copyStatus, setCopyStatus] = useState("");
   const [deleting, setDeleting] = useState<Character | null>(null);
   const followed = authors.filter((author) => preferences.followedAuthors?.includes(author.id));
@@ -78,27 +82,89 @@ export function ProfileView({ user, characters, custom, favorites, conversations
     ...custom.map((character) => ({ id: `role-${character.id}`, text: `创建了角色「${character.name}」`, date: Date.parse(character.createdAt), action: () => onCharacter(character) })),
     ...conversations.map((conversation) => ({ id: `chat-${conversation.id}`, text: `与「${conversation.title}」继续了故事`, date: conversation.updatedAt, action: () => onConversation(conversation) })),
   ].filter((event) => Number.isFinite(event.date)).sort((a, b) => b.date - a.date);
+  useEffect(() => {
+    if (!user || user.isGuest) return;
+    const abort = new AbortController();
+    void fetchDzmmPaymentWallet(abort.signal).then(wallet => {
+      if (!abort.signal.aborted && wallet.accountId === user.id) setCredits(wallet.balance);
+    }).catch(() => { if (!abort.signal.aborted) setCredits(null); });
+    return () => abort.abort();
+  }, [user]);
   async function copyId() { if (!user) return; try { await navigator.clipboard.writeText(user.id); setCopyStatus("用户 ID 已复制。"); } catch { setCopyStatus("复制失败，请选择 ID 手动复制。"); } }
-  return <main className={s.page}>
-    <header className={s.profileHero}>
-      <span className={s.avatar}>{Array.from(preferences.nickname)[0] ?? ""}</span>
-      <div className={s.profileInfo}><h1>{preferences.nickname}</h1>{user && <button className={s.idButton} onClick={() => void copyId()} aria-label="复制用户 ID">ID：{user.id}<Icon name="copy" size={13} /></button>}
-        <p>{user ? user.isGuest ? "游客账号" : user.email || "已注册，尚未绑定邮箱" : "本地离线"}{dateLabel(user?.createdAt) && ` · ${dateLabel(user?.createdAt)} 加入`}</p>
+  if (!user || user.isGuest) {
+    return <main className={`${s.page} ${s.guestPage}`}>
+      <header className={s.pageTopline}>
+        <div className={s.guestIdentity}><span className={s.avatar}><UserMark /></span><div><h1>游客</h1><p>未登录</p></div></div>
+        <span className={s.guestPill}><span className={s.guestDot} />游客模式</span>
+      </header>
+      <section className={s.accountSummary} aria-label="账户信息">
+        <div className={s.balanceBlock}><span>Credit 余额</span><strong>—</strong><small>登录后查看</small></div>
+        <div className={s.authActions}><button type="button" className={s.primary} onClick={onLogin}>登录</button><button type="button" className={s.outline} onClick={onRegister}>注册账号</button></div>
+      </section>
+      <section className={s.compactStats} aria-label="账户内容">
+        <button type="button" onClick={onRegister}><strong>{custom.length}</strong><span>角色</span></button>
+        <button type="button" onClick={onRegister}><strong>{favorites.length}</strong><span>收藏</span></button>
+        <button type="button" onClick={onRegister}><strong>{conversations.length}</strong><span>会话</span></button>
+        <button type="button" onClick={onRegister}><strong>{preferences.followedAuthors?.length ?? 0}</strong><span>关注</span></button>
+      </section>
+      <section className={s.accountMenu} aria-label="账户操作">
+        <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>设置</b></span><Icon name="chevron" size={16} /></button>
+        {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>充值与 VIP</b></span><Icon name="chevron" size={16} /></button>}
+        {onInvite && <button type="button" onClick={onInvite}><span><Icon name="users" size={17} /><b>邀请好友</b></span><Icon name="chevron" size={16} /></button>}
+        <button type="button" onClick={onBrowse}><span><Icon name="compass" size={17} /><b>角色广场</b></span><Icon name="chevron" size={16} /></button>
+      </section>
+    </main>;
+  }
+  const openVip = onVip ?? onRecharge;
+  return <main className={`${s.page} ${s.signedInPage} ${s.minePage}`}>
+    <header className={s.mineHead}>
+      <span className={`${s.avatar} ${s.mineAvatar}`}><UserMark /></span>
+      <div className={s.profileInfo}>
+        <h1>{preferences.nickname}</h1>
+        <button className={s.idButton} onClick={() => void copyId()} aria-label="复制用户 ID">ID {user.id}<Icon name="copy" size={13} /></button>
+        <p>{user.email || "已注册，尚未绑定邮箱"}{dateLabel(user.createdAt) && ` · ${dateLabel(user.createdAt)} 加入`}</p>
         {preferences.bio && <p className={s.bio}>{preferences.bio}</p>}
-        {preferences.gender && <span className={s.gender}>{preferences.gender === "male" ? "男" : preferences.gender === "female" ? "女" : "其他"}</span>}
       </div>
-      <button className={s.outline} onClick={onEditProfile}><Icon name="edit" size={16} />编辑资料</button>
+      <button type="button" className={s.mineGear} aria-label="设置" onClick={onSettings}><Icon name="sliders" size={18} /></button>
     </header>
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
-    {onInvite && <section className={s.referralCard}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>邀请好友</span><h2>分享链接，获得 Credit 和梦币</h2></div></div><p>注册奖励、微信支付返利和邀请码写在邀请页。</p><button type="button" className={s.outline} onClick={onInvite}>打开邀请页</button></section>}
-    {user && !user.isGuest && <DreamCoinPanel userId={user.id} />}
-    <div className={s.stats}><button onClick={() => setTab("characters")}><strong>{custom.length}</strong><span>角色</span></button><button onClick={() => setTab("favorites")}><strong>{favorites.length}</strong><span>收藏</span></button><button onClick={() => setTab("conversations")}><strong>{conversations.length}</strong><span>会话</span></button><button onClick={() => setTab("following")}><strong>{preferences.followedAuthors?.length ?? 0}</strong><span>关注</span></button></div>
-    <div className={s.quickLinks}><button onClick={onCreateCharacter}><Icon name="plus" size={17} />{createLabel}</button><button onClick={onPresets}><Icon name="book" size={17} />我的预设</button>{onRecharge && <button onClick={onRecharge}><Icon name="crown" size={17} />{XUMENG_PAYMENTS_ENABLED ? "充值与 VIP" : "余额与权益"}</button>}<button onClick={onSettings}><Icon name="sliders" size={17} />设置</button>{user?.role === "super" && onAdmin && <button onClick={onAdmin}><Icon name="grid" size={17} />管理</button>}</div>
-    <div className={s.tabs} role="tablist" aria-label="我的内容">{([{ id: "timeline", label: "时间线" }, { id: "characters", label: "角色" }, { id: "favorites", label: "收藏" }, { id: "conversations", label: "会话" }, { id: "following", label: "关注" }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+    <div className={s.mineAssets}>
+      <button type="button" className={s.mineVip} onClick={openVip} disabled={!openVip}>
+        <span className={s.mineAssetIcon}><Icon name="crown" size={18} /></span>
+        <span><small>叙梦会员</small><strong>查看权益</strong></span>
+        <Icon name="chevron" size={16} />
+      </button>
+      <button type="button" className={s.mineWallet} onClick={onRecharge} disabled={!onRecharge}>
+        <span className={s.mineAssetIcon}><Icon name="wallet" size={18} /></span>
+        <span><small>Credit</small><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></span>
+        <Icon name="chevron" size={16} />
+      </button>
+    </div>
+    {openVip && <button type="button" className={s.minePromo} onClick={openVip}>
+      <span><strong>会员限时权益</strong><small>开通后每天可领取 Credit，聊天和语音按会员规则结算。</small></span>
+      <b>去开通</b>
+    </button>}
+    <div className={s.mineShortcuts} aria-label="我的内容">
+      <button type="button" className={tab === "characters" ? s.mineOn : ""} onClick={() => setTab("characters")}><Icon name="user" size={18} /><span>角色</span><strong>{custom.length}</strong></button>
+      <button type="button" className={tab === "favorites" ? s.mineOn : ""} onClick={() => setTab("favorites")}><Icon name="heart" size={18} /><span>收藏</span><strong>{favorites.length}</strong></button>
+      <button type="button" className={tab === "conversations" ? s.mineOn : ""} onClick={() => setTab("conversations")}><Icon name="chat" size={18} /><span>会话</span><strong>{conversations.length}</strong></button>
+      <button type="button" className={tab === "following" ? s.mineOn : ""} onClick={() => setTab("following")}><Icon name="users" size={18} /><span>关注</span><strong>{preferences.followedAuthors?.length ?? 0}</strong></button>
+    </div>
+    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>邀请好友</span><h2>邀请好友一起聊</h2></div><button type="button" className={s.outline} onClick={onInvite}>立即邀请 <Icon name="chevron" size={14} /></button></div></section>}
+    <nav className={s.accountMenu} aria-label="账户操作">
+      <button type="button" onClick={onEditProfile}><span><Icon name="edit" size={17} /><b>编辑资料</b></span><Icon name="chevron" size={16} /></button>
+      <button type="button" onClick={onCreateCharacter}><span><Icon name="plus" size={17} /><b>{createLabel}</b></span><Icon name="chevron" size={16} /></button>
+      <button type="button" onClick={onPresets}><span><Icon name="book" size={17} /><b>我的预设</b></span><Icon name="chevron" size={16} /></button>
+      {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{XUMENG_PAYMENTS_ENABLED ? "充值与 VIP" : "余额与权益"}</b></span><Icon name="chevron" size={16} /></button>}
+      <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>设置</b></span><Icon name="chevron" size={16} /></button>
+      {user.role === "super" && onAdmin && <button type="button" onClick={onAdmin}><span><Icon name="grid" size={17} /><b>管理</b></span><Icon name="chevron" size={16} /></button>}
+    </nav>
+    {!user.isGuest && <DreamCoinPanel userId={user.id} compact />}
+    <div className={`${s.tabs} ${s.contentTabs}`} role="tablist" aria-label="我的内容">{([{ id: "timeline", label: "时间线" }, { id: "characters", label: "角色" }, { id: "favorites", label: "收藏" }, { id: "conversations", label: "会话" }, { id: "following", label: "关注" }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     {tab === "timeline" && (events.length ? <div className={s.timeline}>{events.map((event) => <button key={event.id} onClick={event.action}><span className={s.timelineDot} /><span><time>{dateLabel(event.date)}</time><strong>{event.text}</strong></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>还没有活动记录，创建角色或开始一段故事吧。</Empty>)}
     {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={`查看 ${character.name}`}><img src={xumengCardCoverUrl(character.cover)} alt={character.name} /></button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button className={s.iconButton} onClick={() => onEditCharacter(character)} aria-label={`编辑 ${character.name}`}><Icon name="edit" size={17} /></button>{onDeleteCharacter && <button className={s.deleteButton} onClick={() => setDeleting(character)} aria-label={`删除 ${character.name}`}>删除</button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? "还没有创建角色，把脑海里的故事带到这里。" : "还没有收藏角色，遇见喜欢的角色时点击爱心。"}</Empty>)}
     {tab === "conversations" && (conversations.length ? <div className={s.conversations}>{conversations.map((conversation) => <button key={conversation.id} onClick={() => onConversation(conversation)}><Icon name="chat" size={20} /><span><strong>{conversation.title}</strong><small>{conversation.messages.at(-1)?.content || "还没有发送消息"}</small></span><time>{dateLabel(conversation.updatedAt)}</time></button>)}</div> : <Empty>还没有会话，选一个角色开始对话。</Empty>)}
-    {tab === "following" && (followed.length ? <div className={s.authorList}>{followed.map((author) => <button key={author.id} onClick={() => onAuthor(author)}><span className={s.smallAvatar}>{Array.from(author.name)[0] ?? ""}</span><span><strong>{author.name}</strong><small>{author.characterIds.length} 个已收录作品</small></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>还没有关注作者，进入作者主页即可关注。</Empty>)}
+    {tab === "following" && (followed.length ? <div className={s.authorList}>{followed.map((author) => <button key={author.id} onClick={() => onAuthor(author)}><span className={s.smallAvatar}><UserMark /></span><span><strong>{author.name}</strong><small>{author.characterIds.length} 个已收录作品</small></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>还没有关注作者，进入作者主页即可关注。</Empty>)}
     {deleting && <Dialog title="删除角色" onClose={() => setDeleting(null)}><p className={s.confirmText}>删除「{deleting.name}」及它的收藏和关联会话？此操作无法撤销。</p><div className={s.dialogActions}><button className={s.outline} onClick={() => setDeleting(null)}>取消</button><button className={s.danger} onClick={() => { onDeleteCharacter?.(deleting); setDeleting(null); }}>删除角色</button></div></Dialog>}
   </main>;
 }
@@ -134,7 +200,7 @@ export function InviteCenter({ user, onBack, onRegister, onWallet }: {
       <ol className={s.steps}>
         <li>分享你的专属链接。朋友打开后，注册页会带上邀请码。</li>
         <li>朋友完成注册，你获得 {reward} Credit。之后朋友每个北京时间日完成一轮成功对话，你再获得 {activityReward} Credit，最多 {activityDays} 天，同一天只发一次。已经发出的奖励不变。邀请码不能用于邀请自己。</li>
-        <li>朋友之后用微信支付充值或开通会员，实付金额记入梦币：注册后 10 天内按 20%，之后按 10%。梦币可兑换 Credit，也可申请提现。</li>
+        <li>朋友之后用微信支付充值或开通会员，实付金额按 {referral?.rebatePercent ?? "…"}% 记入人民币余额。这笔余额可兑换 Credit，也可申请提现。</li>
       </ol>
     </section>
     {!user || user.isGuest ? <section className={s.referralCard}><h2>注册后获得邀请链接</h2><p>游客账号没有邀请码。注册正式账号后，才能把链接发给朋友。</p><button type="button" className={s.primary} onClick={onRegister}>注册并获取邀请码</button></section>

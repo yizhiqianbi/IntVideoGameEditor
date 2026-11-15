@@ -192,12 +192,20 @@ function chooseMemorySession(sessions: unknown): { id: string } | null {
   });
   return { id: valid[0].id.toLowerCase() };
 }
+const TURN_NOTE = '[XUMENG_PRIVATE_STYLE v1]\n这一轮只接对方刚说的这句。人设里的习惯和已经讲过的事只是底色。最近几条如果已经在重复同一件旧事，就放下，不要换个说法再强调。对方没接、说不记得或岔开了，就接现在这句，说一件眼前的新事。不要把这段说明说出来。\n[/XUMENG_PRIVATE_STYLE]\n';
 function openingPrefix(lines: readonly string[], text: string) {
   return `[XUMENG_OPENING v1]\n以下是你在对方开口之前已经发出的原话，按顺序，属于你说过的内容。接下去不要重复背诵：\n${lines.join('\n')}\n[/XUMENG_OPENING]\n${text}`;
 }
+function withTurnNote(text: string) {
+  if (text.includes('[XUMENG_PRIVATE_STYLE v1]')) return text;
+  const mark = '[/XUMENG_OPENING]\n';
+  const openingEnd = text.startsWith('[XUMENG_OPENING v1]') ? text.indexOf(mark) : -1;
+  if (openingEnd >= 0) return text.slice(0, openingEnd + mark.length) + TURN_NOTE + text.slice(openingEnd + mark.length);
+  return TURN_NOTE + text;
+}
 function stripStyle(value: string) {
   return value
-    .replace(/^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n/, '')
+    .replace(/\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/g, '')
     .replace(/\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g, '');
 }
 function readOpening(value: unknown): string[] | null {
@@ -895,6 +903,7 @@ export class CompanionHost {
           if (pendingOpening.length && !(await this.storage.get(`opening:${receipt.sessionId}`))) {
             text = openingPrefix(pendingOpening, text);
           }
+          text = withTurnNote(text);
           if (text !== parsed.text) forwardBody = JSON.stringify({ ...parsed, text });
         }
       } catch { /* the request was already validated above */ }

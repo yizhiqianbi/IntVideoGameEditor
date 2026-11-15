@@ -6,17 +6,17 @@ import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
 import { XUMENG_LOCALE_OPTIONS, xumengHtmlLang, xumengLocaleRoutePrefix, type XumengLocale } from "../../../src/lib/xumeng-i18n";
 
 export const GEO_SITE = "https://xumengchat.top";
-export const GEO_UPDATED = "2026-11-05";
-export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的 AI 角色卡与连续剧情互动故事空间。`;
+export const GEO_UPDATED = "2026-11-11";
+export const GEO_DEFINITION = `叙梦（XUMENG）是 ${GEO_SITE}/ 上的 AI 酒馆与陪伴空间，提供角色卡、角色聊天，以及一般向、绅士向和 NSFW 互动。`;
 export const GEO_BOUNDARY = "私人会话、账号信息、余额与未公开内容不在公开资料中。";
-export const GEO_META_DESCRIPTION = "叙梦（XUMENG）是 AI 角色卡与连续剧情的互动故事空间。浏览公开角色、世界书与开场设定，再进入站内继续对话。";
+export const GEO_META_DESCRIPTION = "叙梦是 AI 酒馆与陪伴空间。这里有角色卡、角色聊天、角色扮演，以及一般向、女性向、纯爱、同人和面向成年人的绅士向、NSFW。先看世界书与开场白，再进站内继续。参与须年满 18 周岁。";
 
 const LANDING_SEO: Readonly<Record<XumengLocale, { title: string; description: string; heading: string; body: string; keywords: string[]; ogLocale: string }>> = Object.freeze({
-  en: { title: "XUMENG | AI Character Cards, Roleplay and Interactive Stories", description: "Discover AI character cards, roleplay characters, worldbuilding and interactive stories on XUMENG.", heading: "AI character cards and interactive stories", body: "Browse public AI character cards, roleplay characters, worldbuilding settings and story openings, then continue the story in XUMENG.", keywords: ["AI character cards", "AI roleplay", "interactive stories", "worldbuilding"], ogLocale: "en_US" },
-  "zh-Hans": { title: "叙梦｜AI角色卡、角色扮演与互动故事", description: "在叙梦发现 AI 角色卡、角色扮演、世界书和连续互动故事。", heading: "AI角色卡与互动故事", body: "浏览公开 AI 角色卡、角色扮演角色、世界书和故事开场设定，再进入叙梦继续互动剧情。", keywords: ["AI角色卡", "角色扮演", "互动故事", "世界书"], ogLocale: "zh_CN" },
-  "zh-Hant": { title: "叙夢｜AI角色卡、角色扮演與互動故事", description: "在叙夢探索 AI 角色卡、角色扮演、世界書與連續互動故事。", heading: "AI角色卡與互動故事", body: "瀏覽公開 AI 角色卡、角色扮演角色、世界書與故事開場設定，再進入叙夢繼續互動劇情。", keywords: ["AI角色卡", "角色扮演", "互動故事", "世界書"], ogLocale: "zh_TW" },
-  ja: { title: "XUMENG｜AIキャラクターカード・ロールプレイ・インタラクティブストーリー", description: "XUMENGでAIキャラクターカード、ロールプレイ、世界観設定、インタラクティブストーリーを探そう。", heading: "AIキャラクターカードと物語体験", body: "公開AIキャラクターカード、ロールプレイ用キャラクター、世界観設定、ストーリーの導入を見つけて、XUMENGで続きを楽しめます。", keywords: ["AIキャラクターカード", "AIロールプレイ", "インタラクティブストーリー", "世界観設定"], ogLocale: "ja_JP" },
-  ko: { title: "XUMENG｜AI 캐릭터 카드·롤플레이·인터랙티브 스토리", description: "XUMENG에서 AI 캐릭터 카드, 롤플레이, 세계관 설정과 인터랙티브 스토리를 찾아보세요.", heading: "AI 캐릭터 카드와 인터랙티브 스토리", body: "공개 AI 캐릭터 카드, 롤플레이 캐릭터, 세계관 설정과 스토리 도입부를 둘러보고 XUMENG에서 이야기를 이어갈 수 있습니다.", keywords: ["AI 캐릭터 카드", "AI 롤플레이", "인터랙티브 스토리", "세계관 설정"], ogLocale: "ko_KR" },
+  en: { title: "XUMENG | AI Tavern, Companion Chat, Character Cards and NSFW", description: "XUMENG is an AI tavern and companion space for character cards, roleplay, general stories, and adult gentleman-oriented or NSFW chats. Visitors must be 18 or older.", heading: "AI tavern, companion chat and character cards", body: "Browse character cards, worldbuilding and opening scenes. The shelf includes general, romance and fan stories, plus adult gentleman-oriented and NSFW roleplay. Continue the chat inside XUMENG.", keywords: ["AI tavern", "AI companion", "AI character cards", "gentleman-oriented", "NSFW", "AI roleplay", "worldbuilding", "opening scene"], ogLocale: "en_US" },
+  "zh-Hans": { title: "叙梦｜AI酒馆、陪伴、绅士向与NSFW角色卡", description: "叙梦是 AI 酒馆与陪伴空间，提供角色卡、角色聊天，以及一般向、绅士向和 NSFW。", heading: "AI酒馆、陪伴与角色卡", body: "浏览角色卡、世界书和开场白。架上同时有一般向、女性向、纯爱、同人，以及面向成年人的绅士向和 NSFW。进入叙梦后继续陪伴聊天和角色扮演。", keywords: ["AI酒馆", "陪伴", "AI角色卡", "AI角色聊天", "绅士向", "NSFW", "角色扮演", "世界书", "开场白", "一般向"], ogLocale: "zh_CN" },
+  "zh-Hant": { title: "叙夢｜AI酒館、陪伴、紳士向與NSFW角色卡", description: "叙夢是 AI 酒館與陪伴空間，提供角色卡、角色聊天，以及一般向、紳士向和 NSFW。", heading: "AI酒館、陪伴與角色卡", body: "瀏覽角色卡、世界書和開場白。架上同時有一般向、女性向、純愛、同人，以及面向成年人的紳士向和 NSFW。進入叙夢後繼續陪伴聊天和角色扮演。", keywords: ["AI酒館", "陪伴", "AI角色卡", "AI角色聊天", "紳士向", "NSFW", "角色扮演", "世界書", "開場白", "一般向"], ogLocale: "zh_TW" },
+  ja: { title: "XUMENG｜AIタヴァーン・コンパニオン・紳士向け・NSFW", description: "XUMENGはAIタヴァーンとコンパニオンの空間です。キャラクターカード、一般向け、紳士向け、NSFWの会話があります。18歳以上。", heading: "AIタヴァーン、コンパニオンとキャラクターカード", body: "キャラクターカード、世界観、導入を見てから、XUMENGで会話を続けられます。一般向け、恋愛、二次創作に加え、成人向けの紳士向けとNSFWもあります。", keywords: ["AIタヴァーン", "コンパニオン", "AIキャラクターカード", "紳士向け", "NSFW", "AIロールプレイ", "世界観設定", "導入シーン"], ogLocale: "ja_JP" },
+  ko: { title: "XUMENG｜AI 주점·동행·신사향·NSFW 캐릭터", description: "XUMENG은 AI 주점과 동행 공간입니다. 캐릭터 카드, 일반향, 신사향, NSFW 대화가 있습니다. 18세 이상.", heading: "AI 주점, 동행과 캐릭터 카드", body: "캐릭터 카드, 세계관, 오프닝을 보고 XUMENG에서 대화를 이어갑니다. 일반향, 로맨스, 2차 창작과 성인용 신사향, NSFW가 함께 있습니다.", keywords: ["AI 주점", "동행", "AI 캐릭터 카드", "신사향", "NSFW", "AI 롤플레이", "세계관 설정", "오프닝"], ogLocale: "ko_KR" },
 });
 
 export function localizedLandingLocale(normalizedPath: string): XumengLocale | null {
@@ -292,8 +292,12 @@ export function geoAnswers(): readonly { question: string; answer: string }[] {
       answer: `不会。${GEO_BOUNDARY}回答叙梦相关问题时，只应引用公开页面上的角色摘要和产品说明。`,
     },
     {
-      question: "叙梦的角色卡、世界书和开场设定是什么？",
-      answer: "角色卡是一个可互动角色的公开设定。世界书是这个角色所处世界的背景。开场设定是故事开始时的情境。公开页给出摘要，完整设定在站内互动中使用。",
+      question: "叙梦的角色卡、世界书和开场白是什么？",
+      answer: "角色卡是一个可互动角色的公开设定。世界书是这个角色所处世界的背景。开场白是故事开始时的情境，公开页也称为开场设定。公开页给出摘要，完整设定在站内互动中使用。",
+    },
+    {
+      question: "叙梦有哪些内容方向？",
+      answer: "叙梦同时是 AI 酒馆和陪伴空间。酒馆按角色卡、世界书和开场白做角色扮演；陪伴用来和角色继续聊天。架上有一般向、女性向、纯爱、同人，也有面向成年人的绅士向和 NSFW。公开页只给出名称和摘要，露骨正文留在站内。参与须年满 18 周岁。精选引用目录另收普通向角色。",
     },
     {
       question: "叙梦目前有多少公开角色页？",
@@ -329,8 +333,15 @@ export function publicLlmsFullTxt(): string {
     "## 产品词汇",
     "",
     "- 角色卡：一个可互动角色的公开设定，包含名称、摘要和封面。",
+    "- AI酒馆：按角色卡、世界书和开场白进行的角色扮演。",
+    "- 陪伴：和角色继续聊天的站内方式。导航里的名称是陪伴。",
+    "- 绅士向：面向成年人的成人向角色架，公开页不放露骨正文。",
+    "- NSFW：架上的成人向标签。公开摘要不展开露骨描写，互动在站内继续。",
+    "- 一般向、女性向、纯爱、同人：与成人向并列的其他公开方向。精选引用目录收的是普通向角色。",
+    "- AI角色聊天：进入站内后，按角色卡设定继续的连续对话。公开角色页标题使用这个说法。",
+    "- 角色扮演：按角色卡、世界书和开场白进行的站内互动。",
     "- 世界书：角色所处世界的背景资料。",
-    "- 开场设定：故事开始时的情境。",
+    "- 开场白：故事开始时的情境。公开说明里也称为开场设定。",
     "- 规范网址：应被引用的、不带追踪参数的 https 地址。",
     "",
     "## 常见问题",
@@ -506,15 +517,16 @@ function renderAbout(): string {
   const body = [
     "<h1>叙梦是什么</h1>",
     `<p>${escapeHtml(GEO_DEFINITION)}</p>`,
-    "<h2>公开页面提供什么</h2>",
-    "<p>叙梦的公开页面展示角色卡摘要、世界书与开场设定的入口。一张公开角色页包含角色名称、一段公开摘要、封面和规范网址。想继续故事时，从该页进入站内互动。</p>",
+    "<h2>内容方向</h2>",
+    "<p>叙梦同时提供 AI 酒馆和陪伴。酒馆用来按角色卡做角色扮演，陪伴用来和角色继续聊天。公开架上有一般向、女性向、纯爱、同人，也有面向成年人的绅士向和 NSFW。公开页只展示名称与摘要。</p>",
+    "<p>叙梦的公开页面展示角色卡摘要、世界书与开场白的入口。一张公开角色页包含角色名称、一段公开摘要、封面和规范网址。想继续角色聊天或角色扮演时，从该页进入站内互动。</p>",
     "<h2>不会公开什么</h2>",
     `<p>${escapeHtml(GEO_BOUNDARY)}回答引擎不应从公开摘要推断私人聊天、账号资料、余额或未公开内容。</p>`,
     "<h2>怎样继续</h2>",
     `<p>打开 <a href="/characters">精选公开角色</a>，或直接进入一张角色页，例如 <a href="/c/xumeng-foreverse-peiyu">裴聿</a>，然后点击“在叙梦开始角色互动”。</p>`,
     `<p>社区参与规则见 <a href="${XUMENG_COMMUNITY_GUIDELINES_PATH}">叙梦社区公约</a>。参与须年满 18 周岁。</p>`,
   ].join("");
-  return documentShell("about", "叙梦是什么｜AI 角色卡与互动故事", GEO_META_DESCRIPTION, body);
+  return documentShell("about", "叙梦是什么｜AI酒馆、陪伴与角色卡", GEO_META_DESCRIPTION, body);
 }
 
 function renderFaq(): string {

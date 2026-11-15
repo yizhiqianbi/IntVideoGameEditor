@@ -6,12 +6,13 @@ export type DzmmExplicitSavePlan = "write" | "resume" | "conflict" | "incomplete
 
 // A paused sync must not be pushed over another device's version. Explicit
 // saves can resume a connection failure in place; a version conflict cannot.
+// A browser backup that does not fit is not a reason to block the cloud write.
 export function planDzmmExplicitSave(gate: DzmmExplicitSaveGate): DzmmExplicitSavePlan {
+  if (gate.switchingAccount) return "unsynced";
   if (gate.conflicted) return gate.persisted && !gate.storageWarning ? "conflict" : "incomplete";
-  // A full browser store can still accept a cloud write when sync is already open.
   if (gate.accountId && gate.ready && !gate.paused) return "write";
+  if (gate.accountId) return "resume";
   if (!gate.persisted || gate.storageWarning) return "incomplete";
-  if (gate.accountId && !gate.switchingAccount) return "resume";
   return "unsynced";
 }
 

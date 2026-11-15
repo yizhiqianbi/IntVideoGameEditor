@@ -27,6 +27,7 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
   const [signupGift, setSignupGift] = useState<{ credits: number; targetConversationRounds: number } | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [confirmPassword, setConfirmPassword] = useState("");
   const [nickname, setNickname] = useState("");
   const [referralCode, setReferralCode] = useState(initialReferralCode);
@@ -34,6 +35,8 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
   const [method, setMethod] = useState<"password" | "email">("password");
   const [forgotPassword, setForgotPassword] = useState(false);
   const [configuration, setConfiguration] = useState<DzmmEmailAuthConfig | null>(null);
+  const [social, setSocial] = useState<{ google: boolean; telegram: boolean } | null>(null);
+  const [socialBusy, setSocialBusy] = useState<"google" | "telegram" | null>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [configError, setConfigError] = useState("");
   const [sending, setSending] = useState(false);
@@ -65,6 +68,11 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
       const value = await response.json();
       if (mounted.current && !controller.signal.aborted && value.enabled === true && Number.isSafeInteger(value.credits) && value.credits > 0 && Number.isInteger(value.targetConversationRounds)) setSignupGift(value);
     }).catch(() => { /* Registration remains available if bonus configuration is unavailable. */ });
+    void fetch("/api/backend/v1/auth/social/config", { cache: "no-store", signal: controller.signal }).then(async response => {
+      const value = response.ok ? await response.json() : null;
+      if (!mounted.current || controller.signal.aborted) return;
+      setSocial({ google: value?.google === true, telegram: value?.telegram === true });
+    }).catch(() => { if (mounted.current && !controller.signal.aborted) setSocial({ google: false, telegram: false }); });
     void fetchDzmmEmailAuthConfig(controller.signal).then(result => {
       if (!mounted.current || controller.signal.aborted) return;
       setConfiguration(result);
@@ -149,20 +157,20 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
   }
 
   function switchMode() {
-    setForgotPassword(false); selectMethod("password"); setPassword(""); setConfirmPassword("");
+    setForgotPassword(false); selectMethod("password"); setPassword(""); setConfirmPassword(""); setShowPassword(false);
     onModeChange(mode === "register" ? "login" : "register");
   }
 
   function enterForgotPassword() {
     if (submitting || verifying.current) return;
     invalidateChallenge();
-    setForgotPassword(true); setMethod("email"); setPassword(""); setConfirmPassword("");
+    setForgotPassword(true); setMethod("email"); setPassword(""); setConfirmPassword(""); setShowPassword(false);
     onModeChange("login");
   }
 
   function leaveForgotPassword() {
     if (submitting || verifying.current) return;
-    setForgotPassword(false); selectMethod("password"); setPassword(""); setConfirmPassword("");
+    setForgotPassword(false); selectMethod("password"); setPassword(""); setConfirmPassword(""); setShowPassword(false);
     onModeChange("login");
   }
 
@@ -179,7 +187,7 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
   }
   function selectMethod(value: "password" | "email") {
     if (submitting || verifying.current) return;
-    invalidateChallenge(); setMethod(value); setPassword("");
+    invalidateChallenge(); setMethod(value); setPassword(""); setShowPassword(false);
     if (value === "email") onModeChange("login");
   }
   async function sendCode() {
@@ -208,6 +216,26 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
   const resendSeconds = Math.max(0, Math.ceil((resendAt - now) / 1000));
   const validChallenge = challenge?.email === emailRef.current && now < challenge.expiresAt;
   const unavailable = !configuration?.enabled;
+  async function startSocial(provider: "google" | "telegram") {
+    if (socialBusy || submitting) return;
+    setSocialBusy(provider);
+    setLocalError("");
+    onClearError();
+    try {
+      const response = await fetch(`/api/backend/v1/auth/${provider}/start`, { credentials: "same-origin", cache: "no-store" });
+      const body = await response.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
+      if (!response.ok || typeof body?.url !== "string") throw new Error(typeof body?.error === "string" ? body.error : "暂时无法使用这个登录方式。");
+      const url = new URL(body.url);
+      const host = provider === "google" ? "accounts.google.com" : "oauth.telegram.org";
+      if (url.protocol !== "https:" || url.hostname !== host) throw new Error("登录地址无效。");
+      window.location.assign(url.href);
+    } catch (failure) {
+      if (mounted.current) {
+        setSocialBusy(null);
+        setLocalError(failure instanceof Error ? failure.message : "暂时无法使用这个登录方式。");
+      }
+    }
+  }
   function handleOverlayPointerDown(event: PointerEvent<HTMLDivElement>) {
     pointerDownOnOverlay.current = event.target === event.currentTarget;
   }
@@ -220,24 +248,38 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
 
   return (
     <div className={s.overlay} onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
-      <div className={s.dialog} ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="account-title">
-        <header><h2 id="account-title">{forgotPassword ? "重置密码" : mode === "register" ? "注册账号" : method === "email" ? "邮箱验证码登录" : "登录账号"}</h2><button type="button" onClick={onClose} disabled={submitting} aria-label="关闭账号窗口"><Icon name="close" /></button></header>
+      <div className={s.dialogShell}>
+        <aside className={s.brandPanel} aria-hidden="true">
+          <img src="/assets/xumeng/brand/xumeng-mark.svg" width="38" height="38" alt="" />
+          <span className={s.brandName}>叙梦<small>XUMENG</small></span>
+          <div className={s.brandCopy}><span>把故事带走</span><strong>登录叙梦，<br />让每一段关系继续。</strong><p>角色、收藏和会话会被安全保留，换设备也能接着聊。</p></div>
+          <div className={s.brandFeatures}><span><Icon name="refresh" size={15} />跨设备同步</span><span><Icon name="chat" size={15} />保留故事进度</span><span><Icon name="sparkles" size={15} />新手奖励</span></div>
+        </aside>
+        <div className={s.dialog} ref={dialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="account-title">
+        <header><div><span className={s.formEyebrow}>{forgotPassword ? "账号安全" : "叙梦账户"}</span><h2 id="account-title">{forgotPassword ? "重置密码" : mode === "register" ? "创建你的账号" : method === "email" ? "邮箱验证码登录" : "欢迎回来"}</h2></div><button type="button" onClick={onClose} disabled={submitting} aria-label="关闭账号窗口"><Icon name="close" /></button></header>
+        {!forgotPassword && <div className={s.modeSwitch} role="group" aria-label="账号操作"><button type="button" aria-pressed={mode === "login"} disabled={submitting} onClick={() => { if (mode !== "login") switchMode(); }}>登录</button><button type="button" aria-pressed={mode === "register"} disabled={submitting} onClick={() => { if (mode !== "register") switchMode(); }}>注册</button></div>}
         {intro && !forgotPassword && <p className={s.intro}>{intro}</p>}
         {signupGift && !forgotPassword && (mode === "register" || method === "email") && <p className={s.hint}>首次注册赠送 {signupGift.credits.toLocaleString("zh-CN")} Credit。已有账号登录不重复赠送。</p>}
+        {!forgotPassword && <div className={s.social}>
+          <button type="button" onClick={() => void startSocial("google")} disabled={submitting || socialBusy !== null || !social?.google} title={social && !social.google ? "Google 登录尚未配置" : undefined}>{socialBusy === "google" ? "正在前往 Google…" : "使用 Google 继续"}</button>
+          <button type="button" onClick={() => void startSocial("telegram")} disabled={submitting || socialBusy !== null || !social?.telegram} title={social && !social.telegram ? "Telegram 登录尚未配置" : undefined}>{socialBusy === "telegram" ? "正在前往 Telegram…" : "使用 Telegram 继续"}</button>
+        </div>}
+        {!forgotPassword && social && !social.google && !social.telegram && <p className={s.serviceNote} role="status">Google 和 Telegram 登录尚未开通，可继续使用邮箱登录。</p>}
+        {!forgotPassword && <p className={s.divider}>或使用邮箱</p>}
         {!forgotPassword && mode !== "register" && <div className={s.methods} role="group" aria-label="登录方式"><button type="button" aria-pressed={method === "email"} disabled={submitting} onClick={() => selectMethod("email")}>邮箱验证码</button><button type="button" aria-pressed={method === "password"} disabled={submitting} onClick={() => selectMethod("password")}>邮箱与密码</button></div>}
-        <p className={s.hint}>{forgotPassword ? "通过邮箱验证码设置新的登录密码。" : "新名字或第一次使用的邮箱会保留当前游客的聊天、收藏、记忆和积分。登录已有账号会丢掉当前游客进度，包括还没发出去的草稿。这两种结果在填写之前就已确定，不取决于邮箱是否已经注册。"}</p>
+        <p className={s.hint}>{forgotPassword ? "通过邮箱验证码设置新的登录密码。" : mode === "register" ? "注册后会保留当前游客的角色、收藏和会话。" : "登录后会同步你的角色、收藏和会话。"}</p>
         {mode !== "register" && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? "正在检查验证码登录服务…" : configError || configuration?.note || "邮箱验证码发送尚未配置，可使用邮箱与密码登录。"}</p>}
         <form className={s.form} onSubmit={submit}>
           {mode === "register" ? <>
             <label>名字<input autoComplete="nickname" name="nickname" required maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /><small>1 至 30 个字符，不能与已有账号重复。</small></label>
             <label>邀请码（可选）<input name="referralCode" placeholder="粘贴好友的邀请码" inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>好友会先获得 20 Credit。之后你每个北京时间日完成一轮成功对话，好友再获得 500 Credit，最多 3 天，同一天只发一次。</small></label>
           </> : <>
-          <label>邮箱<input autoComplete="email" name="email" type="email" required maxLength={254} value={email} onChange={(event) => updateEmail(event.target.value)} disabled={submitting} /></label>
+          <label>邮箱<input autoComplete="email" name="email" type="email" placeholder="you@example.com" required maxLength={254} value={email} onChange={(event) => updateEmail(event.target.value)} disabled={submitting} /></label>
           {forgotPassword ? <>
             <div className={s.codeRow}><label>验证码<input autoComplete="one-time-code" name="resetCode" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? "正在发送…" : resendSeconds > 0 ? `${resendSeconds} 秒后重发` : challenge ? "重新发送" : "获取验证码"}</button></div>
             {sendNotice && <p className={s.sent} role="status">{sendNotice}</p>}
             {challenge && <small>{validChallenge ? "验证码 10 分钟内有效。" : "验证码已过期，请重新获取。"}</small>}
-            <label>新密码<input autoComplete="new-password" name="newPassword" type="password" required minLength={12} maxLength={256} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /><small>至少 12 个字符。</small></label>
+            <label>新密码<span className={s.passwordField}><input autoComplete="new-password" name="newPassword" type={showPassword ? "text" : "password"} required minLength={12} maxLength={256} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? "隐藏" : "显示"}</button></span><small>至少 12 个字符。</small></label>
             <label>确认新密码<input autoComplete="new-password" name="confirmPassword" type="password" required minLength={12} maxLength={256} value={confirmPassword} onChange={(event) => { setConfirmPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /></label>
           </> : method === "email" ? <>
             <div className={s.codeRow}><label>验证码<input autoComplete="one-time-code" name="code" type="text" inputMode="numeric" pattern="[0-9]{6}" required maxLength={6} value={code} onChange={(event) => { setCode(event.target.value.replace(/[^0-9]/g, "").slice(0, 6)); setLocalError(""); onClearError(); }} disabled={submitting || !validChallenge} /></label><button type="button" className={s.sendCode} onClick={() => void sendCode()} disabled={submitting || sending || unavailable || resendSeconds > 0}>{sending ? "正在发送…" : resendSeconds > 0 ? `${resendSeconds} 秒后重发` : challenge ? "重新发送" : "获取验证码"}</button></div>
@@ -246,13 +288,14 @@ export default function AccountModal({ mode, initialReferralCode = "", onModeCha
             <label>昵称（首次使用可选）<input autoComplete="nickname" name="nickname" maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /></label>
             <label>邀请码（注册时填写，可选）<input name="referralCode" placeholder="粘贴好友的邀请码" inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>注册成功后，邀请人先获得 20 Credit。之后你每个北京时间日完成一轮成功对话，邀请人再获得 500 Credit，最多 3 天，同一天只发一次。</small></label>
           </> : <>
-            <label>密码<input autoComplete="current-password" name="password" type="password" required minLength={1} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} disabled={submitting} /></label>
+            <label>密码<span className={s.passwordField}><input autoComplete="current-password" name="password" type={showPassword ? "text" : "password"} placeholder="输入密码" required minLength={1} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? "隐藏" : "显示"}</button></span>{!forgotPassword && <button type="button" className={s.forgotInline} onClick={enterForgotPassword} disabled={submitting}>忘记密码？</button>}</label>
           </>}
           </>}
           {(localError || error) && <p className={s.error} role="alert">{localError || error}</p>}
           <button className={s.submit} type="submit" disabled={submitting || (mode !== "register" && ((forgotPassword && (sending || unavailable || !validChallenge || code.length !== 6 || password.length < 12 || password !== confirmPassword)) || (!forgotPassword && method === "email" && (sending || unavailable || !validChallenge || code.length !== 6))))}>{submitting ? "正在连接…" : forgotPassword ? "重置密码" : mode === "register" ? "注册并保留记录" : method === "email" ? "验证并登录" : "登录"}</button>
         </form>
-        {forgotPassword ? <footer><button type="button" onClick={leaveForgotPassword} disabled={submitting}>返回登录<Icon name="chevron" size={13} /></button></footer> : (mode === "register" || method === "password") && <footer><span>{mode === "register" ? "已有账号？" : "还没有账号？"}</span><button type="button" onClick={switchMode} disabled={submitting}>{mode === "register" ? "去登录" : "注册账号"}<Icon name="chevron" size={13} /></button>{mode === "login" && <button type="button" className={s.forgot} onClick={enterForgotPassword} disabled={submitting}>忘记密码？</button>}</footer>}
+        {forgotPassword ? <footer><button type="button" onClick={leaveForgotPassword} disabled={submitting}>返回登录<Icon name="chevron" size={13} /></button></footer> : (mode === "register" || method === "password") && <footer><span>{mode === "register" ? "已有账号？" : "还没有账号？"}</span><button type="button" onClick={switchMode} disabled={submitting}>{mode === "register" ? "去登录" : "注册账号"}<Icon name="chevron" size={13} /></button></footer>}
+        </div>
       </div>
     </div>
   );

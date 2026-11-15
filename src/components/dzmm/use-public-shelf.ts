@@ -22,7 +22,7 @@ export type PublicCharacterShelf = {
 };
 
 const MAX_CACHED_CARDS = DZMM_PUBLIC_SHELF_PAGE_SIZE * DZMM_SHELF_CACHE_PAGES;
-const SHELF_STORAGE_PREFIX = "xumeng-shelf-feed:";
+const SHELF_STORAGE_PREFIX = "xumeng-shelf-feed-v2:";
 const shelfMemory = new Map<string, DzmmShelfFeed<Character>>();
 const shelfFlights = new Map<string, Promise<DzmmShelfPage<Character>>>();
 
@@ -117,25 +117,58 @@ function fetchShelfPage(current: DzmmCatalogRequest, offset: number, requestKey:
   if (existing) return existing;
   const task = (async (): Promise<DzmmShelfPage<Character>> => {
     const rankedIds = current.ids ?? [];
-    const pageIds = rankedIds.length ? rankedIds.slice(offset, offset + DZMM_PUBLIC_SHELF_PAGE_SIZE) : undefined;
     if (current.ids && current.ids.length === 0) return { characters: [], total: 0, nextOffset: 0, hasMore: false, serverFiltered: false };
-    if (pageIds && pageIds.length === 0) return { characters: [], total: rankedIds.length, nextOffset: offset, hasMore: false, serverFiltered: true };
-    const page = await fetchDzmmPublicCharacters({
-      ...current,
-      ...(pageIds ? { ids: pageIds, offset: 0 } : { offset }),
-      limit: DZMM_PUBLIC_SHELF_PAGE_SIZE,
-      view: "card",
-    });
-    if (!page || !Array.isArray(page.characters)) throw new Error("公开目录响应无效。");
-    const incoming = page.characters.map(withShelfStats);
-    const advanced = rankedIds.length ? offset + (pageIds?.length ?? 0) : page.offset + page.characters.length;
-    return {
-      characters: incoming,
-      total: rankedIds.length || (Number.isFinite(page.total) ? page.total : incoming.length),
-      nextOffset: advanced,
-      hasMore: rankedIds.length ? advanced < rankedIds.length : Boolean(page.hasMore) && page.characters.length > 0 && advanced > offset,
-      serverFiltered: Boolean(page.applied),
+    if (!rankedIds.length) {
+      const page = await fetchDzmmPublicCharacters({ ...current, offset, limit: DZMM_PUBLIC_SHELF_PAGE_SIZE, view: "card" });
+      if (!page || !Array.isArray(page.characters)) throw new Error("公开目录响应无效。");
+      const incoming = page.characters.map(withShelfStats);
+      const advanced = page.offset + page.characters.length;
+      return {
+        characters: incoming,
+        total: Number.isFinite(page.total) ? page.total : incoming.length,
+        nextOffset: advanced,
+        hasMore: Boolean(page.hasMore) && page.characters.length > 0 && advanced > offset,
+        serverFiltered: Boolean(page.applied),
+      };
+    }
+    // Some recommended ids are not currently playable. Keep reading until the
+    // page is full instead of stopping at the first short response.
+    const characters: Character[] = [];
+    const seen = new Set<string>();
+    const take = (incoming: Character[]) => {
+      for (const character of incoming) {
+        if (seen.has(character.id)) continue;
+        seen.add(character.id);
+        characters.push(character);
+        if (characters.length >= DZMM_PUBLIC_SHELF_PAGE_SIZE) return;
+      }
     };
+    let cursor = Math.min(offset, rankedIds.length);
+    let chunks = 0;
+    while (characters.length < DZMM_PUBLIC_SHELF_PAGE_SIZE && cursor < rankedIds.length && chunks < 8) {
+      const pageIds = rankedIds.slice(cursor, cursor + DZMM_PUBLIC_SHELF_PAGE_SIZE);
+      cursor += pageIds.length;
+      chunks += 1;
+      const page = await fetchDzmmPublicCharacters({ ...current, ids: pageIds, offset: 0, limit: DZMM_PUBLIC_SHELF_PAGE_SIZE, view: "card" });
+      if (!page || !Array.isArray(page.characters)) throw new Error("公开目录响应无效。");
+      take(page.characters.map(withShelfStats));
+    }
+    const catalogOffset = offset > rankedIds.length ? offset - rankedIds.length : 0;
+    let total = rankedIds.length;
+    let hasMore = cursor < rankedIds.length;
+    let nextOffset = cursor;
+    if (characters.length < DZMM_PUBLIC_SHELF_PAGE_SIZE) {
+      const { ids: ignoredIds, ...rest } = current;
+      void ignoredIds;
+      const page = await fetchDzmmPublicCharacters({ ...rest, offset: catalogOffset, limit: DZMM_PUBLIC_SHELF_PAGE_SIZE, view: "card" });
+      if (!page || !Array.isArray(page.characters)) throw new Error("公开目录响应无效。");
+      take(page.characters.map(withShelfStats));
+      total = Number.isFinite(page.total) ? page.total : characters.length;
+      const advanced = page.offset + page.characters.length;
+      hasMore = Boolean(page.hasMore) && page.characters.length > 0;
+      nextOffset = rankedIds.length + advanced;
+    }
+    return { characters, total, nextOffset, hasMore, serverFiltered: true };
   })().finally(() => { shelfFlights.delete(flightKey); });
   shelfFlights.set(flightKey, task);
   return task;

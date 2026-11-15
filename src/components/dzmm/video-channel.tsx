@@ -1,14 +1,17 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
-import { isXumengVideoDramaId, parseXumengVideoCatalog, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
+import { isXumengVideoDramaId, matchXumengVideoCharacter, parseXumengVideoCatalog, rankXumengVideoDramas, rotateXumengVideoFeed, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
 import Icon from "./icons";
 import s from "./video-channel.module.css";
 
 const CATALOG_URLS = ["/assets/xumeng/video-catalog.json", "/api/xumeng-video/catalog"];
+const OPENING_KEY = "xumeng-video-opening";
 const MARKS_KEY = "xumeng-video-marks";
 const NOTES_KEY = "xumeng-video-notes";
+const PROGRESS_KEY = "xumeng-video-progress";
 const CATALOG_TTL_MS = 60_000;
+const EPISODE_CREDITS = 50;
 const SWIPE_DISTANCE = 64;
 const SWIPE_MS = 180;
 
@@ -16,6 +19,7 @@ type Drama = XumengVideoDrama;
 type SheetId = "" | "episodes" | "comments";
 type Marks = { likes: string[]; saves: string[] };
 type Note = { id: string; dramaId: string; body: string; at: number };
+type WatchProgress = { dramaId: string; episodeId: string; currentTime: number; duration: number; updatedAt: number };
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const text = (value: unknown, max: number) => typeof value === "string" && value.trim().length > 0 && value.length <= max ? value.trim() : "";
@@ -76,21 +80,85 @@ function readNotes(): Note[] {
   }
 }
 
+function readProgress(): Record<string, WatchProgress> {
+  try {
+    const raw = JSON.parse(localStorage.getItem(PROGRESS_KEY) || "");
+    if (!record(raw)) return {};
+    return Object.fromEntries(Object.entries(raw).flatMap(([episodeId, item]) => {
+      const dramaId = record(item) && typeof item.dramaId === "string" ? item.dramaId : "";
+      if (!record(item) || !isXumengVideoDramaId(dramaId) || typeof item.episodeId !== "string" || item.episodeId !== episodeId) return [];
+      const currentTime = typeof item.currentTime === "number" && Number.isFinite(item.currentTime) && item.currentTime >= 0 ? item.currentTime : 0;
+      const duration = typeof item.duration === "number" && Number.isFinite(item.duration) && item.duration > 0 ? item.duration : 0;
+      const updatedAt = typeof item.updatedAt === "number" && Number.isFinite(item.updatedAt) ? item.updatedAt : 0;
+      return [{ key: episodeId, value: { dramaId, episodeId, currentTime, duration, updatedAt } }];
+    }).sort((a, b) => b.value.updatedAt - a.value.updatedAt).slice(0, 200).map(item => [item.key, item.value]));
+  } catch {
+    return {};
+  }
+}
+
+function formatTime(value: number) {
+  const seconds = Math.max(0, Math.floor(value));
+  return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
 function dramaHash(dramaId: string) {
   return `#videos/${dramaId}`;
 }
 
-export default function VideoChannel() {
+let recentOpening: { at: number; ticket: number } | null = null;
+
+function takeOpeningTicket(pinned: boolean): number {
+  if (pinned || typeof sessionStorage === "undefined") return 0;
+  const now = Date.now();
+  if (recentOpening && now - recentOpening.at < 400) return recentOpening.ticket;
+  const previous = Number(sessionStorage.getItem(OPENING_KEY) ?? "");
+  const ticket = Number.isFinite(previous) ? previous + 1 : Math.floor(Math.random() * 1_000_000) + 1;
+  try { sessionStorage.setItem(OPENING_KEY, String(ticket)); } catch { /* This visit still uses the ticket. */ }
+  recentOpening = { at: now, ticket };
+  return ticket;
+}
+
+function dramaSynopsis(drama: Drama, character: { introduction?: string; description?: string; scenario?: string } | null) {
+  const raw = drama.synopsis || character?.introduction || character?.description || character?.scenario || "";
+  return raw.replace(/\s+/gu, " ").trim();
+}
+
+function feedTags(drama: Drama, character: { tags?: string[] } | null) {
+  const source = drama.tags.length ? drama.tags : character?.tags ?? [];
+  const tags = source.map(tag => tag.replace(/^#/u, "").trim()).filter(Boolean).slice(0, 4);
+  if (tags.length) return tags;
+  if (drama.category.includes("漫剧")) return ["漫剧"];
+  if (drama.category.includes("换脸")) return ["换脸"];
+  if (drama.category.includes("魔改")) return ["魔改"];
+  return ["短剧"];
+}
+
+export type VideoCharacterLink = {
+  id: string;
+  name: string;
+  description?: string;
+  introduction?: string;
+  scenario?: string;
+  tags?: string[];
+};
+
+export default function VideoChannel({ characters = [], onOpenCharacter, onRequireAccount }: {
+  characters?: readonly VideoCharacterLink[];
+  onOpenCharacter?: (id: string) => void;
+  onRequireAccount?: () => void;
+}) {
   const [dramas, setDramas] = useState<Drama[]>([]);
   const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [visualIndex, setVisualIndex] = useState(0);
   const [episodeId, setEpisodeId] = useState("");
-  const [expanded, setExpanded] = useState(false);
   const [sheet, setSheet] = useState<SheetId>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [catalogReload, setCatalogReload] = useState(0);
   const [paused, setPaused] = useState(false);
   const [muted, setMuted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -100,6 +168,13 @@ export default function VideoChannel() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState("");
+  const [videoError, setVideoError] = useState(false);
+  const [videoRetry, setVideoRetry] = useState(0);
+  const [unlockedDrama, setUnlockedDrama] = useState("");
+  const [unlockedIds, setUnlockedIds] = useState<ReadonlySet<string>>(() => new Set());
+  const [paying, setPaying] = useState(false);
+  const [frameShown, setFrameShown] = useState(false);
+  const [blurbOpen, setBlurbOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -113,13 +188,22 @@ export default function VideoChannel() {
   const frameReady = useRef(false);
   const feedLengthRef = useRef(0);
   const mutedRef = useRef(false);
+  const progressRef = useRef<Record<string, WatchProgress>>({});
+  const lastProgressWriteRef = useRef(0);
 
-  const feed = dramas;
+  const ordered = useMemo(() => rankXumengVideoDramas(dramas), [dramas]);
+  const [opening] = useState(() => takeOpeningTicket(typeof location !== "undefined" && Boolean(xumengVideoDramaIdFromRoute(location.hash))));
+  const feed = useMemo(() => {
+    if (category) return ordered.filter(item => item.category === category);
+    return rotateXumengVideoFeed(ordered, opening);
+  }, [ordered, category, opening]);
   const keyword = query.trim().toLowerCase();
-  const found = useMemo(() => keyword ? dramas.filter(drama => drama.title.toLowerCase().includes(keyword)) : dramas, [dramas, keyword]);
+  const found = useMemo(() => keyword ? ordered.filter(drama => drama.title.toLowerCase().includes(keyword)) : ordered, [ordered, keyword]);
   const playing = feed[index] ?? null;
   const drama = feed[visualIndex] ?? null;
   const episode = playing ? clipFor(playing, playing.dramaId, episodeId) : null;
+  const episodeFree = (episode?.episodeNumber ?? 1) <= 1;
+  const episodeOpen = episodeFree || (episode !== null && unlockedDrama === episode.dramaId && unlockedIds.has(episode.id));
   const dramaNotes = notes.filter(item => item.dramaId === drama?.dramaId);
   const panels = [visualIndex - 1, visualIndex, visualIndex + 1].flatMap(slot => {
     const item = feed[slot];
@@ -135,6 +219,8 @@ export default function VideoChannel() {
 
   useEffect(() => {
     const controller = new AbortController();
+    setLoading(true);
+    setError("");
     loadCatalog(controller.signal).then(list => {
       if (!controller.signal.aborted) { setDramas(list); setLoading(false); }
     }).catch(failure => {
@@ -143,24 +229,33 @@ export default function VideoChannel() {
       setLoading(false);
     });
     return () => controller.abort();
-  }, []);
+  }, [catalogReload]);
 
   useEffect(() => {
     setMarks(readMarks());
     setNotes(readNotes());
+    progressRef.current = readProgress();
   }, []);
 
   useEffect(() => {
+    if (!feed.length || index < feed.length) return;
+    indexRef.current = 0;
+    visualRef.current = 0;
+    setIndex(0);
+    setVisualIndex(0);
+  }, [feed.length, index]);
+
+  useEffect(() => {
     const id = xumengVideoDramaIdFromRoute(location.hash);
-    if (!id || !dramas.length || moved.current) return;
-    const foundIndex = dramas.findIndex(item => item.dramaId === id);
+    if (!id || !feed.length || moved.current) return;
+    const foundIndex = feed.findIndex(item => item.dramaId === id);
     if (foundIndex > 0) {
       indexRef.current = foundIndex;
       visualRef.current = foundIndex;
       setIndex(foundIndex);
       setVisualIndex(foundIndex);
     }
-  }, [dramas]);
+  }, [feed]);
 
   useEffect(() => {
     if (!playing) return;
@@ -201,6 +296,7 @@ export default function VideoChannel() {
 
   useLayoutEffect(() => {
     frameReady.current = false;
+    setVideoError(false);
     setCurrentTime(0);
     setDuration(0);
     const node = videoRef.current;
@@ -220,12 +316,75 @@ export default function VideoChannel() {
     revealFrame();
   }, [visualIndex]);
 
+  useEffect(() => {
+    const dramaId = playing?.dramaId;
+    if (!dramaId) return;
+    const controller = new AbortController();
+    setUnlockedDrama("");
+    void fetch(`/api/backend/v1/videos/unlocks?dramaId=${encodeURIComponent(dramaId)}`, { credentials: "same-origin", cache: "no-store", signal: controller.signal })
+      .then(async response => response.ok ? response.json() : { episodeIds: [] })
+      .then((body: { episodeIds?: unknown }) => {
+        if (controller.signal.aborted) return;
+        const ids = Array.isArray(body.episodeIds) ? body.episodeIds.filter((id): id is string => typeof id === "string") : [];
+        setUnlockedIds(new Set(ids));
+        setUnlockedDrama(dramaId);
+      })
+      .catch(() => { if (!controller.signal.aborted) { setUnlockedIds(new Set()); setUnlockedDrama(dramaId); } });
+    return () => controller.abort();
+  }, [playing?.dramaId]);
+
+  useEffect(() => { setBlurbOpen(false); }, [drama?.dramaId]);
+
+  async function payForEpisode() {
+    if (!episode || episodeFree || paying) return;
+    setPaying(true);
+    try {
+      const response = await fetch("/api/backend/v1/videos/unlock", {
+        method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ episodeId: episode.id }),
+      });
+      const body = await response.json().catch(() => null) as { error?: unknown; chargedCredits?: unknown } | null;
+      if (response.status === 401 || response.status === 403) {
+        setToast(typeof body?.error === "string" ? body.error : "请先登录后再观看。");
+        onRequireAccount?.();
+        return;
+      }
+      if (!response.ok) {
+        setToast(typeof body?.error === "string" ? body.error : "这一集暂时不能打开。");
+        return;
+      }
+      setUnlockedIds(current => new Set(current).add(episode.id));
+      setUnlockedDrama(episode.dramaId);
+      if (body?.chargedCredits === EPISODE_CREDITS) setToast(`已使用 ${EPISODE_CREDITS} Credit`);
+    } catch {
+      setToast("网络异常，请再试一次。");
+    } finally {
+      setPaying(false);
+    }
+  }
+
   useLayoutEffect(() => {
     const node = currentVideo();
     if (!node || !episode) return;
+    if (!episodeOpen) {
+      node.pause();
+      node.style.opacity = "0";
+      if (node.currentSrc || node.src || node.getAttribute("src")) {
+        node.removeAttribute("src");
+        node.load();
+      }
+      node.dataset.clip = "";
+      setFrameShown(false);
+      setPaused(true);
+      setDuration(0);
+      setCurrentTime(0);
+      setVideoError(false);
+      return;
+    }
     const url = xumengVideoMediaUrl(episode.mediaKey);
-    if (node.dataset.clip !== episode.id) {
+    if (node.dataset.clip !== episode.id || videoRetry > 0) {
       frameReady.current = false;
+      setFrameShown(false);
       node.style.opacity = "0";
       if (node.getAttribute("src")) {
         node.pause();
@@ -234,13 +393,14 @@ export default function VideoChannel() {
       }
       node.dataset.clip = episode.id;
       node.src = url;
+      node.load();
     }
     startPlayback(node);
     if (node.readyState >= 2) {
       frameReady.current = true;
       revealFrame();
     }
-  }, [episode?.id]);
+  }, [episode?.id, episodeOpen, videoRetry]);
 
   useEffect(() => {
     if (!toast) return;
@@ -251,6 +411,26 @@ export default function VideoChannel() {
   function remember(next: Marks) {
     setMarks(next);
     try { localStorage.setItem(MARKS_KEY, JSON.stringify(next)); } catch { /* The buttons still reflect this visit. */ }
+  }
+
+  function rememberProgress(next: WatchProgress) {
+    const current = { ...progressRef.current, [next.episodeId]: next };
+    const trimmed = Object.fromEntries(Object.entries(current).sort((a, b) => b[1].updatedAt - a[1].updatedAt).slice(0, 200));
+    progressRef.current = trimmed;
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(trimmed)); } catch { /* Playback remains usable without persistence. */ }
+  }
+
+  function clearProgress(episodeId: string) {
+    if (!progressRef.current[episodeId]) return;
+    const next = { ...progressRef.current };
+    delete next[episodeId];
+    progressRef.current = next;
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(next)); } catch { /* The completed episode can still advance. */ }
+  }
+
+  function retryVideo() {
+    setVideoError(false);
+    setVideoRetry(value => value + 1);
   }
 
   function toggleMark(kind: "likes" | "saves") {
@@ -279,7 +459,6 @@ export default function VideoChannel() {
     if (total < 2 || next === indexRef.current) return;
     indexRef.current = next;
     moved.current = true;
-    setExpanded(false);
     setSheet("");
     setIndex(next);
   }
@@ -339,15 +518,40 @@ export default function VideoChannel() {
     const timer = window.setTimeout(() => finish(), SWIPE_MS + 80);
   }
 
+  function chooseCategory(next: string) {
+    if (next === category) return;
+    moved.current = true;
+    indexRef.current = 0;
+    visualRef.current = 0;
+    setCategory(next);
+    setIndex(0);
+    setVisualIndex(0);
+    setEpisodeId("");
+    setSheet("");
+    setSearchOpen(false);
+    resetTrack();
+  }
+
+  function openCharacter() {
+    if (!drama) return;
+    const character = matchXumengVideoCharacter(drama, characters);
+    if (!character || !onOpenCharacter) {
+      setToast("这部剧还没有对应的角色卡");
+      return;
+    }
+    onOpenCharacter(character.id);
+  }
+
   function openDrama(next: Drama) {
-    const at = dramas.findIndex(item => item.dramaId === next.dramaId);
+    const recommended = rotateXumengVideoFeed(ordered, opening);
+    const at = recommended.findIndex(item => item.dramaId === next.dramaId);
+    setCategory("");
     moved.current = true;
     indexRef.current = Math.max(0, at);
     visualRef.current = indexRef.current;
     setIndex(indexRef.current);
     setVisualIndex(indexRef.current);
     setEpisodeId(next.episodes[0]?.id ?? "");
-    setExpanded(false);
     setSearchOpen(false);
     setSheet("");
     resetTrack();
@@ -357,7 +561,7 @@ export default function VideoChannel() {
 
   function togglePlay() {
     const node = currentVideo();
-    if (!node) return;
+    if (!node || !episodeOpen) return;
     if (node.paused) {
       node.muted = false;
       mutedRef.current = false;
@@ -395,16 +599,6 @@ export default function VideoChannel() {
   function onScrubKey(event: ReactKeyboardEvent<HTMLElement>) {
     if (event.key === "ArrowRight") seekTo(currentTime + 5);
     if (event.key === "ArrowLeft") seekTo(currentTime - 5);
-  }
-
-  function watchFull() {
-    const node = currentVideo() as (HTMLVideoElement & { webkitEnterFullscreen?: () => void }) | null;
-    if (!node) return;
-    if (node.requestFullscreen) {
-      void node.requestFullscreen().catch(() => node.webkitEnterFullscreen?.());
-      return;
-    }
-    node.webkitEnterFullscreen?.();
   }
 
   async function shareDrama() {
@@ -467,6 +661,30 @@ export default function VideoChannel() {
     if (!sliding.current) placeTrack(0, true);
   }
 
+  function onStageKeyDown(event: ReactKeyboardEvent<HTMLElement>) {
+    const target = event.target;
+    if (target instanceof HTMLElement && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+    if (event.key === "ArrowDown" || event.key === "PageDown") {
+      event.preventDefault();
+      settleRef.current(1);
+      return;
+    }
+    if (event.key === "ArrowUp" || event.key === "PageUp") {
+      event.preventDefault();
+      settleRef.current(-1);
+      return;
+    }
+    if (event.key === " " || event.key === "Enter") {
+      event.preventDefault();
+      togglePlay();
+      return;
+    }
+    if (event.key === "Escape") {
+      if (sheet) setSheet("");
+      else if (searchOpen) setSearchOpen(false);
+    }
+  }
+
   const settleRef = useRef(settle);
   const gateRef = useRef({ searchOpen, sheet });
   settleRef.current = settle;
@@ -489,11 +707,14 @@ export default function VideoChannel() {
 
   const liked = drama ? marks.likes.includes(drama.dramaId) : false;
   const saved = drama ? marks.saves.includes(drama.dramaId) : false;
+  const linkedCharacter = drama ? matchXumengVideoCharacter(drama, characters) : null;
+  const synopsis = drama ? dramaSynopsis(drama, linkedCharacter) : "";
+  const tags = drama ? feedTags(drama, linkedCharacter) : [];
 
   return <div className={s.shell}>
-    <section ref={stageRef} className={s.stage} aria-label="短剧" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
+    <section ref={stageRef} className={s.stage} aria-label="短剧" tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
       {loading && <p className={s.status}>正在打开</p>}
-      {error && <p className={s.status} role="alert">{error}</p>}
+      {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>重新加载</button></div>}
       {!loading && !error && !drama && <p className={s.status}>还没有可以看的短剧。</p>}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
@@ -513,7 +734,13 @@ export default function VideoChannel() {
             const node = videoRef.current;
             if (node) {
               setDuration(Number.isFinite(node.duration) ? node.duration : 0);
-              setCurrentTime(node.currentTime || 0);
+              const saved = episode ? progressRef.current[episode.id] : undefined;
+              const canResume = saved && saved.currentTime >= 5 && saved.currentTime < node.duration - 2;
+              if (canResume) {
+                node.currentTime = saved.currentTime;
+                setCurrentTime(saved.currentTime);
+                setToast(`从 ${formatTime(saved.currentTime)} 继续`);
+              } else setCurrentTime(node.currentTime || 0);
             }
           }}
           onDurationChange={() => {
@@ -522,21 +749,38 @@ export default function VideoChannel() {
           }}
           onTimeUpdate={() => {
             const node = videoRef.current;
-            if (node) setCurrentTime(node.currentTime || 0);
+            if (node) {
+              const nextTime = node.currentTime || 0;
+              setCurrentTime(nextTime);
+              if (episode && nextTime > 0 && Date.now() - lastProgressWriteRef.current >= 3000) {
+                lastProgressWriteRef.current = Date.now();
+                rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: Number.isFinite(node.duration) ? node.duration : 0, updatedAt: Date.now() });
+              }
+            }
           }}
           onPlay={() => setPaused(false)}
           onPause={() => setPaused(true)}
-          onLoadedData={() => { frameReady.current = true; revealFrame(); }}
-          onError={() => { frameReady.current = false; if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); }}
+          onLoadedData={() => { setVideoError(false); frameReady.current = true; setFrameShown(true); revealFrame(); }}
+          onError={() => { frameReady.current = false; setFrameShown(false); if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); setVideoError(true); }}
           onEnded={() => {
+            if (episode) clearProgress(episode.id);
             const at = playing.episodes.findIndex(entry => entry.id === episode.id);
             if (at >= 0 && at < playing.episodes.length - 1) setEpisodeId(playing.episodes[at + 1].id);
             else settle(1);
           }}
         />
+        {!episodeOpen && <div className={s.payGate} role="dialog" aria-label="解锁剧集" onPointerDown={event => event.stopPropagation()}>
+          <p>{episode?.episode}需要 {EPISODE_CREDITS} Credit</p>
+          <small>第一集免费，之后每一集只扣一次</small>
+          <button type="button" disabled={paying} onClick={() => void payForEpisode()}>{paying ? "正在确认…" : "支付并观看"}</button>
+        </div>}
+        {videoError && episodeOpen && <div className={s.videoError} role="alert">
+          <p>这一集暂时加载失败</p>
+          <button type="button" onClick={retryVideo}>重试播放</button>
+        </div>}
       </div>}
       {drama && episode && <>
-        {duration > 0 && <div
+        {duration > 0 && episodeOpen && <div
           className={s.scrub}
           data-dragging={scrubbing || undefined}
           role="slider"
@@ -552,42 +796,51 @@ export default function VideoChannel() {
           onPointerCancel={() => setScrubbing(false)}
           onKeyDown={onScrubKey}
         ><i /></div>}
-        {paused && <button type="button" className={s.play} aria-label="播放" onClick={togglePlay}><Icon name="play" size={28} /></button>}
+        {episodeOpen && !videoError && (!frameShown || paused) && <div className={s.playWrap} onPointerDown={event => event.stopPropagation()}>
+          <button type="button" className={s.play} aria-label={frameShown ? "播放" : "加载中"} onClick={togglePlay}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7.2v9.6l8.2-4.8L9 7.2Z" fill="currentColor" /></svg></button>
+          {!frameShown && <span>加载中...</span>}
+        </div>}
         {muted && !paused && <button type="button" className={s.unmute} onClick={() => { toggleMute(); }}>轻点打开声音</button>}
-        <button type="button" className={s.full} onClick={watchFull}><Corners />全屏观看</button>
         <div className={s.rail}>
-          <RailButton name="喜欢" label={liked ? "1" : "喜欢"} pressed={liked} onClick={() => toggleMark("likes")}><Heart filled={liked} /></RailButton>
-          <RailButton name="评论" label={dramaNotes.length > 0 ? String(dramaNotes.length) : "评论"} onClick={() => setSheet("comments")}><Icon name="chat" size={28} /></RailButton>
-          <RailButton name="收藏" label={saved ? "1" : "收藏"} pressed={saved} onClick={() => toggleMark("saves")}><Star filled={saved} /></RailButton>
+          <div className={s.mark} aria-hidden="true"><span><img src="/assets/xumeng/brand/xumeng-mark.svg" alt="" /><i><Icon name="play" size={9} /></i></span><small>叙梦短剧</small></div>
+          <RailButton name="喜欢" label={liked ? "1" : ""} pressed={liked} onClick={() => toggleMark("likes")}><Heart filled={liked} /></RailButton>
+          <RailButton name="评论" label={dramaNotes.length > 0 ? String(dramaNotes.length) : ""} onClick={() => setSheet("comments")}><Icon name="chat" size={28} /></RailButton>
+          <RailButton name="收藏" label={saved ? "1" : ""} pressed={saved} onClick={() => toggleMark("saves")}><Star filled={saved} /></RailButton>
           <RailButton name="分享" label="分享" onClick={() => void shareDrama()}><Share /></RailButton>
         </div>
-        <div className={s.caption}>
-          <div className={s.copy}>
-            <h1>{drama.title}</h1>
-            <p className={expanded ? s.synopsisOpen : s.synopsis}>
-              <span>{episode.episode}{drama.episodes.length > 1 ? ` · 共 ${drama.episodes.length} 集` : ""}</span>
-              <button type="button" onClick={() => setExpanded(value => !value)}>{expanded ? "收起" : "展开"}</button>
-            </p>
-            {expanded && <ol className={s.episodeList}>{drama.episodes.map(item => <li key={item.id}>{item.episode}</li>)}</ol>}
-          </div>
+        <div className={s.story} onPointerDown={event => event.stopPropagation()}>
+          <h1>{drama.title}</h1>
+          {synopsis && <p className={blurbOpen ? s.blurbOpen : s.blurb}>
+            <span>{synopsis}</span>
+            {synopsis.length > 18 && <button type="button" onClick={() => setBlurbOpen(value => !value)}>{blurbOpen ? "收起" : "展开"}</button>}
+          </p>}
+          <div className={s.hashes}>{tags.map(tag => <span key={tag}>#{tag}</span>)}</div>
+          {linkedCharacter && <button type="button" className={s.playCard} onClick={openCharacter}>我来玩</button>}
           <button type="button" className={s.watchAll} onClick={() => setSheet("episodes")}>
             <span>观看完整短剧 · 全 {drama.episodes.length} 集</span>
             <Icon name="chevron" size={16} />
           </button>
         </div>
       </>}
-      <header className={s.top}>
+      <header className={s.top} onPointerDown={event => event.stopPropagation()}>
         {searchOpen ? <label className={s.searchBox}>
           <Icon name="search" size={16} />
           <input aria-label="搜索短剧" placeholder="搜索短剧" value={query} maxLength={80} autoFocus onChange={event => setQuery(event.target.value)} />
           <button type="button" onClick={() => { setSearchOpen(false); setQuery(""); }}>取消</button>
-        </label> : <button type="button" className={s.topSide} aria-label="搜索" onClick={() => setSearchOpen(true)}><Icon name="search" size={20} /></button>}
+        </label> : <>
+          <div className={s.tabs} role="tablist" aria-label="短剧分类">
+            <button type="button" role="tab" aria-selected={category === "AI成人短剧"} onClick={() => chooseCategory("AI成人短剧")}>短剧</button>
+            <button type="button" role="tab" aria-selected={category === "AI成人漫剧"} onClick={() => chooseCategory("AI成人漫剧")}>漫剧</button>
+            <button type="button" role="tab" aria-selected={!category} onClick={() => chooseCategory("")}>推荐</button>
+          </div>
+          <button type="button" className={s.topSide} aria-label="搜索" onClick={() => setSearchOpen(true)}><Icon name="search" size={22} /></button>
+        </>}
       </header>
       {searchOpen && <div className={s.results}>
         {!keyword && <p>输入剧名</p>}
         {keyword && found.length === 0 && <p>没有找到对应短剧。</p>}
         {keyword && found.slice(0, 40).map(item => <button type="button" key={item.dramaId} onClick={() => openDrama(item)}>
-          <span><strong>{item.title}</strong><small>{item.episodes.length} 集</small></span>
+          <span><strong>{item.title}</strong><small>{item.category || "短剧"} · {item.episodes.length} 集</small></span>
         </button>)}
       </div>}
     </section>
@@ -596,7 +849,10 @@ export default function VideoChannel() {
         <header><strong>{drama.title}</strong><button type="button" aria-label="关闭" onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
         <p>全 {drama.episodes.length} 集</p>
         <div className={s.episodeGrid}>
-          {drama.episodes.map(item => <button type="button" key={item.id} aria-pressed={item.id === episode?.id} onClick={() => { setEpisodeId(item.id); setSheet(""); }}>{item.episode}</button>)}
+          {drama.episodes.map(item => {
+            const paid = item.episodeNumber > 1 && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
+            return <button type="button" key={item.id} aria-pressed={item.id === episode?.id} onClick={() => { setEpisodeId(item.id); setSheet(""); }}>{item.episode}{paid ? ` · ${EPISODE_CREDITS}` : ""}</button>;
+          })}
         </div>
       </div>
     </div>}
@@ -631,8 +887,4 @@ function Star({ filled }: { filled: boolean }) {
 
 function Share() {
   return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-9 9" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" /><path d="M10 6H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
-}
-
-function Corners() {
-  return <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H4v4M16 4h4v4M8 20H4v-4M16 20h4v-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>;
 }

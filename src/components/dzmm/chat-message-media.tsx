@@ -15,6 +15,49 @@ import XumengMomentStatusCard, { type MomentField, type MomentSection } from "./
 import { VoiceNote } from "./voice-note";
 
 const MEDIA_CREDIT_COST = { audio: 20, image: 100 } as const;
+const chatPhotoPreviewCache = new Map<string, string>();
+const chatPhotoPreviewInflight = new Map<string, Promise<string>>();
+
+function chatPhotoPreview(url: string, refresh = false): Promise<string> {
+  if (refresh) chatPhotoPreviewCache.delete(url);
+  else {
+    const cached = chatPhotoPreviewCache.get(url);
+    if (cached) return Promise.resolve(cached);
+    const pending = chatPhotoPreviewInflight.get(url);
+    if (pending) return pending;
+  }
+  const job = (async () => {
+    const response = await fetch(url, { credentials: "same-origin" });
+    if (!response.ok) throw new Error("image");
+    const blob = await response.blob();
+    const original = URL.createObjectURL(blob);
+    const keepOriginal = () => { chatPhotoPreviewCache.set(url, original); return original; };
+    if (blob.size < 180_000 || typeof createImageBitmap !== "function") return keepOriginal();
+    try {
+      const bitmap = await createImageBitmap(blob);
+      const longest = Math.max(bitmap.width, bitmap.height);
+      const scale = longest > 960 ? 960 / longest : 1;
+      if (scale === 1 && blob.size < 700_000) { bitmap.close(); return keepOriginal(); }
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+      canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+      const context = canvas.getContext("2d");
+      if (!context) { bitmap.close(); return keepOriginal(); }
+      context.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      bitmap.close();
+      const compact = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.82));
+      if (!compact || compact.size >= blob.size) return keepOriginal();
+      URL.revokeObjectURL(original);
+      const preview = URL.createObjectURL(compact);
+      chatPhotoPreviewCache.set(url, preview);
+      return preview;
+    } catch {
+      return keepOriginal();
+    }
+  })().finally(() => { chatPhotoPreviewInflight.delete(url); });
+  chatPhotoPreviewInflight.set(url, job);
+  return job;
+}
 const mediaOverviewCache = new Map<string, DzmmChatMediaOverview>();
 const mediaOverviewKey = (accountId: string, conversationId: string) => `${accountId}\n${conversationId}`;
 function rememberMediaOverview(accountId: string, conversationId: string, value: DzmmChatMediaOverview) {
@@ -38,15 +81,25 @@ type MediaContext = {
   reading: boolean;
   readError: string | null;
   reload: () => Promise<boolean>;
-  generate: (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft) => Promise<void>;
+  generate: (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate?: boolean) => Promise<void>;
   requireAccount: () => boolean;
   onRecharge: () => void;
 };
 const Context = createContext<MediaContext | null>(null);
 
-export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow, onRequireAccount, onRecharge, onCharged, children }: {
+function latestSceneImage(overview: DzmmChatMediaOverview | null): string | null {
+  let best: DzmmChatMediaAsset | null = null;
+  for (const asset of overview?.assets ?? []) {
+    if (asset.kind !== "image") continue;
+    if (!best || asset.createdAt > best.createdAt || (asset.createdAt === best.createdAt && asset.id > best.id)) best = asset;
+  }
+  return best?.url ?? null;
+}
+
+export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow, onRequireAccount, onRecharge, onCharged, onSceneImage, children }: {
   accountId?: string; conversationId: string; isGuest: boolean; saveNow: () => Promise<void>;
-  onRequireAccount: () => void; onRecharge: () => void; onCharged?: () => void; children: ReactNode;
+  onRequireAccount: () => void; onRecharge: () => void; onCharged?: () => void;
+  onSceneImage?: (conversationId: string, url: string | null) => void; children: ReactNode;
 }) {
   const [overview, setOverview] = useState<DzmmChatMediaOverview | null>(() =>
     accountId ? mediaOverviewCache.get(mediaOverviewKey(accountId, conversationId)) ?? null : null);
@@ -64,6 +117,11 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
   const readSequence = useRef(0);
   const scope = useRef({ accountId, conversationId });
   scope.current = { accountId, conversationId };
+  const reportScene = useRef(onSceneImage);
+  reportScene.current = onSceneImage;
+  useEffect(() => {
+    reportScene.current?.(conversationId, latestSceneImage(overview));
+  }, [conversationId, overview]);
 
   const acceptOverview = useCallback((value: DzmmChatMediaOverview) => {
     if (accountId) rememberMediaOverview(accountId, conversationId, value);
@@ -127,7 +185,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
     if (!accountId || isGuest) { onRequireAccount(); return true; }
     return false;
   }, [accountId, isGuest, onRequireAccount]);
-  const generate = useCallback(async (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft) => {
+  const generate = useCallback(async (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate = false) => {
     if (!accountId || isGuest) { onRequireAccount(); return; }
     if (generating.current) return;
     generating.current = true;
@@ -173,13 +231,13 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, saveNow,
       if (!active()) return;
       acceptOverview(current);
       const existing = resolveDzmmChatMediaResult(current, target);
-      if (existing.state === "ready" || existing.state === "pending") return;
+      if (existing.state === "pending" || (existing.state === "ready" && !regenerate)) return;
       if (kind === "image" && !XUMENG_GENERATION_WORKSPACE_ENABLED) throw new Error("图片生成已暂停开放。");
       if (!current.features[kind]) throw new Error(kind === "audio" ? "语音服务暂时不可用，请稍后重试。" : "图片服务暂时不可用，请稍后重试。");
       submitted = true;
       const asset = kind === "image" && draft
         ? await generateDzmmChatIllustration(accountId, conversationId, messageId, draft, abort.signal)
-        : await generateDzmmChatMedia(accountId, conversationId, messageId, kind, abort.signal);
+        : await generateDzmmChatMedia(accountId, conversationId, messageId, kind, abort.signal, regenerate);
       if (!active()) return;
       if (asset.sourceHash !== target.sourceHash) throw new DzmmChatMediaError(502, "消息正文已经变化，请检查当前消息的素材。");
       const completed = target;
@@ -251,6 +309,17 @@ function MessagePicture({ asset, reload, onExpand, busy }: {
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const [preview, setPreview] = useState<{ url: string; attempt: number; src: string } | null>(null);
+  const cachedNow = attempt === 0 ? chatPhotoPreviewCache.get(asset.url) ?? null : null;
+  const displayUrl = preview && preview.url === asset.url && preview.attempt === attempt ? preview.src : cachedNow;
+  useEffect(() => {
+    if (attempt === 0 && chatPhotoPreviewCache.get(asset.url)) return;
+    let active = true;
+    void chatPhotoPreview(asset.url, attempt > 0).then(next => {
+      if (active) setPreview({ url: asset.url, attempt, src: next });
+    }).catch(() => { if (active) setPreview({ url: asset.url, attempt, src: asset.url }); });
+    return () => { active = false; };
+  }, [asset.url, attempt]);
   if (failed) return <div className={`${s.feedback} ${s.pictureFailure}`} role="alert"><p className={s.error}>剧情图片加载失败。</p>
     {busy && <p>正在生成素材，完成后可重新加载。</p>}
     <button type="button" disabled={retrying || busy} onClick={() => {
@@ -258,15 +327,16 @@ function MessagePicture({ asset, reload, onExpand, busy }: {
       void reload().then(loaded => { if (loaded) { setAttempt(value => value + 1); setFailed(false); } })
         .finally(() => setRetrying(false));
     }}>{retrying ? "正在重新加载…" : "重新加载图片"}</button></div>;
-  const picture = <img key={attempt} src={asset.url} alt={onExpand ? "根据这条消息生成的剧情场景" : "剧情场景大图"}
-    loading={onExpand ? "lazy" : "eager"} onError={() => setFailed(true)} />;
+  if (!displayUrl) return <div className={s.progress} role="status"><span className={s.loader} />正在整理画面…</div>;
+  const picture = <img key={`${attempt}:${displayUrl}`} src={displayUrl} alt={onExpand ? "根据这条消息生成的剧情场景" : "剧情场景大图"}
+    decoding="async" loading={onExpand ? "lazy" : "eager"} onError={() => setFailed(true)} />;
   return onExpand ? <button type="button" aria-label="放大剧情图片" onClick={onExpand}>{picture}</button> : picture;
 }
 
 export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, children, label, moment }: {
   message: DzmmSavedMessage; disabled: boolean; onCopy: () => void; onEdit: () => void;
   onRegenerate?: () => void; children: ReactNode; label: string;
-  moment?: { name: string; fields: MomentField[]; sections?: MomentSection[] };
+  moment?: { name: string; fields: MomentField[]; sections?: MomentSection[]; open?: boolean; pending?: boolean };
 }) {
   const media = useContext(Context);
   const [fingerprint, setFingerprint] = useState<{ text: string; audio: string; image: string } | null>(null);
@@ -320,13 +390,13 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   function handleAudio() {
     if (audio) refocusAudio(); else void media?.generate(message.id, "audio", message.content);
   }
-  function handleImage() {
-    if (image) setExpanded(image);
-    else void media?.generate(message.id, "image", message.content);
+  function handleImage(regenerate = false) {
+    if (image && !regenerate) setExpanded(image);
+    else void media?.generate(message.id, "image", message.content, undefined, regenerate);
   }
   return <div ref={wrapper} className={s.message} tabIndex={0} aria-label={label}>
     {children}
-    {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields} sections={moment.sections}
+    {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields} sections={moment.sections} defaultOpen={moment.open} pending={moment.pending}
       imageLabel={image ? "查看此刻画面" : imageAction === "生成图片" ? "解锁此刻画面" : imageAction}
       imageHint={image ? "这一轮剧情已经画好" : imageShort ? `可用 Credit 不足，解锁需要 ${MEDIA_CREDIT_COST.image} Credit` : "根据这一轮剧情生成 · 100 Credit"}
       disabled={!showImageAction || imageDisabled} onImage={handleImage}
@@ -344,10 +414,13 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
           title={audioShort ? `可用 Credit 不足，生成语音需要 ${MEDIA_CREDIT_COST.audio} Credit` : undefined}
           aria-label={`${label}${audioAction}`}>
           <Icon name="volume" size={15} /><span>{audioAction}</span>{!audio && <small>20 Credit</small>}</button>
-        {showImageAction && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={handleImage}
+        {showImageAction && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={() => handleImage()}
           title={imageShort ? `可用 Credit 不足，生成图片需要 ${MEDIA_CREDIT_COST.image} Credit` : undefined}
           aria-label={`${label}${imageAction}`}>
           <Icon name="image" size={15} /><span>{imageAction}</span>{!image && <small>100 Credit</small>}</button>}
+        {image && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={() => handleImage(true)}
+          title="重新生成会再次使用 100 Credit" aria-label={`${label}重新生图`}>
+          <Icon name="refresh" size={15} /><span>重新生图</span><small>100 Credit</small></button>}
       </>}
     </div>
     {generating && !(moment && generating === "image") && <div className={s.progress} role="status"><span className={s.loader} />{generating === "audio" ? "正在生成角色语音…" : "正在绘制这一幕…"}</div>}

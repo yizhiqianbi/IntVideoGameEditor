@@ -203,7 +203,9 @@ export default function Icon({
       strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
+      vectorEffect="non-scaling-stroke"
       aria-hidden="true"
+      data-icon={name}
       style={style}
       className={className}
     >

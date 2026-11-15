@@ -17,11 +17,11 @@ test("frontend copy stays on outerwear removal, not undress", () => {
   // assert.doesNotMatch(`${OUTERWEAR_COPY.detail} ${OUTERWEAR_COPY.hint}`, /脱衣|裸露|性化|不能填写/);
 });
 
-test("request builder never sends a user prompt", () => {
-  const request = buildRemoveOuterwearRequest(IMAGE, { adultConfirmed: true });
+test("request builder sends the typed prompt with the image", () => {
+  const request = buildRemoveOuterwearRequest(IMAGE, { adultConfirmed: true, prompt: "保留脸。" });
   assert.equal(request.url, "/api/remove-outerwear");
   assert.equal(request.headers[ADULT_HEADER], "1");
-  assert.deepEqual(JSON.parse(request.body), { image: IMAGE });
+  assert.deepEqual(JSON.parse(request.body), { image: IMAGE, prompt: "保留脸。" });
 });
 
 test("client blocks submit before the age gate", async () => {

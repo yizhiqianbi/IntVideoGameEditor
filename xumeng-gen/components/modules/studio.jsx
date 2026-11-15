@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { OUTERWEAR_COPY, fileToDataUrl, submitRemoveOuterwear } from "./remove-outerwear-client.js";
 import { NOVEL_COPY, defaultCount, submitNovel } from "./novel-client.js";
-import { submitAnimeFace, submitImageVideo, submitTextImage } from "./studio-client.js";
+import { DEFAULT_PROMPTS } from "./prompt-defaults.js";
+import { optimizePrompt, optimizeVideoPrompt, submitAnimeFace, submitImageVideo, submitTextImage } from "./studio-client.js";
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif|tiff?)$/i;
 
@@ -35,7 +36,7 @@ function readImage(file, setFile, setError) {
   setFile(file);
 }
 
-function PictureField({ title, hint, url, tall, onFile }) {
+function PictureField({ title, hint, mark, url, tall, onFile }) {
   const [over, setOver] = useState(false);
   return (
     <label
@@ -59,10 +60,12 @@ function PictureField({ title, hint, url, tall, onFile }) {
       />
       {url ? <img src={url} alt="" /> : (
         <>
+          <span className="plus" aria-hidden="true">+</span>
           <strong>{title}</strong>
           <span>{hint}</span>
         </>
       )}
+      {url && mark ? <em className="ref-mark">{mark}</em> : null}
     </label>
   );
 }
@@ -88,9 +91,116 @@ function Chips({ label, value, options, onChange }) {
   );
 }
 
+function Lead({ title, line }) {
+  return (
+    <p className="lead">
+      <strong>{title}</strong>
+      <span>{line}</span>
+    </p>
+  );
+}
+
+function Guide({ steps }) {
+  return (
+    <aside className="guide">
+      <p className="guide-kicker">新手教程</p>
+      <p className="guide-title">三步轻创作</p>
+      <ol>
+        {steps.map(step => <li key={step}>{step}</li>)}
+      </ol>
+    </aside>
+  );
+}
+
+function Notes({ items }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="notes">
+      <button type="button" aria-expanded={open} onClick={() => setOpen(value => !value)}>注意事项</button>
+      {open ? <ul>{items.map(item => <li key={item}>{item}</li>)}</ul> : null}
+    </div>
+  );
+}
+
+function ExampleBar({ text, onUse }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="example-bar" onClick={() => setOpen(true)}>生成效果示例</button>
+      {open ? (
+        <div className="sheet" role="dialog" aria-label="生成效果示例">
+          <p>{text}</p>
+          {onUse ? <button type="button" className="primary" onClick={() => { onUse(text); setOpen(false); }}>使用这段描述</button> : null}
+          <button type="button" className="ghost" onClick={() => setOpen(false)}>关闭</button>
+        </div>
+      ) : null}
+    </>
+  );
+}
+
+function RatioCards({ value, onChange }) {
+  const options = [
+    { id: "square", label: "正方形" },
+    { id: "landscape", label: "横版" },
+    { id: "portrait", label: "竖版" },
+  ];
+  return (
+    <div>
+      <p className="meta">图片比例</p>
+      <div className="choices" role="radiogroup" aria-label="图片比例">
+        {options.map(option => (
+          <button type="button" key={option.id} role="radio" aria-checked={value === option.id} onClick={() => onChange(option.id)}>{option.label}</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function DurationCards({ value, onChange }) {
+  return (
+    <div>
+      <p className="meta">视频时长</p>
+      <div className="choices" role="radiogroup" aria-label="视频时长">
+        {["5", "10", "15"].map(item => (
+          <button type="button" key={item} role="radio" aria-checked={value === item} onClick={() => onChange(item)}>{item} 秒</button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function PromptBox({ label, value, onChange, max, min, ideas, placeholder, polish }) {
+  const [polishing, setPolishing] = useState(false);
+  const count = value.trim().length;
+  async function runPolish() {
+    if (!polish || polishing) return;
+    setPolishing(true);
+    try { await polish(value); } finally { setPolishing(false); }
+  }
+  return (
+    <div className="prompt-box">
+      <div className="field-head">
+        <p className="meta">{label} <em>必填</em></p>
+        <button type="button" disabled={polishing} onClick={polish ? runPolish : () => onChange(ideas[Math.floor(Math.random() * ideas.length)])}>{polishing ? "优化中…" : polish ? "提示词优化" : "试试灵感文案"}</button>
+        {value ? <button type="button" onClick={() => onChange("")}>清空</button> : null}
+      </div>
+      <textarea maxLength={max} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
+      <span className="count">{count}/{max}</span>
+      {count > 0 && count < min ? <p className="warn">请至少输入 {min} 个字符</p> : null}
+    </div>
+  );
+}
+
+const COMMON_NOTES = [
+  "描述越具体，结果越接近预期。",
+  "生成结果会有差异，以实际画面为准。",
+  "请使用你有权使用的图片和文字。",
+];
+
 function FaceForm() {
   const [face, setFace] = useState(null);
   const [scene, setScene] = useState(null);
+  const [prompt, setPrompt] = useState(DEFAULT_PROMPTS.face);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
@@ -108,7 +218,7 @@ function FaceForm() {
     setError("");
     setBusy(true);
     try {
-      const result = await submitAnimeFace(await fileToDataUrl(face), await fileToDataUrl(scene));
+      const result = await submitAnimeFace(await fileToDataUrl(face), await fileToDataUrl(scene), DEFAULT_PROMPTS.face);
       if (!result.ok) {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         setResultUrl("");
@@ -128,17 +238,19 @@ function FaceForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
+        <Lead title="AI 换脸" line="一键替换人脸，轻松创作" />
         <div className="pair">
-          <PictureField title="脸" hint="成年二次元" url={faceUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setFace, setError); }} />
-          <PictureField title="画面" hint="成年二次元" url={sceneUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setScene, setError); }} />
+          <PictureField title="选择素材" hint="原始画面，JPG、PNG" url={sceneUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setScene, setError); }} />
+          <PictureField title="选择素材" hint="目标人脸，JPG、PNG" url={faceUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setFace, setError); }} />
         </div>
+        <Guide steps={["上传原始画面", "上传目标人脸", "开始生成"]} />
+        <ExampleBar text="把参考脸换进原画面，保留姿势、服装和背景。" />
+        <Notes items={["请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy}>{busy ? "核验中…" : "开始换脸"}</button>
+        <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
-      <aside className="preview" aria-label="预览">
-        {busy ? <p className="hint" role="status">先核验两张图是不是成年二次元，通过后才换脸。</p> : null}
-        {!busy && resultUrl ? <img src={resultUrl} alt="换脸结果" /> : null}
-        {!busy && !resultUrl ? <p className="hint">换好的画面会显示在这里。</p> : null}
+      <aside className="preview" id="result" aria-label="预览" hidden={!resultUrl}>
+        {resultUrl ? <img src={resultUrl} alt="换脸结果" /> : null}
       </aside>
     </>
   );
@@ -146,12 +258,29 @@ function FaceForm() {
 
 function CoatForm() {
   const [file, setFile] = useState(null);
+  const [references, setReferences] = useState([]);
+  const [ratio, setRatio] = useState("portrait");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
+  const [referencePreviews, setReferencePreviews] = useState([]);
   const url = usePreview(file);
 
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => {
+    const urls = references.map(item => URL.createObjectURL(item));
+    setReferencePreviews(urls);
+    return () => urls.forEach(item => URL.revokeObjectURL(item));
+  }, [references]);
+
+  function takeReferences(list) {
+    const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
+    if (!incoming.length) return;
+    setError("");
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setReferences(current => [...current, ...incoming].slice(0, 2));
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -163,7 +292,9 @@ function CoatForm() {
     setBusy(true);
     try {
       const image = await fileToDataUrl(file);
-      const result = await submitRemoveOuterwear(image, { adultConfirmed: true });
+      const extras = [];
+      for (const item of references) extras.push(await fileToDataUrl(item));
+      const result = await submitRemoveOuterwear(image, { adultConfirmed: true, prompt: DEFAULT_PROMPTS.coat, ratio, references: extras });
       if (!result.ok) {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         setResultUrl("");
@@ -183,11 +314,12 @@ function CoatForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
+        <Lead title="上传一张人物图" line="选好比例，直接开始生成" />
+        <div className="stage">
         <PictureField
-          title="上传人物图"
-          hint="点击或把图片拖到这里"
+          title="点击上传图片"
+          hint="人物图，JPG、PNG"
           url={url}
-          tall
           onFile={next => {
             setError("");
             if (resultUrl) URL.revokeObjectURL(resultUrl);
@@ -195,10 +327,14 @@ function CoatForm() {
             readImage(next, setFile, setError);
           }}
         />
+        <Guide steps={["上传人物图片", "选择比例", "开始生成"]} />
+        </div>
+        <Notes items={COMMON_NOTES} />
+        <RatioCards value={ratio} onChange={value => { setResultUrl(""); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy}>{busy ? "处理中…" : OUTERWEAR_COPY.button}</button>
+        <button className="primary wide" type="submit" disabled={busy || !file}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
-      <aside className="preview" aria-label="预览">
+      <aside className="preview" id="result" aria-label="预览">
         {resultUrl ? <img src={resultUrl} alt="移除外套后的结果" /> : <p className="hint">{OUTERWEAR_COPY.hint}</p>}
       </aside>
     </>
@@ -206,27 +342,48 @@ function CoatForm() {
 }
 
 function VideoForm() {
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
+  const [mode, setMode] = useState("first");
   const [action, setAction] = useState("");
-  const [seconds, setSeconds] = useState("8");
+  const [seconds, setSeconds] = useState("5");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
-  const url = usePreview(file);
+  const [previews, setPreviews] = useState([]);
 
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => {
+    const urls = files.map(file => URL.createObjectURL(file));
+    setPreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
+
+  function takeFiles(list) {
+    const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
+    if (!incoming.length) return;
+    setError("");
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setFiles(current => (mode === "first" ? incoming.slice(0, 1) : [...current, ...incoming]).slice(0, 10));
+  }
+
+  function chooseMode(next) {
+    setMode(next);
+    if (next === "first") setFiles(current => current.slice(0, 1));
+  }
 
   async function submit(event) {
     event.preventDefault();
-    if (!file) {
-      setError("先上传一张图。");
+    if (!files.length) {
+      setError(mode === "reference" ? "先上传至少一张参考图。" : "先上传一张图。");
       return;
     }
     setError("");
     setBusy(true);
     try {
-      const image = await fileToDataUrl(file);
-      const result = await submitImageVideo(image, action, seconds);
+      const images = [];
+      for (const file of files) images.push(await fileToDataUrl(file));
+      const result = await submitImageVideo(images, action, seconds, mode);
       if (!result.ok) {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         setResultUrl("");
@@ -246,21 +403,37 @@ function VideoForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <PictureField title="首帧" hint="点击或拖入一张图" url={url} onFile={next => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(next, setFile, setError); }} />
-        <label>
-          这一镜的动作
-          <textarea value={action} placeholder="例如：转过身，看向镜头。" onChange={event => { setResultUrl(""); setAction(event.target.value); }} />
-        </label>
-        <Chips
-          label="时长"
-          value={seconds}
-          options={[{ id: "8", label: "8 秒" }, { id: "20", label: "20 秒" }]}
-          onChange={id => { setResultUrl(""); setSeconds(id); }}
+        <Lead title="把图片变成一段视频" line="上传一张清晰图片，再描述想看到的动作。" />
+        <div className="stage">
+          <PictureField title="点击上传图片" hint="支持 JPG、PNG" url={previews[0] || ""} onFile={file => takeFiles(file)} />
+          <Guide steps={["上传一张清晰图片", "输入想生成的视频内容", "选择时长，开始生成"]} />
+        </div>
+        <ExampleBar text="人物微笑着缓缓转身，微风吹动头发，镜头逐渐拉近。" onUse={value => { setResultUrl(""); setAction(value); }} />
+        <Notes items={["上传图片需清晰，主体明确。", "描述人物动作、场景变化或镜头效果。", ...COMMON_NOTES]} />
+        <PromptBox
+          label="视频内容描述"
+          value={action}
+          max={800}
+          min={5}
+          placeholder="例如：人物微笑着缓缓转身，微风吹动头发，镜头逐渐拉近。"
+          onChange={value => { setResultUrl(""); setAction(value); }}
+          polish={async text => {
+            setError("");
+            const result = await optimizeVideoPrompt(text);
+            if (!result.ok) {
+              setError(result.error);
+              return;
+            }
+            if (resultUrl) URL.revokeObjectURL(resultUrl);
+            setResultUrl("");
+            setAction(result.prompt);
+          }}
         />
+        <DurationCards value={seconds} onChange={value => { setResultUrl(""); setSeconds(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy}>{busy ? "生成中…" : "生成视频"}</button>
+        <button className="primary wide" type="submit" disabled={busy || !files.length || action.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
-      <aside className="preview" aria-label="预览">
+      <aside className="preview" id="result" aria-label="预览">
         {busy ? <p className="hint" role="status">正在生成视频…</p> : null}
         {!busy && resultUrl ? <video src={resultUrl} controls /> : null}
         {!busy && !resultUrl ? <p className="hint">视频会显示在这里。</p> : null}
@@ -270,9 +443,12 @@ function VideoForm() {
 }
 
 const IMAGE_STYLES = [
-  { id: "anime", label: "二次元" },
+  { id: "anime", label: "动漫" },
   { id: "photo", label: "写实" },
-  { id: "comic", label: "动漫" },
+  { id: "paint", label: "厚涂" },
+  { id: "water", label: "水彩" },
+  { id: "guofeng", label: "国风" },
+  { id: "render", label: "3D" },
 ];
 const IMAGE_CLARITY = [
   { id: "sd", label: "标清" },
@@ -281,14 +457,29 @@ const IMAGE_CLARITY = [
 ];
 
 function ImageForm() {
+  const [files, setFiles] = useState([]);
   const [prompt, setPrompt] = useState("");
-  const [style, setStyle] = useState("anime");
-  const [clarity, setClarity] = useState("hd");
+  const [ratio, setRatio] = useState("portrait");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
+  const [previews, setPreviews] = useState([]);
 
   useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => {
+    const urls = files.map(file => URL.createObjectURL(file));
+    setPreviews(urls);
+    return () => urls.forEach(url => URL.revokeObjectURL(url));
+  }, [files]);
+
+  function takeFiles(list) {
+    const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
+    if (!incoming.length) return;
+    setError("");
+    if (resultUrl) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setFiles(incoming.slice(0, 1));
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -299,7 +490,9 @@ function ImageForm() {
     setError("");
     setBusy(true);
     try {
-      const result = await submitTextImage(prompt, style, clarity);
+      const images = [];
+      for (const file of files) images.push(await fileToDataUrl(file));
+      const result = await submitTextImage({ prompt, ratio, image: images[0] || "" });
       if (!result.ok) {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         setResultUrl("");
@@ -319,16 +512,27 @@ function ImageForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <label>
-          画面
-          <textarea value={prompt} placeholder="人物、服装、场景、光线。" onChange={event => { setResultUrl(""); setPrompt(event.target.value); }} />
-        </label>
-        <Chips label="风格" value={style} options={IMAGE_STYLES} onChange={id => { setResultUrl(""); setStyle(id); }} />
-        <Chips label="清晰度" value={clarity} options={IMAGE_CLARITY} onChange={id => { setResultUrl(""); setClarity(id); }} />
+        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，让灵感变成图片" />
+        <div className="stage">
+          <PictureField title="点击上传图片" hint="选填，JPG、PNG" url={previews[0] || ""} onFile={file => takeFiles(file)} />
+          <Guide steps={["上传参考图片，可以不传", "输入想生成的画面", "选择比例，开始生成"]} />
+        </div>
+        <PromptBox
+          label="画面描述"
+          value={prompt}
+          max={200}
+          min={5}
+          ideas={["月光下的古风少女站在樱花树旁，远处山峦若隐若现，梦幻电影质感。", "窗边的蓝色灯塔，晨光平静，清晰的摄影质感。"]}
+          placeholder="例如：月光下的古风少女站在樱花树旁，远处山峦若隐若现"
+          onChange={value => { setResultUrl(""); setPrompt(value); }}
+        />
+        <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { setResultUrl(""); setPrompt(value); }} />
+        <Notes items={COMMON_NOTES} />
+        <RatioCards value={ratio} onChange={value => { setResultUrl(""); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy}>{busy ? "生成中…" : "生成图片"}</button>
+        <button className="primary wide" type="submit" disabled={busy || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
-      <aside className="preview" aria-label="预览">
+      <aside className="preview" id="result" aria-label="预览">
         {busy ? <p className="hint" role="status">正在生成图片…</p> : null}
         {!busy && resultUrl ? <img src={resultUrl} alt="生成的图片" /> : null}
         {!busy && !resultUrl ? <p className="hint">图片会显示在这里。</p> : null}
@@ -337,45 +541,41 @@ function ImageForm() {
   );
 }
 
+const NOVEL_GENRES = ["都市", "玄幻", "古风", "悬疑", "校园", "科幻"];
+
 function NovelForm() {
-  const [mode, setMode] = useState("new");
-  const [text, setText] = useState("");
   const [character, setCharacter] = useState("");
-  const [scene, setScene] = useState("");
-  const [details, setDetails] = useState("");
-  const [count, setCount] = useState(defaultCount("new"));
+  const [text, setText] = useState("");
+  const [genre, setGenre] = useState("");
+  const [count, setCount] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState("");
-
-  function changeMode(next) {
-    setMode(next);
-    setError("");
-    setResult("");
-    setCount(defaultCount(next));
-  }
+  const words = Number(count);
+  const countOk = Number.isInteger(words) && words >= 1 && words <= 6000;
 
   async function submit(event) {
     event.preventDefault();
-    if (mode === "new" && !text.trim()) {
-      setError(NOVEL_COPY.needPlot);
+    if (character.trim().length < 2) {
+      setError(character.trim() ? "请至少输入 2 个字符。" : "先写下人物设定。");
       return;
     }
-    if (mode === "continue" && !text.trim()) {
-      setError(NOVEL_COPY.needSource);
+    if (text.trim().length < 10) {
+      setError(text.trim() ? "请至少输入 10 个字符。" : NOVEL_COPY.needPlot);
+      return;
+    }
+    if (!countOk) {
+      setError("请输入 1 到 6000 之间的整数。");
       return;
     }
     setError("");
     setBusy(true);
     try {
       const outcome = await submitNovel({
-        mode,
-        description: mode === "new" ? text : "",
-        source: mode === "continue" ? text : "",
-        character_setting: character,
-        location_scene: scene,
-        details,
-        count,
+        mode: "new",
+        description: genre ? `题材：${genre}。${text.trim()}` : text.trim(),
+        character_setting: character.trim(),
+        count: String(words),
       }, { adultConfirmed: true });
       if (!outcome.ok) {
         setResult("");
@@ -394,52 +594,51 @@ function NovelForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Chips
-          label="写法"
-          value={mode}
-          options={[{ id: "new", label: "新写" }, { id: "continue", label: "续写" }]}
-          onChange={changeMode}
+        <Lead title="让你的灵感成为故事" line="写清人物和情节，AI 为你创作专属小说" />
+        <PromptBox
+          label="人物设定"
+          value={character}
+          max={800}
+          min={2}
+          placeholder="例如：林晚，二十八岁，书店店主，话少。"
+          onChange={value => { setResult(""); setCharacter(value); }}
+          polish={async value => {
+            setError("");
+            const outcome = await optimizePrompt(value, "character");
+            if (!outcome.ok) {
+              setError(outcome.error);
+              return;
+            }
+            setResult("");
+            setCharacter(outcome.prompt);
+          }}
         />
+        <PromptBox
+          label="故事描述"
+          value={text}
+          max={300}
+          min={10}
+          ideas={["一个平凡少年意外获得预知未来的能力，却发现每次改变命运都会付出意想不到的代价。", "雨夜的旧书店里，一位三十岁的旅人打开一本没有结局的书。"]}
+          placeholder="例如：一个平凡少年意外获得预知未来的能力……"
+          onChange={value => { setResult(""); setText(value); }}
+        />
+        <Notes items={["请尽量写清人物、背景和主要情节。", "篇幅和情节会有差异，以生成结果为准。", "请勿生成违法或侵犯他人权益的内容。"]} />
+        <div>
+          <p className="meta">故事题材 选填</p>
+          <div className="chips" role="radiogroup" aria-label="故事题材">
+            {NOVEL_GENRES.map(item => (
+              <button type="button" key={item} role="radio" aria-checked={genre === item} onClick={() => setGenre(current => current === item ? "" : item)}>{item}</button>
+            ))}
+          </div>
+        </div>
         <label>
-          {mode === "new" ? NOVEL_COPY.plot : NOVEL_COPY.source}
-          <textarea
-            value={text}
-            placeholder={mode === "new" ? NOVEL_COPY.plotHint : NOVEL_COPY.sourceHint}
-            onChange={event => { setResult(""); setText(event.target.value); }}
-          />
+          小说字数 必填
+          <input type="number" inputMode="numeric" min="1" max="6000" value={count} placeholder="请输入 1 到 6000" onChange={event => { setResult(""); setCount(event.target.value); }} />
         </label>
-        <label>
-          {NOVEL_COPY.character}
-          <input value={character} placeholder={NOVEL_COPY.optional} onChange={event => { setResult(""); setCharacter(event.target.value); }} />
-        </label>
-        <label>
-          {NOVEL_COPY.scene}
-          <input value={scene} placeholder={NOVEL_COPY.optional} onChange={event => { setResult(""); setScene(event.target.value); }} />
-        </label>
-        <label>
-          {NOVEL_COPY.details}
-          <textarea
-            value={details}
-            placeholder={NOVEL_COPY.optional}
-            onChange={event => { setResult(""); setDetails(event.target.value); }}
-          />
-        </label>
-        <label>
-          {mode === "new" ? NOVEL_COPY.count : NOVEL_COPY.continueCount}
-          <input
-            type="number"
-            inputMode="numeric"
-            min={mode === "continue" ? 500 : 1}
-            max={mode === "continue" ? 2000 : 20000}
-            value={count}
-            onChange={event => { setResult(""); setCount(event.target.value); }}
-          />
-        </label>
-        <p className="hint">{mode === "new" ? NOVEL_COPY.countHint : NOVEL_COPY.continueCountHint}</p>
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy}>{busy ? NOVEL_COPY.waiting : (mode === "new" ? NOVEL_COPY.write : NOVEL_COPY.continue)}</button>
+        <button className="primary wide" type="submit" disabled={busy || character.trim().length < 2 || text.trim().length < 10 || !countOk}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
-      <aside className="preview preview-text" aria-label="预览">
+      <aside className="preview preview-text" id="result" aria-label="预览">
         {busy ? <p className="hint" role="status">{NOVEL_COPY.waiting}</p> : null}
         {!busy && result ? <pre>{result}</pre> : null}
         {!busy && !result ? <p className="hint">正文会显示在这里。</p> : null}
@@ -448,21 +647,9 @@ function NovelForm() {
   );
 }
 
-const DETAIL = {
-  face: "脸和画面都要是成年二次元。",
-  coat: OUTERWEAR_COPY.detail,
-  video: "上传一张图，再写一句这一镜的动作。",
-  image: "只写画面。不上传图片。",
-  novel: NOVEL_COPY.detail,
-};
-
 export default function Studio({ item }) {
   return (
-    <section className={item.id === "coat" ? "studio single" : "studio"} aria-labelledby="module-title">
-      <div className="intro">
-        <h1 id="module-title">{item.label}</h1>
-        <p>{DETAIL[item.id]}</p>
-      </div>
+    <section className="studio" aria-labelledby="module-title">
       {item.id === "face" ? <FaceForm /> : null}
       {item.id === "coat" ? <CoatForm /> : null}
       {item.id === "video" ? <VideoForm /> : null}

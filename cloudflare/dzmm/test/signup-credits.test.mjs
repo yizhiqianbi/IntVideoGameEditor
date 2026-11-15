@@ -57,7 +57,7 @@ function verify(client, challenge, env, extra = {}) {
 }
 async function grants(userId) { return (await DB.prepare('SELECT * FROM trusted_credit_grants WHERE user_id=?').bind(userId).all()).results; }
 async function checkGift(client, expected = NEW_SIGNUP_CREDITS) {
-  const rows = await grants(client.user.id);
+  const rows = (await grants(client.user.id)).filter(row => row.reason === 'new_signup');
   assert.equal(rows.length, expected ? 1 : 0);
   if (expected) {
     assert.equal(rows[0].grant_key, `new_signup:${client.user.id}`); assert.equal(rows[0].credits, expected);
@@ -66,12 +66,11 @@ async function checkGift(client, expected = NEW_SIGNUP_CREDITS) {
   if (client.user.isGuest) {
     assert.equal(expected, 0);
     expect(await client.request('/v1/payments/wallet'), 403);
-    const balance = await DB.prepare('SELECT balance FROM credit_usage_balances WHERE user_id=?').bind(client.user.id).first();
-    assert.equal(balance.balance, 0);
     return undefined;
   }
+  const welcome = (await grants(client.user.id)).filter(row => row.reason === 'guest_welcome').reduce((sum, row) => sum + row.credits, 0);
   const wallet = expect(await client.request('/v1/payments/wallet'), 200);
-  assert.equal(wallet.balance, expected); assert.equal(wallet.totalPurchased, 0); assert.equal(wallet.totalSubscriptionGranted, 0);
+  assert.equal(wallet.balance, expected + welcome); assert.equal(wallet.totalPurchased, 0); assert.equal(wallet.totalSubscriptionGranted, 0);
   assert.equal(wallet.reservedCredits, 0); assert.equal(wallet.totalSpent, 0); assert.deepEqual(wallet.orders, []);
   assert.equal((await DB.prepare('SELECT COUNT(*) AS n FROM subscription_credit_ledger WHERE user_id=?').bind(client.user.id).first()).n, 0);
   return rows[0];
@@ -88,16 +87,16 @@ test('public signup config describes a fixed one-time gift without a claim endpo
   const f = fixture(), client = new Client(f);
   const noDB = { ...f.env, DB: { prepare() { throw new Error('configuration must not touch the ledger'); } } };
   const config = expect(await client.request('/v1/auth/signup/config', { env: noDB }), 200);
-  assert.deepEqual(config, publicSignupCreditConfig()); assert.equal(NEW_SIGNUP_CREDITS, 300); assert.equal(config.credits, 300);
+  assert.deepEqual(config, publicSignupCreditConfig()); assert.equal(NEW_SIGNUP_CREDITS, 100); assert.equal(config.credits, 100);
   assert.equal(config.oncePerAccount, true);
   assert.equal(config.includesAutomaticReplySuggestions, true); assert.equal(config.billingRule, 'actual_cost_x3');
-  assert.match(config.note, /300 Credit/); assert.doesNotMatch(config.note, /10 轮|1,500/);
+  assert.match(config.note, /100 Credit/); assert.doesNotMatch(config.note, /10 轮|1,500|300 Credit/);
   assert.match(config.note, /模型、上下文和回复长度/); assert.match(config.note, /预留并非实际扣费/);
   expect(await client.request('/v1/auth/signup/config', { body: { credits: 999999999 } }), 405);
   expect(await client.request('/v1/auth/signup/claim', { body: {} }), 404);
 });
 
-test('password signup awards exactly 300, ignores client amounts and subsequent login never awards again', async () => {
+test('password signup awards exactly 100, ignores client amounts and subsequent login never awards again', async () => {
   const f = fixture(), client = new Client(f);
   expect(await register(client, { credits: 999999999, signupCredits: -1 }), 201);
   const original = await checkGift(client);
@@ -212,6 +211,17 @@ test('pre-existing accounts and guests receive no retroactive gift through passw
   const challenge = await requestCode(guestClient), login = expect(await verify(guestClient, challenge), 200);
   assert.equal(login.registered, false); assert.equal(login.user.id, userId); await checkGift(guestClient, 0);
   assert.equal((await DB.prepare('SELECT is_guest FROM users WHERE id=?').bind(guest.id).first()).is_guest, 1);
-  assert.deepEqual(await grants(guest.id), []);
+  assert.deepEqual((await grants(guest.id)).filter(row => row.reason === 'new_signup'), []);
+});
+
+test('a second incognito guest from the same network does not receive another welcome', async () => {
+  const f = fixture();
+  const first = new Client(f);
+  const firstUser = expect(await first.request('/v1/auth/guest', { body: {} }), 200).user;
+  const second = new Client(f);
+  const secondUser = expect(await second.request('/v1/auth/guest', { body: {} }), 200).user;
+  assert.notEqual(firstUser.id, secondUser.id);
+  assert.equal((await grants(firstUser.id)).filter(row => row.reason === 'guest_welcome').length, 1);
+  assert.deepEqual(await grants(secondUser.id), []);
 });
 

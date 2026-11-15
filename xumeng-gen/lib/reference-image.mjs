@@ -57,6 +57,62 @@ async function convertToJpeg(bytes) {
   }
 }
 
+export function videoFramePlan(width, height) {
+  const sourceWidth = Math.round(Number(width));
+  const sourceHeight = Math.round(Number(height));
+  if (sourceWidth < 1 || sourceHeight < 1) return null;
+  let cropWidth = sourceWidth;
+  let cropHeight = sourceHeight;
+  if (cropWidth / cropHeight > 2.5) cropWidth = Math.max(1, Math.round(cropHeight * 2.5));
+  else if (cropWidth / cropHeight < 0.4) cropHeight = Math.max(1, Math.round(cropWidth / 0.4));
+  let scale = 1;
+  const shortSide = Math.min(cropWidth, cropHeight);
+  const longSide = Math.max(cropWidth, cropHeight);
+  if (shortSide < 300) scale = 300 / shortSide;
+  if (longSide * scale > 6000) scale = 6000 / longSide;
+  return {
+    cropWidth,
+    cropHeight,
+    width: Math.max(1, Math.round(cropWidth * scale)),
+    height: Math.max(1, Math.round(cropHeight * scale)),
+  };
+}
+
+export async function fitVideoFrame(bytes) {
+  const dir = await mkdtemp(path.join(tmpdir(), "xumeng-frame-"));
+  const input = path.join(dir, sourceName(bytes));
+  const output = path.join(dir, "frame.jpg");
+  try {
+    await writeFile(input, bytes);
+    const { stdout } = await execFileAsync("sips", ["-g", "pixelWidth", "-g", "pixelHeight", input], { timeout: 20_000 });
+    const width = Number(/pixelWidth:\s*(\d+)/.exec(stdout)?.[1]);
+    const height = Number(/pixelHeight:\s*(\d+)/.exec(stdout)?.[1]);
+    const plan = videoFramePlan(width, height);
+    if (!plan) return null;
+    if (plan.cropWidth === width && plan.cropHeight === height && plan.width === width && plan.height === height) return null;
+    const args = [];
+    if (plan.cropWidth !== width || plan.cropHeight !== height) args.push("--cropToHeightWidth", String(plan.cropHeight), String(plan.cropWidth));
+    if (plan.width !== plan.cropWidth || plan.height !== plan.cropHeight) args.push("--resampleHeightWidth", String(plan.height), String(plan.width));
+    args.push("-s", "format", "jpeg", input, "--out", output);
+    await execFileAsync("sips", args, { timeout: 20_000 });
+    const jpeg = await readFile(output);
+    if (jpeg[0] !== 0xff || jpeg[1] !== 0xd8 || jpeg[2] !== 0xff) return null;
+    if (jpeg.length > MAX_BYTES) return null;
+    return { bytes: jpeg, type: "image/jpeg" };
+  } catch {
+    return null;
+  } finally {
+    await rm(dir, { recursive: true, force: true });
+  }
+}
+
+export async function prepareWandImage(bytes, type) {
+  if (type === "image/png" || type === "image/jpeg") return { bytes, type };
+  const jpeg = await convertToJpeg(bytes);
+  if (!jpeg || jpeg.length > MAX_BYTES) return null;
+  return { bytes: jpeg, type: "image/jpeg" };
+}
+
 export async function normalizeImage(value) {
   const decoded = decodePayload(value);
   if (!decoded) return { ok: false, error: "请先上传一张图片。" };

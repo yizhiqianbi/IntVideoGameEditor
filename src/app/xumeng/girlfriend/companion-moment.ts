@@ -1,6 +1,6 @@
 import { currentXumengMomentStatus, stripXumengMomentTails } from "../../../lib/xumeng-moment-status";
 
-const STYLE = /^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/;
+const STYLE = /\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/g;
 const OPENING = /\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g;
 
 function clean(value: string) {

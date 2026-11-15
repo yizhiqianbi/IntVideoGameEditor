@@ -4,7 +4,7 @@ import assert from "node:assert/strict";
 import { recommendationShelfTags } from "./xumeng-shelf-tags.ts";
 import {
   isPublicRecommendationCharacter, rankXumengRecommendations, recommendationDay, recommendationWindowStart,
-  toRecommendationCandidate, type RecommendationCandidate, type RecommendationDaily,
+  rotateRecommendationPage, toRecommendationCandidate, type RecommendationCandidate, type RecommendationDaily,
 } from "./xumeng-recommendations.ts";
 
 const NOW = Date.parse("2026-10-28T12:00:00+08:00");
@@ -259,6 +259,18 @@ test("home shelf places one new card after every three heated cards", () => {
   const withHot = rankXumengRecommendations({ surface: "home", now: NOW, candidates: [...heated, ...fresh, hot], daily: rows });
   assert.equal(withHot.ids[0], "hot");
   assert.equal(withHot.reasons.hot, "quality");
+});
+
+test("refreshing recommendations replaces the visible page", () => {
+  const ids = Array.from({ length: 30 }, (_, index) => `card-${index}`);
+  assert.deepEqual(rotateRecommendationPage(ids, 0, 24), ids);
+  assert.equal(rotateRecommendationPage(ids, 1, 24)[0], "card-24");
+  assert.equal(rotateRecommendationPage(ids, 1, 24)[6], "card-0");
+  assert.deepEqual(rotateRecommendationPage(["only"], 3, 24), ["only"]);
+  assert.equal(rotateRecommendationPage(ids, 1, 24).length, ids.length);
+  assert.deepEqual([...rotateRecommendationPage(ids, 1, 24)].sort(), [...ids].sort());
+  const short = ["a", "b", "c", "d"];
+  assert.equal(rotateRecommendationPage(short, 1, 24)[0], "d");
 });
 
 test("the same author and primary tag do not fill the first screen", () => {

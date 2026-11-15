@@ -13,6 +13,8 @@ const IMAGE_TYPES = new Map([
 const ALBUM_LIMIT = 200;
 
 type AlbumRow = { id: string; kind: "image" | "video"; mime_type: string; created_at: number; object_key: string };
+const PUBLIC_ALBUM_JOIN = `JOIN character_publications p ON p.private_character_id=r.character_id
+  JOIN character_submissions s ON s.publication_id=p.id AND s.revision=p.current_revision AND s.status='approved'`;
 
 function characterId(value: string): string {
   const id = value.trim();
@@ -36,7 +38,7 @@ export async function rememberChatImage(env: Env, userId: string, assetId: strin
       AND instr(c.character_id, char(0)) = 0
       AND length(a.object_key) BETWEEN 1 AND 512
       AND (SELECT COUNT(*) FROM relationship_album r WHERE r.user_id = a.user_id AND r.character_id = c.character_id) < ?
-    ON CONFLICT(user_id, source_asset_id) DO NOTHING`).bind(crypto.randomUUID(), createdAt, assetId, userId, ALBUM_LIMIT).run();
+    ON CONFLICT(user_id, source_asset_id) DO UPDATE SET object_key=excluded.object_key, mime_type=excluded.mime_type, created_at=excluded.created_at`).bind(crypto.randomUUID(), createdAt, assetId, userId, ALBUM_LIMIT).run();
 }
 
 async function readAlbumAsset(env: Env, user: UserRecord, id: string): Promise<Response> {
@@ -59,6 +61,30 @@ async function readAlbumAsset(env: Env, user: UserRecord, id: string): Promise<R
   });
   if (row.kind === "video") headers.set("Accept-Ranges", "bytes");
   return new Response(object.body as unknown as ReadableStream<Uint8Array>, { headers });
+}
+
+async function readPublicAlbumAsset(env: Env, id: string): Promise<Response> {
+  if (!env.MEDIA) throw new ApiError(503, "相册暂时无法打开。");
+  const row = await env.DB.prepare(`SELECT r.id, r.kind, r.mime_type, r.created_at, r.object_key FROM relationship_album r
+    ${PUBLIC_ALBUM_JOIN} WHERE r.id=?`).bind(id).first<AlbumRow>();
+  if (!row) throw new ApiError(404, "画面不存在。");
+  const object = await env.MEDIA.get(row.object_key);
+  if (!object || !("body" in object)) throw new ApiError(404, "画面不存在。");
+  const headers = new Headers({ "Content-Type": row.mime_type, "Cache-Control": "public, max-age=3600", "X-Content-Type-Options": "nosniff", "Content-Length": String(object.size) });
+  return new Response(object.body as unknown as ReadableStream<Uint8Array>, { headers });
+}
+
+export async function handlePublicRelationshipAlbum(request: Request, env: Env): Promise<Response | null> {
+  if (request.method !== "GET") return null;
+  const url = new URL(request.url);
+  const asset = /^\/v1\/relationship-album\/assets\/([a-f0-9-]{36})$/i.exec(url.pathname);
+  if (asset) return readPublicAlbumAsset(env, asset[1]);
+  if (url.pathname !== "/v1/relationship-album" || url.searchParams.getAll("characterId").length !== 1) return null;
+  const characterId = url.searchParams.get("characterId")?.trim() ?? "";
+  if (!characterId || characterId.length > 120 || /[\u0000-\u001f\u007f]/u.test(characterId)) throw new ApiError(400, "角色编号不正确。");
+  const rows = await env.DB.prepare(`SELECT r.id, r.kind, r.mime_type, r.created_at FROM relationship_album r
+    ${PUBLIC_ALBUM_JOIN} WHERE p.id=? ORDER BY r.created_at DESC, r.id DESC LIMIT ?`).bind(characterId, ALBUM_LIMIT).all<AlbumRow>();
+  return json({ items: (rows.results ?? []).map(row => ({ id: row.id, kind: row.kind, mimeType: row.mime_type, createdAt: row.created_at })) });
 }
 
 async function rememberOwnedImage(request: Request, env: Env, user: UserRecord): Promise<Response> {

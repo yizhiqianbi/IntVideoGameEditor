@@ -26,10 +26,11 @@ test("a version conflict is not pushed over the cloud copy", () => {
   assert.match(dzmmExplicitSaveStopMessage("conflict"), /加载云端版本/);
 });
 
-test("a draft without a local backup is not resumed", () => {
-  assert.equal(planDzmmExplicitSave({ ...ready, paused: true, persisted: false }), "incomplete");
-  assert.equal(planDzmmExplicitSave({ ...ready, paused: true, storageWarning: true }), "incomplete");
+test("a full browser store still resumes the cloud copy for the current account", () => {
+  assert.equal(planDzmmExplicitSave({ ...ready, paused: true, persisted: false }), "resume");
+  assert.equal(planDzmmExplicitSave({ ...ready, paused: true, storageWarning: true }), "resume");
   assert.equal(planDzmmExplicitSave({ ...ready, storageWarning: true }), "write");
+  assert.equal(planDzmmExplicitSave({ ...ready, accountId: null, persisted: false }), "incomplete");
   assert.match(dzmmExplicitSaveStopMessage("incomplete"), /导出记录/);
 });
 

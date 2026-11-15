@@ -10,6 +10,14 @@ function clearing(cookie: string) {
   return /;\s*Max-Age=0(?:\s*;|$)/i.test(cookie) || /^dzmm_session=(?:;|$)/i.test(cookie.trim());
 }
 
+/** The backend sees /v1/auth, while the browser talks to /api/backend/v1/auth. */
+export function publicOauthCookie(cookie: string, prefix: string) {
+  if (!/^xumeng_oauth=/i.test(cookie.trim())) return cookie;
+  const root = prefix.endsWith("/") ? prefix.slice(0, -1) : prefix;
+  if (!/^\/api\/[A-Za-z0-9/_-]+$/.test(root)) return cookie;
+  return cookie.replace(/;\s*Path=\/v1\/auth(?=;|$)/i, `; Path=${root}/v1/auth`);
+}
+
 /** Login on either public host becomes one session for both sites. */
 export function sharedSessionCookies(hostname: string, cookies: string[]): string[] {
   const host = hostname.toLowerCase().split(":")[0];

@@ -89,6 +89,7 @@ import {
 } from "../../lib/projects";
 import { isDramaSnapshot } from "../../lib/drama-archive";
 import { setStoredActiveProjectId } from "../../lib/project-session";
+import { prepareReferenceImage } from "../../lib/xumeng-reference-file";
 import {
   applyDemoVisuals,
   DEMO_AGENT_DRAFT,
@@ -782,6 +783,17 @@ async function dataUrlToFile(dataUrl: string, fileName: string) {
   });
 }
 
+async function readReferenceAssetDataUrl(
+  references: CharacterDefinition["referenceImageAssetRefs"] | SceneDefinition["referenceImageAssetRefs"],
+  runtimeAssets: Record<string, RuntimeAsset>,
+) {
+  const reference = references
+    .map((assetRef) => runtimeAssets[assetRef.assetId])
+    .find((asset): asset is RuntimeAsset & { kind: "image" } => Boolean(asset && asset.kind === "image"));
+  if (!reference) return undefined;
+  return (await prepareReferenceImage(reference.file)).dataUrl;
+}
+
 async function fetchExportMediaBlob(sourceUrl: string) {
   return fetchRemoteMedia(sourceUrl);
 }
@@ -1334,23 +1346,28 @@ export function EditorShell({
       return;
     }
 
-    const prompt = buildCharacterImagePrompt({
-      name: character.name,
-      bio: character.bio,
-      basePrompt: character.basePrompt,
-    });
-
     generatingCharacterIdsRef.current.add(character.id);
     setGeneratingCharacterIds((currentIds) =>
       currentIds.includes(character.id) ? currentIds : [...currentIds, character.id],
     );
 
     try {
+      const image = await readReferenceAssetDataUrl(
+        character.referenceImageAssetRefs,
+        assetRuntimeMap,
+      );
+      const prompt = buildCharacterImagePrompt({
+        name: character.name,
+        bio: character.bio,
+        basePrompt: character.basePrompt,
+        hasReference: Boolean(image),
+      });
       const { data: result, error } = await imageApi.generateImage({
         apiKey: character.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
         prompt,
         model: character.imageModel,
         size: "1K",
+        ...(image ? { image } : {}),
       });
 
       if (!result?.b64Json) {
@@ -1365,7 +1382,9 @@ export function EditorShell({
       appendCharacterReferenceFiles(character.id, [file]);
       setNotice({
         tone: "success",
-        message: `已为「${character.name}」生成参考图。`,
+        message: image
+          ? `已使用现有参考图为「${character.name}」完成参考图生图。`
+          : `已为「${character.name}」生成参考图。`,
       });
     } catch (error) {
       setNotice({
@@ -3116,17 +3135,22 @@ export function EditorShell({
       return;
     }
 
-    const prompt = buildSceneImagePrompt({
-      name: scene.name,
-      description: scene.description,
-      basePrompt: scene.basePrompt,
-    });
-
     try {
+      const image = await readReferenceAssetDataUrl(
+        scene.referenceImageAssetRefs,
+        assetRuntimeMap,
+      );
+      const prompt = buildSceneImagePrompt({
+        name: scene.name,
+        description: scene.description,
+        basePrompt: scene.basePrompt,
+        hasReference: Boolean(image),
+      });
       const { data: result, error } = await imageApi.generateImage({
         apiKey: scene.imageModel === GROK_IMAGE_MODEL ? openRouterImageKey : providerCredentials.doubao.apiKey,
         prompt,
         model: scene.imageModel,
+        ...(image ? { image } : {}),
       });
 
       if (!result?.b64Json) {
@@ -3167,7 +3191,9 @@ export function EditorShell({
       }));
       setNotice({
         tone: "success",
-        message: `已为「${scene.name}」生成场景参考图。`,
+        message: image
+          ? `已使用现有参考图为「${scene.name}」完成参考图生图。`
+          : `已为「${scene.name}」生成场景参考图。`,
       });
     } catch (error) {
       setNotice({

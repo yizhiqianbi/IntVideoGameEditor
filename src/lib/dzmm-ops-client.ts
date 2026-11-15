@@ -42,6 +42,7 @@ export type OpsCharacter = {
 };
 export type OpsReview = {
   id: string; publicationId: string; publicationVersion: number; name: string; status: string; label: string;
+  listed?: boolean;
   authorId: string; author: string; reason: string | null; createdAt: number; reviewedAt: number | null;
 };
 export type OpsRecharge = {

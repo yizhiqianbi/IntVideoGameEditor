@@ -1,4 +1,4 @@
-.content { white-space: normal; overflow-wrap: anywhere; line-height: 1.85; }
+.content { display: block; width: min(100%, 520px); white-space: normal; overflow-wrap: anywhere; line-height: 1.85; }
 .content div + div, .content p { margin-top: .65em; }
 .content p { margin-bottom: .65em; }
 .content details { margin: 1em 0; padding: .8em 1em; border: 1px solid var(--line, #38383f); border-radius: 10px; }

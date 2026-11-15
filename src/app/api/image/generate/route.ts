@@ -5,6 +5,7 @@ import {
   GROK_IMAGE_MODEL,
   IMAGE_MODEL_OPTIONS,
   DEFAULT_CHARACTER_IMAGE_MODEL,
+  REFERENCE_IMAGE_PROMPT,
   isLocalFluxModel,
   type ImageGenerationModel,
 } from "../../../../lib/image-generation";
@@ -92,21 +93,24 @@ export async function POST(request: Request) {
       );
     }
 
-    let prompt: string;
-    try {
-      prompt = withNegativePrompt(body.prompt, body.negativePrompt);
-    } catch (error) {
-      return NextResponse.json(
-        { message: error instanceof Error ? error.message : "负面提示词无效" },
-        { status: 400 },
-      );
-    }
     const reference =
       typeof body.image === "string" &&
       /^(https?:\/\/|data:image\/(png|jpeg|webp);base64,)/.test(body.image) &&
       body.image.length <= 12 * 1024 * 1024
         ? body.image
         : undefined;
+    let prompt: string;
+    try {
+      prompt = withNegativePrompt(
+        reference ? `${REFERENCE_IMAGE_PROMPT}\n${body.prompt}` : body.prompt,
+        body.negativePrompt,
+      );
+    } catch (error) {
+      return NextResponse.json(
+        { message: error instanceof Error ? error.message : "负面提示词无效" },
+        { status: 400 },
+      );
+    }
     const size = body.size === "2K" ? "2K" : "1K";
     if (isFlux) {
       try {

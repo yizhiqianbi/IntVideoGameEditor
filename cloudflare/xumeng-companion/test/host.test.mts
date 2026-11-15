@@ -680,7 +680,9 @@ test('stored style stays off the native message so delivery text matches the tra
   assert.equal(created.style, undefined);
   assert.equal((await f.host.fetch(request(`/api/sessions/${SESSION}/messages`, { text: '在吗', requestId: REQUEST }))).status, 202);
   const sent = JSON.parse(f.bodies.at(-1)!);
-  assert.equal(sent.text, '在吗');
+  assert.equal(sent.text.includes('[XUMENG_PRIVATE_STYLE v1]'), true);
+  assert.equal(sent.text.includes('人格'), false);
+  assert.equal(sent.text.endsWith('在吗'), true);
 });
 
 test('opening lines are sent once with the first message and stripped from the next', async () => {
@@ -695,7 +697,8 @@ test('opening lines are sent once with the first message and stripped from the n
   assert.equal(sent.text.includes('灯还亮着，刚忙完。今天想你了。'), true);
   assert.equal(sent.text.endsWith('在吗'), true);
   assert.equal((await f.host.fetch(request(`/api/sessions/${SESSION}/messages`, { text: '第二句', requestId: second, opening }))).status, 202);
-  assert.equal(JSON.parse(f.bodies.at(-1)!).text, '第二句');
+  assert.equal(JSON.parse(f.bodies.at(-1)!).text.endsWith('第二句'), true);
+  assert.equal(JSON.parse(f.bodies.at(-1)!).text.includes('[XUMENG_OPENING v1]'), false);
   assert.equal((await f.host.fetch(request(`/api/sessions/${SESSION}/messages`, { text: '坏开场', requestId: '00000000-0000-4000-8000-0000000000a3', opening: [''] }))).status, 400);
 });
 
@@ -723,7 +726,8 @@ test('intimate profile archives separately and uses the same configured chat mod
   assert.equal(JSON.parse(intimate.bodies.at(-1)!).style, undefined);
   assert.equal((await intimate.host.fetch(intimatePost(`/api/sessions/${SESSION}/messages`, { text: '在吗', requestId: REQUEST }))).status, 202);
   const sent = JSON.parse(intimate.bodies.at(-1)!);
-  assert.equal(sent.text, '在吗');
+  assert.equal(sent.text.endsWith('在吗'), true);
+  assert.equal(sent.text.includes('[XUMENG_PRIVATE_STYLE v1]'), true);
   assert.equal(intimate.runtimeEnv.COMPANION_PERSONA, 'intimate');
 });
 
@@ -749,7 +753,8 @@ test('cast profile keeps its own archive and does not switch to the intimate mod
   assert.equal((await cast.host.fetch(post('/api/sessions', { characterId: 'yume', style }))).status, 201);
   assert.equal((await cast.host.fetch(post(`/api/sessions/${SESSION}/messages`, { text: '在吗', requestId: REQUEST }))).status, 202);
   const sent = JSON.parse(cast.bodies.at(-1)!);
-  assert.equal(sent.text, '在吗');
+  assert.equal(sent.text.endsWith('在吗'), true);
+  assert.equal(sent.text.includes('[XUMENG_PRIVATE_STYLE v1]'), true);
   assert.equal(cast.runtimeEnv.COMPANION_PERSONA, 'cast-qiaowan');
   assert.equal(body.clientScope.length, 64);
 });
@@ -759,7 +764,8 @@ test('classmate messages stay plain because her persona is the instance config',
   const style = { version: 1, personality: personas.classic.personality, speakingStyle: '短句', relationshipStyle: '你说停就停' };
   assert.equal((await f.host.fetch(request('/api/sessions', { characterId: 'yume', style }))).status, 201);
   assert.equal((await f.host.fetch(request(`/api/sessions/${SESSION}/messages`, { text: '在吗', requestId: REQUEST }))).status, 202);
-  assert.equal(JSON.parse(f.bodies.at(-1)!).text, '在吗');
+  assert.equal(JSON.parse(f.bodies.at(-1)!).text.endsWith('在吗'), true);
+  assert.equal(JSON.parse(f.bodies.at(-1)!).text.includes(personas.classic.personality), false);
   assert.equal(f.runtimeEnv.COMPANION_PERSONA, 'classic');
 });
 
@@ -777,7 +783,8 @@ test('updating the current chat style stays in storage and does not start the co
   assert.deepEqual(f.values.get(`style:${SESSION}`), style);
   assert.equal((await f.host.fetch(request(`/api/sessions/${SESSION}/messages`, { text: '在吗', requestId: REQUEST }))).status, 202);
   const sent = JSON.parse(f.bodies.at(-1)!);
-  assert.equal(sent.text, '在吗');
+  assert.equal(sent.text.endsWith('在吗'), true);
+  assert.equal(sent.text.includes('先讲这局'), false);
   const viewed = await (await f.host.fetch(request(`/api/sessions/${SESSION}`))).json() as { session?: { style?: unknown } };
   assert.deepEqual(viewed.session?.style, style);
 });

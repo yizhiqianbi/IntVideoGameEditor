@@ -67,6 +67,12 @@ export const recommendationFactQueries = [
   LIKE_BACKFILL_SQL, FAVORITE_BACKFILL_SQL, QUALIFIED_BACKFILL_SQL, LIKE_RECONCILE_SQL, COOCCURRENCE_SQL("?"),
 ];
 
+const RECOMMENDATION_SYNC_INTERVAL_MS = 10 * 60 * 1000;
+const RECOMMENDATION_SYNC_KEY = "recommendation_sync_at";
+const RECOMMENDATION_STATS_WINDOW_DAYS = 180;
+const RECOMMENDATION_FRESH_MS = 7 * 24 * 60 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
 const authorByCharacter = new Map<string, string>();
 for (const author of authorRecords as Array<{ id?: unknown; characterIds?: unknown }>) {
   if (typeof author.id !== "string" || !Array.isArray(author.characterIds)) continue;
@@ -174,20 +180,55 @@ export async function syncRecommendationFacts(env: Env, now = Date.now()): Promi
   }
 }
 
-async function loadCandidates(env: Env): Promise<RecommendationCandidate[]> {
+function tagsFromJson(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const value = JSON.parse(raw) as unknown;
+    return Array.isArray(value) ? value.filter((tag): tag is string => typeof tag === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function syncRecommendationFactsIfDue(env: Env, now: number): Promise<void> {
+  const row = await env.DB.prepare("SELECT value FROM platform_settings WHERE key=?").bind(RECOMMENDATION_SYNC_KEY).first<{ value: string }>();
+  const last = Number(row?.value);
+  if (row && Number.isFinite(last) && now - last < RECOMMENDATION_SYNC_INTERVAL_MS) return;
+  const stamp = String(now);
+  if (!row) {
+    try {
+      await env.DB.prepare("INSERT INTO platform_settings(key, value, updated_at) VALUES (?,?,?)").bind(RECOMMENDATION_SYNC_KEY, stamp, now).run();
+    } catch {
+      return;
+    }
+  } else {
+    const claimed = await env.DB.prepare("UPDATE platform_settings SET value=?, updated_at=? WHERE key=? AND value=?").bind(stamp, now, RECOMMENDATION_SYNC_KEY, row.value).run();
+    if (!claimed.meta.changes) return;
+  }
+  await syncRecommendationFacts(env, now);
+}
+
+async function loadCandidates(env: Env, freshSince: number, activeDay: string): Promise<RecommendationCandidate[]> {
   const candidates = new Map(staticCandidates);
-  const published = await env.DB.prepare(`SELECT p.id AS id, p.user_id AS user_id, s.snapshot_json AS snapshot_json,
+  const published = await env.DB.prepare(`SELECT p.id AS id, p.user_id AS user_id,
+    CASE WHEN json_type(json_extract(s.snapshot_json, '$.tags')) = 'array'
+      THEN json_extract(s.snapshot_json, '$.tags') ELSE '[]' END AS tags_json,
     COALESCE(s.reviewed_at, p.created_at) AS listed_at
     FROM character_publications p
     JOIN character_submissions s ON s.publication_id=p.id AND s.revision=p.approved_revision AND s.status='approved'
-    WHERE p.is_listed=1 LIMIT 500`).all<{ id: string; user_id: string; snapshot_json: string; listed_at: number }>();
+    WHERE p.is_listed=1 AND (
+      COALESCE(s.reviewed_at, p.created_at) >= ?
+      OR p.id IN (SELECT character_id FROM character_chat_rounds WHERE day_key >= ? AND rounds > 0)
+      OR p.id IN (SELECT character_id FROM recommendation_item_daily WHERE day_key >= ? AND qualified + likes + favorites > 0)
+    )`).bind(freshSince, activeDay, activeDay).all<{ id: string; user_id: string; tags_json: string; listed_at: number }>();
   for (const row of published.results) {
-    let tags: string[] = [];
-    try {
-      const snapshot = JSON.parse(row.snapshot_json) as { tags?: unknown };
-      if (Array.isArray(snapshot.tags)) tags = snapshot.tags.filter((tag): tag is string => typeof tag === "string");
-    } catch { continue; }
-    const candidate = toRecommendationCandidate({ id: row.id, tags, authorId: `user:${row.user_id}`, createdAt: Number(row.listed_at) || 0, listed: true });
+    const candidate = toRecommendationCandidate({
+      id: row.id,
+      tags: tagsFromJson(row.tags_json),
+      authorId: `user:${row.user_id}`,
+      createdAt: Number(row.listed_at) || 0,
+      listed: true,
+    });
     if (candidate) candidates.set(candidate.id, candidate);
     else candidates.delete(row.id);
   }
@@ -218,14 +259,18 @@ export async function recommendForUser(env: Env, user: UserRecord, options: {
   now?: number;
 }): Promise<RecommendationResult & { hiddenIds: string[] }> {
   const now = options.now ?? Date.now();
-  await syncRecommendationFacts(env, now);
+  const personal = options.surface !== "home" && options.surface !== "ranking";
+  const activeDay = recommendationDay(now - RECOMMENDATION_STATS_WINDOW_DAYS * DAY_MS);
+  await syncRecommendationFactsIfDue(env, now);
   const [preference, hiddenRows, positiveRows, dailyRows, roundRows, candidates] = await Promise.all([
     env.DB.prepare("SELECT extra_json FROM preferences WHERE user_id=?").bind(user.id).first<{ extra_json: string }>(),
     env.DB.prepare("SELECT character_id FROM recommendation_hidden WHERE user_id=?").bind(user.id).all<{ character_id: string }>(),
-    env.DB.prepare(POSITIVE_SQL).bind(user.id, user.id, user.id).all<{ character_id: string }>(),
-    env.DB.prepare("SELECT character_id, day_key, qualified, likes, favorites FROM recommendation_item_daily").all<CountRow>(),
-    env.DB.prepare("SELECT character_id, day_key, rounds FROM character_chat_rounds").all<{ character_id: string; day_key: string; rounds: number }>(),
-    loadCandidates(env),
+    personal
+      ? env.DB.prepare(POSITIVE_SQL).bind(user.id, user.id, user.id).all<{ character_id: string }>()
+      : Promise.resolve({ results: [] as { character_id: string }[] }),
+    env.DB.prepare("SELECT character_id, day_key, qualified, likes, favorites FROM recommendation_item_daily WHERE day_key>=?").bind(activeDay).all<CountRow>(),
+    env.DB.prepare("SELECT character_id, day_key, rounds FROM character_chat_rounds WHERE day_key>=?").bind(activeDay).all<{ character_id: string; day_key: string; rounds: number }>(),
+    loadCandidates(env, now - RECOMMENDATION_FRESH_MS, activeDay),
   ]);
   const lists = preferenceLists(preference?.extra_json ?? null);
   const hiddenIds = hiddenRows.results.map((row) => row.character_id);
@@ -245,7 +290,7 @@ export async function recommendForUser(env: Env, user: UserRecord, options: {
     daily.set(row.character_id, bucket);
   }
   const anchors = options.surface === "related" && options.seedId ? [options.seedId] : positiveIds.slice(0, 40);
-  const cooccurrence = await loadCooccurrence(env, user.id, anchors);
+  const cooccurrence = personal ? await loadCooccurrence(env, user.id, anchors) : new Map<string, number>();
   const allowedIds = options.surface === "search" || options.surface === "category"
     ? options.surface === "search" && !options.q
       ? []
@@ -296,7 +341,7 @@ async function insertEvent(env: Env, userId: string, event: IncomingEvent, now: 
 }
 
 export async function recordRecommendationEvents(env: Env, userId: string, events: IncomingEvent[], now = Date.now()): Promise<number> {
-  await syncRecommendationFacts(env, now);
+  await syncRecommendationFactsIfDue(env, now);
   const dayStart = recommendationDayStart(recommendationDay(now));
   const dayKey = recommendationDay(now);
   let accepted = 0;

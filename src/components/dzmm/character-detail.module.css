@@ -297,6 +297,60 @@
   padding-top: 24px;
 }
 
+.stickyCta {
+  position: sticky;
+  z-index: 10;
+  top: 76px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  width: 100%;
+  margin-top: 18px;
+  pointer-events: none;
+}
+
+.stickyCta button {
+  pointer-events: auto;
+  min-height: 40px;
+  border-radius: 22px;
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--text) 16%, transparent);
+}
+
+.stickyStart {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 18px;
+  background: var(--pink);
+  color: #fff !important;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.stickyStart:hover {
+  filter: brightness(0.96);
+  transform: translateY(-1px);
+}
+
+.stickyFavorite {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  backdrop-filter: blur(12px);
+}
+
+.stickyFavorite:hover,
+.stickyFavorite[aria-pressed="true"] {
+  border-color: var(--pink);
+  color: var(--pink);
+  background: color-mix(in srgb, var(--pink-soft) 84%, var(--surface));
+}
+
 .start {
   flex: 1;
   min-height: 40px;
@@ -540,6 +594,7 @@
 @media (max-width: 760px) {
   .detail {
     margin: 24px 20px 48px;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px));
   }
   .back {
     position: static;
@@ -585,6 +640,37 @@
   .primaryActions {
     padding-top: 20px;
   }
+  .stickyCta {
+    position: fixed;
+    top: auto;
+    right: max(14px, env(safe-area-inset-right, 0px));
+    bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    left: max(14px, env(safe-area-inset-left, 0px));
+    align-items: center;
+    height: auto;
+    justify-content: stretch;
+    gap: 7px;
+    width: auto;
+    margin: 0;
+    padding: 7px;
+    border: 1px solid color-mix(in srgb, var(--pink) 18%, var(--line));
+    border-radius: 17px;
+    background: color-mix(in srgb, var(--surface) 84%, transparent);
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--text) 18%, transparent);
+    backdrop-filter: blur(16px);
+  }
+  .stickyCta button {
+    min-height: 42px;
+  }
+  .stickyStart {
+    flex: 1;
+    justify-content: center;
+  }
+  .stickyFavorite {
+    flex: 0 0 auto;
+    padding-right: 13px;
+    padding-left: 13px;
+  }
   .customize {
     min-width: 74px;
     padding-right: 10px;
@@ -599,6 +685,7 @@
 @media (max-width: 540px) {
   .detail {
     margin: 8px 14px 28px;
+    padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px));
   }
   .hero {
     grid-template-columns: minmax(0, 1fr);
@@ -647,6 +734,12 @@
   }
   .primaryActions {
     padding-top: 14px;
+  }
+  .stickyCta {
+    bottom: calc(68px + env(safe-area-inset-bottom, 0px));
+  }
+  .stickyFavorite span {
+    display: none;
   }
   .start {
     min-height: 44px;

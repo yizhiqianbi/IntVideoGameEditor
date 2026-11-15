@@ -21,6 +21,8 @@ test("a listed character page carries the card tags before any script", () => {
   assert.match(head, /<meta name="twitter:card" content="summary_large_image" \/>/);
   assert.match(head, /<meta name="twitter:title" content="裴聿 - AI角色聊天" \/>/);
   assert.match(head, /<meta name="twitter:image" content="https:\/\/xumengchat\.top\/assets\/xumeng\/share\/xumeng-foreverse-peiyu\.jpg" \/>/);
+  assert.match(head, /<link rel="alternate" hreflang="zh-CN" href="https:\/\/xumengchat\.top\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(head, /<meta property="og:image:alt" content="裴聿 - AI角色聊天" \/>/);
   const jsonLd = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1];
   assert.ok(jsonLd);
   const structured = JSON.parse(jsonLd) as { "@type": string; mainEntity?: { name?: string; url?: string } };
@@ -31,6 +33,8 @@ test("a listed character page carries the card tags before any script", () => {
   assert.match(html, /<img src="https:\/\/xumengchat\.top\/assets\/xumeng\/share\/xumeng-foreverse-peiyu\.jpg"/);
   assert.match(html, /<main>[\s\S]*<h1>裴聿 - AI角色聊天<\/h1>/);
   assert.match(html, /在叙梦开始角色互动/);
+  assert.match(html, /更多精选公开角色/);
+  assert.match(html, /href="\/c\/xumeng-foreverse-tangtuantuan"/);
   assert.match(html, /if \(invite\.length < 6\) return;/);
   assert.match(html, /<link rel="canonical" href="https:\/\/xumengchat\.top\/c\/xumeng-foreverse-peiyu" \/>/);
 });

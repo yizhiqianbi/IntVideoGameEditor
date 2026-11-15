@@ -72,20 +72,8 @@ export default function CreatorCenter({ user, drafts, section = "home", onCreate
   }
   const start = (route: string) => registered ? onRoute(route) : onRequireAccount();
   return <main className={s.workspace}>
-    <aside className={s.sidebar} aria-label="创作中心目录"><div className={s.sideTitle}><Icon name="edit" /><strong>创作中心</strong></div>
-      <button className={section === "home" ? s.active : ""} onClick={() => onRoute("studio")}><Icon name="grid"/>工作台</button>
-      <small>我的创作</small>
-      <button className={section === "roles" ? s.active : ""} onClick={() => onRoute("studio/roles")}><Icon name="user"/>角色与投稿</button>
-      <button onClick={() => onRoute("novels")}><Icon name="book"/>小说与故事</button>
-      <button onClick={() => onRoute("studio/girlfriends/new")}><Icon name="upload"/>上传女友</button>
-      <button onClick={() => onRoute("studio/games")}><Icon name="play"/>上传游戏</button>
-      <button onClick={() => onRoute("studio/scenarios")}><Icon name="users"/>团本</button>
-      {XUMENG_GENERATION_WORKSPACE_ENABLED && <button onClick={() => onRoute("generation")}><Icon name="image"/>生成</button>}
-      <small>创作工具</small><button onClick={() => onRoute("presets")}><Icon name="sliders"/>模型与预设</button>
-      <button onClick={() => onRoute("voice")}><Icon name="volume"/>角色语音</button>
-    </aside>
     <section className={s.content}>
-      <header className={s.header}><div><p>叙梦 · 创作中心</p><h1>{section === "roles" ? "角色与投稿" : "开始一段新创作"}</h1><span>{section === "roles" ? "私人草稿、审核进度与下架归档" : "写角色与故事，也可以制作游戏、邀请朋友一起冒险。"}</span></div><button onClick={() => onRoute("characters")}><Icon name="back" size={16}/>返回主站</button></header>
+      <header className={s.header}><div><p>叙梦 · 创作中心</p><h1>{section === "roles" ? "角色与投稿" : "开始一段新创作"}</h1><span>{section === "roles" ? "私人草稿、审核进度与下架归档" : "写角色与故事，也可以制作游戏、邀请朋友一起冒险。"}</span></div><div className={s.headerActions}>{section === "roles" && <button onClick={() => onRoute("studio")}><Icon name="back" size={16}/>工作台</button>}<button onClick={() => onRoute("characters")}><Icon name="back" size={16}/>返回主站</button></div></header>
       {section === "roles" ? <PublishingCenter embedded user={user} drafts={drafts} onCreate={onCreate} onEdit={onEdit} onCharacter={onCharacter} onRequireAccount={onRequireAccount} onCatalogChanged={onCatalogChanged} onNovels={() => onRoute("novels")}/> : <>
         <section className={s.starts} aria-label="开始创作">
           <button className={s.primaryStart} onClick={onCreate}><Icon name="user" size={26}/><strong>{createLabel}</strong><span>人设、开场与世界书</span><Icon name="plus" size={18}/></button>

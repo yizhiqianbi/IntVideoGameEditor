@@ -6,6 +6,9 @@ export interface GenerateImageInput {
   prompt: string;
   model?: ImageGenerationModel;
   size?: ImageGenerationSize;
+  /** Data URL or HTTPS URL for image-to-image generation. */
+  image?: string;
+  aspectRatio?: string;
 }
 
 export function generateImage(body: GenerateImageInput) {

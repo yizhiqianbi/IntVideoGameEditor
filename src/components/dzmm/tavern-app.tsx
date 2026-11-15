@@ -56,7 +56,7 @@ import {
 } from "@/lib/dzmm-storage";
 import { dzmmCloudRequest, uploadDzmmCover, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
 import { fetchDzmmPlayMaterials, fetchDzmmPublicCharacter } from "@/lib/dzmm-publishing";
-import { isDzmmListPreview, orderDzmmShelfByTime, xumengPlayCatalogSort, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
+import { DZMM_PUBLIC_SHELF_PAGE_SIZE, isDzmmListPreview, orderDzmmShelfByTime, xumengPlayCatalogSort, type DzmmCatalogLook, type DzmmCatalogRequest } from "@/lib/dzmm-public-shelf";
 import { dzmmBundledPlayableCharacter } from "@/lib/load-dzmm-bundled-cards";
 import { dzmmDeferredIntroductionCharacter } from "@/lib/load-dzmm-public-introductions";
 import { isDzmmDeferredAiArchiveId } from "@/lib/dzmm-ai-archive-ids";
@@ -69,14 +69,14 @@ import { dzmmLocalLook } from "@/lib/dzmm-local-looks";
 import { usePublicCharacterShelf } from "./use-public-shelf";
 import Icon, { type IconName } from "./icons";
 import { ComposerQuickInsert } from "./composer-quick-insert";
-import { dzmmChatBackgroundStyle, dzmmChatDisplayStyle, dzmmEnterSends } from "@/lib/dzmm-chat-display";
+import { dzmmChatDisplayStyle, dzmmEnterSends } from "@/lib/dzmm-chat-display";
 import ResponsiveNavigation from "./responsive-navigation";
 import CharacterDetail from "./character-detail";
 import AccountModal from "./account-modal";
 import authorsData from "@/lib/dzmm-authors.json";
-import { DZMM_DISCOVERY_CATEGORIES, dzmmDiscoveryCutoff, findCharacterAuthor, isDzmmCharacterBlocked, resolveCharacterAuthorTarget, type DzmmAuthor, type DzmmForumTopic } from "@/lib/dzmm-discovery";
+import { DZMM_DISCOVERY_CATEGORIES, dzmmDiscoveryCutoff, filterDzmmCharacters, findCharacterAuthor, isDzmmCharacterBlocked, resolveCharacterAuthorTarget, type DzmmAuthor, type DzmmForumTopic } from "@/lib/dzmm-discovery";
 import { characterMatchesShelfTags, coverShelfTags } from "@/lib/xumeng-shelf-tags";
-import { isPublicRecommendationCharacter, QUALIFIED_USER_MESSAGES, recommendationReasonText, type RecommendationReason, type RecommendationSurface } from "@/lib/xumeng-recommendations";
+import { isPublicRecommendationCharacter, QUALIFIED_USER_MESSAGES, recommendationReasonText, rotateRecommendationPage, type RecommendationReason, type RecommendationSurface } from "@/lib/xumeng-recommendations";
 import {
   fetchXumengRecommendations, recommendationRequestAborted, recordXumengRecommendationEvents,
   type XumengRecommendationEvent, type XumengRecommendationPage, type XumengRecommendationQuery,
@@ -89,9 +89,9 @@ import { DZMM_GLOBAL_QUERY_MAX_LENGTH, dzmmDiscoveryRouteCategory, dzmmDiscovery
   type DzmmDiscoverySource, type DzmmTaskSelection } from "@/lib/dzmm-discovery-history";
 import { DiscoveryTagPicker, SearchResults, AuthorProfile, type CatalogDiscoveryFilters } from "./discovery-views";
 import { InviteCenter, ProfileView, ProfileSettings, PresetLibrary } from "./profile-settings";
+import { UserMark } from "./user-mark";
 import ChatSettings from "./chat-settings";
 import UnavailableConversation from "./unavailable-conversation";
-import { fetchDzmmForumPosts } from "@/lib/dzmm-forum";
 import { getDzmmCharacterMedia, withDzmmPublicOpening } from "@/lib/dzmm-character-media";
 import { CoverReel } from "./cover-reel";
 import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
@@ -113,10 +113,12 @@ import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_CHARACTER_VOI
 import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
 import { SignupWelcome } from "./signup-welcome";
 import { ChatMediaProvider, ChatMessageMedia } from "./chat-message-media";
+import ChatAlbum from "./chat-album";
 import { XumengStatusCard, type MomentSection } from "./xumeng-moment-status";
 import ChatMessageEditor from "./chat-message-editor";
 import { ChatBillingStatus } from "./chat-billing-status";
-import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
+import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, xumengReplyStatus, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
+import { applyXumengFrontendScripts, type XumengFrontendScript } from "@/lib/xumeng-frontend-card";
 import { canRegenerateDzmmMessage, createDzmmRegenerationBranch, createDzmmReplySuggestionBranch, editDzmmConversationMessage } from "@/lib/dzmm-message-actions";
 import { dzmmReplySuggestionPrefixKeys, dzmmReplySuggestionSettingsKey, fetchDzmmReplySuggestions, prepareDzmmReplySuggestionsRequest } from "@/lib/dzmm-reply-suggestions-client";
 import { DZMM_REPLY_SUGGESTIONS_PROMPT_VERSION } from "@/lib/dzmm-reply-suggestions";
@@ -237,27 +239,6 @@ function readStoredBrowseSelection(): string[] {
   return unique.slice(0, BROWSE_TAG_LIMIT);
 }
 
-function recommendationRandomSeed(): number {
-  return Math.floor(Math.random() * 0x1_0000_0000) >>> 0;
-}
-
-function recommendationShuffleHash(id: string, seed: number): number {
-  let hash = (seed ^ 0x811c9dc5) >>> 0;
-  for (let index = 0; index < id.length; index += 1) {
-    hash ^= id.charCodeAt(index);
-    hash = Math.imul(hash, 16777619) >>> 0;
-  }
-  return hash;
-}
-
-/** Keep a few strong cards at the front while changing the exploration set on every refresh. */
-function shuffleHomeRecommendationIds(ids: readonly string[], seed: number): string[] {
-  const stable = ids.slice(0, 6);
-  const exploratory = ids.slice(6).map((id, index) => ({ id, index, hash: recommendationShuffleHash(id, seed) }));
-  exploratory.sort((left, right) => left.hash - right.hash || left.index - right.index);
-  return [...stable, ...exploratory.map((item) => item.id)];
-}
-
 function subscribeCoarsePointer(onChange: () => void) {
   const query = window.matchMedia(COARSE_POINTER);
   query.addEventListener("change", onChange);
@@ -306,6 +287,7 @@ const NAV_TOOLS: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = 
 
 async function searchForumTopics(query: string, signal: AbortSignal): Promise<DzmmForumTopic[]> {
   if (signal.aborted) return [];
+  const { fetchDzmmForumPosts } = await import("@/lib/dzmm-forum");
   const result = await fetchDzmmForumPosts({ q: query });
   if (signal.aborted) return [];
   return result.posts.map((post) => ({ id: post.id, title: post.title, body: post.body, author: post.author.nickname, category: post.category, updatedAt: post.updatedAt }));
@@ -434,6 +416,23 @@ function chatPresence(character: { description: string; tags: string[] }, typing
   return chars.length > 18 ? `${chars.slice(0, 18).join("")}…` : line;
 }
 
+function PlayBackdrop({ cover, scene }: { cover?: string; scene: string | null }) {
+  const coverUrl = xumengCardCoverUrl(cover || XUMENG_FALLBACK_COVER);
+  const [src, setSrc] = useState(scene || coverUrl);
+  useEffect(() => setSrc(scene || coverUrl), [coverUrl, scene]);
+  return <img className={s.chatBackdrop} alt="" src={src} onError={(event) => {
+    const image = event.currentTarget;
+    if (scene && (image.currentSrc || image.src).includes(scene)) {
+      image.src = coverUrl;
+      return;
+    }
+    const next = xumengCoverMissUrl(image.currentSrc || image.src, cover || XUMENG_FALLBACK_COVER);
+    image.onerror = () => { image.onerror = null; image.src = XUMENG_FALLBACK_COVER; };
+    if (next === XUMENG_FALLBACK_COVER) image.onerror = null;
+    image.src = next;
+  }} />;
+}
+
 function Cover({
   character,
   className,
@@ -490,7 +489,11 @@ export default function TavernApp() {
   const [accountMode, setAccountMode] = useState<"login" | "register" | null>(null);
   const [guestGate, setGuestGate] = useState<{ character: Character; stage: "account" | "welcome" | "open" } | null>(null);
   const [pendingInvite, setPendingInvite] = useState("");
-  const [view, setView] = useState<View>("characters");
+  const [view, setView] = useState<View>(() => {
+    if (typeof location === "undefined") return "videos";
+    const hash = location.hash.slice(1);
+    return !hash || hash === "videos" || Boolean(xumengVideoDramaIdFromRoute(hash)) ? "videos" : "characters";
+  });
   const [routeLocale, setRouteLocale] = useState<XumengLocale | null>(() => typeof window === "undefined" ? null : xumengLocaleFromPathname(window.location.pathname));
   const [, setCardTranslationRevision] = useState(0);
   const [tab, setTab] = useState("新手");
@@ -523,7 +526,8 @@ export default function TavernApp() {
   const [query, setQuery] = useState("");
   const [sortMode] = useState<"recommended" | "heat" | "likes" | "updated" | "name">("recommended");
   const [rankingPeriod, setRankingPeriod] = useState<"day" | "week" | "all">("week");
-  const [recommendEpoch, setRecommendEpoch] = useState(recommendationRandomSeed);
+  const [recommendEpoch, setRecommendEpoch] = useState(0);
+  const [recommendationReload, setRecommendationReload] = useState(0);
   const [localHidden, setLocalHidden] = useState<string[]>([]);
   const [recommendation, setRecommendation] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error"; key: string }>({ status: "idle", key: "", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
   const [relatedRank, setRelatedRank] = useState<XumengRecommendationPage & { status: "idle" | "loading" | "ready" | "error" }>({ status: "idle", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
@@ -620,6 +624,7 @@ export default function TavernApp() {
   const [storySeen, setStorySeen] = useState<Record<string, string>>({});
   const chatPeople = [...CONTENT_PEOPLE].sort((left, right) => (chatInbox.get(companionLane(right))?.at ?? 0) - (chatInbox.get(companionLane(left))?.at ?? 0))
     .filter(person => filterDzmmSearchRows([`${person.name} ${person.line} ${person.description} ${chatInbox.get(companionLane(person))?.preview || ""}`], conversationQuery, value => [value]).length > 0);
+  const visibleGirlfriends = girlfriends.filter(person => `${person.nickname} ${person.aliasNames.join(" ")} ${person.lines.join(" ")}`.toLocaleLowerCase().includes(conversationQuery.trim().toLocaleLowerCase()));
 
 
   const { drafts: composerDrafts, setDrafts: setComposerDrafts, warning: composerStorageWarning, originalCache: composerOriginalCache } = useDzmmComposerDrafts(cloud.user?.id ?? null);
@@ -675,10 +680,6 @@ export default function TavernApp() {
   }, [discoveryFilters.query]);
   const rankQuery = useMemo((): XumengRecommendationQuery | null => {
     const withLook = (query: XumengRecommendationQuery): XumengRecommendationQuery => look ? { ...query, look } : query;
-    if (view === "search") {
-      if (!deferredQuery) return null;
-      return withLook({ surface: "search", q: deferredQuery });
-    }
     if (view !== "characters" && view !== "play-games") return null;
     const homeTags = selectedShelfTags(genres);
     if (tab === "新手" && sortMode === "recommended") return withLook(homeTags.length ? { surface: "home", tags: homeTags } : { surface: "home" });
@@ -691,7 +692,7 @@ export default function TavernApp() {
       return withLook({ surface: "category", tags: [...item.tags], ...(deferredCategoryQuery ? { q: deferredCategoryQuery } : {}), ...(since ? { since } : {}) });
     }
     return null;
-  }, [view, deferredQuery, look, tab, sortMode, genres, rankingPeriod, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery]);
+  }, [view, look, tab, sortMode, genres, rankingPeriod, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery]);
   const rankKey = rankQuery ? JSON.stringify(rankQuery) : "";
   const canRank = loaded && !cloud.authBusy && Boolean(cloud.user?.id);
   const rankReady = canRank && Boolean(rankQuery) && recommendation.status === "ready" && recommendation.key === rankKey;
@@ -699,13 +700,14 @@ export default function TavernApp() {
   const rankWaiting = canRank && Boolean(rankQuery) && !rankReady && !rankFailed;
   const displayRecommendationIds = useMemo(() => {
     if (!rankReady || rankQuery?.surface !== "home") return recommendation.ids;
-    return shuffleHomeRecommendationIds(recommendation.ids, recommendEpoch);
+    return rotateRecommendationPage(recommendation.ids, recommendEpoch, DZMM_PUBLIC_SHELF_PAGE_SIZE * 4);
   }, [rankReady, rankQuery?.surface, recommendation.ids, recommendEpoch]);
+  const homeRecommendationPage = rankReady && rankQuery?.surface === "home" ? displayRecommendationIds : null;
   const shelfRequest = useMemo((): DzmmCatalogRequest | null => {
     const authorKey = /^[A-Za-z0-9][A-Za-z0-9_-]{0,119}$/;
     const scoped = (request: DzmmCatalogRequest): DzmmCatalogRequest => look ? { ...request, look } : request;
     const rankedIds = rankReady ? displayRecommendationIds : null;
-    if (view === "search") return rankedIds ? scoped({ ids: rankedIds, sort: "hot" }) : scoped({ q: deferredQuery, sort: "hot" });
+    if (view === "search") return { q: deferredQuery, sort: "hot" };
     if (view === "author" && authorId && authorKey.test(authorId)) return scoped({ authorIds: [authorId], sort: "new" });
     if (view === "forum") return scoped({ sort: "hot" });
     if (view !== "characters" && view !== "play-games") return null;
@@ -723,16 +725,25 @@ export default function TavernApp() {
       return authorIds.length ? scoped({ authorIds, sort: "new", tags: shelfTags }) : null;
     }
     if (tab === "榜单" && (sortMode === "recommended" || sortMode === "heat" || sortMode === "likes")) {
-      if (!rankReady) return null;
+      if (!rankReady) return scoped({ tags: shelfTags, sort: sortMode === "likes" ? "likes" : "hot" });
       return scoped({ ids: recommendation.ids, sort: "hot", tags: shelfTags });
     }
     if ((tab === "新手" || tab === "猜你喜欢") && canRank && rankQuery && sortMode === "recommended") {
-      if (!rankReady) return rankFailed ? scoped({ tags: shelfTags, sort: xumengPlayCatalogSort(tab, sortMode) }) : null;
-      return scoped({ ids: recommendation.ids, sort: "hot", tags: shelfTags });
+      if (!rankReady) return scoped({ tags: shelfTags, sort: xumengPlayCatalogSort(tab, sortMode) });
+      const ids = displayRecommendationIds;
+      return scoped({ ids, sort: "hot", tags: shelfTags });
     }
     return scoped({ tags: selectedShelfTags(genres), sort: xumengPlayCatalogSort(tab, sortMode) });
-  }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, rankFailed, sortMode, genres, look, displayRecommendationIds]);
+  }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, sortMode, genres, look, displayRecommendationIds]);
   const publicShelf = usePublicCharacterShelf(shelfRequest);
+  const shelfPaintKey = [view, tab, sortMode, look ?? "", category ?? "", selectedShelfTags(genres).join(","), discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, homeRecommendationPage?.join("\n") ?? ""].join("\0");
+  const paintedShelf = useRef<{ key: string; characters: Character[] }>({ key: "", characters: [] });
+  if (publicShelf.characters.length > 0) paintedShelf.current = { key: shelfPaintKey, characters: publicShelf.characters };
+  const shelfCharacters = publicShelf.characters.length > 0
+    ? publicShelf.characters
+    : publicShelf.loading && paintedShelf.current.key === shelfPaintKey
+      ? paintedShelf.current.characters
+      : publicShelf.characters;
   const rememberCharacter = (character: Character) => {
     setResolvedCards((previous) => {
       const index = previous.findIndex((item) => item.id === character.id);
@@ -759,7 +770,9 @@ export default function TavernApp() {
   }
   const [forumPostId, setForumPostId] = useState<string | null>(null);
   const [chatSettingsOpen, setChatSettingsOpen] = useState(false);
+  const [chatAlbumOpen, setChatAlbumOpen] = useState(false);
   const [modelMenuOpen, setModelMenuOpen] = useState(false);
+  const [chatToolsOpen, setChatToolsOpen] = useState(false);
   const [performanceSelection, setPerformanceSelection] = useState<{ accountId: string; character: XumengPerformanceCharacter } | null>(null);
   useEffect(() => { if (view !== "live" && view !== "voice") setPerformanceSelection(null); }, [view]);
   useEffect(() => {
@@ -774,6 +787,12 @@ export default function TavernApp() {
   const activeReplyActive = () => Boolean(activeIdRef.current && replyRequests.current.has(activeIdRef.current));
   const appRef = useRef<HTMLDivElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
+  const modelPickerRef = useRef<HTMLDivElement>(null);
+  const chatToolsRef = useRef<HTMLDivElement>(null);
+  const messageNearBottomRef = useRef(true);
+  const suppressScrollNoticeRef = useRef(false);
+  const activeScrollConversationRef = useRef<string | null>(null);
+  const [showNewReply, setShowNewReply] = useState(false);
   const composerInputRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const importRef = useRef<HTMLInputElement>(null);
@@ -1059,6 +1078,28 @@ export default function TavernApp() {
     const timer = setTimeout(() => setNotice(""), 4000);
     return () => clearTimeout(timer);
   }, [notice]);
+  useEffect(() => {
+    if (!modelMenuOpen && !chatToolsOpen) return;
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (modelMenuOpen && !modelPickerRef.current?.contains(target)) setModelMenuOpen(false);
+      if (chatToolsOpen && !chatToolsRef.current?.contains(target)) setChatToolsOpen(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      const closed = modelMenuOpen || chatToolsOpen;
+      setModelMenuOpen(false);
+      setChatToolsOpen(false);
+      if (closed) event.stopPropagation();
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [modelMenuOpen, chatToolsOpen]);
   const detailId = detail?.id;
   const detailIsPublic = Boolean(detail?.publication) || Boolean(detail && isDzmmListPreview(detail));
   useEffect(() => {
@@ -1193,7 +1234,7 @@ export default function TavernApp() {
       setRecommendation((current) => ({ status: "error", key, ids: [], reasons: {}, personalized: false, hiddenIds: current.hiddenIds }));
     });
     return () => controller.abort();
-  }, [rankQuery, rankKey, cloud.user?.id, recommendEpoch]);
+  }, [rankQuery, rankKey, cloud.user?.id, recommendationReload]);
   useEffect(() => {
     if (!detail || !cloud.user?.id || !isPublicRecommendationCharacter(detail)) {
       setRelatedRank({ status: "idle", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
@@ -1209,7 +1250,7 @@ export default function TavernApp() {
       setRelatedRank({ status: "error", ids: [], reasons: {}, personalized: false, hiddenIds: [] });
     });
     return () => controller.abort();
-  }, [detail, cloud.user?.id, recommendEpoch]);
+  }, [detail, cloud.user?.id, recommendationReload]);
   useEffect(() => {
     const accountId = cloud.user?.id;
     if (!loaded || !accountId) return;
@@ -1404,7 +1445,35 @@ export default function TavernApp() {
   const panelState = useMemo(() => panelTemplate && active ? currentXumengPanelState(panelTemplate, active.messages) : null, [panelTemplate, active]);
   const statusBar = activeCharacter?.statusBar ?? playChrome[activeCharacter?.id ?? ""]?.statusBar;
   const statusBarLabels = useMemo(() => statusBar ? xumengStatusBarLabels(statusBar) : [], [statusBar]);
+  const streamingAssistantId = busy && !summarizing && active?.messages.at(-1)?.role === "assistant" ? active.messages.at(-1)?.id ?? null : null;
+  const turnStatus = useMemo(() => {
+    const latest = [...(active?.messages ?? [])].reverse().find(message => message.role === "assistant" && message.content.trim());
+    if (!latest || latest.id === streamingAssistantId) return null;
+    const scripted = applyXumengFrontendScripts(latest.content, activeCharacter?.frontendScripts, { role: "assistant", depth: 0, pass: "display" });
+    const named = applyDzmmReaderNames(scripted, { characterName: activeCharacter?.name, userName: playUserName });
+    const visible = splitXumengMomentTail(splitXumengPanelTail(named).body).body;
+    return xumengReplyStatus(visible, statusBarLabels);
+  }, [active?.messages, activeCharacter?.frontendScripts, activeCharacter?.name, playUserName, statusBarLabels, streamingAssistantId]);
   const momentSections = useMemo((): MomentSection[] => {
+    if (turnStatus?.fields.length) {
+      const titled = turnStatus.sections?.filter(section => section.fields.length || section.notes.length) ?? [];
+      if (titled.length) return titled.map(section => ({
+        title: section.title,
+        notes: section.notes,
+        fields: section.fields.map((field, index) => ({
+          key: `${section.title}:${index}:${field.label}`,
+          label: field.label,
+          type: "text" as const,
+          value: field.value,
+        })),
+      }));
+      return [{ title: "", fields: turnStatus.fields.map((field, index) => ({
+        key: `turn:${index}:${field.label}`,
+        label: field.label,
+        type: "text" as const,
+        value: field.value,
+      })) }];
+    }
     if (panelTemplate && panelState) return panelTemplate.panels.map(panel => ({
       title: panel.title,
       fields: panel.fields.map(field => ({
@@ -1416,7 +1485,7 @@ export default function TavernApp() {
     }));
     if (statusBar) return xumengStatusBarSections(statusBar, active?.messages ?? []);
     return [];
-  }, [panelTemplate, panelState, statusBar, active?.messages]);
+  }, [turnStatus, panelTemplate, panelState, statusBar, active?.messages]);
   const momentFields = momentSections.flatMap(section => section.fields);
   const momentMessageId = [...(active?.messages ?? [])].reverse().find(message => message.role === "assistant" && message.content.trim())?.id;
   useEffect(() => {
@@ -1465,16 +1534,52 @@ export default function TavernApp() {
     });
   }, [characters, state.conversations, loaded, cloud.authBusy, cloud.user?.id, busy, setState]);
   useEffect(() => {
+    const scroller = messageScrollRef.current;
+    if (!scroller) return;
+    const update = () => {
+      const distance = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+      const nearBottom = distance <= 72;
+      messageNearBottomRef.current = nearBottom;
+      if (!suppressScrollNoticeRef.current) setShowNewReply(!nearBottom);
+    };
+    update();
+    scroller.addEventListener("scroll", update, { passive: true });
+    return () => scroller.removeEventListener("scroll", update);
+  }, [activeId, view]);
+  useEffect(() => {
     const hasOnlyOpening = active && activeOpening && active.messages.length <= activeOpening.messages.length
       && active.messages.every((message, index) => message.role === activeOpening.messages[index]?.role
         && message.content.trim() === activeOpening.messages[index]?.content.trim());
     const scroller = messageScrollRef.current;
-    if (!scroller) return;
-    if (!chatBusy && active && (!active.messages.some(message => message.role === "user") || hasOnlyOpening)) {
-      scroller.scrollTo({ top: 0, behavior: "instant" });
+    if (!scroller) {
+      if (!active) {
+        activeScrollConversationRef.current = null;
+        messageNearBottomRef.current = true;
+        setShowNewReply(false);
+      }
       return;
     }
+    const nextConversation = activeScrollConversationRef.current !== (active?.id ?? null);
+    if (nextConversation) {
+      activeScrollConversationRef.current = active?.id ?? null;
+      messageNearBottomRef.current = true;
+      setShowNewReply(false);
+    }
+    if (!chatBusy && active && (!active.messages.some(message => message.role === "user") || hasOnlyOpening)) {
+      suppressScrollNoticeRef.current = true;
+      scroller.scrollTo({ top: 0, behavior: "instant" });
+      window.requestAnimationFrame(() => { suppressScrollNoticeRef.current = false; });
+      return;
+    }
+    if (!nextConversation && !messageNearBottomRef.current) {
+      setShowNewReply(true);
+      return;
+    }
+    suppressScrollNoticeRef.current = true;
     scroller.scrollTo({ top: scroller.scrollHeight, behavior: chatBusy ? "instant" : "smooth" });
+    messageNearBottomRef.current = true;
+    setShowNewReply(false);
+    window.requestAnimationFrame(() => { suppressScrollNoticeRef.current = false; });
   }, [active, activeOpening, chatBusy, view, detail]);
   useEffect(() => {
     // Only people who have chatted before are prewarmed; a shared pool slot is
@@ -1507,7 +1612,12 @@ export default function TavernApp() {
       } else if (pathId && hashTarget === `character/${pathId}`) {
         window.history.replaceState(window.history.state, "", `/c/${pathId}`);
       }
-      const target = pathId && (!hashTarget || hashTarget === `character/${pathId}`) ? `character/${pathId}` : hashTarget;
+      let target = pathId && (!hashTarget || hashTarget === `character/${pathId}`) ? `character/${pathId}` : hashTarget;
+      if (!target) {
+        target = "videos";
+        const next = `${location.pathname}${location.search}#videos`;
+        if (`${location.pathname}${location.search}${location.hash}` !== next) window.history.replaceState(window.history.state, "", next);
+      }
       if (voiceBusy.current && target !== "voice") { setNotice("语音正在生成，请等待完成后离开。"); location.hash = "voice"; return; }
       if (liveRouteActive.current && target !== "live" && liveBusy.current) {
         setNotice("请先在实时影像工作台结束当前会话，再离开页面。");
@@ -2045,16 +2155,19 @@ export default function TavernApp() {
     setLocalHidden((current) => current.includes(character.id) ? current : [...current, character.id]);
     const surface = detailRecommendSurface.current ?? shelfRecommendationSurface(view, tab) ?? "home";
     void recordXumengRecommendationEvents([{ characterId: character.id, surface, action: "hide" }]).then((accepted) => {
-      if (accepted >= 1) setRecommendEpoch((value) => value + 1);
+      if (accepted >= 1) setRecommendationReload((value) => value + 1);
     });
     closeDetail();
     setNotice("已减少类似推荐。");
   }
   function refreshHomeRecommendations() {
-    setRecommendEpoch((current) => {
-      const next = recommendationRandomSeed();
-      return next === current ? (next + 1) >>> 0 : next;
-    });
+    if (rankQuery?.surface === "home") {
+      setRecommendEpoch((current) => current + 1);
+      catalogRef.current?.scrollIntoView({ block: "start" });
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+    setRecommendationReload((current) => current + 1);
   }
   async function copyMessage(content: string) {
     try {
@@ -2391,12 +2504,30 @@ export default function TavernApp() {
     let preparedMemory: Conversation["storyMemory"];
     let userMessageShown = false;
     let insufficient = false;
+    let streamSettled = false;
+    let streamPaint: ReturnType<typeof setTimeout> | undefined;
+    const paintStreamingReply = () => {
+      streamPaint = undefined;
+      if (streamSettled || activeAccount.current !== owner || !answer.trim()) return;
+      patchMessages(conversationId, [
+        ...submitted,
+        { id: assistantId, role: "assistant", content: answer },
+      ], undefined, undefined, undefined, preparedMemory);
+    };
     const abort = new AbortController();
     replyRequests.current.set(conversationId, abort);
     setGenerating(previous => ({ ...previous, [conversationId]: "reply" }));
     setError("");
     setRechargeNeeded(false);
-    // The typed draft stays until the reply is accepted. A suggestion never replaces it.
+    if (!regenerate) {
+      userMessageShown = true;
+      patchMessages(conversationId, submitted);
+      if (!explicit) setComposerDrafts(previous => {
+        const current = previous[conversationId] ?? { text: "", failed: [] };
+        if ((current.text ?? "") !== originalInput) return previous;
+        return { ...previous, [conversationId]: { ...current, text: "" } };
+      });
+    }
     try {
         const worldRuntime = resolveDzmmWorldRuntime(conversation.worldState, submitted, Date.now(), conversation.worldClockMode ?? "story");
         if (replyCharacter.publication) {
@@ -2448,12 +2579,11 @@ export default function TavernApp() {
       const result = await readDzmmWorldResponse(response, (text) => {
         if (activeAccount.current !== owner) return;
         answer = text;
-        if (!answer.trim()) return;
-        patchMessages(conversationId, [
-          ...submitted,
-          { id: assistantId, role: "assistant", content: answer },
-        ], undefined, undefined, undefined, preparedMemory);
+        if (streamPaint) return;
+        streamPaint = setTimeout(paintStreamingReply, 100);
       });
+      streamSettled = true;
+      if (streamPaint) { clearTimeout(streamPaint); streamPaint = undefined; }
       if (activeAccount.current !== owner) return false;
       answer = result.answer;
       patchMessages(conversationId, [
@@ -2464,6 +2594,7 @@ export default function TavernApp() {
     } catch (e) {
       if (activeAccount.current !== owner) return false;
       const hasValidAnswer = Boolean(answer.trim());
+      if (hasValidAnswer) paintStreamingReply();
       if (e instanceof DzmmMemoryRequestError && e.status === 402) {
         insufficient = true;
         setRechargeMessage(e.message || "余额不够，这条消息还没发出去。");
@@ -2487,6 +2618,8 @@ export default function TavernApp() {
       }
       return false;
     } finally {
+      streamSettled = true;
+      if (streamPaint) clearTimeout(streamPaint);
       if (!regenerate && activeAccount.current === owner) setComposerDrafts(previous => {
         const current = previous[conversationId];
         if (current?.pending?.requestId !== requestId) return previous;
@@ -2499,11 +2632,18 @@ export default function TavernApp() {
     }
   }
 
+  const searchLocalMatches = useMemo(() => {
+    if (view !== "search" || !deferredQuery) return [];
+    return filterDzmmCharacters(characters.filter((character) => !character.publication), {
+      query: deferredQuery,
+      blockedTags: state.preferences.blockedTags,
+    });
+  }, [view, deferredQuery, characters, state.preferences.blockedTags]);
   const shelfList = useMemo(() => {
     const rankedFeed = Boolean(rankQuery) && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢");
-    const hideRanked = tab === "新手" || tab === "猜你喜欢" || tab === "榜单" || tab === "分类" || view === "search";
+    const hideRanked = tab === "新手" || tab === "猜你喜欢" || tab === "榜单" || tab === "分类";
     const translatedShelfReady = xumengCardTranslationsLoaded(locale);
-    const remote = (rankedFeed && rankWaiting ? [] : publicShelf.characters).filter((character) => {
+    const remote = shelfCharacters.filter((character) => {
       if (!isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id))) {
         if (locale !== XUMENG_DEFAULT_LOCALE && (character.sourceKind === "public-summary" || character.publication)) {
           return translatedShelfReady && hasXumengCardTranslation(character.id, locale);
@@ -2522,17 +2662,28 @@ export default function TavernApp() {
       return !character.publication && author ? followed.has(author.id) : false;
     }) : [];
     const orderedRemote = tab === "最新" ? orderDzmmShelfByTime(remote) : remote;
-    const visible = [...followedLocal, ...pinned, ...orderedRemote].filter((character) => {
-      if (!character.cover || character.cover.includes("placeholder")) return false;
-      if (look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
+    const visible = [...searchLocalMatches, ...followedLocal, ...pinned, ...orderedRemote].filter((character) => {
+      if (view !== "search" && (!character.cover || character.cover.includes("placeholder"))) return false;
+      if (view !== "search" && look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
       if (seen.has(character.id)) return false;
       seen.add(character.id);
       return true;
     });
-    if (!rankedFeed || !rankReady) return visible;
+    if (homeRecommendationPage) {
+      const byId = new Map(visible.map((character) => [character.id, character]));
+      const ranked = homeRecommendationPage.flatMap((id) => {
+        const character = byId.get(id);
+        return character ? [character] : [];
+      });
+      const placed = new Set(ranked.map((character) => character.id));
+      return [...ranked, ...visible.filter((character) => !placed.has(character.id))];
+    }
+    if (!rankedFeed || !rankReady || (publicShelf.loading && publicShelf.characters.length === 0)) return visible;
     const order = new Map(displayRecommendationIds.map((id, index) => [id, index]));
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
-  }, [publicShelf.characters, characters, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, rankWaiting, displayRecommendationIds, sortMode, locale]);
+  }, [shelfCharacters, publicShelf.characters.length, publicShelf.loading, characters, searchLocalMatches, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, displayRecommendationIds, homeRecommendationPage, sortMode, locale]);
+  const homeBatchLoading = Boolean(homeRecommendationPage?.length) && shelfList.length === 0
+    && (publicShelf.loading || publicShelf.characters.some((character) => !homeRecommendationPage?.includes(character.id)));
   const relatedCards = useMemo(() => {
     if (!detail || relatedRank.status !== "ready") return [];
     const byId = new Map(characters.map((character) => [character.id, character]));
@@ -2866,7 +3017,25 @@ export default function TavernApp() {
   }, [pinChatToKeyboard]);
   const minePerson = mineId ? girlfriends.find(person => person.id === mineId) ?? null : null;
   const storyOpen = Boolean(activeCharacter && active && !companionInMain && !gameSelection);
-  const chatMainStyle = storyOpen ? { ...dzmmChatDisplayStyle(state.preferences), ...dzmmChatBackgroundStyle(state.preferences, activeCharacter?.cover, state.preferences.dark) } : undefined;
+  const [sceneBackdrop, setSceneBackdrop] = useState<{ id: string; url: string | null }>({ id: "", url: null });
+  const sceneUrl = active && sceneBackdrop.id === active.id ? sceneBackdrop.url : null;
+  const playBackdrop = storyOpen && (state.preferences.chatBackground ?? "cover") === "cover";
+  const backdropCover = activeCharacter ? xumengCardCoverUrl(activeCharacter.cover || XUMENG_FALLBACK_COVER) : undefined;
+  const chatMainStyle = storyOpen ? {
+    ...dzmmChatDisplayStyle(state.preferences),
+    ...(playBackdrop && (sceneUrl || backdropCover)
+      ? { backgroundImage: `url(${JSON.stringify(sceneUrl || backdropCover)})`, backgroundSize: "cover", backgroundPosition: "center 18%" }
+      : state.preferences.chatBackground === "plain" ? { background: "var(--bg)" } : {}),
+  } : undefined;
+  function scrollToLatestMessage() {
+    const scroller = messageScrollRef.current;
+    if (!scroller) return;
+    suppressScrollNoticeRef.current = true;
+    messageNearBottomRef.current = true;
+    setShowNewReply(false);
+    scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" });
+    window.requestAnimationFrame(() => { suppressScrollNoticeRef.current = false; });
+  }
 
   const renderShelfItem = (item: ContentShelfItem, index: number) => item.kind === "companion" ? (
                   <article key={item.key} className={s.card} style={{ animationDelay: `${Math.min(index, 9) * 25}ms` }}>
@@ -2953,17 +3122,19 @@ export default function TavernApp() {
                 );
 
   const rankingPeriodCopy = rankingPeriod === "day" ? "今日互动，实时更新" : rankingPeriod === "week" ? "本周互动，周一重置" : "累计互动，长期沉淀";
+  const quietTop = !detail && (view === "profile" || view === "settings" || view === "presets"
+    || view === "studio" || view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation");
 
   return (
     <div
       ref={appRef}
-      className={`${s.app} ${dark ? s.dark : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
+      className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
     >
       <aside className={s.appRail} aria-label="主导航">
-        <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
-          <span className={s.avatar}>{Array.from(state.preferences.nickname)[0] ?? ""}</span>
-          <strong>{state.preferences.nickname}</strong>
-        </button>
+        <a href="#characters" className={s.railBrand} aria-label="叙梦角色广场" onClick={(event) => { event.preventDefault(); navigate("characters"); }}>
+          <img src="/assets/xumeng/brand/xumeng-mark.svg" width="36" height="36" alt="" />
+          <span>叙梦<small>XUMENG</small></span>
+        </a>
         <nav>
           {localizedNav.map((n) => (
             <a key={n.view} href={`#${n.view}`}
@@ -2982,6 +3153,10 @@ export default function TavernApp() {
           {XUMENG_PAYMENTS_ENABLED && <a href="#recharge" className={view === "recharge" || view === "vip" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}><Icon name="wallet" size={18} />{t("utilityRechargeVip")}</a>}
           <a href="#app" className={view === "app" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("app"); }}><Icon name="download" size={18} />{t("utilityInstallApp")}</a>
         </nav>
+        <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
+          <span className={s.avatar}><UserMark /></span>
+          <strong>{state.preferences.nickname || "我的"}</strong>
+        </button>
       </aside>
       <header className={s.topbar}>
         <a
@@ -3077,9 +3252,7 @@ export default function TavernApp() {
         <div className={s.topEnd}>
           <a className={s.telegramTop} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title="加入 Telegram 群（新标签页打开）"><Icon name="send" size={16} /></a>
           <button className={s.account} onClick={() => navigate("profile")}>
-            <span className={s.avatar}>
-              {Array.from(state.preferences.nickname)[0] ?? ""}
-            </span>
+            <span className={s.avatar}><UserMark /></span>
             <span>{state.preferences.nickname}</span>
           </button>
         </div>
@@ -3127,7 +3300,7 @@ export default function TavernApp() {
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label="首页横幅"><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
-            {((rankWaiting && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢")) || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
+            {(homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
               <div className={s.empty} role="status"><h2>正在加载角色</h2><p>马上就好。</p></div>
             ) : featured.length || shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
@@ -3204,11 +3377,11 @@ export default function TavernApp() {
                 onKeyDown={event => { if (event.key === "Escape") setConversationQuery(""); }} />
               {conversationQuery && <button type="button" aria-label="清除会话搜索" onClick={() => setConversationQuery("")}><Icon name="close" size={14} /></button>}
             </label>
-            <div className={gameNavigation.filters} role="group" aria-label="互动分类">
-              {([ ["stories", "故事"], ["chats", "聊天"], ["games", "游戏"] ] as const).map(([type,label]) => <button key={type} aria-pressed={conversationType === type} onClick={() => selectChatSection(type)}>{label}</button>)}
+            <div className={gameNavigation.filters} role="tablist" aria-label="消息类型" aria-orientation="horizontal">
+              {([ ["stories", "故事", state.conversations.length], ["chats", "陪伴", girlfriends.length + chatPeople.length], ["games", "游戏", visibleBuiltinGames.length + visibleGames.length] ] as const).map(([type,label,count]) => <button key={type} role="tab" aria-selected={conversationType === type} aria-controls="xumeng-chat-list-content" onClick={() => selectChatSection(type)}>{label}<span className={gameNavigation.filterCount} aria-hidden="true">{count}</span></button>)}
             </div>
             {conversationType === "games" && gameLibrary.recentError && <p className={gameNavigation.cacheWarning} role="status">{gameLibrary.recentError}</p>}
-            <div className={s.conversationList} aria-label={conversationType === "stories" ? "故事列表" : conversationType === "chats" ? "聊天列表" : "游戏列表"}>
+            <div id="xumeng-chat-list-content" className={s.conversationList} aria-label={conversationType === "stories" ? "故事列表" : conversationType === "chats" ? "陪伴列表" : "游戏列表"}>
               {conversationType === "games" && <>
                 {visibleBuiltinGames.map(game => <button key={game.id} className={`${s.conversation} ${gameSelection?.kind === "builtin" && gameSelection.id === game.id ? s.conversationActive : ""}`} aria-label={`游玩${game.title}`} onClick={() => playGame({ kind: "builtin", id: game.id })}>
                   <div className={gameNavigation.gameAvatar} aria-hidden="true"><Icon name="game" size={23}/></div><span><strong>{game.title}</strong><small>{game.synopsis}</small></span>
@@ -3222,7 +3395,7 @@ export default function TavernApp() {
                 : <div className={gameNavigation.listState}><p>{conversationQuery && visibleBuiltinGames.length === 0 ? "没有找到匹配的游戏。" : "还没有你自己的游戏作品。"}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>上传游戏</button>}</div>}
               </>}
               {conversationType === "chats" && <div className={gameNavigation.listState}><button onClick={() => openGirlfriendStudio("new")}>上传女友</button></div>}
-              {conversationType === "chats" && girlfriends.filter(person => `${person.nickname} ${person.aliasNames.join(" ")} ${person.lines.join(" ")}`.toLocaleLowerCase().includes(conversationQuery.trim().toLocaleLowerCase())).map(person => <button key={person.id} className={gameNavigation.companionEntry} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
+              {conversationType === "chats" && visibleGirlfriends.map(person => <button key={person.id} className={gameNavigation.companionEntry} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
                 <span className={gameNavigation.companionFace}><span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span></span>
                 <span className={gameNavigation.companionCopy}><strong>{person.nickname}</strong><small>{person.lines[0]}</small></span>
               </button>)}
@@ -3243,15 +3416,15 @@ export default function TavernApp() {
                   </span>
                 </button>;
               })}
-              {conversationType === "chats" && !chatPeople.length && <p className={s.sidebarEmpty} role="status">没有找到匹配的聊天对象</p>}
+              {conversationType === "chats" && !visibleGirlfriends.length && !chatPeople.length && <div className={s.sidebarEmpty} role="status"><p>没有找到匹配的陪伴对象</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>清除搜索</button>}</div>}
               {conversationType === "stories" && visibleConversations.map((c) => {
                 const ch = conversationCharacters.find((x) => x.id === c.characterId);
                 const unread = activeId === c.id ? 0 : storyUnread(c.messages, storySeen[c.id]);
                 return (
                   <button
                     key={c.id}
-                    className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""}`}
-                    aria-label={chatListOpen ? undefined : `${c.title}${unread ? `，${unread}条未读` : ""}`}
+                    className={`${s.conversation} ${activeId === c.id ? s.conversationActive : ""} ${!ch ? s.conversationUnavailable : ""}`}
+                    aria-label={`${!ch ? "角色暂不可用，" : ""}${c.title}${unread ? `，${unread}条未读` : ""}`}
                     onClick={() => selectConversation(c)}
                   >
                     <span className={s.conversationAvatar}>
@@ -3263,15 +3436,15 @@ export default function TavernApp() {
                       <time className={s.conversationTime}>{formatConversationStamp(c.updatedAt)}</time>
                       <small>
                         {generating[c.id] && <span className={s.conversationGenerating}>正在回复… </span>}
-                        {!ch && <span>{pendingCharacterIds.has(c.characterId) ? "正在读取角色" : "角色暂不可用"}</span>}
-                        {(!ch ? " · " : "") + (xumengConversationPreview(c.messages.at(-1)?.content ?? "") || (c.messages.at(-1)?.content ? "查看对话" : "开始新的故事"))}
+                        {!ch && <span className={s.conversationState}>{pendingCharacterIds.has(c.characterId) ? "正在读取角色" : "角色暂不可用 · 可导出或删除"}</span>}
+                        {xumengConversationPreview(c.messages.at(-1)?.content ?? "") || (c.messages.at(-1)?.content ? "查看对话" : "开始新的故事")}
                       </small>
                     </span>
                   </button>
                 );
               })}
               {conversationType === "stories" && !visibleConversations.length && (
-                <p className={s.sidebarEmpty} role="status">{state.conversations.length ? "没有找到匹配的故事" : "还没有故事记录"}</p>
+                <div className={s.sidebarEmpty} role="status"><p>{state.conversations.length ? "没有找到匹配的故事" : "还没有故事记录"}</p>{conversationQuery && <button type="button" className={s.textButton} onClick={() => setConversationQuery("")}>清除搜索</button>}</div>
               )}
             </div>
             {conversationType === "stories" && <button
@@ -3292,7 +3465,7 @@ export default function TavernApp() {
           >
             <Icon name="chevron" size={16} />
           </button>
-          <section className={s.chatMain} style={chatMainStyle}>
+          <section className={`${s.chatMain} ${playBackdrop ? s.chatPlay : ""}`} data-scrim={state.preferences.dark ? "dark" : "light"} style={chatMainStyle}>
               {companionInMain ? (
               <Deferred>
               {companionVariant === "qwen"
@@ -3307,6 +3480,8 @@ export default function TavernApp() {
                 : (gameLibrary.privateGame ? <Deferred><GamePlayer key={`${cloud.user?.id}:private:${gameSelection.id}:${gameLibrary.privateGame.version}`} game={gameLibrary.privateGame} onBack={leaveGame}/></Deferred> : <div className={gameNavigation.gameLoading} role={gameLibrary.privateError ? "alert" : "status"}><Icon name="game" size={36}/><p>{gameLibrary.privateError || "正在打开游戏…"}</p>{gameLibrary.privateError && <button onClick={cloud.user?.isGuest ? () => openAccount("login") : gameLibrary.refresh}>{cloud.user?.isGuest ? "登录" : "重试打开"}</button>}<button onClick={leaveGame}>返回游戏列表</button></div>)
             ) : activeCharacter && active ? (
               <>
+                {playBackdrop && <PlayBackdrop cover={activeCharacter.cover} scene={sceneUrl} />}
+                {playBackdrop && <div className={`${s.chatBackdropScrim} ${state.preferences.dark ? s.chatBackdropDark : s.chatBackdropLight}`} />}
                 <header className={s.chatHeader}>
                   <button
                     className={`${s.iconButton} ${s.mobileBack}`}
@@ -3327,13 +3502,13 @@ export default function TavernApp() {
                       <small><span className={s.onlineDot} />{chatPresence(activeCharacter, busy)}</small>
                     </span>
                   </button>
-                  <div className={s.modelPicker}>
+                  <div className={s.modelPicker} ref={modelPickerRef}>
                     <button
                       className={s.modelButton}
                       aria-label="选择 AI 模型"
                       aria-expanded={modelMenuOpen}
                       disabled={busy}
-                      onClick={() => { if (!activeReplyActive()) setModelMenuOpen((open) => !open); }}
+                      onClick={() => { if (!activeReplyActive()) { setChatToolsOpen(false); setModelMenuOpen((open) => !open); } }}
                     >
                       {MODEL_MODES.find(mode => mode.id === normalizeDzmmModelSelection(state.preferences.model))?.label}
                       <Icon name="chevron" size={12} />
@@ -3368,7 +3543,15 @@ export default function TavernApp() {
                     )}
                   </div>
                   <div className={s.chatHeaderTools}>
-                    <button className={s.iconButton} aria-label="当前角色生成语音" title="角色语音" disabled={busy} onClick={() => performActiveCharacter("voice")}><Icon name="volume" size={18} /></button>
+                    <button
+                      className={s.iconButton}
+                      aria-label="对话相册"
+                      title="对话相册"
+                      aria-pressed={chatAlbumOpen}
+                      onClick={() => setChatAlbumOpen(open => !open)}
+                    >
+                      <Icon name="image" size={17} />
+                    </button>
                     <button
                       className={s.iconButton}
                       aria-label="查看当前角色"
@@ -3387,45 +3570,30 @@ export default function TavernApp() {
                     >
                       <Icon name="plus" size={18} />
                     </button>
-                    <button
-                      className={`${s.iconButton} ${state.favorites.includes(activeCharacter.id) ? s.favorited : ""}`}
-                      aria-label="收藏当前角色"
-                      aria-pressed={state.favorites.includes(
-                        activeCharacter.id,
-                      )}
-                      title="收藏角色"
-                      onClick={() => toggleFavorite(activeCharacter.id)}
-                    >
-                      <Icon name={state.favorites.includes(activeCharacter.id) ? "check" : "book"} size={17} />
-                    </button>
-                    <button
-                      className={s.iconButton}
-                      aria-label="导出会话"
-                      title="导出会话"
-                      onClick={exportConversation}
-                    >
-                      <Icon name="download" size={17} />
-                    </button>
-                    <button
-                      className={s.iconButton}
-                      aria-label="聊天设置"
-                      title="聊天设置"
-                      disabled={busy}
-                      onClick={() => setChatSettingsOpen(true)}
-                    >
-                      <Icon name="sliders" size={17} />
-                    </button>
-                    {XUMENG_CALLS_ENABLED && <>
-                      <button className={`${s.iconButton} ${s.callButton}`} aria-label="给当前角色打语音电话，接通预扣 200 Credit" title={chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "语音通话，接通预扣 200 Credit"} disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "phone")}><Icon name="phone" size={18} /></button>
-                      <button className={`${s.iconButton} ${s.callButton}`} aria-label="给当前角色打视频电话，接通预扣 200 Credit" title={chatBalance !== null && chatBalance < 200 ? "余额低于 200 Credit，暂不能通话" : "视频通话，接通预扣 200 Credit"} disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => performActiveCharacter("live", "video")}><Icon name="video" size={18} /></button>
-                    </>}
+                    <div className={s.chatToolsMenu} ref={chatToolsRef}>
+                      <button className={s.iconButton} aria-label="更多聊天操作" title="更多聊天操作" aria-haspopup="menu" aria-expanded={chatToolsOpen} onClick={() => { setModelMenuOpen(false); setChatToolsOpen(open => !open); }}>
+                        <Icon name="more" size={18} />
+                      </button>
+                      {chatToolsOpen && <div className={s.chatToolsPopover} role="menu" aria-label="聊天操作">
+                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("voice"); }}><Icon name="volume" size={15} />角色语音</button>
+                        <button type="button" role="menuitemcheckbox" className={state.favorites.includes(activeCharacter.id) ? s.favorited : ""} aria-checked={state.favorites.includes(activeCharacter.id)} onClick={() => { setChatToolsOpen(false); toggleFavorite(activeCharacter.id); }}><Icon name="heart" size={15} />{state.favorites.includes(activeCharacter.id) ? "已收藏角色" : "收藏角色"}</button>
+                        <button type="button" role="menuitem" onClick={() => { setChatToolsOpen(false); exportConversation(); }}><Icon name="download" size={15} />导出会话</button>
+                        <button type="button" role="menuitem" disabled={busy} onClick={() => { setChatToolsOpen(false); setChatSettingsOpen(true); }}><Icon name="sliders" size={15} />聊天设置</button>
+                        {XUMENG_CALLS_ENABLED && <>
+                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "phone"); }}><Icon name="phone" size={15} />语音通话 · 200 Credit</button>
+                          <button type="button" role="menuitem" disabled={busy || (billingConfig?.enabled === true && chatBalance !== null && chatBalance < 200)} onClick={() => { setChatToolsOpen(false); void performActiveCharacter("live", "video"); }}><Icon name="video" size={15} />视频通话 · 200 Credit</button>
+                        </>}
+                      </div>}
+                    </div>
                   </div>
                 </header>
+                <ChatAlbum characterId={activeCharacter.id} open={chatAlbumOpen} onClose={() => setChatAlbumOpen(false)} />
                 <div className={s.messageScroll} ref={messageScrollRef} data-message-scroll="">
                   <ChatMediaProvider key={`${cloud.user?.id ?? "offline"}:${active.id}`} accountId={cloud.user?.id}
                     conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} saveNow={cloud.saveNow}
                     onRequireAccount={() => openAccount("login")}
                     onCharged={() => setBillingRefresh(value => value + 1)}
+                    onSceneImage={(id, url) => setSceneBackdrop({ id, url })}
                     onRecharge={() => navigate("recharge")}>
                   <div className={s.messageList}>
                     {active.messages.map((m, index) => (
@@ -3438,7 +3606,7 @@ export default function TavernApp() {
                             <Cover character={activeCharacter} className={s.messageAvatar} />
                           </button>
                         ) : (
-                          <span className={`${s.avatar} ${s.messageAvatar}`} aria-hidden="true">{Array.from(state.preferences.nickname)[0] || "我"}</span>
+                          <span className={`${s.avatar} ${s.messageAvatar}`} aria-hidden="true"><UserMark /></span>
                         )}
                         <div className={s.messageContent}>
                           <span className={s.srOnly}>{m.role === "user" ? state.preferences.nickname : activeCharacter.name}</span>
@@ -3447,16 +3615,17 @@ export default function TavernApp() {
                             <small className={s.openingTag}>{activeOpening.kind === "background" ? "故事背景" : activeOpening.kind === "welcome" ? "故事起点" : "开场白"}</small>
                           )}
                           <ChatMessageMedia message={m} disabled={busy} label={`第 ${index + 1} 条消息`}
-                            moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: momentFields, sections: momentSections } : undefined}
+                            moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: m.id === streamingAssistantId ? [] : momentFields, sections: m.id === streamingAssistantId ? [] : momentSections, open: m.id !== streamingAssistantId, pending: m.id === streamingAssistantId } : undefined}
                             onCopy={() => { void copyMessage(splitXumengMomentTail(splitXumengPanelTail(m.content).body).body); }} onEdit={() => editMessage(m)}
                             onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
                           <div className={s.messageBubble} data-message-text>
                             {m.role === "assistant" && activeOpening?.source === "template"
                               && activeOpening.messages[index]?.content.trim() === m.content.trim() ? <CharacterIntroduction text={m.content}
                               characterName={activeCharacter.name} userName={playUserName}
+                              frontendScripts={activeCharacter.frontendScripts} messageDepth={active.messages.length - 1 - index}
                               additionalNotes={activeOpening?.source === "template" && index === activeOpening.messages.findIndex(message => message.role === "assistant")
                                 ? getDzmmCharacterCreatorNotes(activeCharacter) : undefined}
-                              renderBody={body => <MessageText text={body} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} />}
+                              renderBody={body => <MessageText text={body} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} holdStatus={m.id === streamingAssistantId} frontendScripts={activeCharacter.frontendScripts} messageDepth={active.messages.length - 1 - index} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} holdStatus={m.id === streamingAssistantId} frontendScripts={activeCharacter.frontendScripts} messageDepth={active.messages.length - 1 - index} />}
                           </div>
                           </ChatMessageMedia>
                           {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
@@ -3469,7 +3638,7 @@ export default function TavernApp() {
                       </div>
                     ))}
                     {busy && active.messages.at(-1)?.role !== "assistant" && (
-                      <div className={s.typing}>
+                      <div className={s.typing} role="status" aria-label="正在输入">
                         <span />
                         <span />
                         <span />
@@ -3492,6 +3661,9 @@ export default function TavernApp() {
                   </div>
                   </ChatMediaProvider>
                 </div>
+                {showNewReply && <button type="button" className={s.messageJump} onClick={scrollToLatestMessage}>
+                  {chatBusy ? "新回复" : "回到最新"}<Icon name="chevron" size={14} />
+                </button>}
                 <div className={s.composerWrap}>
                   {error && (
                     <p className={s.chatError} role="alert">
@@ -3614,7 +3786,7 @@ export default function TavernApp() {
       )}
 
       <Deferred>
-      {view === "videos" && !detail && <VideoChannel />}
+      {view === "videos" && !detail && <VideoChannel characters={characters} onOpenCharacter={id => { const character = characters.find(item => item.id === id); if (character) showDetail(character); }} onRequireAccount={() => openAccount("login")} />}
       {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? (cloud.user ? <GenerationStudio key={cloud.user.id} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} onBack={() => navigate("studio")} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>) : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
 
       {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>正在加载账户…</p></main>)}
@@ -3635,7 +3807,7 @@ export default function TavernApp() {
       {view === "scenarios" && !detail && <ScenarioStudio key={`${profileUser.id}:${creatorInitial.id ?? creatorInitial.roomCode ?? "library"}`} userId={cloud.user?.id ?? null} isGuest={cloud.user?.isGuest ?? true} initialId={creatorInitial.id} initialRoomCode={creatorInitial.roomCode} onNavigate={id => { creatorRoute.current = id ? `studio/scenarios/${encodeURIComponent(id)}` : "studio/scenarios"; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onSaved={id => { creatorRoute.current = `studio/scenarios/${encodeURIComponent(id)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRoom={code => { creatorRoute.current = `studio/room/${encodeURIComponent(code)}`; window.history.replaceState(null, "", `#${creatorRoute.current}`); }} onRequireAccount={() => openAccount("register")} onBack={() => { creatorDirty.current = false; creatorBusy.current = false; navigate("studio"); }} onDirtyChange={dirty => { creatorDirty.current = dirty; }} onBusyChange={working => { creatorBusy.current = working; }}/>}
       {view === "studio-edit" && !detail && editor && <CharacterStudio key={`${profileUser.id}:${studioSession}`} character={editor === "new" ? null : editor} nickname={state.preferences.nickname} user={cloud.user} submission={studioSubmission} onClose={() => { studioDirty.current = false; studioBusy.current = false; setEditor(null); navigate("studio"); }} onDirtyChange={(dirty) => { studioDirty.current = dirty; }} onBusyChange={(working) => { studioBusy.current = working; }} onSave={saveStudioCharacter} onRetrySave={(character) => saveStudioCharacter(character, true)} onSubmit={submitStudioCharacter} onLoadCloud={async () => { if (!await cloud.reloadCloud()) throw new Error("云端版本没有载入，当前编辑内容仍保留。请再加载云端版本。"); }} onTest={testStudioCharacter} onRequireAccount={() => openAccount("register")} />}
       {view === "profile" && !detail && <>
-        <ProfileView key={profileUser.id} user={cloud.user} characters={characters} custom={state.custom} favorites={state.favorites} conversations={state.conversations} authors={authors} preferences={state.preferences} onCharacter={showDetail} onAuthor={showAuthor} onConversation={(conversation) => { selectConversation(conversation); navigate("chat"); }} onEditCharacter={openStudio} onCreateCharacter={() => openStudio("new")} onEditProfile={() => navigate("settings")} onSettings={() => navigate("settings")} onPresets={() => navigate("presets")} onRecharge={() => navigate("recharge")} onInvite={() => navigate("invite")} onLogin={() => openAccount("login")} onRegister={() => openAccount("register")} onBrowse={() => navigate("characters")} onDeleteCharacter={deleteCharacter} onAdmin={cloud.user?.role === "super" ? () => navigate("admin") : undefined} />
+        <ProfileView key={profileUser.id} user={cloud.user} characters={characters} custom={state.custom} favorites={state.favorites} conversations={state.conversations} authors={authors} preferences={state.preferences} onCharacter={showDetail} onAuthor={showAuthor} onConversation={(conversation) => { selectConversation(conversation); navigate("chat"); }} onEditCharacter={openStudio} onCreateCharacter={() => openStudio("new")} onEditProfile={() => navigate("settings")} onSettings={() => navigate("settings")} onPresets={() => navigate("presets")} onRecharge={() => navigate("recharge")} onVip={() => navigate("vip")} onInvite={() => navigate("invite")} onLogin={() => openAccount("login")} onRegister={() => openAccount("register")} onBrowse={() => navigate("characters")} onDeleteCharacter={deleteCharacter} onAdmin={cloud.user?.role === "super" ? () => navigate("admin") : undefined} />
         <div className={s.profile}>
           {cloud.user && !cloud.user.isGuest && <>
           <section className={`${s.cloudAccount} ${cloud.user?.isGuest ? s.cloudAccountGuest : ""}`} aria-label="账号与数据库同步">
@@ -3671,7 +3843,7 @@ export default function TavernApp() {
       {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} onEmailBound={cloud.emailBound} />}
       {view === "presets" && !detail && <PresetLibrary key={profileUser.id} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} />}
       {view === "author" && !detail && (selectedAuthor ? <AuthorProfile key={selectedAuthor.id} author={selectedAuthor} characters={[...characters, ...publicShelf.characters]} preferences={state.preferences} onPreferences={savePreferences} onCharacter={showDetail} onBack={() => navigate("characters")} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} /> : publicShelf.loading ? <main className={s.profileEmpty}><p>正在加载作者…</p></main> : <main className={s.profileEmpty}><p>没有找到这位作者。</p><button className={s.secondary} onClick={() => navigate("characters")}>返回角色广场</button></main>)}
-      {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} locale={locale} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }} reasons={showRecommendationReasons ? recommendation.reasons : undefined} trackRecommendations={rankReady} searchTopics={XUMENG_FORUM_ENABLED ? searchForumTopics : undefined} onTopic={XUMENG_FORUM_ENABLED ? (topic) => showForumPost(topic.id) : undefined} more={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
+      {view === "search" && !detail && <SearchResults query={query} characters={shelfList} authors={authors} favorites={state.favorites} likes={likedForCurrentAccount} preferences={state.preferences} locale={locale} onCharacter={showDetail} onFavorite={toggleFavorite} onLike={toggleLike} onAuthor={showAuthor} onTag={(tag) => { setTab("新手"); setAppliedTags([tag]); navigate("characters"); }} reasons={showRecommendationReasons ? recommendation.reasons : undefined} trackRecommendations={rankReady} searchTopics={XUMENG_FORUM_ENABLED ? searchForumTopics : undefined} onTopic={XUMENG_FORUM_ENABLED ? (topic) => showForumPost(topic.id) : undefined} more={{ total: publicShelf.total + searchLocalMatches.filter((character) => !publicShelf.characters.some((remote) => remote.id === character.id)).length, hasMore: publicShelf.hasMore, loading: publicShelf.loading, serverFiltered: publicShelf.serverFiltered, onLoad: publicShelf.loadMore }} />}
       {view === "forum" && !detail && XUMENG_FORUM_ENABLED && <ForumView key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={shelfList} onCharacter={showDetail} shelfMore={{ total: publicShelf.total, hasMore: publicShelf.hasMore, loading: publicShelf.loading, onLoad: publicShelf.loadMore }} />}
       {view === "admin" && !detail && <AdminDashboard key={`${cloud.user?.id}:${cloud.user?.role}`} user={cloud.user} onRequireAccount={() => openAccount("login")} onAccountChanged={() => setBillingRefresh(value => value + 1)}
         publishingReview={<PublishingCenter key={`review:${profileUser.id}`} admin user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("login")} onCatalogChanged={cloud.refreshCatalog} onNovels={() => navigate("novels")} />}
@@ -3776,9 +3948,9 @@ export default function TavernApp() {
         <div className={s.balanceDialog} role="dialog" aria-modal="true" aria-labelledby="balance-gate-title" onClick={event => event.stopPropagation()}>
           <h2 id="balance-gate-title">余额不够</h2>
           <p>{rechargeMessage || "这条消息还没发出去，输入框里的内容会留着。可以邀请好友、完成今日签到，或充值后再发。"}
-            {(!cloud.user || cloud.user.isGuest) && " 新设备赠送的 100 Credit 用完了，注册再送 300 Credit 就能接着聊。"}</p>
+            {(!cloud.user || cloud.user.isGuest) && " 新设备赠送的 100 Credit 用完了，注册再送 100 Credit 就能接着聊。"}</p>
           {!cloud.user || cloud.user.isGuest ? <div className={s.balanceActions}>
-            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}>注册领 300 Credit</button>
+            <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}>注册领 100 Credit</button>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); openAccount("login"); }}>我已有账号，登录</button>
           </div> : <div className={s.balanceActions}>
             <button type="button" className={s.primary} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}>去邀请</button>
@@ -3828,18 +4000,24 @@ function shelfRecommendationSurface(view: string, tab: string): RecommendationSu
   return null;
 }
 
-function MessageText({ text, role = "assistant", characterName, userName, statusLabels = [], showPeeledStatus = true }: {
+function MessageText({ text, role = "assistant", characterName, userName, statusLabels = [], showPeeledStatus = true, holdStatus = false, frontendScripts, messageDepth = 0 }: {
   text: string; role?: "user" | "assistant"; characterName?: string; userName?: string;
-  statusLabels?: readonly string[]; showPeeledStatus?: boolean;
+  statusLabels?: readonly string[]; showPeeledStatus?: boolean; holdStatus?: boolean;
+  frontendScripts?: readonly XumengFrontendScript[]; messageDepth?: number;
 }) {
-  const named = applyDzmmReaderNames(text, { characterName, userName });
+  const scripted = applyXumengFrontendScripts(text, frontendScripts, { role, depth: messageDepth, pass: "display" });
+  const markup = hasCharacterMarkup(scripted);
+  const escapeName = (value?: string) => markup
+    ? value?.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!))
+    : value;
+  const named = applyDzmmReaderNames(scripted, { characterName: escapeName(characterName), userName: escapeName(userName) });
+  if (markup) return <CharacterRichText text={named} />;
   // Status presentation applies to character replies, never to the user's own text.
   const presentation = role === "user" ? { body: named, status: null } : splitXumengMessagePresentation(splitXumengMomentTail(splitXumengPanelTail(named).body).body);
-  const peeled = !presentation.status && statusLabels.length
-    ? peelXumengLabeledStatusTail(presentation.body, statusLabels) : null;
-  const body = peeled?.fields.length ? peeled.body : presentation.body;
-  const status = presentation.status ?? (showPeeledStatus && peeled?.fields.length
-    ? { title: "状态栏", fields: peeled.fields } : null);
+  const peeled = role === "user" || presentation.status ? null : peelXumengLabeledStatusTail(presentation.body, statusLabels, { streaming: holdStatus });
+  const body = peeled ? peeled.body : presentation.body;
+  const revealed = presentation.status ?? (peeled?.fields.length ? { title: "状态栏", fields: peeled.fields } : null);
+  const status = holdStatus || !showPeeledStatus ? null : revealed;
   if (!body && !status) return null;
   return <>
     {body && <MessageTextBody text={body} />}

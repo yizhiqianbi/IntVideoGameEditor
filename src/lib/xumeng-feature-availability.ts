@@ -9,8 +9,11 @@ export const XUMENG_FORUM_ENABLED = false;
 
 export const XUMENG_FORUM_LOCKED_MESSAGE = "论坛暂时关闭，稍后再开放。";
 
-/** Voice and video calls from the chat header. Character TTS stays available either way. */
+/** Voice and video calls from the chat header. */
 export const XUMENG_CALLS_ENABLED = true;
+
+/** Character voice generation from the character detail page. */
+export const XUMENG_CHARACTER_VOICE_ENABLED = false;
 
 export const XUMENG_CALLS_LOCKED_MESSAGE = "语音通话和视频通话暂时关闭，稍后再开放。";
 

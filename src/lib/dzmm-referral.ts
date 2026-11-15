@@ -17,6 +17,8 @@ export type DzmmReferralInfo = {
   opens?: number;
   registrations?: number;
   startedChats?: number;
+  rebatePercent?: number;
+  rebateCurrency?: "CNY";
 };
 
 export class DzmmReferralError extends Error {
@@ -45,7 +47,8 @@ export async function fetchDzmmReferral(): Promise<DzmmReferralInfo> {
     || (value.inviteCode !== null && typeof value.inviteCode !== "string")
     || (value.inviteUrl !== null && typeof value.inviteUrl !== "string")
     || !Number.isInteger(value.invitedCount) || !Number.isInteger(value.earnedPoints)
-    || !Number.isInteger(value.rewardPoints) || value.pointsKind !== "credit" || value.modelBillingLinked !== true) {
+    || !Number.isInteger(value.rewardPoints) || value.pointsKind !== "credit" || value.modelBillingLinked !== true
+    || !(typeof value.rebatePercent === "number" && Number.isInteger(value.rebatePercent) && value.rebatePercent >= 1 && value.rebatePercent <= 100) || value.rebateCurrency !== "CNY") {
     throw new DzmmReferralError(502, "邀请码服务返回的数据无效，请稍后重试。");
   }
   const count = (item: unknown) => typeof item === "number" && Number.isInteger(item) && item >= 0 ? item : 0;

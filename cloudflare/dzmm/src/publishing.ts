@@ -146,6 +146,17 @@ const CATALOG_ORDER: Record<DzmmCatalogSort, string> = {
   name: "json_extract(s.snapshot_json, '$.name') COLLATE NOCASE, p.id",
 };
 
+function catalogRank(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: string; bindings: string[] } {
+  const order = CATALOG_ORDER[query.sort];
+  if (!query.q) return { sql: order, bindings: [] };
+  const name = "lower(coalesce(json_extract(s.snapshot_json,'$.name'),''))";
+  const author = "lower(coalesce(json_extract(s.snapshot_json,'$.author'), u.nickname, ''))";
+  return {
+    sql: `CASE WHEN ${name}=? THEN 0 WHEN instr(${name}, ?)=1 THEN 1 WHEN instr(${name}, ?)>0 THEN 2 WHEN instr(${author}, ?)>0 THEN 3 ELSE 4 END, ${order}`,
+    bindings: [query.q, query.q, query.q, query.q],
+  };
+}
+
 function catalogWhere(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: string; bindings: unknown[] } {
   const where = ["p.is_listed=1", "s.status='approved'", "s.revision=p.approved_revision"];
   const bindings: unknown[] = [];
@@ -212,10 +223,11 @@ export async function listCatalogMatchIds(env: Pick<Env, "DB">, input: {
 
 async function readCatalogPage(env: Env, query: ReturnType<typeof parseDzmmCatalogQuery>): Promise<Character[]> {
   const filter = catalogWhere(query);
-  const rows = await env.DB.prepare(`${SUBMISSIONS} WHERE ${filter.sql} ORDER BY ${CATALOG_ORDER[query.sort]} LIMIT ? OFFSET ?`)
-    .bind(...filter.bindings, query.limit, query.ids.length ? 0 : query.offset).all<SubmissionRow>();
+  const rank = catalogRank(query);
+  const rows = await env.DB.prepare(`${SUBMISSIONS} WHERE ${filter.sql} ORDER BY ${rank.sql} LIMIT ? OFFSET ?`)
+    .bind(...filter.bindings, ...rank.bindings, query.limit, query.ids.length ? 0 : query.offset).all<SubmissionRow>();
   const characters: Character[] = rows.results.map(publicCharacter);
-  if (!query.authorIds.length && characters.length < query.limit) {
+  if (!query.authorIds.length) {
     try {
       const official = (await listedOfficialCards(env)).filter(card => {
         if (query.ids.length && !query.ids.includes(card.id)) return false;
@@ -224,7 +236,19 @@ async function readCatalogPage(env: Env, query: ReturnType<typeof parseDzmmCatal
         if (query.tags.length && !query.tags.some(tag => card.tags.includes(tag))) return false;
         return true;
       });
-      characters.push(...official.slice(0, query.limit - characters.length));
+      const seen = new Set(characters.map(card => card.id));
+      const extra = official.filter(card => !seen.has(card.id));
+      if (query.q && !query.ids.length && query.offset === 0) {
+        const term = query.q.toLowerCase();
+        const named = extra.filter(card => card.name.toLowerCase().includes(term));
+        const rest = extra.filter(card => !card.name.toLowerCase().includes(term));
+        const room = Math.max(0, query.limit - named.length);
+        const page = [...named, ...characters.slice(0, room)];
+        if (page.length < query.limit) page.push(...rest.slice(0, query.limit - page.length));
+        characters.splice(0, characters.length, ...page);
+      } else if (characters.length < query.limit) {
+        characters.push(...extra.slice(0, query.limit - characters.length));
+      }
     } catch { /* official catalogue is optional until its table exists */ }
   }
   if (query.ids.length) {

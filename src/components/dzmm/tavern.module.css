@@ -169,6 +169,7 @@
 .app ::selection {
   background: color-mix(in srgb, var(--dialogue) 32%, transparent);
 }
+.quietTop > .topbar { display: none; }
 .topbar {
   height: 64px;
   display: flex;
@@ -366,7 +367,9 @@
   justify-content: center;
   font-size: 11px;
   flex-shrink: 0;
+  overflow: hidden;
 }
+.avatar svg { display: block; width: 100%; height: 100%; }
 .browseNav {
   padding: 0 16px;
   margin-top: 6px;
@@ -937,7 +940,11 @@
     overflow: auto;
   }
   .dark .appRail { background: linear-gradient(180deg, rgba(30, 13, 24, .9), rgba(19, 10, 16, .88)); }
-  .mainNav, .referralTopEntry { display: none; }
+  .mainNav, .referralTopEntry, .topbar .logo { display: none; }
+  .railBrand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 6px; color: var(--text); }
+  .railBrand img { width: 36px; height: 36px; flex: 0 0 36px; }
+  .railBrand span { display: flex; flex-direction: column; font-size: 18px; font-weight: 650; letter-spacing: .04em; line-height: 1.1; }
+  .railBrand small { color: var(--muted); font-size: 10px; font-weight: 560; letter-spacing: .18em; }
   .railLabel { margin: 8px 12px 0; color: var(--muted); font-size: 11px; }
   .appRail nav { display: flex; flex-direction: column; gap: 4px; }
   .appRail nav a {
@@ -958,15 +965,19 @@
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 8px;
+    margin-top: auto;
+    min-height: 44px;
+    padding: 10px 8px 4px;
     border: 0;
-    border-radius: 14px;
+    border-top: 1px solid color-mix(in srgb, var(--line) 80%, transparent);
+    border-radius: 0;
     background: transparent;
+    color: var(--text);
     text-align: left;
   }
-  .railUser:hover { background: var(--soft); }
-  .railUser .avatar { width: 42px; height: 42px; font-size: 16px; }
-  .railUser strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+  .railUser:hover { background: transparent; color: var(--pink); }
+  .railUser .avatar { width: 28px; height: 28px; font-size: 12px; }
+  .railUser strong { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 560; }
 }
 .toast {
   position: fixed;
@@ -1124,6 +1135,13 @@
 .conversation:hover {
   background: color-mix(in srgb, var(--im-accent) 8%, transparent);
 }
+.conversationUnavailable {
+  opacity: .82;
+}
+.conversationUnavailable:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--pink) 8%, transparent);
+}
 .conversationActive {
   background: linear-gradient(100deg, var(--im-accent-soft), color-mix(in srgb, var(--gold-soft) 52%, transparent)) !important;
 }
@@ -1198,11 +1216,20 @@
   text-overflow: ellipsis;
   color: var(--muted);
 }
+.conversationState {
+  display: inline;
+  color: var(--pink) !important;
+  font-weight: 600;
+}
 .sidebarEmpty {
   font-size: 12px;
   color: var(--muted);
   text-align: center;
   margin-top: 40px;
+}
+.sidebarEmpty .textButton {
+  margin-top: 4px;
+  color: var(--pink) !important;
 }
 .importConversation {
   padding: 18px;
@@ -1259,6 +1286,43 @@
   position: relative;
   background: radial-gradient(circle at 78% 6%, color-mix(in srgb, var(--pink) 9%, transparent), transparent 34%), var(--im-canvas);
 }
+.chatBackdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  pointer-events: none;
+}
+.chatBackdropScrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+.chatBackdropDark { background: rgba(12, 6, 14, 0.28); }
+.chatBackdropLight { background: rgba(255, 246, 250, 0.22); }
+.chatPlay > .chatHeader,
+.chatPlay > .messageScroll,
+.chatPlay > .composerWrap {
+  position: relative;
+  z-index: 1;
+}
+.chatPlay > .chatHeader {
+  background: linear-gradient(to bottom, rgba(18, 8, 16, 0.72), rgba(18, 8, 16, 0.16));
+}
+.chatPlay > .composerWrap {
+  background: linear-gradient(to top, rgba(18, 8, 16, 0.78), rgba(18, 8, 16, 0.08));
+}
+.chatPlay[data-scrim="light"] > .chatHeader {
+  background: linear-gradient(to bottom, rgba(255, 246, 250, 0.88), rgba(255, 246, 250, 0.2));
+}
+.chatPlay[data-scrim="light"] > .composerWrap {
+  background: linear-gradient(to top, rgba(255, 246, 250, 0.9), rgba(255, 246, 250, 0.16));
+}
+.chatPlay > .messageScroll { background: transparent; }
 .chatHeader {
   height: 56px;
   padding: 0 8px 0 12px;
@@ -1314,8 +1378,7 @@
   margin-left: auto;
   flex-shrink: 1;
   min-width: 0;
-  overflow-x: auto;
-  scrollbar-width: none;
+  overflow: visible;
 }
 .chatHeaderTools .iconButton {
   height: 32px;
@@ -1325,6 +1388,56 @@
   border: 1px solid transparent;
 }
 .chatHeaderTools .iconButton:hover { border-color: color-mix(in srgb, var(--gold) 35%, var(--line)); color: var(--gold); background: var(--gold-soft); }
+.chatHeaderTools .iconButton[aria-pressed="true"] { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 40%, var(--line)); background: var(--pink-soft); }
+.chatAlbum {
+  position: absolute;
+  z-index: 12;
+  top: 64px;
+  right: 12px;
+  width: min(360px, calc(100% - 24px));
+  max-height: min(440px, 62%);
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, var(--pink) 22%, var(--line));
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .28);
+}
+.chatAlbumHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.chatAlbumHead strong { font-size: 15px; }
+.chatAlbumHead button { height: 28px; padding: 0 10px; border: 0; border-radius: 14px; background: transparent; color: var(--muted); }
+.chatAlbum p { margin: 8px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.chatAlbum h3 { margin: 12px 0 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.chatAlbumGrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.chatAlbumGrid img, .chatAlbumGrid video { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--bg); }
+.chatToolsMenu { position: relative; flex-shrink: 0; }
+.chatToolsPopover {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 8px);
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 190px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .25);
+}
+.chatToolsPopover button {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 34px;
+  padding: 6px 9px;
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+}
+.chatToolsPopover button:hover { background: var(--soft); color: var(--pink); }
+.chatToolsPopover button:disabled { color: var(--muted); }
 .callButton { position: relative; }
 .callLock {
   position: absolute;
@@ -1450,6 +1563,27 @@
   scrollbar-gutter: stable;
   padding: 16px 18px 20px;
 }
+.messageJump {
+  position: absolute;
+  z-index: 5;
+  left: 50%;
+  bottom: 92px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--pink) 30%, var(--line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--pink);
+  font-size: 12px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, .18);
+  transform: translateX(-50%);
+  backdrop-filter: blur(10px);
+}
+.messageJump:hover { background: var(--pink-soft); transform: translate(-50%, -1px); }
+.messageJump svg { transform: rotate(90deg); }
 .interactionPanel {
   flex-shrink: 0;
   margin: 8px 28px 0;
@@ -1520,6 +1654,10 @@
   font-family: var(--chat-font, inherit);
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+.messageBubble:has([data-frontend-card]) {
+  width: min(100%, 520px);
+  white-space: normal;
 }
 .messageBubble .speech {
   color: var(--dialogue);
@@ -2523,8 +2661,7 @@
     row-gap: 0;
     padding-bottom: 8px;
   }
-  .chatPage > .topbar .search,
-  .chatPage .conversationSearch {
+  .chatPage > .topbar .search {
     display: none;
   }
   .chatPage .chatLayout {
@@ -2824,6 +2961,7 @@
 .videoMode {
   background: #07060b;
 }
+.videoMode > .topbar { display: none; }
 @media (max-width: 767px) {
   .app { overflow-x: clip; }
   .chatMode {
@@ -2895,12 +3033,8 @@
   .chatHeaderTools .iconButton {
     width: 30px;
   }
-  .chatHeaderTools .iconButton:not(:nth-last-child(-n + 2)) {
-    display: none;
-  }
-  .chatHeaderTools .callButton {
-    display: inline-flex;
-  }
+  .chatHeaderTools { overflow: visible; }
+  .chatToolsPopover { position: fixed; top: auto; right: 8px; bottom: 72px; max-width: calc(100vw - 16px); }
   .modelPicker {
     position: relative;
     top: auto;

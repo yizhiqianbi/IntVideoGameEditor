@@ -1,10 +1,13 @@
 /**
  * Presentation-only parsing for visible story messages.
  *
- * Status snapshots are recognized only from explicit markers or status tags
+ * Status snapshots are recognized from explicit markers or status tags
  * (`点击查看状态栏`, `<Status_block>`, `<status>`, a `<details>` whose summary
- * names 状态, or a fenced block of fields). Ordinary prose with a colon stays
- * story text. Model scratch blocks (`<think>`, `<UpdateVariable>`…) are hidden.
+ * names 状态, or a fenced block of fields), from a tail of the card's own
+ * fields, or from a tail of `字段：[[值]]` lines. Ordinary prose with a colon
+ * stays story text. While a reply is still streaming, an unfinished tail is
+ * held out of the story and not yet returned as fields. Model scratch blocks
+ * (`<think>`, `<UpdateVariable>`…) are hidden.
  */
 export type XumengVisibleStatusField = { label: string; value: string };
 export type XumengVisibleStatusSection = { title: string; fields: XumengVisibleStatusField[]; notes: string[] };
@@ -78,38 +81,103 @@ function fieldCount(sections: readonly XumengVisibleStatusSection[]): number {
   return sections.reduce((sum, section) => sum + section.fields.length, 0);
 }
 
-/**
- * A status bar updates as a block of its own fields at the end of a reply.
- * Only a suffix whose labels belong to that bar is lifted out; a colon inside
- * the story stays in the story.
- */
-export function peelXumengLabeledStatusTail(text: string, labels: readonly string[]): { body: string; fields: XumengVisibleStatusField[] } {
+type StatusTailLine = {
+  index: number;
+  role: "field" | "partial" | "blank" | "marker";
+  label: string;
+  value: string;
+  bracket: boolean;
+  known: boolean;
+};
+
+const BRACKET_FIELD = /^\s*(?:[-*•·]\s*)?([^：:\n。！？!?，,“”"「」]{1,16}?)\s*[：:]\s*\[\[([\s\S]*?)\]\]\s*$/u;
+const BRACKET_PARTIAL = /^\s*(?:[-*•·]\s*)?([^：:\n。！？!?，,“”"「」]{1,16}?)\s*[：:]\s*\[{1,2}[^\]\n]*$/u;
+const KNOWN_PARTIAL = /^\s*(?:[-*•·]\s*)?([^：:\n。！？!?，,“”"「」]{1,16}?)\s*[：:]\s*$/u;
+
+function classifyStatusLine(line: string, known: ReadonlySet<string>): Omit<StatusTailLine, "index"> | null {
+  if (STATUS_MARKER.test(line)) return { role: "marker", label: "", value: "", bracket: false, known: false };
+  const bracket = BRACKET_FIELD.exec(line);
+  if (bracket) {
+    const label = cleanLabel(bracket[1]);
+    if (!label) return null;
+    return { role: "field", label, value: cleanValue(bracket[2]) || "未记录", bracket: true, known: known.has(label) };
+  }
+  const partialBracket = BRACKET_PARTIAL.exec(line);
+  if (partialBracket && !line.includes("]]")) {
+    const label = cleanLabel(partialBracket[1]);
+    if (!label) return null;
+    return { role: "partial", label, value: "", bracket: true, known: known.has(label) };
+  }
+  const field = FIELD.exec(line);
+  const label = field ? cleanLabel(field[1]) : "";
+  if (field && label && known.has(label)) return { role: "field", label, value: cleanValue(field[2]) || "未记录", bracket: false, known: true };
+  const partial = KNOWN_PARTIAL.exec(line);
+  const partialLabel = partial ? cleanLabel(partial[1]) : "";
+  if (partial && partialLabel && known.has(partialLabel)) return { role: "partial", label: partialLabel, value: "", bracket: false, known: true };
+  return null;
+}
+
+function statusTail(text: string, labels: readonly string[]): { lines: string[]; taken: StatusTailLine[] } {
   const known = new Set(labels.map(cleanLabel).filter(Boolean));
-  if (known.size < 2) return { body: text, fields: [] };
   const lines = normalize(text).split("\n");
   let cursor = lines.length;
   while (cursor > 0 && !lines[cursor - 1].trim()) cursor--;
-  const taken: number[] = [];
+  const taken: StatusTailLine[] = [];
   while (cursor > 0) {
     const line = lines[cursor - 1].trim();
     if (!line) {
       if (!taken.length) break;
+      taken.push({ index: cursor - 1, role: "blank", label: "", value: "", bracket: false, known: false });
       cursor--;
       continue;
     }
-    const field = FIELD.exec(line);
-    const label = field ? cleanLabel(field[1]) : "";
-    if (!field || !label || !known.has(label)) break;
-    taken.push(cursor - 1);
+    const kind = classifyStatusLine(line, known);
+    if (!kind) break;
+    if (kind.role === "partial" && taken.some(item => item.role !== "blank")) break;
+    if (kind.role === "marker" && !taken.some(item => item.role === "field" || item.role === "partial")) {
+      taken.push({ index: cursor - 1, ...kind });
+      break;
+    }
+    taken.push({ index: cursor - 1, ...kind });
     cursor--;
+    if (kind.role === "marker") break;
   }
-  if (taken.length < 2) return { body: text, fields: [] };
-  const fields = taken.reverse().map(index => {
-    const field = FIELD.exec(lines[index].trim());
-    return { label: cleanLabel(field?.[1] ?? ""), value: cleanValue(field?.[2] ?? "") || "未记录" };
-  });
-  const body = lines.filter((_, index) => !taken.includes(index)).join("\n").replace(/\n{3,}/gu, "\n\n").trim();
-  return { body, fields };
+  return { lines, taken };
+}
+
+/**
+ * A status bar updates as a block of its own fields at the end of a reply.
+ * A suffix of the card's labels, or of `字段：[[值]]` lines, is lifted out.
+ * A colon inside the story stays in the story. Pass `streaming` while the
+ * reply is still arriving: an unfinished tail leaves the story immediately
+ * and does not become fields until the block is complete.
+ */
+export function peelXumengLabeledStatusTail(text: string, labels: readonly string[], options?: { streaming?: boolean }): { body: string; fields: XumengVisibleStatusField[] } {
+  const streaming = options?.streaming === true;
+  const { lines, taken } = statusTail(text, labels);
+  const fields = taken.filter(item => item.role === "field").reverse().map(item => ({ label: item.label, value: item.value }));
+  const knownCount = taken.filter(item => item.role === "field" && item.known).length;
+  const bracketCount = taken.filter(item => item.role === "field" && item.bracket).length;
+  const bracketPartial = taken.some(item => item.role === "partial" && item.bracket);
+  const knownPartial = taken.some(item => item.role === "partial" && item.known);
+  const marker = taken.some(item => item.role === "marker");
+  const commit = knownCount >= 2 || bracketCount >= 2 || (!streaming && (bracketPartial || knownPartial) && knownCount + bracketCount >= 1);
+  const hold = !commit && (streaming
+    ? bracketPartial || bracketCount > 0 || knownPartial || knownCount > 0 || marker
+    : bracketPartial);
+  if (!commit && !hold) return { body: text, fields: [] };
+  const drop = new Set(taken.map(item => item.index));
+  const body = lines.filter((_, index) => !drop.has(index)).join("\n").replace(/\n{3,}/gu, "\n\n").trim();
+  return { body, fields: commit ? fields : [] };
+}
+
+/** Fields worth a status card, after hidden tails are removed. Empty when the reply has no status block. */
+export function xumengReplyStatus(text: string, labels: readonly string[] = []): XumengMessagePresentation["status"] {
+  const presentation = splitXumengMessagePresentation(text);
+  if (presentation.status?.fields.length) return presentation.status;
+  const peeled = peelXumengLabeledStatusTail(presentation.body, labels);
+  if (!peeled.fields.length) return null;
+  return { title: "状态栏", fields: peeled.fields };
 }
 
 /** Split a visible assistant message without rewriting its source content. */
@@ -203,7 +271,8 @@ const EMBEDDED_MARKUP = /<style\b[^>]*>[\s\S]*?(?:<\/style>|$)|<script\b[^>]*>[\
 /** One line for a conversation list: story text, never raw HTML, CSS, or status markup. */
 export function xumengConversationPreview(content: string, limit = 80): string {
   const source = content.replace(EMBEDDED_MARKUP, " ");
-  const plain = plainXumengStoryText(splitXumengMessagePresentation(source).body)
+  const presented = splitXumengMessagePresentation(source);
+  const plain = plainXumengStoryText(peelXumengLabeledStatusTail(presented.body, []).body)
     .replace(/\[状态:[^\]]{0,48}\]/gu, " ")
     .replace(/\s+/gu, " ")
     .trim();
@@ -211,5 +280,5 @@ export function xumengConversationPreview(content: string, limit = 80): string {
   return plain.length > limit ? `${plain.slice(0, limit)}…` : plain;
 }
 
-const xumengMessagePresentation = { splitXumengMessagePresentation, peelXumengLabeledStatusTail, parseXumengStatusContent, plainXumengStoryText, splitXumengSpeech, xumengStatusPreview, xumengConversationPreview };
+const xumengMessagePresentation = { splitXumengMessagePresentation, peelXumengLabeledStatusTail, xumengReplyStatus, parseXumengStatusContent, plainXumengStoryText, splitXumengSpeech, xumengStatusPreview, xumengConversationPreview };
 export default xumengMessagePresentation;

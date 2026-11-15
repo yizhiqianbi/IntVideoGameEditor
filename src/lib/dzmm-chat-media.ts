@@ -237,8 +237,8 @@ export async function fetchDzmmChatMedia(accountId: string, conversationId: stri
 }
 
 export async function generateDzmmChatMedia(accountId: string, conversationId: string, messageId: string,
-  kind: DzmmChatMediaKind, signal?: AbortSignal): Promise<DzmmChatMediaAsset> {
-  const value = await request("/generate", signal, { accountId, conversationId, messageId, kind });
+  kind: DzmmChatMediaKind, signal?: AbortSignal, regenerate = false): Promise<DzmmChatMediaAsset> {
+  const value = await request("/generate", signal, { accountId, conversationId, messageId, kind, ...(regenerate ? { regenerate: true } : {}) });
   if (!record(value) || value.accountId !== accountId) throw invalid();
   const asset = parseDzmmChatMediaAsset(value.asset, conversationId);
   if (asset.messageId !== messageId || asset.kind !== kind) throw invalid();

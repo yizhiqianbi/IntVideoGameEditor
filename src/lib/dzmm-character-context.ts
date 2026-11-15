@@ -1,6 +1,7 @@
 import { projectDzmmOpeningMessage, splitDzmmCharacterPresentation } from "./dzmm-character-presentation";
 import { getXumengSpeechVoice, XUMENG_DEFAULT_SPEECH_VOICE, type XumengSpeechVoiceId } from "./xumeng-voices";
 import { parseXumengInteractionTemplate, type XumengInteractionTemplate } from "./xumeng-interaction-panels";
+import { parseXumengFrontendScripts, type XumengFrontendScript } from "./xumeng-frontend-card";
 
 export type DzmmOpeningMessage = { role: "user" | "assistant"; content: string };
 export type DzmmCharacterBookEntry = {
@@ -18,9 +19,11 @@ export type DzmmCharacterPromptContext = {
 };
 export type DzmmCharacterContext = DzmmCharacterPromptContext & {
   gallery?: string[]; introduction?: string; creatorNotes?: string; suggestedReplies?: string[]; speechVoice?: XumengSpeechVoiceId;
+  /** Display and prompt regex from the card. Never part of the model request. */
+  frontendScripts?: XumengFrontendScript[];
 };
 export const DZMM_CHARACTER_PROMPT_FIELDS = ["systemPrompt", "postHistoryInstructions", "messageExamples", "alternateGreetings", "openingMessages", "characterBook", "interactionTemplate", "statusBar", "appearance", "interactionSettings", "sourceChannel"] as const;
-export const DZMM_CHARACTER_CONTEXT_FIELDS = [...DZMM_CHARACTER_PROMPT_FIELDS, "gallery", "introduction", "creatorNotes", "suggestedReplies", "speechVoice"] as const;
+export const DZMM_CHARACTER_CONTEXT_FIELDS = [...DZMM_CHARACTER_PROMPT_FIELDS, "gallery", "introduction", "creatorNotes", "suggestedReplies", "speechVoice", "frontendScripts"] as const;
 export const DEFAULT_DZMM_CHARACTER_BOOK_SCAN_DEPTH = 10;
 /** One lore entry. Card prose fields stay within 15,000 characters, and the whole card within 5 MB. */
 export const DZMM_WORLD_BOOK_ENTRY_LIMIT = 100_000;
@@ -175,7 +178,13 @@ export function parseDzmmCharacterContext(value: Record<string, unknown>): DzmmC
     const voice = getXumengSpeechVoice(value.speechVoice);
     context.speechVoice = voice ? voice.id : XUMENG_DEFAULT_SPEECH_VOICE;
   }
-  if (new TextEncoder().encode(JSON.stringify(context)).byteLength > DZMM_CHARACTER_CARD_MAX_BYTES) throw new Error("角色扩展设定总量不能超过 5 MB。");
+  const frontendScripts = parseXumengFrontendScripts(value);
+  if (frontendScripts) context.frontendScripts = frontendScripts;
+  const encoded = () => new TextEncoder().encode(JSON.stringify(context)).byteLength;
+  if (encoded() > DZMM_CHARACTER_CARD_MAX_BYTES) {
+    delete context.frontendScripts;
+    if (encoded() > DZMM_CHARACTER_CARD_MAX_BYTES) throw new Error("角色扩展设定总量不能超过 5 MB。");
+  }
   return context;
 }
 

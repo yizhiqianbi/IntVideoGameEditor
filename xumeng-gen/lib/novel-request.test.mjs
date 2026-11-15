@@ -41,17 +41,25 @@ test("new-write payload includes all fields and defaults count to 4000", () => {
   assert.deepEqual(built.files, {});
 });
 
-test("empty optional fields are omitted", () => {
-  const built = buildNovelPayload({
+test("character setting is required and other blanks are omitted", () => {
+  const missing = buildNovelPayload({
     mode: "new",
     description: "一个三十岁的旅人走进港口旧书店。",
     character_setting: "  ",
+    count: "4000",
+  });
+  assert.equal(missing.ok, false);
+  assert.equal(missing.error, "先写下人物设定。");
+  const built = buildNovelPayload({
+    mode: "new",
+    description: "一个三十岁的旅人走进港口旧书店。",
+    character_setting: "旅人沉稳少言。",
     location_scene: "",
     details: "",
     count: "4000",
   });
   assert.equal(built.ok, true);
-  assert.deepEqual(Object.keys(built.values).sort(), ["count", "description"]);
+  assert.deepEqual(Object.keys(built.values).sort(), ["character_setting", "count", "description"]);
   assert.equal(built.values.count, "4000");
 });
 
@@ -130,6 +138,7 @@ test("successful mock text is returned and errors are not faked as success", asy
   const failed = await read(await handleNovel(request({
     mode: "new",
     description: "一个三十岁的旅人走进港口旧书店。",
+    character_setting: "旅人沉稳少言。",
   }), {
     forward: async () => new Response(JSON.stringify({ error: "渠道试接还没配上密钥。", code: "unconfigured" }), {
       status: 503,
@@ -145,6 +154,7 @@ test("forward timeout becomes 504", async () => {
   const result = await read(await handleNovel(request({
     mode: "new",
     description: "一个三十岁的旅人走进港口旧书店。",
+    character_setting: "旅人沉稳少言。",
   }), {
     forward: async () => {
       const error = new Error("aborted");

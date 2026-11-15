@@ -18,9 +18,10 @@ const policy = { version: 1 as const, multiplier: 3 as const, usdToCny: 6.704588
 test("fixed selections agree with the official catalogue, including canonical identities and highest cache/context tiers", async () => {
   const evidence = JSON.parse(await readFile(new URL("../../output/xumeng/multi-models/openrouter-catalog-20261008.json", import.meta.url), "utf8"));
   assert.equal(evidence.source, "https://openrouter.ai/api/v1/models");
-  assert.equal(DZMM_DEFAULT_MODEL, "gemma31"); assert.equal(DZMM_MODEL_OPTIONS.length, 13);
-  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["gemma31", "deepseek", "grok", "grok46", "heretic", "gemma26", "cydonia", "venice"]);
-  assert.equal(normalizeDzmmModelSelection("qwen"), "gemma31");
+  assert.equal(DZMM_DEFAULT_MODEL, "gemma31"); assert.equal(DZMM_MODEL_OPTIONS.length, 15);
+  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["gemma31", "deepseek", "qwen", "gemini4a", "gemini4c", "gemini31", "grok", "grok46", "gemini", "claude", "gpt", "heretic", "gemma26", "cydonia", "venice"]);
+  assert.equal(normalizeDzmmModelSelection("qwen"), "qwen");
+  assert.equal(normalizeDzmmModelSelection("claude"), "claude");
   for (const option of DZMM_MODEL_OPTIONS) {
     if (option.route === "sealion") {
       assert.equal(option.providerModel, "gemma4-26b-a4b-ultra-heretic");

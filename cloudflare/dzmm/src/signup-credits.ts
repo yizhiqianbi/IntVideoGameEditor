@@ -2,10 +2,10 @@ import type { Env } from "./types";
 
 /** A server-owned, one-time registration gift. It is neither a purchase nor a
  * VIP daily check-in. Login never backfills it. */
-export const NEW_SIGNUP_CREDITS = 300;
+export const NEW_SIGNUP_CREDITS = 100;
 
-/** A new device (guest session) gets enough to try the tavern once before the
- * account gate. Registered accounts get the larger signup gift instead. */
+/** A new device (guest session) gets 100 Credit to try the tavern.
+ * Registering that account grants another 100 Credit once. */
 export const NEW_GUEST_CREDITS = 100;
 
 /** One welcome grant per browser session; the grant key makes retries idempotent. */
@@ -24,7 +24,7 @@ export function publicSignupCreditConfig() {
     includesAutomaticReplySuggestions: true,
     oncePerAccount: true,
     billingRule: "actual_cost_x3" as const,
-    note: "新注册一次赠送 300 Credit。实际可用轮数受模型、上下文和回复长度影响；预留并非实际扣费，未使用部分返还，按实际成本的三倍计费。",
+    note: `新注册一次赠送 ${NEW_SIGNUP_CREDITS} Credit。实际可用轮数受模型、上下文和回复长度影响；预留并非实际扣费，未使用部分返还，按实际成本的三倍计费。`,
   };
 }
 

@@ -140,3 +140,103 @@
 .settingsGroup small { font-size:11px; line-height:1.65; color:var(--muted); }
 .groupHeading { display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .sectionTitle { margin:6px 0 14px; font-size:16px; font-weight:600; }
+
+/* Account center refresh: the guest state gets one clear next step instead of a
+   profile full of empty counters. Signed-in content keeps the existing data
+   model and tabs, but gains a quieter, more intentional rhythm. */
+.page { width:min(1180px,calc(100% - 72px)); margin:40px auto 88px; }
+.guestPage { max-width:1080px; }
+.pageTopline { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; margin-bottom:28px; }
+.pageTopline h1 { margin:4px 0 0; font-size:25px; font-weight:650; letter-spacing:-.02em; }
+.eyebrow { display:block; color:var(--pink); font-size:11px; font-weight:650; letter-spacing:.13em; text-transform:uppercase; }
+.guestPill { display:inline-flex; align-items:center; gap:8px; color:var(--muted); font-size:12px; padding:8px 11px; border:1px solid var(--line); border-radius:999px; background:color-mix(in srgb,var(--surface) 72%,transparent); }
+.guestDot { width:7px; height:7px; border-radius:50%; background:#f1b55e; box-shadow:0 0 0 4px color-mix(in srgb,#f1b55e 16%,transparent); }
+.guestHero { position:relative; min-height:310px; display:grid; grid-template-columns:minmax(0,1.15fr) minmax(260px,.85fr); gap:36px; overflow:hidden; padding:42px 48px; border:1px solid color-mix(in srgb,var(--pink) 28%,var(--line)); border-radius:24px; background:radial-gradient(circle at 78% 44%, color-mix(in srgb,var(--pink) 19%,transparent), transparent 33%), linear-gradient(132deg, color-mix(in srgb,var(--pink-soft) 74%,var(--surface)), var(--surface)); }
+.guestHero::after { content:""; position:absolute; inset:auto -80px -140px auto; width:360px; height:260px; border-radius:50%; background:color-mix(in srgb,var(--pink) 10%,transparent); filter:blur(8px); pointer-events:none; }
+.guestHeroCopy { position:relative; z-index:1; max-width:590px; align-self:center; }
+.guestHero h2 { margin:10px 0 10px; font-size:clamp(30px,4vw,50px); line-height:1.05; letter-spacing:-.045em; font-weight:680; }
+.guestHeroCopy > p { max-width:480px; margin:0; color:var(--muted); font-size:15px; line-height:1.8; }
+.authActions { display:flex; align-items:center; gap:12px; margin-top:28px; }
+.authActions .primary { min-width:122px; min-height:44px; border-radius:11px; font-size:14px; font-weight:650; box-shadow:0 10px 24px color-mix(in srgb,var(--pink) 20%,transparent); }
+.ghostAction { min-height:44px; padding:0 8px; color:var(--text); font-size:13px; }
+.ghostAction:hover { color:var(--pink); }
+.guestHero .textButton { display:inline-flex; align-items:center; margin-top:18px; color:var(--muted)!important; font-size:12px; text-decoration:none; }
+.guestHero .textButton:hover { color:var(--pink)!important; }
+.guestOrb { position:relative; z-index:1; display:grid; place-items:center; min-height:220px; align-self:center; }
+.orbRing { position:absolute; width:210px; height:210px; border:1px solid color-mix(in srgb,var(--pink) 30%,transparent); border-radius:50%; box-shadow:0 0 0 26px color-mix(in srgb,var(--pink) 5%,transparent),0 0 70px color-mix(in srgb,var(--pink) 18%,transparent); }
+.orbRing::before,.orbRing::after { content:""; position:absolute; border:1px solid color-mix(in srgb,var(--pink) 18%,transparent); border-radius:50%; }
+.orbRing::before { inset:26px; }.orbRing::after { inset:56px; }
+.orbCore { display:grid; place-items:center; width:82px; height:82px; border-radius:50%; color:var(--pink); background:color-mix(in srgb,var(--pink) 16%,var(--surface)); border:1px solid color-mix(in srgb,var(--pink) 32%,transparent); box-shadow:0 12px 30px color-mix(in srgb,var(--pink) 22%,transparent); }
+.orbCaption { position:absolute; bottom:4px; color:var(--muted); font-size:11px; line-height:1.7; text-align:center; }
+.guestBenefits { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1px; margin:18px 0 0; border:1px solid var(--line); border-radius:16px; overflow:hidden; background:var(--line); }
+.benefit { display:flex; align-items:center; gap:12px; min-height:88px; padding:18px 20px; background:color-mix(in srgb,var(--surface) 92%,var(--soft)); }
+.benefitIcon { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; color:var(--pink); border-radius:10px; background:var(--pink-soft); }
+.benefit strong { display:block; font-size:13px; font-weight:600; }.benefit p { margin:4px 0 0; color:var(--muted); font-size:11px; line-height:1.5; }
+.guestPreview { margin-top:42px; padding-top:24px; border-top:1px solid var(--line); }
+.previewHeading { display:flex; align-items:center; justify-content:space-between; gap:16px; }.previewHeading > svg { color:var(--muted); }
+.previewHeading h3 { margin:5px 0 0; font-size:18px; font-weight:600; }.previewRows { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:18px; }
+.previewRows > div { display:flex; flex-direction:column; gap:15px; min-height:96px; padding:16px; border:1px solid var(--line); border-radius:13px; background:color-mix(in srgb,var(--surface) 68%,transparent); }
+.previewRows span { display:flex; align-items:center; gap:8px; color:var(--text); font-size:13px; }.previewRows span svg { color:var(--pink); }.previewRows em { color:var(--muted); font-size:11px; font-style:normal; }
+.guestMore { display:flex; align-items:center; gap:18px; margin-top:24px; }.guestMore button { display:inline-flex; align-items:center; gap:7px; color:var(--muted); font-size:12px; }.guestMore button:hover { color:var(--pink); }
+.signedInPage { max-width:1180px; }
+.signedInHero { align-items:center; padding:12px 0 22px; border-bottom:1px solid var(--line); }
+.signedInHero .avatar { width:76px; height:76px; font-size:30px; background:linear-gradient(145deg,var(--pink-soft),color-mix(in srgb,var(--pink) 22%,var(--surface))); }
+.signedInHero .profileInfo h1 { font-size:29px; letter-spacing:-.03em; }.signedInHero .profileInfo p { font-size:12px; }.signedInHero .outline { min-height:40px; border-radius:10px; }
+.inviteBanner { display:flex; align-items:center; justify-content:space-between; gap:24px; margin:22px 0 0; padding:17px 20px; border-radius:15px; }.inviteBanner .referralHeading { flex:1; }.inviteBanner .referralHeading > .outline { flex-shrink:0; }.inviteBanner p { margin:4px 0 0; }.inviteBanner h2 { font-size:15px; }
+.balanceSummary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1px; padding:0; overflow:hidden; background:var(--line); }.balanceSummary > div { display:flex; align-items:baseline; justify-content:space-between; gap:16px; padding:18px 20px; background:var(--surface); }.balanceSummary span { color:var(--muted); font-size:12px; }.balanceSummary strong { color:var(--text); font-size:22px; font-weight:650; }
+.accountStats { max-width:none; margin:26px 0 0; grid-template-columns:repeat(4,minmax(110px,1fr)); gap:12px; }.accountStats button { padding:15px 17px; border:1px solid var(--line); border-radius:13px; background:color-mix(in srgb,var(--surface) 68%,transparent); }.accountStats strong { font-size:24px; }.accountStats span { margin-top:2px; }
+.accountQuickLinks { padding:20px 0 25px; }.accountQuickLinks button { min-height:38px; padding:0 14px; border:1px solid transparent; border-radius:9px; }.accountQuickLinks button:first-child { color:#fff; background:var(--pink); }.accountQuickLinks button:hover { background:var(--pink-soft); color:var(--pink); }.accountQuickLinks button:first-child:hover { background:color-mix(in srgb,var(--pink) 88%,#000); color:#fff; }
+.contentTabs { margin-bottom:22px; }
+
+@media (max-width:800px) { .page { width:calc(100% - 40px); } .guestHero { grid-template-columns:1fr; padding:32px 28px 26px; } .guestOrb { min-height:170px; } .guestBenefits { grid-template-columns:1fr; } .benefit { min-height:70px; } .previewRows { grid-template-columns:1fr; } }
+@media (max-width:520px) { .page { width:calc(100% - 32px); margin-top:25px; } .pageTopline { align-items:flex-start; flex-direction:column; gap:14px; margin-bottom:20px; } .pageTopline h1 { font-size:22px; } .guestHero { min-height:0; padding:27px 22px 20px; border-radius:18px; } .guestHero h2 { font-size:34px; } .guestHeroCopy > p { font-size:13px; } .authActions { margin-top:22px; flex-wrap:wrap; }.authActions .primary { flex:1; }.ghostAction { padding:0; } .guestOrb { min-height:150px; } .orbRing { width:160px; height:160px; } .orbCore { width:68px; height:68px; } .guestPreview { margin-top:30px; } .guestMore { margin-top:18px; } .inviteBanner { align-items:flex-start; flex-direction:column; gap:14px; }.accountStats { grid-template-columns:repeat(2,1fr); }.signedInHero { align-items:flex-start; }.signedInHero > .outline { margin-left:0; flex:1 0 100%; } }
+
+/* Personal-center mode: ordinary account information takes priority over
+   promotional copy. */
+.guestPage { max-width:760px; }
+.guestIdentity { display:flex; align-items:center; gap:13px; }.guestIdentity .avatar { width:56px; height:56px; font-size:24px; }.guestIdentity h1 { margin:0; font-size:25px; font-weight:650; }.guestIdentity p { margin:3px 0 0; color:var(--muted); font-size:12px; }
+.accountSummary { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:28px; padding:24px 26px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }.balanceBlock { display:flex; flex-direction:column; gap:4px; }.balanceBlock span { color:var(--muted); font-size:12px; }.balanceBlock strong { font-size:34px; line-height:1; font-weight:650; letter-spacing:-.03em; }.balanceBlock small { color:var(--muted); font-size:11px; }.accountSummary .authActions { margin-top:0; }.accountSummary .primary,.accountSummary .outline { min-height:40px; border-radius:9px; padding:0 20px; }.accountSummary .outline { border:1px solid var(--line); background:transparent; }
+.compactStats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-top:18px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--line); }.compactStats button { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 18px; background:var(--surface); }.compactStats button:hover { background:var(--soft); }.compactStats strong { font-size:22px; font-weight:620; }.compactStats span { color:var(--muted); font-size:11px; }
+.accountMenu { display:flex; flex-direction:column; margin-top:28px; border-top:1px solid var(--line); }.accountMenu button { display:flex; align-items:center; justify-content:space-between; min-height:58px; padding:0 4px; border-bottom:1px solid var(--line); color:var(--muted); }.accountMenu button:hover { color:var(--text); }.accountMenu button > span { display:flex; align-items:center; gap:11px; }.accountMenu button svg { color:var(--pink); }.accountMenu b { color:var(--text); font-size:13px; font-weight:500; }.accountMenu button > svg { color:var(--muted); }
+@media (max-width:520px) { .guestIdentity h1 { font-size:23px; }.accountSummary { align-items:stretch; flex-direction:column; gap:22px; margin-top:22px; padding:20px; }.accountSummary .authActions { width:100%; }.accountSummary .authActions > * { flex:1; }.compactStats button { align-items:center; padding:14px 8px; }.compactStats strong { font-size:20px; }.accountMenu { margin-top:22px; }.balanceSummary { grid-template-columns:1fr; }.balanceSummary > div { padding:15px 16px; } }
+
+.avatar:has(svg), .smallAvatar:has(svg) { background:transparent; color:inherit; }
+.avatar svg, .smallAvatar svg { display:block; width:100%; height:100%; }
+.minePage { max-width:760px; }
+.mineHead { display:flex; align-items:center; gap:16px; }
+.mineAvatar { width:72px; height:72px; }
+.mineHead .profileInfo h1 { margin:0; font-size:22px; font-weight:650; }
+.mineHead .profileInfo p { margin:6px 0 0; }
+.mineGear { display:grid; place-items:center; width:40px; height:40px; margin-left:auto; border:1px solid var(--line); border-radius:50%; color:var(--muted); background:var(--surface); flex-shrink:0; font:inherit; }
+.mineGear:hover { color:var(--text); }
+.mineAssets { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
+.mineVip, .mineWallet { display:flex; align-items:center; justify-content:flex-start; gap:12px; min-height:78px; padding:14px 14px 14px 12px; border-radius:16px; text-align:left; font:inherit; }
+.mineVip { border:1px solid color-mix(in srgb, var(--pink) 46%, transparent); background:linear-gradient(145deg, #4a1830, #1c0c14); color:#ffe4ee; }
+.mineWallet { border:1px solid var(--line); background:var(--surface); color:var(--text); }
+.mineVip small, .mineWallet small { display:block; color:var(--muted); font-size:12px; }
+.mineVip small { color:#f0a8c0; }
+.mineVip strong, .mineWallet strong { display:block; margin-top:2px; font-size:18px; font-weight:650; }
+.mineAssetIcon { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:var(--pink-soft); color:var(--pink); flex-shrink:0; }
+.mineWallet .mineAssetIcon { background:var(--pink-soft); color:var(--pink); }
+.mineVip > svg, .mineWallet > svg { margin-left:auto; color:var(--muted); flex-shrink:0; }
+.mineVip:disabled, .mineWallet:disabled { cursor:default; }
+.minePromo { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; margin-top:12px; padding:16px 18px; border:0; border-radius:16px; text-align:left; font:inherit; color:#fff8f4; background:linear-gradient(100deg, #8d2448, var(--pink) 58%, #e56b92); }
+.minePromo strong { display:block; font-size:15px; }
+.minePromo small { display:block; margin-top:4px; font-size:12px; line-height:1.5; opacity:.78; }
+.minePromo b { flex-shrink:0; padding:7px 12px; border-radius:999px; background:#fff; color:var(--pink-deep); font-size:12px; font-weight:600; }
+.mineShortcuts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:16px; padding:8px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }
+.mineShortcuts button { display:flex; flex-direction:column; align-items:center; gap:6px; min-height:78px; padding:10px 4px; border:0; border-radius:12px; background:transparent; color:var(--muted); font:inherit; }
+.mineShortcuts span { font-size:12px; }
+.mineShortcuts strong { font-size:16px; font-weight:650; color:var(--text); }
+.mineShortcuts button:hover, .mineShortcuts .mineOn { background:var(--soft); color:var(--pink); }
+.mineInvite { margin-top:14px; }
+.minePage .accountMenu { margin-top:8px; }
+.minePage .balanceSummary { margin-top:18px; }
+@media (max-width:520px) {
+  .mineAvatar { width:60px; height:60px; }
+  .mineHead .profileInfo h1 { font-size:20px; }
+  .mineAssets { gap:8px; }
+  .mineVip, .mineWallet { min-height:72px; padding:12px 10px; gap:8px; }
+  .minePromo { align-items:flex-start; flex-direction:column; }
+  .mineShortcuts strong { font-size:14px; }
+}

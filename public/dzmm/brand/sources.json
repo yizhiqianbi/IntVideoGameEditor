@@ -2,30 +2,30 @@
   "brand": "叙梦",
   "englishName": "XUMENG",
   "createdAt": "2026-10-03",
-  "design": "原创月牙对话气泡与星点；手绘 SVG，不使用 DZMM 图形。",
+  "design": "原创月牙对话气泡、香槟金星点与酒红渐变；手绘 SVG，不使用 DZMM 图形。",
   "assets": [
     {
       "file": "/assets/xumeng/brand/xumeng-mark.svg",
-      "bytes": 541,
-      "sha256": "24b897083d319ffd59470c968097c8f7731285b16eb854d19651f14071c36b7b",
+      "bytes": 1193,
+      "sha256": "ccfea48f887dda5110283a210b1a8bba77344c0a1d308a9b103fe02b72543fec",
       "origin": "original-vector-design"
     },
     {
       "file": "/assets/xumeng/brand/xumeng-icon-192.png",
-      "bytes": 3327,
-      "sha256": "d45b76a8e2c3ed4db089871e8e7abf14b36b27e7d87ade6d907eb7ca7b75fd9e",
+      "bytes": 8785,
+      "sha256": "d574cbd1de8c577909664285d88bb5e88536d67c37a207405f27cff2f5fd006e",
       "origin": "original-vector-design"
     },
     {
       "file": "/assets/xumeng/brand/xumeng-icon-512.png",
-      "bytes": 12949,
-      "sha256": "92aa54fc417c39c39f0c891d45b5e8aab526408908fb9925e1e1de42575e7d2f",
+      "bytes": 28342,
+      "sha256": "a2d463e849e6fd76df4e1cf42754cce02f266b78dcbfa69bca0d9a393a589b76",
       "origin": "original-vector-design"
     },
     {
       "file": "/assets/xumeng/brand/xumeng-favicon.ico",
-      "bytes": 1551,
-      "sha256": "aca96579833823077dcf7b822fd0d11ede3fdd8f2aa6182c30d57d4bdf0b9d20",
+      "bytes": 4477,
+      "sha256": "bae647c7c12b18100b42a810c7f35b63b9169a7a08cd7ac9322c46a320173d51",
       "origin": "original-vector-design"
     }
   ]

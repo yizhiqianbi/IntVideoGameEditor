@@ -37,6 +37,14 @@ export type Env = {
   EMAIL_AUTH_ENABLED?: string;
   EMAIL_FROM?: string;
   EMAIL_OTP_SECRET?: string;
+  /** Google OIDC client. Both values stay in Worker secrets, never in source. */
+  GOOGLE_OAUTH_CLIENT_ID?: string;
+  GOOGLE_OAUTH_CLIENT_SECRET?: string;
+  /** Telegram OIDC client. This is not the bot token and not the feedback secret. */
+  TELEGRAM_OAUTH_CLIENT_ID?: string;
+  TELEGRAM_OAUTH_CLIENT_SECRET?: string;
+  /** Test-only switch. Production leaves this unset. */
+  SOCIAL_AUTH_CACHE?: string;
   EMAIL_PROVIDER?: string;
   RESEND_API_KEY?: string;
   PAYMENT_PROVIDER?: string;

@@ -23,6 +23,15 @@ const OWNER_KEY = "dzmm-cloud-local-owner";
 const MIGRATION_KEY = "dzmm-cloud-migration-completed";
 const initialState = (): DzmmSavedState => ({ ...DZMM_INITIAL_STATE, favorites: [], custom: [], conversations: [], preferences: { ...DZMM_INITIAL_STATE.preferences } });
 const serialize = (state: DzmmSavedState) => JSON.stringify(state);
+const PLACEHOLDER_NICKNAMES = new Set(["", "游客", "Telegram 用户", "Google 用户"]);
+
+function withProviderNickname(state: DzmmSavedState, user: DzmmCloudUser): DzmmSavedState {
+  if (user.isGuest) return state;
+  const current = state.preferences.nickname.trim();
+  const account = user.nickname.trim();
+  if (!PLACEHOLDER_NICKNAMES.has(current) || PLACEHOLDER_NICKNAMES.has(account) || current === account) return state;
+  return { ...state, preferences: { ...state.preferences, nickname: account } };
+}
 
 export class DzmmCloudError extends Error {
   constructor(public status: number, message: string, public data?: unknown) { super(message); this.name = "DzmmCloudError"; }
@@ -130,6 +139,7 @@ export function useDzmmCloud({ busy, onNotice }: { busy: boolean; onNotice: (mes
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const storageWarning = useRef(false);
   const lastSyncError = useRef<unknown>(null);
+  const streamingPersistAt = useRef(0);
   const catalogGeneration = useRef(0);
   const loadingAccount = useRef(false);
   const backupOwner = useRef("offline");
@@ -250,6 +260,7 @@ export function useDzmmCloud({ busy, onNotice }: { busy: boolean; onNotice: (mes
 
   const applySnapshot = useCallback((session: DzmmCloudSession, snapshot: DzmmCloudSnapshot, force = false) => {
     const priorBackup = readBackup(session.user.id);
+    const cloudState = withProviderNickname(snapshot.state, session.user);
     userRef.current = session.user;
     backupOwner.current = session.user.id;
     setUser(session.user);
@@ -260,21 +271,22 @@ export function useDzmmCloud({ busy, onNotice }: { busy: boolean; onNotice: (mes
     paused.current = false;
     conflicted.current = false;
     refreshBackups(session.user.id);
-    if (!force && priorBackup && shouldRecoverDzmmCloudBackup(priorBackup, snapshot.state)) {
-      setState(priorBackup.state);
+    const recovered = priorBackup ? withProviderNickname(priorBackup.state, session.user) : null;
+    if (!force && recovered && priorBackup && shouldRecoverDzmmCloudBackup({ ...priorBackup, state: recovered }, cloudState)) {
+      setState(recovered);
       if (priorBackup.version !== snapshot.version) {
         paused.current = true;
         conflicted.current = true;
-        persist(priorBackup.state, session.user.id, true);
+        persist(recovered, session.user.id, true);
         status("conflict", "云端已有其他修改，本地备份已保留。请先加载云端版本。");
       } else {
         status("pending", "本地备份等待重新同步");
       }
     } else {
-      setState(snapshot.state);
-      status("synced", "已同步到数据库");
+      setState(cloudState);
+      status("synced", serialize(cloudState) === savedRef.current ? "已同步到数据库" : "有更改等待同步");
       setLastSyncedAt(Date.now());
-      persist(snapshot.state, session.user.id, false, snapshot.state);
+      persist(cloudState, session.user.id, false, snapshot.state);
     }
     ready.current = true;
   }, [persist, refreshBackups, setState, status]);
@@ -378,6 +390,13 @@ export function useDzmmCloud({ busy, onNotice }: { busy: boolean; onNotice: (mes
   useEffect(() => {
     if (!loaded) return;
     if (loadingAccount.current) return;
+    // Streaming rewrites the same reply many times a second. Keep a local
+    // backup, but not on every token; the finished reply still persists.
+    if (busy) {
+      const now = Date.now();
+      if (now - streamingPersistAt.current < 1500) return;
+      streamingPersistAt.current = now;
+    } else streamingPersistAt.current = 0;
     persist(state);
     if (timer.current) clearTimeout(timer.current);
     if (!ready.current || paused.current || serialize(state) === savedRef.current) return;

@@ -214,3 +214,11 @@
 .unlock span { display: grid; gap: 1px; min-width: 0; }
 .unlock strong { font-size: 13px; font-weight: 650; }
 .unlock small { color: var(--muted); font-size: 11px; line-height: 1.4; }
+.arrive { animation: statusArrive 180ms ease; }
+@keyframes statusArrive {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .arrive { animation: none; }
+}

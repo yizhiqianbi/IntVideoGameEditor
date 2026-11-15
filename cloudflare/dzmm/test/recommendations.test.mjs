@@ -110,7 +110,7 @@ test('backfill counts real likes and five user turns, then hide and blocked tags
   assert.equal(ranking.reasons[qualified.id], 'ranking');
 
   await DB.prepare('DELETE FROM character_likes WHERE character_id=? AND user_id=?').bind(liked.id, account.id).run();
-  const afterUnlike = await recommendForUser(env, account, { surface: 'ranking', period: 'day', now: NOW });
+  const afterUnlike = await recommendForUser(env, account, { surface: 'ranking', period: 'day', now: NOW + 10 * 60 * 1000 + 1 });
   assert.equal(afterUnlike.ids.includes(liked.id), false);
 
   await recordRecommendationEvents(env, account.id, [{ characterId: qualified.id, surface: 'home', action: 'hide' }], NOW);

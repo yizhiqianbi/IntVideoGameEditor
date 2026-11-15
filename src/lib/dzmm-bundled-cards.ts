@@ -37,7 +37,8 @@ export const DZMM_EXPORTED_FULL_CHARACTERS: Character[] = exportedRecords.map(re
 }));
 
 /** Supplied originals have their own provenance and assets; they never inherit
- * another creator's source URL, license, or popularity. Extensions stay inert. */
+ * another creator's source URL, license, or popularity. Display regex can draw
+ * a message panel; tavern scripts and plugins stay inert. */
 export const DZMM_USER_PROVIDED_FULL_CHARACTERS: Character[] = userRecords.map(record => {
   const parsed = parseCharacterImport(record.card, record.id);
   return {

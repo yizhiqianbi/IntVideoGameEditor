@@ -6,7 +6,6 @@ import { companionClockLabel, companionClockVisible } from "./companion-clock";
 import { publishQwenTranscript, readPersonTranscript } from "./companion-inbox";
 import { useGirlfriendPhotos } from "./companion-photos";
 import { XUMENG_CALLS_ENABLED } from "../../../lib/xumeng-feature-availability";
-import { STUDIO_STILL_CREDITS } from "../../../lib/xumeng-studio-still-billing";
 import styles from "./companion.module.css";
 
 type Row = { id: number; role: "user" | "assistant"; text: string; createdAt: string; model: string };
@@ -30,6 +29,7 @@ export default function QwenCompanion({ onBack, onVoiceCall, onVideoCall, accoun
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [mediaTrayOpen, setMediaTrayOpen] = useState(false);
+  const [coverLoaded, setCoverLoaded] = useState(false);
   const photos = useGirlfriendPhotos(accountId ? `xumeng-qwen-photos:${accountId}` : "xumeng-qwen-photos:unsigned");
   const scroller = useRef<HTMLDivElement>(null);
   const composer = useRef<HTMLTextAreaElement>(null);
@@ -59,6 +59,8 @@ export default function QwenCompanion({ onBack, onVoiceCall, onVideoCall, accoun
     publishQwenTranscript(accountId, messages.map(item => ({ id: String(item.id), role: item.role, text: item.text, createdAt: item.createdAt })));
   }, [accountId, loading, messages, photos.photos]);
 
+  useEffect(() => setCoverLoaded(false), [avatar]);
+
   async function submit() {
     const content = draft.trim();
     if (!content || sending) return;
@@ -84,7 +86,8 @@ export default function QwenCompanion({ onBack, onVoiceCall, onVideoCall, accoun
   }
 
   const stageStyle = { "--companion-cover": `url(${JSON.stringify(avatar)})` } as CSSProperties;
-  return <section className={`${styles.chat} ${styles.chatStage}`} style={stageStyle} aria-label="与小节聊天">
+  return <section className={`${styles.chat} ${styles.chatStage} ${coverLoaded ? styles.coverReady : ""}`} style={stageStyle} aria-label="与小节聊天">
+    <img className={styles.stageCover} src={avatar} alt="" aria-hidden="true" loading="eager" decoding="async" onLoad={event => { if (event.currentTarget.naturalWidth) setCoverLoaded(true); }} onError={() => setCoverLoaded(false)} />
     <header className={styles.chatHeader}>
       {onBack && <button className={styles.mobileBack} aria-label="返回聊天列表" onClick={onBack}>
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -138,12 +141,10 @@ export default function QwenCompanion({ onBack, onVoiceCall, onVideoCall, accoun
       {sending && <p className={styles.thinking}>她正在回…</p>}
     </div>
     {error && <p className={styles.error} role="alert">{error}<button onClick={() => setError("")}>关闭</button></p>}
-    {mediaTrayOpen && <div className={styles.mediaTray} role="status">
-      <div className={styles.mediaTrayHead}><strong>相册</strong><span>按她刚才的话出一张，用封面当参考。一张 {STUDIO_STILL_CREDITS} Credit。</span></div>
-      {photos.photos.length > 0 && <div className={styles.stillGrid}>{photos.photos.map(photo => <img key={photo.id} src={photo.url} alt="小节发来的照片" />)}</div>}
-      {photos.note && <p>{photos.note}</p>}
+    {mediaTrayOpen && <div className={styles.mediaTray} role="region" aria-label="相册">
+      <div className={styles.mediaTrayHead}><strong>相册</strong><span>{photos.photos.length ? `已有 ${photos.photos.length} 张` : "聊天里还没有照片。"}</span></div>
+      {photos.photos.length > 0 && <div className={styles.stillGrid}>{photos.photos.map(photo => <img key={photo.id} src={photo.url} alt="小节发过的照片" />)}</div>}
       <div className={styles.mediaTrayActions}>
-        <button type="button" disabled={photos.busy || loading} onClick={() => void photos.shoot(avatar, [...messages].reverse().find(item => item.role === "assistant")?.text || "")}>{photos.busy ? "正在出图…" : "让她发一张"}</button>
         <button type="button" onClick={() => setMediaTrayOpen(false)}>收起</button>
       </div>
     </div>}

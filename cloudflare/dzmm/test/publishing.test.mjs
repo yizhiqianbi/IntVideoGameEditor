@@ -191,6 +191,23 @@ test('a pending update keeps approved version visible, then explicit approval re
   expect(await unpublish(second.publication), 200);
 });
 
+test('catalog search returns the whole match set and ranks a name ahead of a description mention', async () => {
+  const token = `qx${randomUUID().replace(/-/g, '').slice(0, 12)}`;
+  const cover = await upload();
+  const mentioned = expect(await review(await submit(card({
+    cover, name: '热门但只是顺口提到', description: `旅人路过时说起 ${token}`, tags: ['原创'],
+  }))), 200);
+  const named = expect(await review(await submit(card({
+    cover, name: `${token}守灯人`, description: '安静地整理海港档案。', tags: ['原创'],
+  }))), 200);
+  const page = expect(await new Client().request(`/v1/publishing/catalog?q=${encodeURIComponent(token)}&sort=hot&limit=24`), 200);
+  assert.equal(page.total, 2);
+  assert.equal(page.hasMore, false);
+  assert.deepEqual(page.characters.map(item => item.id), [named.publication.id, mentioned.publication.id]);
+  expect(await unpublish(named.publication), 200);
+  expect(await unpublish(mentioned.publication), 200);
+});
+
 test('withdraw and owner/Super takedown enforce versions and invalidate pending approvals', async () => {
   const first = expect(await review(await submit(card())), 200);
   const pending = await submit(card({ id: first.publication.privateCharacterId, name: '待更新' }), first.publication);

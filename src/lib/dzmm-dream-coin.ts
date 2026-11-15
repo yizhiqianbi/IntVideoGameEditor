@@ -2,6 +2,7 @@ export type DreamCoinEntry = { id: string; amountFen: number; kind: string; note
 export type DreamCoinWithdrawal = { id: string; amountFen: number; payoutAccount: string; status: "pending" | "paid" | "rejected"; createdAt: number; updatedAt: number };
 export type DreamCoinWallet = {
   accountId: string; unit: "梦币"; yuanPerCoin: 1; creditsPerYuan: 100; balanceFen: number;
+  currency: "CNY"; rebatePercent: number; earnedRebateFen: number;
   earlyRebatePercent: number; laterRebatePercent: number; earlyWindowDays: number;
   minExchangeFen: number; minWithdrawFen: number; withdrawIntervalDays: number;
   entries: DreamCoinEntry[]; withdrawals: DreamCoinWithdrawal[];
@@ -32,7 +33,9 @@ function parseWallet(value: unknown, accountId: string): DreamCoinWallet {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new DreamCoinError(502, "梦币记录无效，请稍后重试。");
   const wallet = value as DreamCoinWallet;
   if (wallet.accountId !== accountId || wallet.unit !== "梦币" || wallet.yuanPerCoin !== 1 || wallet.creditsPerYuan !== 100
-    || !Number.isInteger(wallet.balanceFen) || !Array.isArray(wallet.entries) || !Array.isArray(wallet.withdrawals)) {
+    || wallet.currency !== "CNY" || !Number.isInteger(wallet.rebatePercent) || wallet.rebatePercent < 1 || wallet.rebatePercent > 100
+    || !Number.isInteger(wallet.earnedRebateFen) || !Number.isInteger(wallet.balanceFen)
+    || !Array.isArray(wallet.entries) || !Array.isArray(wallet.withdrawals)) {
     throw new DreamCoinError(502, "梦币记录无效，请稍后重试。");
   }
   return wallet;

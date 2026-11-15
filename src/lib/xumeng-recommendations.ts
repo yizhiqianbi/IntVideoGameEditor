@@ -376,6 +376,15 @@ export function rankXumengRecommendations(input: RankXumengRecommendationsInput)
   return finish(diverse, new Set<string>(), personalized, input.surface === "related" ? RELATED_LIMIT : HOME_LIMIT);
 }
 
+/** Move the next page to the front. A refresh then replaces the cards on screen. */
+export function rotateRecommendationPage(ids: readonly string[], epoch: number, pageSize: number): string[] {
+  if (ids.length <= 1 || !Number.isInteger(epoch) || epoch === 0) return [...ids];
+  const stride = Math.min(Math.max(1, pageSize), ids.length - 1);
+  const offset = (Math.abs(epoch) * stride) % ids.length;
+  if (offset === 0) return [...ids];
+  return [...ids.slice(offset), ...ids.slice(0, offset)];
+}
+
 function strongestReason(tag: number, followedAuthor: boolean, sameAuthor: boolean, also: boolean): RecommendationReason {
   const parts: Array<[RecommendationReason, number]> = [
     ["also_chatted", also ? 0.4 : 0],

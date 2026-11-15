@@ -8,9 +8,9 @@
 .action:disabled { opacity: .4; cursor: default; }
 .voice { width: min(280px, 100%); margin-top: 8px; }
 .partial { display: block; color: var(--muted); font-size: 10px; margin-top: 6px; }
-.picture { margin: 9px 0 0; max-width: min(480px, 100%); border-radius: 18px; overflow: hidden; background: var(--soft); }
+.picture { margin: 9px 0 0; max-width: min(480px, 100%); border-radius: 18px; overflow: hidden; background: var(--soft); contain: layout paint; }
 .picture button { display: block; width: 100%; }
-.picture img { display: block; width: 100%; max-height: 420px; object-fit: cover; transition: filter 150ms ease; }
+.picture img { display: block; width: 100%; height: auto; object-fit: contain; transition: filter 150ms ease; }
 .picture button:hover img { filter: brightness(1.06); }
 .picture figcaption { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 10px; color: var(--muted); }
 .progress { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-top: 10px; color: var(--muted); }

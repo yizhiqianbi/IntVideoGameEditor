@@ -3,13 +3,15 @@ import { listPublicHomeBanners } from "./home-banners";
 import { handleProductEvent, publicCatalogFilters, publicScenePrices } from "./ops-console";
 import { handleTelegramFeedback } from "./telegram-feedback";
 import { handleAuth, requireUser } from "./auth";
+import { handleSocialAuth } from "./social-auth";
+import { handleVideoWatch } from "./video-watch";
 import { handleApi } from "./data";
 import { handleCanvasUserMedia } from "./canvas-user-media";
 import { handleGeneration } from "./generation";
 import { handleMedia } from "./media";
 import { handleCallBilling } from "./call-billing";
 import { handleChatMedia } from "./chat-media";
-import { handleRelationshipAlbum } from "./relationship-album";
+import { handlePublicRelationshipAlbum, handleRelationshipAlbum } from "./relationship-album";
 import { handleCharacterVoice } from "./character-voice";
 import { handleForum } from "./forum";
 import { handleShelfTagWrite, listShelfTags } from "./shelf-tags";
@@ -83,17 +85,21 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
       } else if (request.method === "GET" && path === "/v1/catalog/filters") {
         response = await publicCatalogFilters(env);
       } else {
+        const publicAlbum = await handlePublicRelationshipAlbum(request, env);
+        if (publicAlbum) response = publicAlbum;
+        else {
         const billingResponse = await handleTelegramFeedback(request, env) ?? await handleAdmin(request, env) ?? await handleBillingApi(request, env);
         const subscriptionsResponse = billingResponse ?? await handleNowpayments(request, env) ?? await handleSubscriptions(request, env);
         const paymentsResponse = subscriptionsResponse ?? await handlePaymentsApi(request, env);
         const publishingResponse = paymentsResponse ? null : await handlePublishingApi(request, env);
-        const authResponse = paymentsResponse || publishingResponse ? null : await handleAuth(request, env);
+        const authResponse = paymentsResponse || publishingResponse ? null : await handleSocialAuth(request, env) ?? await handleAuth(request, env);
         if (paymentsResponse) response = paymentsResponse;
         else if (publishingResponse) response = publishingResponse;
         else if (authResponse) response = authResponse;
         else {
           const user = await requireUser(request, env);
-          response = await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleRelationshipAlbum(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);
+          response = await handleVideoWatch(request, env, user) ?? await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleRelationshipAlbum(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);
+        }
         }
       }
     }

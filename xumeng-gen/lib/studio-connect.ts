@@ -54,6 +54,16 @@ export async function connectTextImage(prompt: string): Promise<Connected> {
   });
 }
 
+export async function connectReferenceImage(prompt: string, image: string): Promise<Connected> {
+  refuse(prompt);
+  if (!prompt.replace(/\s+/g, " ").trim()) throw new AiapiError("先写下要画的画面。", 400);
+  const imgUrl = await hostedImage(image);
+  return runModule("qwen_image21_multi_image_edit", {
+    image_urls: JSON.stringify([imgUrl]),
+    positive_prompt: prompt,
+  });
+}
+
 export async function connectTextVideo(prompt: string): Promise<Connected> {
   refuse(prompt);
   if (!prompt.replace(/\s+/g, " ").trim()) throw new AiapiError("先写一句想看的动作。", 400);

@@ -12,11 +12,9 @@ import { SALES_CUES, SALES_LINES, SALES_NUDGE, SALES_OPEN, SALES_STYLE } from ".
 import type { CompanionProfile } from "./companion-profiles";
 import type { GirlfriendCast } from "./cast";
 import { useGirlfriendPhotos } from "./companion-photos";
-import { companionVisualScene } from "./companion-moment";
 import { assistantRepliedAfter, generationStillOpen, nextCompanionPollDelay, nextHealthRetryDelay, nextSendRetryDelay, quietSessionPoll, REPLY_GRACE_MS, recoveryFacts, retryAfterMs, sendAttemptLimit, shouldWakeParked } from "./companion-poll";
 import { stripXumengMomentTails } from "../../../lib/xumeng-moment-status";
 import { XUMENG_CALLS_ENABLED } from "../../../lib/xumeng-feature-availability";
-import { STUDIO_STILL_CREDITS } from "../../../lib/xumeng-studio-still-billing";
 import { VoiceNote } from "../../../components/dzmm/voice-note";
 
 type MediaKind = "image" | "audio" | "emoji";
@@ -60,7 +58,7 @@ const PREVIEW_UNAVAILABLE_CODE = "PREVIEW_UNAVAILABLE";
 
 function stripStyle(value: string) {
   return value
-    .replace(/^\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/, "")
+    .replace(/\[XUMENG_PRIVATE_STYLE v1\][\s\S]*?\[\/XUMENG_PRIVATE_STYLE\]\n?/g, "")
     .replace(/\[XUMENG_OPENING v1\][\s\S]*?\[\/XUMENG_OPENING\]\n?/g, "");
 }
 
@@ -179,6 +177,7 @@ function MessageMediaView({ items }: { items: MessageMedia[] }) {
 function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }) {
   const mediaId = `${item.kind}:${item.url || item.text || index}`;
   const [failed, setFailed] = useState(false);
+  const [loaded, setLoaded] = useState(false);
   if (item.kind === "emoji" && (!item.url || failed) && item.text) {
     return <span className={styles.emoji} role="img" aria-label={item.label || "表情"}>{item.text}</span>;
   }
@@ -186,8 +185,9 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
     return <span className={styles.mediaUnavailable} role="status">{item.kind === "audio" ? "语音暂时无法播放" : item.kind === "image" ? "图片暂时无法显示" : "表情暂时无法显示"}</span>;
   }
   if (item.kind === "image") {
-    return <figure className={styles.picture}>
-      <img src={item.url} alt={item.alt || item.label || "她发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); }} />
+    return <figure className={`${styles.picture} ${loaded ? styles.pictureReady : styles.pictureLoading}`}>
+      {!loaded && <span className={styles.picturePlaceholder} role="status">图片加载中…</span>}
+      <img src={item.url} alt={item.alt || item.label || "她发来的照片"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); else setLoaded(true); }} />
       {item.label && <figcaption>{item.label}</figcaption>}
     </figure>;
   }
@@ -585,7 +585,23 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
   const photoKey = pendingKey ? `${pendingKey}:photos` : lanePhotoKey;
   const photos = useGirlfriendPhotos(photoKey, pendingKey ? lanePhotoKey : null, "yume");
   useEffect(() => { markChatSeen(accountId, lane); }, [accountId, lane, photos.photos]);
-  const scene = companionVisualScene({ situation: cast?.situation || profile?.situation, messages: visibleMessages });
+  const pastPhotos = useMemo(() => {
+    const items: { id: string; url: string; alt: string }[] = [];
+    const seen = new Set<string>();
+    const add = (id: string, url: string, alt: string) => {
+      if (!url || seen.has(url)) return;
+      seen.add(url);
+      items.push({ id, url, alt });
+    };
+    for (const message of visibleMessages) {
+      for (const item of normalizeMedia(message)) {
+        if (item.kind === "image" && item.url) add(`${message.id}:${item.url}`, item.url, `${name}发过的照片`);
+      }
+    }
+    for (const photo of photos.photos) add(photo.id, photo.url, `${name}发来的照片`);
+    for (const photo of album) add(photo.id, photo.url, `${name}的照片`);
+    return items;
+  }, [album, name, photos.photos, visibleMessages]);
 
   const deskOn = Boolean(health) && health?.reason !== LOGIN_REQUIRED_CODE;
   useEffect(() => {
@@ -909,7 +925,10 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
   const recovering = health?.reason === RECOVERY_REVIEW_CODE && health?.snapshotVerified !== false;
   const placeholder = health?.reason === LOGIN_REQUIRED_CODE ? "先登录，再跟她说" : recovering ? (health?.deliveryAmbiguous ? "等这一句落下再继续说" : "先别发新的") : cast?.placeholder || (sales ? "回她一句，或者让她继续说…" : intimate ? "想靠近，就直接说…" : "想说什么，就发给她…");
   const stageStyle = { "--companion-cover": `url(${JSON.stringify(avatarUrl)})` } as CSSProperties;
-  return <section className={`${styles.chat} ${styles.chatStage}`} style={stageStyle} aria-label={`与${name}聊天`}>
+  const [coverLoaded, setCoverLoaded] = useState(false);
+  useEffect(() => setCoverLoaded(false), [avatarUrl]);
+  return <section className={`${styles.chat} ${styles.chatStage} ${coverLoaded ? styles.coverReady : ""}`} style={stageStyle} aria-label={`与${name}聊天`}>
+        <img className={styles.stageCover} src={avatarUrl} alt="" aria-hidden="true" loading="eager" decoding="async" onLoad={event => { if (event.currentTarget.naturalWidth) setCoverLoaded(true); }} onError={() => setCoverLoaded(false)} />
         <header className={styles.chatHeader}>
           {onBack && <button className={styles.mobileBack} aria-label="返回聊天列表" onClick={onBack}>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m14 6-6 6 6 6" strokeLinecap="round" strokeLinejoin="round" /></svg>
@@ -942,13 +961,10 @@ export default function CompanionPage({ onBack, onLogin, onVoiceCall, onVideoCal
         {conversation?.error && <div className={styles.error} role="alert">{conversation.error}</div>}
         {(syncError || (error && (health?.ready || Boolean(conversation?.messages?.length)))) && <div className={styles.error} role="alert">{error || syncError}<button aria-label="关闭提示" onClick={() => { setError(""); setSyncError(""); }}>×</button></div>}
         <>
-          {mediaTrayOpen && <div className={styles.mediaTray} role="status">
-            <div className={styles.mediaTrayHead}><strong>相册</strong><span>{album.length ? "这里有你给她的照片。" : "按她现在的状态出一张，用封面当参考。"}一张 {STUDIO_STILL_CREDITS} Credit。</span></div>
-            {album.length > 0 && <div className={styles.stillGrid}>{album.map(photo => <img key={photo.id} src={photo.url} alt={`${name}的照片`} />)}</div>}
-            {photos.photos.length > 0 && <div className={styles.stillGrid}>{photos.photos.map(photo => <img key={photo.id} src={photo.url} alt={`${name}发来的照片`} />)}</div>}
-            {photos.note && <p>{photos.note}</p>}
+          {mediaTrayOpen && <div className={styles.mediaTray} role="region" aria-label="相册">
+            <div className={styles.mediaTrayHead}><strong>相册</strong><span>{pastPhotos.length ? `已有 ${pastPhotos.length} 张` : "聊天里还没有照片。"}</span></div>
+            {pastPhotos.length > 0 && <div className={styles.stillGrid}>{pastPhotos.map(photo => <img key={photo.id} src={photo.url} alt={photo.alt} />)}</div>}
             <div className={styles.mediaTrayActions}>
-              <button type="button" disabled={photos.busy || health?.reason === LOGIN_REQUIRED_CODE} onClick={() => void photos.shoot(avatarUrl, scene)}>{photos.busy ? "正在出图…" : "让她发一张"}</button>
               <button type="button" onClick={() => setMediaTrayOpen(false)}>收起</button>
             </div>
           </div>}

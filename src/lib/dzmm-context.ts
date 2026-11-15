@@ -21,6 +21,7 @@ import {
 import { matchesDzmmStoryMemory, type DzmmStoryMemory, type DzmmStoryState } from "./dzmm-story-memory";
 import { projectDzmmSourceOpeningHistoryEntries, projectDzmmStoryCharacter, splitDzmmCharacterPresentation } from "./dzmm-character-presentation";
 import { XUMENG_DEFAULT_LOCALE, type XumengLocale } from "./xumeng-i18n";
+import { applyXumengFrontendScripts, type XumengFrontendScript } from "./xumeng-frontend-card";
 
 export type DzmmPreparedRequest = {
   character: DzmmCharacter;
@@ -34,6 +35,21 @@ export type DzmmPreparedRequest = {
   maxTokens?: number;
   locale?: XumengLocale;
 };
+
+function frontendScriptsOf(character: object): readonly XumengFrontendScript[] | undefined {
+  const scripts = (character as { frontendScripts?: unknown }).frontendScripts;
+  return Array.isArray(scripts) ? scripts as XumengFrontendScript[] : undefined;
+}
+
+function applyFrontendPrompt(messages: readonly DzmmChatMessage[], scripts: readonly XumengFrontendScript[] | undefined): DzmmChatMessage[] {
+  if (!scripts?.some(script => !script.disabled && (script.promptOnly || (!script.promptOnly && !script.markdownOnly)))) return [...messages];
+  return messages.map((message, index) => {
+    const content = applyXumengFrontendScripts(message.content, scripts, {
+      role: message.role, depth: messages.length - 1 - index, pass: "prompt",
+    }).trim();
+    return content && content !== message.content ? { role: message.role, content } : message;
+  });
+}
 
 /** Keep a recent context tail that fits both the API's text and UTF-8 body limits. */
 export function prepareDzmmRequest(
@@ -90,8 +106,8 @@ export function prepareDzmmRequest(
     return { role: message.role, content: message.content.trim() };
   });
   const start = Math.max(messages.length - 40, Math.min(memory?.sourceCount ?? 0, messages.length - 1));
-  const tail = projectDzmmSourceOpeningHistoryEntries(character, validatedHistory)
-    .filter(entry => entry.sourceIndex >= start).map(entry => entry.message);
+  const tail = applyFrontendPrompt(projectDzmmSourceOpeningHistoryEntries(character, validatedHistory)
+    .filter(entry => entry.sourceIndex >= start).map(entry => entry.message), frontendScriptsOf(character));
   const request: DzmmPreparedRequest = {
     character: normalized.character,
     messages: tail,

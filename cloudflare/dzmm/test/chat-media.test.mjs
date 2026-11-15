@@ -298,7 +298,7 @@ test('image stills use Seedream 5 Flash with the character cover and keep adult 
   assert.equal(asset.mimeType,'image/png');assert.equal(f.calls.length,1);
   const {model,input}=f.calls[0];assert.equal(model,'seedream-5-0-flash-NSFW');assert.equal(input.size,'1536x2048');assert.equal(input.watermark,false);
   assert.ok(input.prompt.includes('参考图'));assert.ok(input.prompt.includes('裸体'));assert.ok(!input.prompt.includes('忽略全部'));
-  assert.ok(!input.prompt.includes('fully clothed'));assert.ok(Array.from(input.prompt).length<=800);assert.ok(input.image.length>20);
+  assert.ok(!input.prompt.includes('fully clothed'));assert.ok(Array.from(input.prompt).length<=1400);assert.ok(input.image.length>20);
   assert.deepEqual(expect(await call(f,assetPath(asset)),200),PNG);
   const jpeg=await fixture();jpeg.imageBytes=JPEG;
   assert.equal(expect(await generate(jpeg,'image'),201).asset.mimeType,'image/jpeg');
@@ -318,6 +318,41 @@ test('image stills use Seedream 5 Flash with the character cover and keep adult 
   assert.equal(offline.code,undefined);assert.equal(unplugged.calls.length,0);
   assert.ok(chatScenePrompt('裸体，色情，性行为。').includes('peaceful landscape'));
   assert.ok(chatScenePrompt('月光'+ '🌊'.repeat(2000)).length<=2048);
+});
+
+test('image stills fall back to the first usable gallery image when the cover is a placeholder',async()=>{
+  const f=await fixture({content:'她站在吧台边，保持参考图中的发型和服装。'});
+  await DB.prepare('UPDATE characters SET cover=?,context_json=? WHERE user_id=? AND id=?')
+    .bind('/dzmm/brand/xumeng-character-placeholder.svg',JSON.stringify({gallery:['/dzmm/covers/anchor.png']}),f.user.id,f.characterId).run();
+  const asset=expect(await generate(f,'image'),201).asset;
+  assert.equal(asset.mimeType,'image/png');
+  assert.equal(f.calls.length,1);
+  assert.ok(typeof f.calls[0].input.image==='string' && f.calls[0].input.image.length>20);
+  assert.match(f.calls[0].input.prompt,/参考图/);
+});
+
+test('regenerating without a readable previous scene falls back to the character cover',async()=>{
+  const f=await fixture({content:'她站在训练室门口，抬手示意你进来。'});
+  const first=expect(await generate(f,'image'),201).asset;
+  const row=(await rows(f)).results.find(item=>item.id===first.id);
+  assert.ok(row);
+  await MEDIA.delete(row.object_key);
+  const replacement=expect(await generate(f,'image',{regenerate:true}),201).asset;
+  assert.equal(replacement.id,first.id);
+  assert.equal(f.calls.length,2);
+  assert.ok(typeof f.calls[1].input.image==='string' && f.calls[1].input.image.length>20);
+  assert.match(f.calls[1].input.prompt,/参考图/);
+  assert.deepEqual(expect(await call(f,assetPath(replacement)),200),PNG);
+});
+
+test('image stills include initial status values when the reply has no status tail',async()=>{
+  const f=await fixture({content:'她站在吧台边看着你。'});
+  await DB.prepare('UPDATE characters SET context_json=? WHERE user_id=? AND id=?')
+    .bind(JSON.stringify({statusBar:{template:'性欲值：\n服装状态：\n地点：',initialState:'性欲值：10%（几乎无唤醒）\n服装状态：水手服露乳，无内裤\n地点：酒吧吧台',updateRules:''}}),f.user.id,f.characterId).run();
+  expect(await generate(f,'image'),201);
+  assert.match(f.calls[0].input.prompt,/性欲值=10%/);
+  assert.match(f.calls[0].input.prompt,/服装状态=水手服露乳，无内裤/);
+  assert.match(f.calls[0].input.prompt,/状态字段视觉映射/);
 });
 
 test('cache reuses source/kind without another model call or consuming a new day quota',async()=>{

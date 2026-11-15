@@ -121,3 +121,18 @@ test("the latest reply's trailing status replaces the card's initial values", ()
   assert.equal(fields.find(field => field.label === "渴望刻度")?.value, "95/100");
   assert.equal(fields.find(field => field.label === "场景")?.value, "空气几乎凝固");
 });
+
+test("a bracket status tail replaces the card's initial meter values", () => {
+  const bar = {
+    template: "地点：\n性欲值：\n精神防线：",
+    initialState: "地点：[[洛杉矶公寓]]\n性欲值：[[10/100]]\n精神防线：[[90/100]]",
+    updateRules: "",
+  };
+  const fields = xumengStatusBarFields(bar, [
+    { role: "user", content: "过来。" },
+    { role: "assistant", content: "她靠过来。\n\n地点：[[洛杉矶公寓]]\n性欲值：[[90/100，失控]]\n精神防线：[[40/100，崩塌]]" },
+  ]);
+  assert.equal(fields.find(field => field.label === "性欲值")?.value, "90/100，失控");
+  assert.equal(fields.find(field => field.label === "精神防线")?.value, "40/100，崩塌");
+  assert.equal(fields.find(field => field.label === "地点")?.value, "洛杉矶公寓");
+});
