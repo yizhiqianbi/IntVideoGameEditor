@@ -1,4 +1,5 @@
 .app {
+  display: flow-root;
   --bg: #f8eeef;
   --surface: #fffaf9;
   --soft: #f3e0e5;
