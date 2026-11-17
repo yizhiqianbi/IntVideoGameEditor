@@ -124,7 +124,7 @@ export type XumengMessageKey =
   | "navInvite" | "navEarnCredit" | "navNovels" | "navVoice" | "navTasks" | "navRecharge" | "navVip"
   | "navPresets" | "navSettings" | "navInstallApp" | "navAdmin"
   | "utilityExploreApps" | "utilityDailyCheckIn" | "utilityInviteEarn" | "utilityRechargeVip" | "utilityInstallApp"
-  | "searchAll" | "searchAllPlaceholder" | "clearSearch" | "themeLight" | "themeDark" | "vipCenter"
+  | "searchAll" | "searchAllPlaceholder" | "clearSearch" | "themeLight" | "themeDark" | "themeLightName" | "themeDarkName" | "vipCenter"
   | "discoveryRole" | "discoveryGame" | "tabFollowing" | "tabLatest" | "tabRecommended" | "tabNew" | "tabRanking" | "tabCategories"
   | "match" | "customize" | "presets" | "import" | "newConversation"
   | "conversationSearch" | "conversationSearchPlaceholder" | "clearConversationSearch"
@@ -153,7 +153,7 @@ const en: XumengMessages = Object.freeze({
   navInvite: "Invite friends", navEarnCredit: "Earn Credit", navNovels: "Novel writing", navVoice: "Character voice", navTasks: "Task center", navRecharge: "Credit top-up", navVip: "VIP membership",
   navPresets: "Models & presets", navSettings: "Account settings", navInstallApp: "Install app", navAdmin: "Admin",
   utilityExploreApps: "Explore & apps", utilityDailyCheckIn: "Daily check-in", utilityInviteEarn: "Invite friends, earn Credit", utilityRechargeVip: "Top up & VIP", utilityInstallApp: "Install app",
-  searchAll: "Search all", searchAllPlaceholder: "Search all", clearSearch: "Clear search", themeLight: "Switch to light theme", themeDark: "Switch to dark theme", vipCenter: "VIP center",
+  searchAll: "Search all", searchAllPlaceholder: "Search all", clearSearch: "Clear search", themeLight: "Switch to light theme", themeDark: "Switch to dark theme", themeLightName: "Light", themeDarkName: "Dark", vipCenter: "VIP center",
   discoveryRole: "Characters", discoveryGame: "Games", tabFollowing: "Following", tabLatest: "Latest", tabRecommended: "For you", tabNew: "Featured", tabRanking: "Ranking", tabCategories: "Categories",
   match: "Match", customize: "Customize", presets: "Presets", import: "Import", newConversation: "New conversation",
   conversationSearch: "Search conversations", conversationSearchPlaceholder: "Search characters, games, or messages", clearConversationSearch: "Clear conversation search",
@@ -190,7 +190,7 @@ const zhHans: XumengMessages = Object.freeze({
   navInvite: "邀请好友", navEarnCredit: "赚 Credit", navNovels: "小说创作", navVoice: "角色语音", navTasks: "任务中心", navRecharge: "Credit 充值", navVip: "VIP 会员",
   navPresets: "模型与预设", navSettings: "账号设置", navInstallApp: "安装应用", navAdmin: "后台管理",
   utilityExploreApps: "探索与应用", utilityDailyCheckIn: "每日签到", utilityInviteEarn: "邀请好友赚 Credit", utilityRechargeVip: "充值与 VIP", utilityInstallApp: "安装应用",
-  searchAll: "搜索全站", searchAllPlaceholder: "搜索全站", clearSearch: "清除搜索", themeLight: "切换浅色主题", themeDark: "切换深色主题", vipCenter: "VIP 会员中心",
+  searchAll: "搜索全站", searchAllPlaceholder: "搜索全站", clearSearch: "清除搜索", themeLight: "切换浅色主题", themeDark: "切换深色主题", themeLightName: "浅色", themeDarkName: "深色", vipCenter: "VIP 会员中心",
   discoveryRole: "角色", discoveryGame: "游戏", tabFollowing: "关注", tabLatest: "最新", tabRecommended: "猜你喜欢", tabNew: "推荐", tabRanking: "榜单", tabCategories: "分类",
   match: "匹配", customize: "定制", presets: "预设", import: "导入", newConversation: "创建新会话",
   conversationSearch: "搜索会话", conversationSearchPlaceholder: "搜索角色、游戏或聊天内容", clearConversationSearch: "清除会话搜索",
@@ -227,7 +227,7 @@ const zhHant: XumengMessages = Object.freeze({
   navInvite: "邀請好友", navEarnCredit: "賺 Credit", navNovels: "小說創作", navVoice: "角色語音", navTasks: "任務中心", navRecharge: "Credit 儲值", navVip: "VIP 會員",
   navPresets: "模型與預設", navSettings: "帳號設定", navInstallApp: "安裝應用程式", navAdmin: "後台管理",
   utilityExploreApps: "探索與應用", utilityDailyCheckIn: "每日簽到", utilityInviteEarn: "邀請好友賺 Credit", utilityRechargeVip: "儲值與 VIP", utilityInstallApp: "安裝應用程式",
-  searchAll: "搜尋全站", searchAllPlaceholder: "搜尋全站", clearSearch: "清除搜尋", themeLight: "切換淺色主題", themeDark: "切換深色主題", vipCenter: "VIP 會員中心",
+  searchAll: "搜尋全站", searchAllPlaceholder: "搜尋全站", clearSearch: "清除搜尋", themeLight: "切換淺色主題", themeDark: "切換深色主題", themeLightName: "淺色", themeDarkName: "深色", vipCenter: "VIP 會員中心",
   discoveryRole: "角色", discoveryGame: "遊戲", tabFollowing: "關注", tabLatest: "最新", tabRecommended: "你可能喜歡", tabNew: "推薦", tabRanking: "排行榜", tabCategories: "分類",
   match: "配對", customize: "自訂", presets: "預設", import: "匯入", newConversation: "建立新對話",
   conversationSearch: "搜尋對話", conversationSearchPlaceholder: "搜尋角色、遊戲或聊天內容", clearConversationSearch: "清除對話搜尋",
@@ -264,7 +264,7 @@ const ja: XumengMessages = Object.freeze({
   navInvite: "友達を招待", navEarnCredit: "Creditを獲得", navNovels: "小説創作", navVoice: "キャラクターボイス", navTasks: "タスクセンター", navRecharge: "Creditチャージ", navVip: "VIP会員",
   navPresets: "モデルとプリセット", navSettings: "アカウント設定", navInstallApp: "アプリをインストール", navAdmin: "管理画面",
   utilityExploreApps: "探索とアプリ", utilityDailyCheckIn: "毎日チェックイン", utilityInviteEarn: "友達を招待してCreditを獲得", utilityRechargeVip: "チャージとVIP", utilityInstallApp: "アプリをインストール",
-  searchAll: "全体を検索", searchAllPlaceholder: "全体を検索", clearSearch: "検索をクリア", themeLight: "ライトテーマに切り替え", themeDark: "ダークテーマに切り替え", vipCenter: "VIP会員センター",
+  searchAll: "全体を検索", searchAllPlaceholder: "全体を検索", clearSearch: "検索をクリア", themeLight: "ライトテーマに切り替え", themeDark: "ダークテーマに切り替え", themeLightName: "ライト", themeDarkName: "ダーク", vipCenter: "VIP会員センター",
   discoveryRole: "キャラクター", discoveryGame: "ゲーム", tabFollowing: "フォロー中", tabLatest: "最新", tabRecommended: "おすすめ", tabNew: "注目", tabRanking: "ランキング", tabCategories: "カテゴリー",
   match: "マッチ", customize: "カスタマイズ", presets: "プリセット", import: "インポート", newConversation: "新しい会話",
   conversationSearch: "会話を検索", conversationSearchPlaceholder: "キャラクター、ゲーム、メッセージを検索", clearConversationSearch: "会話検索をクリア",
@@ -301,7 +301,7 @@ const ko: XumengMessages = Object.freeze({
   navInvite: "친구 초대", navEarnCredit: "Credit 받기", navNovels: "소설 창작", navVoice: "캐릭터 음성", navTasks: "작업 센터", navRecharge: "Credit 충전", navVip: "VIP 멤버십",
   navPresets: "모델 및 프리셋", navSettings: "계정 설정", navInstallApp: "앱 설치", navAdmin: "관리자",
   utilityExploreApps: "탐색 및 앱", utilityDailyCheckIn: "매일 출석", utilityInviteEarn: "친구 초대하고 Credit 받기", utilityRechargeVip: "충전 및 VIP", utilityInstallApp: "앱 설치",
-  searchAll: "전체 검색", searchAllPlaceholder: "전체 검색", clearSearch: "검색 지우기", themeLight: "라이트 테마로 전환", themeDark: "다크 테마로 전환", vipCenter: "VIP 멤버십 센터",
+  searchAll: "전체 검색", searchAllPlaceholder: "전체 검색", clearSearch: "검색 지우기", themeLight: "라이트 테마로 전환", themeDark: "다크 테마로 전환", themeLightName: "라이트", themeDarkName: "다크", vipCenter: "VIP 멤버십 센터",
   discoveryRole: "캐릭터", discoveryGame: "게임", tabFollowing: "팔로우", tabLatest: "최신", tabRecommended: "추천", tabNew: "추천작", tabRanking: "랭킹", tabCategories: "카테고리",
   match: "매칭", customize: "맞춤 설정", presets: "프리셋", import: "가져오기", newConversation: "새 대화",
   conversationSearch: "대화 검색", conversationSearchPlaceholder: "캐릭터, 게임 또는 메시지 검색", clearConversationSearch: "대화 검색 지우기",

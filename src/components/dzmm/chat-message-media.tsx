@@ -10,6 +10,8 @@ import { fetchDzmmPaymentWallet } from "../../lib/dzmm-payments";
 import type { DzmmSavedMessage } from "../../lib/dzmm-storage";
 import Icon from "./icons";
 import s from "./chat-message-media.module.css";
+import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
+import { XUMENG_DEFAULT_LOCALE, type XumengLocale } from "../../lib/xumeng-i18n";
 import { XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
 import XumengMomentStatusCard, { type MomentField, type MomentSection } from "./xumeng-moment-status";
 import { VoiceNote } from "./voice-note";
@@ -333,10 +335,11 @@ function MessagePicture({ asset, reload, onExpand, busy }: {
   return onExpand ? <button type="button" aria-label="放大剧情图片" onClick={onExpand}>{picture}</button> : picture;
 }
 
-export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, children, label, moment }: {
+export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, children, label, moment, locale = XUMENG_DEFAULT_LOCALE, extra }: {
   message: DzmmSavedMessage; disabled: boolean; onCopy: () => void; onEdit: () => void;
   onRegenerate?: () => void; children: ReactNode; label: string;
   moment?: { name: string; fields: MomentField[]; sections?: MomentSection[]; open?: boolean; pending?: boolean };
+  locale?: XumengLocale; extra?: ReactNode;
 }) {
   const media = useContext(Context);
   const [fingerprint, setFingerprint] = useState<{ text: string; audio: string; image: string } | null>(null);
@@ -383,8 +386,12 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   const imageShort = !image && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.image;
   const audioDisabled = mediaDisabled || audioPending || audioUnconfirmed || audioShort;
   const imageDisabled = mutationDisabled || imagePending || imageUnconfirmed || imageShort || !message.content.trim();
-  const audioAction = generating === "audio" || audioPending ? "生成语音中…" : audio ? "播放语音" : audioUnconfirmed ? "语音结果待确认" : "生成语音";
-  const imageAction = generating === "image" || imagePending ? "生成图片中…" : image ? "查看图片" : imageUnconfirmed ? "图片结果待确认" : "生成图片";
+  const copy = xumengPage(locale);
+  const credits = (cost: number) => xumengPageFill(copy.msgCredit, { cost });
+  const voiceCost = MEDIA_CREDIT_COST.audio;
+  const imageCost = MEDIA_CREDIT_COST.image;
+  const audioAction = generating === "audio" || audioPending ? copy.msgVoiceBusy : audio ? copy.msgVoicePlay : audioUnconfirmed ? copy.msgVoiceHold : copy.msgVoice;
+  const imageAction = generating === "image" || imagePending ? copy.msgImageBusy : image ? copy.msgImageView : imageUnconfirmed ? copy.msgImageHold : copy.msgImage;
   const showImageAction = XUMENG_GENERATION_WORKSPACE_ENABLED || Boolean(image || imagePending || imageUnconfirmed);
   const needsCheck = audioPending || imagePending || audioUnconfirmed || imageUnconfirmed;
   function handleAudio() {
@@ -397,31 +404,32 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   return <div ref={wrapper} className={s.message} tabIndex={0} aria-label={label}>
     {children}
     {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields} sections={moment.sections} defaultOpen={moment.open} pending={moment.pending}
-      imageLabel={image ? "查看此刻画面" : imageAction === "生成图片" ? "解锁此刻画面" : imageAction}
+      imageLabel={image ? "查看此刻画面" : imageAction === copy.msgImage ? "解锁此刻画面" : imageAction}
       imageHint={image ? "这一轮剧情已经画好" : imageShort ? `可用 Credit 不足，解锁需要 ${MEDIA_CREDIT_COST.image} Credit` : "根据这一轮剧情生成 · 100 Credit"}
       disabled={!showImageAction || imageDisabled} onImage={handleImage}
       slot={image && media ? <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} /></figure>
         : generating === "image" ? <div className={s.progress} role="status"><span className={s.loader} />正在绘制这一幕…</div> : null} />}
-    <div className={s.tools}>
-      <button type="button" className={s.action} aria-label={`复制${label}`} onClick={onCopy}>
-        <Icon name="copy" size={15} /><span>复制</span></button>
-      <button type="button" className={s.action} disabled={mutationDisabled} aria-label={`编辑${label}`} onClick={onEdit}>
-        <Icon name="edit" size={15} /><span>编辑</span></button>
+    <div className={message.role === "user" ? `${s.tools} ${s.userTools}` : s.tools}>
+      <button type="button" className={s.action} title={copy.msgCopy} aria-label={`${copy.msgCopy}${label}`} onClick={onCopy}>
+        <Icon name="copy" size={15} /></button>
+      <button type="button" className={s.action} disabled={mutationDisabled} title={copy.msgEdit} aria-label={`${copy.msgEdit}${label}`} onClick={onEdit}>
+        <Icon name="edit" size={15} /></button>
       {message.role === "assistant" && onRegenerate && <button type="button" className={s.action} disabled={mutationDisabled}
-        aria-label={`重新生成${label}`} onClick={onRegenerate}><Icon name="refresh" size={15} /><span>重新生成</span></button>}
+        title={copy.msgRegenerate} aria-label={`${copy.msgRegenerate}${label}`} onClick={onRegenerate}><Icon name="refresh" size={15} /></button>}
       {message.role === "assistant" && media && <>
-        <button type="button" className={s.action} disabled={audioDisabled} onClick={handleAudio}
-          title={audioShort ? `可用 Credit 不足，生成语音需要 ${MEDIA_CREDIT_COST.audio} Credit` : undefined}
+        <button type="button" className={!audio ? `${s.action} ${s.priced}` : s.action} disabled={audioDisabled} onClick={handleAudio}
+          title={audioShort ? xumengPageFill(copy.msgVoiceShort, { cost: voiceCost }) : audioAction === copy.msgVoice ? `${audioAction} · ${credits(voiceCost)}` : audioAction}
           aria-label={`${label}${audioAction}`}>
-          <Icon name="volume" size={15} /><span>{audioAction}</span>{!audio && <small>20 Credit</small>}</button>
-        {showImageAction && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={() => handleImage()}
-          title={imageShort ? `可用 Credit 不足，生成图片需要 ${MEDIA_CREDIT_COST.image} Credit` : undefined}
+          <Icon name="volume" size={15} />{!audio && <small>{credits(voiceCost)}</small>}</button>
+        {showImageAction && !moment && <button type="button" className={!image ? `${s.action} ${s.priced}` : s.action} disabled={imageDisabled} onClick={() => handleImage()}
+          title={imageShort ? xumengPageFill(copy.msgImageShort, { cost: imageCost }) : imageAction === copy.msgImage ? `${imageAction} · ${credits(imageCost)}` : imageAction}
           aria-label={`${label}${imageAction}`}>
-          <Icon name="image" size={15} /><span>{imageAction}</span>{!image && <small>100 Credit</small>}</button>}
-        {image && !moment && <button type="button" className={s.action} disabled={imageDisabled} onClick={() => handleImage(true)}
-          title="重新生成会再次使用 100 Credit" aria-label={`${label}重新生图`}>
-          <Icon name="refresh" size={15} /><span>重新生图</span><small>100 Credit</small></button>}
+          <Icon name="image" size={15} />{!image && <small>{credits(imageCost)}</small>}</button>}
+        {image && !moment && <button type="button" className={`${s.action} ${s.priced}`} disabled={imageDisabled} onClick={() => handleImage(true)}
+          title={`${copy.msgImageRedo} · ${xumengPageFill(copy.msgImageRedoNote, { cost: imageCost })}`} aria-label={`${label}${copy.msgImageRedo}`}>
+          <Icon name="image" size={15} /><small>{credits(imageCost)}</small></button>}
       </>}
+      {extra}
     </div>
     {generating && !(moment && generating === "image") && <div className={s.progress} role="status"><span className={s.loader} />{generating === "audio" ? "正在生成角色语音…" : "正在绘制这一幕…"}</div>}
     {needsCheck && media && <div className={s.feedback} role="status">

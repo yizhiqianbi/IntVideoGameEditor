@@ -2,6 +2,14 @@ import type { Character } from "./dzmm-characters";
 import { DZMM_PUBLIC_SHELF_PAGE_SIZE, type DzmmCatalogApplied, type DzmmCatalogRequest } from "./dzmm-public-shelf";
 
 export type DzmmSubmissionStatus = "pending" | "approved" | "rejected" | "withdrawn";
+/** Publication ids are `published-` plus a UUID; private character ids can be 120 characters. */
+export const DZMM_REVIEW_SEARCH_MAX = 120;
+
+/** Trim a review-queue search. Blank means no extra filter. */
+export function normalizeDzmmReviewSearch(raw: string): string {
+  if (raw.length > DZMM_REVIEW_SEARCH_MAX || /[\0\r\n]/.test(raw)) throw new Error("搜索词无效。");
+  return raw.trim();
+}
 export type DzmmPublishingFilter = "all" | "pending" | "published" | "rejected" | "archived";
 export type DzmmPublishedCharacter = Character & {
   publication: { id: string; authorId: string; revision: number; publishedAt: number };
@@ -22,7 +30,7 @@ export type DzmmPublication = {
   createdAt: number; updatedAt: number; latestSubmission: DzmmPublishingSubmission;
 };
 export type DzmmPublishingResult = { publication: DzmmPublication; submission: DzmmPublishingSubmission };
-export type DzmmPublishingPage<T> = { total: number; offset: number; limit: number; hasMore: boolean; applied?: DzmmCatalogApplied } & T;
+export type DzmmPublishingPage<T> = { total: number; offset: number; limit: number; hasMore: boolean; q?: string; applied?: DzmmCatalogApplied } & T;
 
 export class DzmmPublishingError extends Error {
   constructor(public readonly status: number, message: string) { super(message); this.name = "DzmmPublishingError"; }
@@ -97,9 +105,14 @@ export async function fetchDzmmPublishingMine(offset = 0, filter?: DzmmPublishin
   if (filter !== undefined && page.status !== filter) throw new DzmmPublishingError(502, "发布服务未确认当前筛选，请刷新记录后重试。");
   return page;
 }
-export function fetchDzmmSubmissions(filters: { status?: DzmmSubmissionStatus; offset?: number } = {}) {
+export async function fetchDzmmSubmissions(filters: { status?: DzmmSubmissionStatus; offset?: number; q?: string } = {}) {
+  const q = normalizeDzmmReviewSearch(filters.q ?? "");
   const query = new URLSearchParams({ limit: "20", offset: String(filters.offset ?? 0), status: filters.status ?? "pending" });
-  return request<DzmmPublishingPage<{ submissions: DzmmPublishingSubmission[] }>>(`/submissions?${query}`);
+  if (q) query.set("q", q);
+  const page = await request<DzmmPublishingPage<{ submissions: DzmmPublishingSubmission[] }>>(`/submissions?${query}`);
+  // An older worker that ignores q would otherwise return the whole status page.
+  if (q && page?.q !== q) throw new DzmmPublishingError(502, "审核服务未确认当前搜索，请刷新后重试。");
+  return page;
 }
 export async function fetchDzmmSubmission(id: string) {
   return (await request<{ submission: DzmmPublishingSubmission }>(`/submissions/${encodeURIComponent(id)}`)).submission;

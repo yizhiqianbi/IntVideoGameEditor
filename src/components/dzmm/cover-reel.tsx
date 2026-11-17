@@ -4,7 +4,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { getDzmmCharacterMedia } from "@/lib/dzmm-character-media";
 import type { Character } from "@/lib/dzmm-characters";
 import { xumengCoverFrames } from "@/lib/xumeng-cover-frames";
+import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
 import { xumengCardCoverUrl, xumengCoverMissUrl, xumengImageUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
+import { CoverVisual } from "./cover-visual";
 import Icon from "./icons";
 import s from "./cover-reel.module.css";
 
@@ -14,7 +16,9 @@ function characterCoverFrames(character: Character): string[] {
   const stored = (character as Character & { gallery?: unknown }).gallery;
   const own = Array.isArray(stored) ? stored.filter((item): item is string => typeof item === "string") : [];
   const media = getDzmmCharacterMedia(character)?.gallery.map((image) => image.path) ?? [];
-  return xumengCoverFrames(character.cover, own.length ? own : media);
+  const frames = xumengCoverFrames(character.cover, own.length ? own : media);
+  const cover = typeof character.cover === "string" ? character.cover.trim() : "";
+  return frames.filter((frame) => frame === cover || !isDzmmCoverVideoUrl(frame));
 }
 
 export function CoverReel({
@@ -126,12 +130,11 @@ export function CoverReel({
         }}
       >
         {near && (
-          <img
+          <CoverVisual
             src={src}
             alt=""
             decoding="async"
-            onError={(event) => {
-              const image = event.currentTarget;
+            onImageError={(image) => {
               const next = xumengCoverMissUrl(image.currentSrc || image.src, original);
               image.onerror = () => { image.onerror = null; image.src = XUMENG_FALLBACK_COVER; };
               if (next === XUMENG_FALLBACK_COVER) image.onerror = null;

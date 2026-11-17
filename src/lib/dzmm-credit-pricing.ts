@@ -1,6 +1,9 @@
+export type DzmmCreditMarkup = 3 | 5;
+
 export type DzmmCreditCostPolicy = {
   version: 1;
-  multiplier: 3;
+  /** 3 keeps reservations frozen before the 5x tariff. New chat holds use 5. */
+  multiplier: DzmmCreditMarkup;
   usdToCny: number;
   creditsPerCny: 100;
   inputUsdPerMillion: number;
@@ -42,13 +45,13 @@ export function parseDzmmCreditCostPolicy(value: unknown): DzmmCreditCostPolicy 
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const input = value as Record<string, unknown>;
   if (Object.keys(input).length !== allowed.length || Object.keys(input).some(key => !allowed.includes(key))
-    || input.version !== 1 || input.multiplier !== 3 || input.creditsPerCny !== 100
+    || input.version !== 1 || (input.multiplier !== 3 && input.multiplier !== 5) || input.creditsPerCny !== 100
     || decimal(input.usdToCny, RATE_PLACES, 0.000001, 1_000_000) === undefined) return undefined;
   const prices = [input.inputUsdPerMillion, input.outputUsdPerMillion, input.maxInputUsdPerMillion, input.maxOutputUsdPerMillion];
   if (prices.some(price => parseDzmmProviderCostUsd(price) === undefined || (price as number) <= 0)
     || (input.maxInputUsdPerMillion as number) < (input.inputUsdPerMillion as number)
     || (input.maxOutputUsdPerMillion as number) < (input.outputUsdPerMillion as number)) return undefined;
-  return { version: 1, multiplier: 3, usdToCny: input.usdToCny as number, creditsPerCny: 100,
+  return { version: 1, multiplier: input.multiplier as DzmmCreditMarkup, usdToCny: input.usdToCny as number, creditsPerCny: 100,
     inputUsdPerMillion: input.inputUsdPerMillion as number, outputUsdPerMillion: input.outputUsdPerMillion as number,
     maxInputUsdPerMillion: input.maxInputUsdPerMillion as number, maxOutputUsdPerMillion: input.maxOutputUsdPerMillion as number };
 }
@@ -80,7 +83,7 @@ export function chargeDzmmCreditTokens(promptTokens: number, completionTokens: n
 export function chargeDzmmProviderCostUsd(costUsd: number, policy: DzmmCreditCostPolicy): number {
   const value = policyValue(policy);
   return ceiling(required(decimal(costUsd, USD_PLACES, 0, 1_000_000))
-    * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * 3n * 100n, USD_SCALE * RATE_SCALE);
+    * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n, USD_SCALE * RATE_SCALE);
 }
 
 /** Site tariff for a direct host that does not send an invoice. Uses the frozen
@@ -89,7 +92,7 @@ export function chargeDzmmTariffTokens(promptTokens: number, completionTokens: n
   const value = policyValue(policy);
   const estimatedUsd = tokens(promptTokens) * required(decimal(value.inputUsdPerMillion, USD_PLACES, 0, 1_000_000))
     + tokens(completionTokens) * required(decimal(value.outputUsdPerMillion, USD_PLACES, 0, 1_000_000));
-  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * 3n * 100n,
+  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
     1_000_000n * USD_SCALE * RATE_SCALE);
 }
 
@@ -97,6 +100,6 @@ export function reserveDzmmCreditCost(inputTokens: number, maxOutputTokens: numb
   const value = policyValue(policy);
   const estimatedUsd = tokens(inputTokens) * required(decimal(value.maxInputUsdPerMillion, USD_PLACES, 0, 1_000_000))
     + tokens(maxOutputTokens) * required(decimal(value.maxOutputUsdPerMillion, USD_PLACES, 0, 1_000_000));
-  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * 3n * 100n,
+  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
     1_000_000n * USD_SCALE * RATE_SCALE);
 }

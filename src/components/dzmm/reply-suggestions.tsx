@@ -6,16 +6,19 @@ import { splitXumengSpeech } from "../../lib/xumeng-message-presentation";
 import { readDzmmSuggestionCache, writeDzmmSuggestionCache, type DzmmSuggestionCacheEntry } from "../../lib/dzmm-reply-suggestions-cache";
 import Icon from "./icons";
 import s from "./reply-suggestions.module.css";
+import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
+import { XUMENG_DEFAULT_LOCALE, type XumengLocale } from "../../lib/xumeng-i18n";
 
 type Props = {
   contextKey: string; accountId: string; automatic: boolean; label: string; disabled: boolean; historical: boolean;
+  locale?: XumengLocale;
   onAutomaticStart: () => void;
   onGenerate: (signal: AbortSignal) => Promise<DzmmReplySuggestion[]>;
   onChoose: (reply: string) => boolean | Promise<boolean>;
 };
 type Result = { key: string; options?: DzmmReplySuggestion[]; error?: string; pending?: boolean; dismissed?: boolean };
 
-export default function ReplySuggestions({ contextKey, accountId, automatic, label, disabled, historical, onAutomaticStart, onGenerate, onChoose }: Props) {
+export default function ReplySuggestions({ contextKey, accountId, automatic, label, disabled, historical, locale = XUMENG_DEFAULT_LOCALE, onAutomaticStart, onGenerate, onChoose }: Props) {
   const [result, setResult] = useState<Result | null>(null);
   const [expanded, setExpanded] = useState<boolean | null>(null);
   const [sending, setSending] = useState(false);
@@ -92,11 +95,13 @@ export default function ReplySuggestions({ contextKey, accountId, automatic, lab
       setSending(false);
     }
   }
+  const copy = xumengPage(locale);
+  const thinkText = current?.pending ? copy.msgThinking : copy.msgThink;
   if (historical) return null;
-  return <section className={s.root} aria-label={`${label}的行动建议`}>
-    <button type="button" className={s.trigger} aria-label={`${label}帮我想想，按聊天费率结算`} disabled={disabled || current?.pending || sending}
+  return <>
+    <button type="button" className={s.trigger} title={thinkText} aria-label={xumengPageFill(copy.msgThinkAria, { label })} disabled={disabled || current?.pending || sending}
       aria-expanded={visible && Boolean(current)} onClick={() => { if (current?.options) setExpanded(!visible); else void generate(); }}>
-      <Icon name="sparkles" size={13} />{current?.pending ? "正在想下一步…" : "帮我想想"}
+      <Icon name="sparkles" size={15} />
     </button>
     {visible && current && <div ref={panelRef} className={s.panel} aria-busy={Boolean(current.pending)}>
       <header><span>选择一句回复</span>{current.options && <button type="button" disabled={disabled || sending} onClick={() => void generate()}>换一组</button>}</header>
@@ -106,5 +111,5 @@ export default function ReplySuggestions({ contextKey, accountId, automatic, lab
       </button>)}</div>}
       {current.error && <p className={s.error} role="alert">{current.error}{!current.options && <button type="button" disabled={disabled} onClick={() => void generate()}>重试</button>}</p>}
     </div>}
-  </section>;
+  </>;
 }

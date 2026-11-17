@@ -13,7 +13,7 @@ const publicAssets = resolve(frontendRoot, "../../public/dzmm");
 const jumpRoot = resolve(frontendRoot, "jump");
 const assetTypes: Record<string, string> = {
   ".mp4": "video/mp4", ".webp": "image/webp", ".gif": "image/gif", ".png": "image/png", ".svg": "image/svg+xml",
-  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".ico": "image/x-icon", ".js": "text/javascript",
+  ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".woff2": "font/woff2", ".ico": "image/x-icon", ".js": "text/javascript",
   ".json": "application/json", ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8",
 };
 

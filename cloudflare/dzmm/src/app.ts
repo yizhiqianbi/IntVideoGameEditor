@@ -13,6 +13,7 @@ import { handleCallBilling } from "./call-billing";
 import { handleChatMedia } from "./chat-media";
 import { handlePublicRelationshipAlbum, handleRelationshipAlbum } from "./relationship-album";
 import { handleCharacterVoice } from "./character-voice";
+import { handleSpeechInput } from "./speech-input";
 import { handleForum } from "./forum";
 import { handleShelfTagWrite, listShelfTags } from "./shelf-tags";
 import { handlePublishingApi } from "./publishing";
@@ -98,7 +99,7 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         else if (authResponse) response = authResponse;
         else {
           const user = await requireUser(request, env);
-          response = await handleVideoWatch(request, env, user) ?? await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleRelationshipAlbum(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);
+          response = await handleVideoWatch(request, env, user) ?? await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleSpeechInput(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleRelationshipAlbum(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);
         }
         }
       }

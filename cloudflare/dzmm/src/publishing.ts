@@ -1,11 +1,12 @@
 import { MAX_MIRROR_BYTES, pendingRemoteSlots, sniffStoredImage } from "./cover-mirror";
 import { readCardDerivative, washCardDerivative } from "./cover-rendition";
 import { publishedMediaSlot } from "../../../src/lib/xumeng-cover-rendition";
+import { dzmmCoverVideoExtension } from "../../../src/lib/dzmm-cover-media";
 import { DEFAULT_DZMM_CHARACTER_COVER, DZMM_CHARACTER_CARD_MAX_BYTES, DZMM_CHARACTERS, isDzmmListedCharacter, parseCharacterImport, type Character } from "../../../src/lib/dzmm-characters";
 import { DZMM_PUBLIC_INTRODUCTION_IDS } from "../../../src/lib/dzmm-public-introduction-ids";
 import { dzmmLocalLook } from "../../../src/lib/dzmm-local-looks";
 import { parseDzmmCatalogQuery, toDzmmCatalogCard, type DzmmCatalogSort } from "../../../src/lib/dzmm-public-shelf";
-import type { DzmmPublication, DzmmPublishingSubmission, DzmmPublishedCharacter, DzmmSubmissionStatus } from "../../../src/lib/dzmm-publishing";
+import { normalizeDzmmReviewSearch, type DzmmPublication, type DzmmPublishingSubmission, type DzmmPublishedCharacter, type DzmmSubmissionStatus } from "../../../src/lib/dzmm-publishing";
 import { requireUser, rateLimit } from "./auth";
 import { listedOfficialCards } from "./ops-console";
 import { ApiError, json, readJson } from "./http";
@@ -48,6 +49,28 @@ function expectedVersion(body: Record<string, unknown>): number {
 function checkAccount(body: Record<string, unknown>, user: UserRecord) {
   if (body.accountId !== undefined && body.accountId !== user.id) throw new ApiError(401, "账号已切换，请在当前账号中重新操作。");
 }
+function reviewSearch(url: URL): string {
+  const raw = url.searchParams.get("q");
+  if (raw === null) return "";
+  try { return normalizeDzmmReviewSearch(raw); }
+  catch (error) { throw new ApiError(400, error instanceof Error && error.message ? error.message : "搜索词无效。"); }
+}
+/** Status is applied first. Search then matches the current revision only, before pagination. */
+function reviewQueueFilter(status: string, q: string): { where: string; binds: unknown[] } {
+  const where = ["s.status=?", "s.revision=p.current_revision"];
+  const binds: unknown[] = [status];
+  if (!q) return { where: where.join(" AND "), binds };
+  where.push(`(
+    instr(lower(coalesce(json_extract(s.snapshot_json,'$.name'),'')), lower(?)) > 0
+    OR instr(lower(coalesce(u.nickname,'')), lower(?)) > 0
+    OR instr(lower(s.id), lower(?)) > 0
+    OR instr(lower(s.publication_id), lower(?)) > 0
+    OR instr(lower(coalesce(p.private_character_id,'')), lower(?)) > 0
+    OR instr(lower(coalesce(json_extract(s.snapshot_json,'$.id'),'')), lower(?)) > 0
+  )`);
+  binds.push(q, q, q, q, q, q);
+  return { where: where.join(" AND "), binds };
+}
 function pagination(url: URL, defaultLimit = 20, maxLimit = 50) {
   const read = (key: string, fallback: number, min: number, max: number) => {
     const raw = url.searchParams.get(key);
@@ -84,7 +107,7 @@ function toSubmission(row: SubmissionRow): DzmmPublishingSubmission {
     createdAt: row.created_at, reviewedAt: row.reviewed_at, publicationVersion: row.version,
     isListed: row.is_listed === 1, approvedRevision: row.approved_revision,
     displayHeat: Number(row.display_heat) || 0, displayLikes: Number(row.display_likes) || 0,
-    previewCoverUrl: media.cover ? `${PREFIX}/submissions/${row.id}/media/cover` : character.cover,
+    previewCoverUrl: media.cover ? `${PREFIX}/submissions/${row.id}/media/cover${dzmmCoverVideoExtension(media.cover) ?? ""}` : character.cover,
     ...(character.gallery ? { previewGalleryUrls: character.gallery.map((path, index) => media[`gallery-${index}`] ? `${PREFIX}/submissions/${row.id}/media/gallery-${index}` : path) } : {}) };
 }
 async function getSubmission(env: Env, id: string): Promise<SubmissionRow> {
@@ -134,7 +157,7 @@ function publicCharacter(row: SubmissionRow): DzmmPublishedCharacter {
   const media = JSON.parse(row.published_media_json) as MediaMap;
   return { ...visible, id: row.publication_id, author: card.author?.trim() || row.nickname, heat: displayCount(Number(row.display_heat) || 0), likes: String(Number(row.display_likes) || 0),
     sourceKind: "original", promptOrigin: "original", sourceUrl: "", createdAt: new Date(row.reviewed_at ?? row.created_at).toISOString(),
-    cover: media.cover ? `${PREFIX}/media/${row.publication_id}/${row.revision}/cover` : card.cover,
+    cover: media.cover ? `${PREFIX}/media/${row.publication_id}/${row.revision}/cover${dzmmCoverVideoExtension(media.cover) ?? ""}` : card.cover,
     ...(card.gallery ? { gallery: card.gallery.map((path, index) => media[`gallery-${index}`] ? `${PREFIX}/media/${row.publication_id}/${row.revision}/gallery-${index}` : path) } : {}),
     publication: { id: row.publication_id, authorId: row.user_id, revision: row.revision, publishedAt: row.reviewed_at ?? row.created_at } };
 }
@@ -390,8 +413,12 @@ async function normalizeSnapshot(env: Env, user: UserRecord, value: unknown) {
   const paths = [{ slot: "cover", path: character.cover }, ...(character.gallery ?? []).map((path, index) => ({ slot: `gallery-${index}`, path }))];
   for (const { slot, path } of paths) {
     if (STATIC_COVERS.has(path)) continue;
-    const match = /^\/api\/dzmm\/backend\/v1\/media\/([a-f0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/.exec(path);
-    if (!match || match[1] !== user.id) throw new ApiError(400, "公开发布图片须使用本人上传的图片或本站公共封面。");
+    const match = (slot === "cover"
+      ? /^\/api\/dzmm\/backend\/v1\/media\/([a-f0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif|mp4|webm))$/
+      : /^\/api\/dzmm\/backend\/v1\/media\/([a-f0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/).exec(path);
+    if (!match || match[1] !== user.id) throw new ApiError(400, slot === "cover"
+      ? "公开发布封面须使用本人上传的图片、MP4、WebM 或本站公共封面。"
+      : "公开发布图片须使用本人上传的图片或本站公共封面。");
     if (!env.MEDIA) throw new ApiError(503, "图片存储尚未启用。");
     const key = `${match[1]}/${match[2]}`;
     const stored = await env.MEDIA.head(key);
@@ -414,10 +441,12 @@ async function copyApprovedMedia(env: Env, row: SubmissionRow) {
       await env.MEDIA.put(target, source.body, { httpMetadata: source.httpMetadata,
         customMetadata: { publicationId: row.publication_id, revision: String(row.revision) } });
       copies[slot] = target;
-      try {
-        const washed = await washCardDerivative(env.MEDIA, env.IMAGES, target, { publicationId: row.publication_id, revision: String(row.revision) });
-        await washed?.body?.cancel();
-      } catch { /* The shelf wash can retry this cover. */ }
+      if (!dzmmCoverVideoExtension(target)) {
+        try {
+          const washed = await washCardDerivative(env.MEDIA, env.IMAGES, target, { publicationId: row.publication_id, revision: String(row.revision) });
+          await washed?.body?.cancel();
+        } catch { /* The shelf wash can retry this cover. */ }
+      }
     }
     return copies;
   } catch (error) {
@@ -550,7 +579,7 @@ export async function washPublishedCovers(env: Env, limit: number, after: string
     try { media = JSON.parse(row.published_media_json) as MediaMap; } catch { failed += 1; continue; }
     const expected = { publicationId: row.publication_id, revision: String(row.revision) };
     for (const [slot, key] of Object.entries(media)) {
-      if (!/^(cover|gallery-\d+)$/.test(slot) || !key) continue;
+      if (!/^(cover|gallery-\d+)$/.test(slot) || !key || dzmmCoverVideoExtension(key)) continue;
       const ready = await readCardDerivative(env.MEDIA, key, expected);
       if (ready) { await ready.body?.cancel(); skipped += 1; continue; }
       const created = await washCardDerivative(env.MEDIA, env.IMAGES, key, expected);
@@ -589,6 +618,7 @@ async function imageResponse(env: Env, key: string, expected: { ownerId?: string
   if (!stored || Object.entries(expected).some(([name, value]) => stored.customMetadata?.[name] !== value)) throw new ApiError(404, "图片不存在。");
   const headers = new Headers({ "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; sandbox" });
   stored.writeHttpMetadata(headers); headers.set("etag", stored.httpEtag);
+  if (dzmmCoverVideoExtension(key)) headers.set("Content-Length", String(stored.size));
   return new Response(stored.body as unknown as ReadableStream<Uint8Array>, { headers });
 }
 
@@ -658,20 +688,22 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     const stats = await readLikeStats(env, user, [characterId]);
     return json(stats[characterId] ?? { count: 0, liked: false });
   }
-  const publicMedia = /^\/media\/([^/]+)\/(\d+)\/(cover(?:-card)?|gallery-\d+(?:-card)?)$/.exec(path);
+  const publicMedia = /^\/media\/([^/]+)\/(\d+)\/(cover\.(?:mp4|webm)|cover(?:-card)?|gallery-\d+(?:-card)?)$/.exec(path);
   if (publicMedia) {
     if (request.method !== "GET") throw new ApiError(405, "公开图片仅支持 GET。");
-    const parsed = publishedMediaSlot(publicMedia[3]);
+    const videoSuffix = dzmmCoverVideoExtension(publicMedia[3]);
+    const parsed = publishedMediaSlot(videoSuffix ? publicMedia[3].slice(0, -videoSuffix.length) : publicMedia[3]);
     const id = publicationId(publicMedia[1]);
-    if (!parsed || !Number.isSafeInteger(Number(publicMedia[2])) || Number(publicMedia[2]) < 1) throw new ApiError(400, "图片版本无效。");
+    if (!parsed || (videoSuffix && parsed.name !== "cover") || !Number.isSafeInteger(Number(publicMedia[2])) || Number(publicMedia[2]) < 1) throw new ApiError(400, "图片版本无效。");
     const row = await env.DB.prepare(`SELECT s.published_media_json, s.revision FROM character_submissions s
       JOIN character_publications p ON p.id=s.publication_id
       WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision AND s.revision=?`).bind(id, Number(publicMedia[2])).first<{ published_media_json: string; revision: number }>();
     let media: MediaMap = {};
     try { media = row ? JSON.parse(row.published_media_json) as MediaMap : {}; } catch { media = {}; }
     const key = media[parsed.name];
-    if (!row || !key) throw new ApiError(404, "图片不存在或角色已下架。");
+    if (!row || !key || (videoSuffix && dzmmCoverVideoExtension(key) !== videoSuffix)) throw new ApiError(404, "图片不存在或角色已下架。");
     const expected = { publicationId: id, revision: String(row.revision) };
+    if (parsed.card && dzmmCoverVideoExtension(key)) throw new ApiError(404, "图片不存在或角色已下架。");
     if (parsed.card) {
       if (!env.MEDIA) throw new ApiError(503, "图片存储尚未启用。");
       const ready = await readCardDerivative(env.MEDIA, key, expected);
@@ -735,12 +767,15 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     const { offset, limit } = pagination(url);
     const status = url.searchParams.get("status") ?? "pending";
     if (!["pending", "approved", "rejected", "withdrawn"].includes(status)) throw new ApiError(400, "审核状态无效。");
+    const q = reviewSearch(url);
+    const filter = reviewQueueFilter(status, q);
+    const countFrom = "FROM character_submissions s JOIN character_publications p ON p.id=s.publication_id JOIN users u ON u.id=p.user_id";
     const [rows, count] = await Promise.all([
-      env.DB.prepare(`${SUBMISSIONS} WHERE s.status=? AND s.revision=p.current_revision ORDER BY s.created_at,s.id LIMIT ? OFFSET ?`).bind(status, limit, offset).all<SubmissionRow>(),
-      env.DB.prepare("SELECT COUNT(*) AS total FROM character_submissions s JOIN character_publications p ON p.id=s.publication_id WHERE s.status=? AND s.revision=p.current_revision").bind(status).first<{ total: number }>(),
+      env.DB.prepare(`${SUBMISSIONS} WHERE ${filter.where} ORDER BY s.created_at,s.id LIMIT ? OFFSET ?`).bind(...filter.binds, limit, offset).all<SubmissionRow>(),
+      env.DB.prepare(`SELECT COUNT(*) AS total ${countFrom} WHERE ${filter.where}`).bind(...filter.binds).first<{ total: number }>(),
     ]);
     const total = Number(count?.total ?? 0);
-    return json({ submissions: rows.results.map(toSubmission), total, offset, limit, hasMore: offset + limit < total });
+    return json({ submissions: rows.results.map(toSubmission), total, offset, limit, hasMore: offset + limit < total, q });
   }
   if (path === "/submissions" && request.method === "POST") {
     await requireWrite(request, env, user);
@@ -777,15 +812,20 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     if (results[0].meta.changes !== 1 || results[2].meta.changes !== 1) conflict();
     return json(await result(env, id, submission), 201);
   }
-  const privateMedia = /^\/submissions\/([^/]+)\/media\/(cover|gallery-\d+)$/.exec(path);
+  const privateMedia = /^\/submissions\/([^/]+)\/media\/(cover(?:\.(?:mp4|webm))?|gallery-\d+)$/.exec(path);
   if (privateMedia) {
     if (request.method !== "GET") throw new ApiError(405, "审核图片仅支持 GET。");
+    const requestedVideo = dzmmCoverVideoExtension(privateMedia[2]);
+    const slot = requestedVideo ? privateMedia[2].slice(0, -requestedVideo.length) : privateMedia[2];
     const row = await getSubmission(env, submissionId(privateMedia[1]));
     assertOwner(row.user_id, user, true);
-    const approvedKey = row.status === "approved" ? (JSON.parse(row.published_media_json) as MediaMap)[privateMedia[2]] : undefined;
-    if (approvedKey) return imageResponse(env, approvedKey, { publicationId: row.publication_id, revision: String(row.revision) });
-    const key = (JSON.parse(row.private_media_json) as MediaMap)[privateMedia[2]];
-    if (!key) throw new ApiError(404, "审核图片不存在。");
+    const approvedKey = row.status === "approved" ? (JSON.parse(row.published_media_json) as MediaMap)[slot] : undefined;
+    if (approvedKey) {
+      if (requestedVideo && dzmmCoverVideoExtension(approvedKey) !== requestedVideo) throw new ApiError(404, "审核图片不存在。");
+      return imageResponse(env, approvedKey, { publicationId: row.publication_id, revision: String(row.revision) });
+    }
+    const key = (JSON.parse(row.private_media_json) as MediaMap)[slot];
+    if (!key || (requestedVideo && dzmmCoverVideoExtension(key) !== requestedVideo)) throw new ApiError(404, "审核图片不存在。");
     return imageResponse(env, key, { ownerId: row.user_id });
   }
   const detail = /^\/submissions\/([^/]+)$/.exec(path);

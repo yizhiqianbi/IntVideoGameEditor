@@ -14,10 +14,14 @@ export type IconName =
   | "plus"
   | "sliders"
   | "chevron"
+  | "chevronUp"
   | "close"
   | "send"
   | "back"
   | "download"
+  | "fileText"
+  | "braces"
+  | "trash"
   | "upload"
   | "edit"
   | "refresh"
@@ -33,12 +37,20 @@ export type IconName =
   | "volume"
   | "play"
   | "pause"
+  | "quote"
   | "image"
   | "game"
   | "phone"
   | "video"
   | "lock"
-  | "crown";
+  | "crown"
+  | "bookmark"
+  | "thumbUp"
+  | "thumbDown"
+  | "flag"
+  | "undo"
+  | "eyeOff"
+  | "mic";
 
 const paths: Record<IconName, React.ReactNode> = {
   game: <><path d="M7 7h10a4 4 0 0 1 3.8 2.8l1.2 7a2.5 2.5 0 0 1-4.2 2.2L15 16H9l-2.8 3a2.5 2.5 0 0 1-4.2-2.2l1.2-7A4 4 0 0 1 7 7Z"/><path d="M6 11v4M4 13h4M16 11h.01M19 14h.01"/></>,
@@ -48,8 +60,10 @@ const paths: Record<IconName, React.ReactNode> = {
   volume: <><path d="m11 5-6 4H2v6h3l6 4V5Z" /><path d="M15 8a6 6 0 0 1 0 8M18 5a10 10 0 0 1 0 14" /></>,
   play: <path d="m8 4 12 8-12 8V4Z" />,
   pause: <><path d="M7 4h3v16H7zM14 4h3v16h-3z" /></>,
+  quote: <><path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Z" /><path d="M9 8h6M9 12h6" /></>,
   image: <><rect x="3" y="3" width="18" height="18" rx="3" /><circle cx="8.5" cy="8.5" r="1.5" /><path d="m21 15-5-5L5 21" /></>,
   crown: <><path d="m3 6 4 5 5-7 5 7 4-5-2 12H5L3 6Z" /><path d="M6 21h12" /></>,
+  bookmark: <path d="M6 2h12v20l-6-8-6 8V2z" />,
   wallet: (
     <>
       <path d="M20 8V5a2 2 0 0 0-2-2H6a3 3 0 0 0 0 6h14v11H6a3 3 0 0 1-3-3V6" />
@@ -112,6 +126,7 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   chevron: <path d="m9 18 6-6-6-6" />,
+  chevronUp: <path d="m6 15 6-6 6 6" />,
   close: <path d="m18 6-12 12M6 6l12 12" />,
   send: (
     <>
@@ -123,6 +138,27 @@ const paths: Record<IconName, React.ReactNode> = {
   download: (
     <>
       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M12 3v12m-5-5 5 5 5-5" />
+    </>
+  ),
+  fileText: (
+    <>
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5" />
+      <path d="M8 13h8M8 17h5" />
+    </>
+  ),
+  braces: (
+    <>
+      <path d="M8 4H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5a2 2 0 0 0 2 2h1" />
+      <path d="M16 20h1a2 2 0 0 0 2-2v-5a2 2 0 0 1 2-2 2 2 0 0 1-2-2V6a2 2 0 0 0-2-2h-1" />
+    </>
+  ),
+  trash: (
+    <>
+      <path d="M4 7h16" />
+      <path d="M9 7V5h6v2" />
+      <path d="M7 7l1 14h8l1-14" />
+      <path d="M10 11v6M14 11v6" />
     </>
   ),
   upload: (
@@ -180,6 +216,44 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
   stop: <rect x="6" y="6" width="12" height="12" rx="2" />,
+  thumbUp: (
+    <>
+      <path d="M7 10v12" />
+      <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z" />
+    </>
+  ),
+  thumbDown: (
+    <>
+      <path d="M17 14V2" />
+      <path d="M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z" />
+    </>
+  ),
+  flag: (
+    <>
+      <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+      <path d="M4 22v-7" />
+    </>
+  ),
+  undo: (
+    <>
+      <path d="M9 14 4 9l5-5" />
+      <path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5 5.5 5.5 0 0 1-5.5 5.5H11" />
+    </>
+  ),
+  mic: (
+    <>
+      <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z" />
+      <path d="M19 11a7 7 0 0 1-14 0M12 18v3M8 21h8" />
+    </>
+  ),
+  eyeOff: (
+    <>
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.53 13.53 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <path d="m2 2 20 20" />
+    </>
+  ),
 };
 
 export default function Icon({

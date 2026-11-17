@@ -63,6 +63,8 @@ export type DzmmPreferences = {
   assistantBubbleColor?: string;
   bubbleOpacity?: number;
   chatBackground?: "site" | "cover" | "plain";
+  /** Omitted keeps the Xumeng prompt. "tavern" uses SillyTavern's order with Xumeng's adult writing. */
+  promptStyle?: "xumeng" | "tavern";
 };
 
 export type DzmmSavedPreset = { id: string; name: string; content: string };
@@ -316,10 +318,12 @@ function hydratePreferences(
   const chatFontSize = enumeration("chatFontSize", ["small", "medium", "large", "xlarge"] as const);
   const chatFont = enumeration("chatFont", ["system", "serif", "kai"] as const);
   const chatBackground = enumeration("chatBackground", ["site", "cover", "plain"] as const);
+  const promptStyle = enumeration("promptStyle", ["xumeng", "tavern"] as const);
   if (enterKey !== undefined) preferences.enterKey = enterKey;
   if (chatFontSize !== undefined) preferences.chatFontSize = chatFontSize;
   if (chatFont !== undefined) preferences.chatFont = chatFont;
   if (chatBackground !== undefined) preferences.chatBackground = chatBackground;
+  if (promptStyle !== undefined) preferences.promptStyle = promptStyle;
   for (const field of ["userBubbleColor", "assistantBubbleColor"] as const) {
     const color = value[field];
     if (color === undefined) continue;

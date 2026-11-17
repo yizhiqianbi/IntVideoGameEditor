@@ -629,6 +629,47 @@ test('R2 upload rejects an oversized image before creating an object', async () 
     headers: { 'Content-Type': 'image/png' } }), 413);
 });
 
+const mp4 = Buffer.from([
+  0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
+  0x00, 0x00, 0x00, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32,
+]);
+const webm = Buffer.from([0x1a, 0x45, 0xdf, 0xa3, 0x42, 0x82, 0x84, 0x77, 0x65, 0x62, 0x6d]);
+
+test('R2 cover video upload round-trips mp4 and webm', async () => {
+  const owner = await guest();
+  const other = await guest();
+  for (const [body, type, extension] of [[mp4, 'video/mp4', 'mp4'], [webm, 'video/webm', 'webm']]) {
+    const uploaded = expectStatus(await owner.request('/v1/media', {
+      method: 'POST', raw: body, headers: { 'Content-Type': type },
+    }), 200, 201);
+    assert.match(uploaded.key, new RegExp(`\\.${extension}$`));
+    assert.match(uploaded.url, new RegExp(`/v1/media/.+\\.${extension}$`));
+    const download = await fetch(`${baseUrl}/v1/media/${uploaded.key}`, { headers: { Cookie: owner.cookie, Origin: appOrigin } });
+    assert.equal(download.status, 200);
+    assert.match(download.headers.get('content-type'), new RegExp(`^${type}`));
+    assert.equal(download.headers.get('x-content-type-options'), 'nosniff');
+    assert.deepEqual(Buffer.from(await download.arrayBuffer()), body);
+    expectStatus(await other.request(`/v1/media/${uploaded.key}`), 404);
+    expectStatus(await owner.request(`/v1/media/${uploaded.key}`, { method: 'DELETE' }), 200, 204);
+  }
+});
+
+test('R2 upload rejects a video signature that does not match the declared type', async () => {
+  const client = await guest();
+  expectStatus(await client.request('/v1/media', { method: 'POST', raw: png, headers: { 'Content-Type': 'video/mp4' } }), 400);
+  expectStatus(await client.request('/v1/media', { method: 'POST', raw: mp4, headers: { 'Content-Type': 'image/png' } }), 400);
+  expectStatus(await client.request('/v1/media', { method: 'POST', raw: webm, headers: { 'Content-Type': 'video/mp4' } }), 400);
+  expectStatus(await client.request('/v1/media', { method: 'POST', raw: mp4, headers: { 'Content-Type': 'video/mp4', 'x-xumeng-media-purpose': 'album' } }), 400);
+});
+
+test('R2 upload rejects an oversized cover video before creating an object', async () => {
+  const client = await guest();
+  const oversized = Buffer.alloc(16 * 1024 * 1024 + 1);
+  mp4.copy(oversized);
+  expectStatus(await client.request('/v1/media', { method: 'POST', raw: oversized,
+    headers: { 'Content-Type': 'video/mp4' } }), 413);
+});
+
 test('conversation creation restores authored openings, existing background and blank-card welcomes without replacing supplied history', async () => {
   const client = await guest();
   const cases = [

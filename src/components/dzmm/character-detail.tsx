@@ -10,10 +10,12 @@ import { characterShareLocation } from "@/lib/xumeng-acquisition";
 import { XUMENG_CALLS_ENABLED, XUMENG_CHARACTER_VOICE_ENABLED } from "@/lib/xumeng-feature-availability";
 import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import { coverShelfTags, visibleShelfTags } from "@/lib/xumeng-shelf-tags";
+import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
 import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import { groupRelationshipAlbum, parseRelationshipAlbum, relationshipAlbumAssetUrl, type RelationshipAlbumItem } from "@/lib/relationship-album";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
+import { CoverVisual } from "./cover-visual";
 import Icon from "./icons";
 import CharacterIntroduction from "./character-introduction";
 import s from "./character-detail.module.css";
@@ -53,19 +55,22 @@ function RoleImage({
   character,
   className,
   src,
+  play = false,
 }: {
   character: Character;
   className: string;
   src?: string;
+  play?: boolean;
 }) {
+  const original = src || character.cover || XUMENG_FALLBACK_COVER;
   return (
-    <img
+    <CoverVisual
       className={className}
-      src={xumengCardCoverUrl(src || character.cover || XUMENG_FALLBACK_COVER)}
+      src={xumengCardCoverUrl(original)}
       alt={character.name}
-      onError={(event) => {
-        const image = event.currentTarget;
-        const next = xumengCoverMissUrl(image.currentSrc || image.src, src || character.cover || XUMENG_FALLBACK_COVER);
+      play={play}
+      onImageError={(image) => {
+        const next = xumengCoverMissUrl(image.currentSrc || image.src, original);
         image.onerror = () => { image.onerror = null; image.src = XUMENG_FALLBACK_COVER; };
         if (next === XUMENG_FALLBACK_COVER) image.onerror = null;
         image.src = next;
@@ -152,8 +157,11 @@ export default function CharacterDetail({
   const menuRef = useRef<HTMLDivElement>(null);
   const menuButton = useRef<HTMLButtonElement>(null);
   const menuId = useId();
-  const gallery = [...new Set((galleryPaths.length ? galleryPaths : character.gallery ?? []).filter(Boolean))];
-  const pictures = gallery.length ? gallery : [character.cover || XUMENG_FALLBACK_COVER];
+  const gallery = [...new Set((galleryPaths.length ? galleryPaths : character.gallery ?? []).filter((path): path is string => typeof path === "string" && Boolean(path) && !isDzmmCoverVideoUrl(path)))];
+  const cover = character.cover || XUMENG_FALLBACK_COVER;
+  const pictures = isDzmmCoverVideoUrl(character.cover)
+    ? [character.cover, ...gallery.filter((path) => path !== character.cover)]
+    : (gallery.length ? gallery : [cover]);
   const pictureIndex = picture.characterId === character.id ? Math.min(picture.index, pictures.length - 1) : 0;
   const isPublicSample = character.sourceKind === "public-summary";
   const pinnedCard = isXumengPinnedCard(character);
@@ -255,12 +263,12 @@ export default function CharacterDetail({
       <div className={s.hero}>
         <div className={s.gallery}>
           <div className={s.coverFrame} role="group" aria-roledescription={pictures.length > 1 ? "轮播图" : undefined} aria-label={`${character.name} 封面`} tabIndex={pictures.length > 1 ? 0 : undefined} onKeyDown={(event) => { if (pictures.length < 2) return; if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); selectPicture(pictureIndex + (event.key === "ArrowLeft" ? -1 : 1)); } }}>
-            <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} />
+            <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} play />
             {paintedTags.length > 0 && <div className={s.coverTags}>{paintedTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
             <span className={s.heat}><Icon name="flame" size={16} />{character.heat}</span>
             {pictures.length > 1 && <><button className={`${s.galleryArrow} ${s.galleryPrevious}`} type="button" aria-label="上一张封面" onClick={() => selectPicture(pictureIndex - 1)}><Icon name="chevron" size={18} /></button><button className={`${s.galleryArrow} ${s.galleryNext}`} type="button" aria-label="下一张封面" onClick={() => selectPicture(pictureIndex + 1)}><Icon name="chevron" size={18} /></button><span className={s.pictureCount} aria-live="polite">{pictureIndex + 1} / {pictures.length}</span></>}
           </div>
-          {pictures.length > 1 && <div className={s.thumbnails} aria-label="选择角色图片">{pictures.map((path, index) => <button type="button" className={index === pictureIndex ? s.selectedThumbnail : ""} key={path} aria-label={`查看第 ${index + 1} 张图片`} aria-pressed={index === pictureIndex} onClick={() => selectPicture(index)}><img src={xumengCardCoverUrl(path)} alt="" /></button>)}</div>}
+          {pictures.length > 1 && <div className={s.thumbnails} aria-label="选择角色图片">{pictures.map((path, index) => <button type="button" className={index === pictureIndex ? s.selectedThumbnail : ""} key={path} aria-label={isDzmmCoverVideoUrl(path) ? "查看封面视频" : `查看第 ${index + 1} 张图片`} aria-pressed={index === pictureIndex} onClick={() => selectPicture(index)}><CoverVisual src={xumengCardCoverUrl(path)} alt="" play={isDzmmCoverVideoUrl(path) && index === pictureIndex} /></button>)}</div>}
         </div>
 
         <div className={s.info}>

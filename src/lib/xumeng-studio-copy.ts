@@ -672,6 +672,8 @@ const ROWS = [
   ["pbNovels", "Novels and stories", "小说与故事", "小說與故事", "小説と物語", "소설과 이야기"],
   ["pbRefresh", "Refresh status", "刷新状态", "重新整理狀態", "状態を更新", "상태 새로고침"],
   ["pbReviewState", "Review status", "审核状态", "審核狀態", "審査状態", "심사 상태"],
+  ["pbReviewSearch", "Search name, author, or id", "搜索角色名、作者或编号", "搜尋角色名、作者或編號", "名前・作者・番号で検索", "이름, 작가, 번호 검색"],
+  ["pbReviewSearchEmpty", "No matching review records", "没有匹配的审核记录", "沒有符合的審核紀錄", "一致する審査記録はありません", "일치하는 심사 기록이 없습니다"],
   ["pbAuthorState", "Writing status", "创作状态", "創作狀態", "創作の状態", "창작 상태"],
   ["pbRefreshRecords", "Refresh records", "刷新记录", "重新整理紀錄", "記録を更新", "기록 새로고침"],
   ["pbNeedSuper", "Super access is required", "需要 Super 管理员权限", "需要 Super 管理員權限", "Super 権限が必要です", "Super 권한이 필요합니다"],

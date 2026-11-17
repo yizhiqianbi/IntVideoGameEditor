@@ -32,3 +32,23 @@
 .primary{border-radius:999px;background:var(--pink)}
 .preview,.actionPreview,.referenceUpload,.referenceSelected{background:color-mix(in srgb,var(--surface) 58%,transparent);border-color:color-mix(in srgb,#fff 36%,var(--line))}
 @media(max-width:700px){.controls,.results{padding:16px 14px}.controls{border-right:1px solid color-mix(in srgb,#fff 42%,var(--line))}}
+.tool{position:relative;box-sizing:border-box;width:32px;height:32px;flex:none;display:inline-flex;align-items:center;justify-content:center;margin:0;padding:0;gap:0;border-radius:8px;border:1px solid var(--line);background:color-mix(in srgb,var(--surface) 72%,transparent);color:var(--muted);cursor:pointer;text-decoration:none;vertical-align:middle;font:inherit;line-height:0}
+.tool:hover:not(:disabled){color:var(--text);border-color:color-mix(in srgb,var(--text) 28%,var(--line))}
+.tool:has(input:disabled){opacity:.5;cursor:default}
+.controls label.tool,.reference label.tool{display:inline-flex;width:32px;height:32px;margin:0;color:var(--muted);font-size:0}
+.controls .tool input.fileCover{display:block;width:100%;height:100%;margin:0;padding:0;border:0;opacity:0}
+.referenceHeading>span{margin-left:auto}
+.formatHint{white-space:nowrap}
+.referenceHeading>.tool{margin-left:8px}
+.referenceTools{display:flex;align-items:center;gap:8px}
+.referenceSelected .referenceTools{gap:8px}
+.referenceSelected button.tool{width:32px;height:32px;padding:0;border:1px solid var(--line);border-radius:8px;background:color-mix(in srgb,var(--surface) 72%,transparent);color:var(--muted);font-size:0}
+.templateHeading .tool{margin-top:2px}
+.historyLink.tool{width:32px;height:32px;padding:0;border:1px solid var(--line);background:color-mix(in srgb,var(--surface) 72%,transparent);color:var(--muted)}
+.sectionTitle .tool,.resultInfo>.tool{flex:none}
+.results>.tool{margin-top:12px}
+.resultInfo>.tool{margin:0 8px 8px 0}
+.r2vCompare>.tool{grid-column:1 / -1;justify-self:start;width:32px}
+.primary.decision:not(.submit){background:transparent;color:var(--text);border:1px solid var(--line)}
+.primary.submit{background:var(--gold,#b47a45);color:#fff;border:0}
+.primary.submit:hover:not(:disabled){background:color-mix(in srgb,var(--gold,#b47a45) 88%,#fff)}

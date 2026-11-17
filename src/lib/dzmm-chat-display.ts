@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { isDzmmCoverVideoUrl } from "./dzmm-cover-media";
 import type { DzmmChatFont, DzmmChatFontSize, DzmmPreferences } from "./dzmm-storage";
 
 const FONT_SCALE: Record<DzmmChatFontSize, number> = { small: 0.9, medium: 1, large: 1.15, xlarge: 1.3 };
@@ -28,7 +29,7 @@ export function dzmmChatDisplayStyle(preferences: DisplayPreferences): CSSProper
 export function dzmmChatBackgroundStyle(preferences: Pick<DzmmPreferences, "chatBackground">, cover: string | undefined, dark: boolean): CSSProperties | undefined {
   const mode = preferences.chatBackground ?? "cover";
   if (mode === "plain") return { background: "var(--bg)" };
-  if (mode !== "cover" || !cover) return undefined;
+  if (mode !== "cover" || !cover || isDzmmCoverVideoUrl(cover)) return undefined;
   const shade = dark ? "rgba(12, 6, 14, 0.42)" : "rgba(255, 246, 250, 0.46)";
   return { backgroundImage: `linear-gradient(${shade}, ${shade}), url(${JSON.stringify(cover)})`, backgroundSize: "cover", backgroundPosition: "center 18%" };
 }

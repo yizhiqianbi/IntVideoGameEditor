@@ -109,7 +109,7 @@ export function matchesDzmmFrozenProviderModel(received: unknown, expected: stri
     || DZMM_MODEL_OPTIONS.some(option => option.providerModel === expected && option.canonicalModel === received));
 }
 
-/** Preserve the server's FX, 3x multiplier and Credit unit; replace only the
+/** Preserve the server's FX, markup and Credit unit; replace only the
  * verified model tariff before quote/reserve. Finalization uses the DB snapshot. */
 export function dzmmModelCostPolicy(policy: DzmmCreditCostPolicy, model: string): DzmmCreditCostPolicy {
   const option = findDzmmProviderModel(model);

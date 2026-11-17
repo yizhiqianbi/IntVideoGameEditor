@@ -216,14 +216,16 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
   }
   function leaveEditor() { if (!canReplace()) return; setDraft(null); draftRef.current = null; recoveryRef.current = null; setRecoverySaved(false); setVersion(null); savedRef.current = ""; setPreview(null); setConflict(null); setError(""); onNavigate?.(null); }
   const results = library.filter(item => `${item.title} ${item.synopsis}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
+  const backLabel = draft ? "返回游戏作品列表" : "返回创作中心";
+  const playLabel = preview ? "重新运行" : "运行游戏";
   return <div className={styles.studio}>
     <header className={styles.header}><div className={styles.heading}>
-      <button className={styles.back} aria-label={draft ? "返回游戏作品列表" : "返回创作中心"} disabled={busy || loading} onClick={draft ? leaveEditor : onBack}><Icon name="back" size={19} /></button>
+      <button className={styles.back} aria-label={backLabel} title={backLabel} disabled={busy || loading} onClick={draft ? leaveEditor : onBack}><Icon name="back" size={19} /></button>
       <div><p className={styles.eyebrow}>创作中心 / 游戏</p><h1>{draft?.title || "游戏创作"}</h1><p className={styles.status}>{draft ? busy ? "正在保存或加载…" : dirty ? backedUp ? "尚未保存 · 浏览器保留恢复副本" : "尚未保存 · 浏览器恢复副本未确认" : `私人作品 · 已保存 v${version}` : "网页游戏 · HTML、压缩包与试玩"}</p></div>
     </div><div className={styles.actions}>
-      <button className={styles.secondary} disabled={busy || loading} onClick={() => { if (requireAccount()) fileInput.current?.click(); }}><Icon name="upload" size={15} />导入</button>
-      {draft ? <><button className={styles.secondary} disabled={busy} onClick={() => { try { download(exportXumengGameBackup(draft), `${filename(draft.title)}.xumeng-game.json`, "application/json;charset=utf-8"); } catch (failure) { setError(message(failure)); } }}><Icon name="download" size={15} />备份</button>
-        <button className={styles.primary} disabled={busy || loading || !dirty} onClick={() => void save()}><Icon name="check" size={16} />保存</button></> : <button className={styles.primary} disabled={busy || loading} onClick={() => newGame("blank")}><Icon name="plus" size={16} />新建游戏</button>}
+      <button className={styles.tool} aria-label="导入" title="导入" disabled={busy || loading} onClick={() => { if (requireAccount()) fileInput.current?.click(); }}><Icon name="upload" size={16} /></button>
+      {draft ? <><button className={styles.tool} aria-label="备份" title="备份" disabled={busy} onClick={() => { try { download(exportXumengGameBackup(draft), `${filename(draft.title)}.xumeng-game.json`, "application/json;charset=utf-8"); } catch (failure) { setError(message(failure)); } }}><Icon name="braces" size={16} /></button>
+        <button className={`${styles.tool} ${styles.toolSave}`} aria-label="保存" title="保存" disabled={busy || loading || !dirty} onClick={() => void save()}><Icon name="check" size={16} /></button></> : <button className={styles.tool} aria-label="新建游戏" title="新建游戏" disabled={busy || loading} onClick={() => newGame("blank")}><Icon name="plus" size={16} /></button>}
     </div></header>
     <input ref={fileInput} type="file" accept=".html,.htm,.json,.zip,application/zip" hidden onChange={event => void importFile(event)} />
     <div className={styles.messages}>{error && <p className={styles.error} role="alert">{error}</p>}{notice && <p className={styles.notice} role="status">{notice}</p>}
@@ -243,11 +245,11 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
           <div className={styles.sectionHead}><h2>HTML 源码</h2><span className={styles.bytes}>{formatSize(xumengGameBytes(draft.source))} / 8 MB</span></div>
           {xumengGameBytes(draft.source) > EDITOR_SOURCE_BYTES ? <div className={styles.previewEmpty}><p>这部作品有 {formatSize(xumengGameBytes(draft.source))}，已经包含页面、脚本和图片。</p><small>可以直接试玩、备份和保存。要修改内容，请重新导入 HTML 或 ZIP。</small></div> : <textarea className={styles.code} aria-label="HTML 游戏源码" spellCheck={false} disabled={busy} value={draft.source} onChange={event => { setDraft({ ...draft, source: event.target.value }); setError(""); }} />}
           <p className={styles.help}>可以导入单个 HTML，或包含 index.html、样式、脚本、图片和音频的 ZIP。试玩允许内联脚本、内联样式与 data 图片；外部脚本、接口请求和嵌套页面不会加载。超过 1 MB 的作品不会写入浏览器恢复副本。</p>
-          <div className={styles.editorFooter}><button className={styles.secondary} disabled={busy} onClick={() => download(draft.source, `${filename(draft.title)}.html`, "text/html;charset=utf-8")}><Icon name="download" size={15} />导出 HTML</button>{version !== null && <button className={styles.danger} disabled={busy} onClick={() => void remove()}>删除游戏</button>}</div>
+          <div className={styles.editorFooter}><button className={styles.tool} aria-label="导出 HTML" title="导出 HTML" disabled={busy} onClick={() => download(draft.source, `${filename(draft.title)}.html`, "text/html;charset=utf-8")}><Icon name="fileText" size={16} /></button>{version !== null && <button className={`${styles.tool} ${styles.toolDanger}`} aria-label="删除游戏" title="删除游戏" disabled={busy} onClick={() => void remove()}><Icon name="trash" size={16} /></button>}</div>
         </section>
-        <section className={styles.preview}><div className={styles.sectionHead}><h2>试玩</h2><button className={styles.secondary} disabled={busy} onClick={previewGame}><Icon name={preview ? "refresh" : "play"} size={15} />{preview ? "重新运行" : "运行游戏"}</button></div>
+        <section className={styles.preview}><div className={styles.sectionHead}><h2>试玩</h2><button className={styles.tool} aria-label={playLabel} title={playLabel} disabled={busy} onClick={previewGame}><Icon name={preview ? "refresh" : "play"} size={16} /></button></div>
           {preview ? <iframe key={previewRevision} title={`${draft.title || "游戏"}试玩`} sandbox="allow-scripts" referrerPolicy="no-referrer" allow="" srcDoc={preview} /> : <div className={styles.previewEmpty}><Icon name="play" size={32} /><p>点击“运行游戏”试玩当前源码。</p><small>修改源码后重新运行，预览从头开始。</small></div>}
-          {preview && <button className={styles.quiet} onClick={() => setPreview(null)}><Icon name="stop" size={14} />停止试玩</button>}
+          {preview && <button className={styles.tool} aria-label="停止试玩" title="停止试玩" onClick={() => setPreview(null)}><Icon name="stop" size={16} /></button>}
           <p className={styles.help}>试玩在独立沙箱内运行，不共享叙梦账号、钱包或私人数据。作品保存在私人库中。</p>
         </section>
       </main>}

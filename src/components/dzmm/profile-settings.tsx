@@ -15,13 +15,15 @@ import { changeDzmmPassword, requestDzmmEmailBind, verifyDzmmEmailBind } from "@
 import { fetchDzmmReferral, type DzmmReferralInfo } from "@/lib/dzmm-referral";
 import { posterShareLocation, XUMENG_POSTERS } from "@/lib/xumeng-acquisition";
 import { fetchDzmmPaymentWallet } from "@/lib/dzmm-payments";
+import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
 import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
 import { DreamCoinPanel } from "./dream-coin-panel";
 import { UserMark } from "./user-mark";
 import { characterCreateLabel, useCharacterCreateCost } from "@/lib/dzmm-scene-prices";
 import { xumengTranslate } from "@/lib/xumeng-i18n";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
-import Icon from "./icons";
+import { CoverVisual } from "./cover-visual";
+import Icon, { type IconName } from "./icons";
 import s from "./profile-settings.module.css";
 
 export type DzmmProfileUser = {
@@ -59,6 +61,10 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
 }
 
 function Empty({ children }: { children: ReactNode }) { return <div className={s.empty}><Icon name="book" size={30} /><p>{children}</p></div>; }
+
+function ToolButton({ label, icon, onClick }: { label: string; icon: IconName; onClick?: () => void }) {
+  return <button type="button" className={s.tool} title={label} aria-label={label} onClick={onClick}><Icon name={icon} size={16} /></button>;
+}
 
 export type ProfileViewProps = {
   user: DzmmProfileUser | null; characters: Character[]; custom: Character[];
@@ -111,12 +117,12 @@ export function ProfileView({ user, characters, custom, favorites, conversations
         <button type="button" onClick={onRegister}><strong>{conversations.length}</strong><span>{copy.sessions}</span></button>
         <button type="button" onClick={onRegister}><strong>{followedIds.length}</strong><span>{copy.follow}</span></button>
       </section>
-      <section className={s.accountMenu} aria-label={copy.accountActions}>
-        <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>{copy.settings}</b></span><Icon name="chevron" size={16} /></button>
-        {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{copy.rechargeVip}</b></span><Icon name="chevron" size={16} /></button>}
-        {onInvite && <button type="button" onClick={onInvite}><span><Icon name="users" size={17} /><b>{copy.inviteFriends}</b></span><Icon name="chevron" size={16} /></button>}
-        <button type="button" onClick={onBrowse}><span><Icon name="compass" size={17} /><b>{copy.characterSquare}</b></span><Icon name="chevron" size={16} /></button>
-      </section>
+      <nav className={s.accountMenu} aria-label={copy.accountActions}>
+        <ToolButton label={copy.settings} icon="sliders" onClick={onSettings} />
+        {onRecharge && <ToolButton label={copy.rechargeVip} icon="wallet" onClick={onRecharge} />}
+        {onInvite && <ToolButton label={copy.inviteFriends} icon="users" onClick={onInvite} />}
+        <ToolButton label={copy.characterSquare} icon="compass" onClick={onBrowse} />
+      </nav>
     </main>;
   }
   const openVip = onVip ?? onRecharge;
@@ -125,11 +131,11 @@ export function ProfileView({ user, characters, custom, favorites, conversations
       <span className={`${s.avatar} ${s.mineAvatar}`}><UserMark /></span>
       <div className={s.profileInfo}>
         <h1>{preferences.nickname}</h1>
-        <button className={s.idButton} onClick={() => void copyId()} aria-label={copy.copyUserId}>ID {user.id}<Icon name="copy" size={13} /></button>
+        <div className={s.idLine}><span>ID {user.id}</span><ToolButton label={copy.copyUserId} icon="copy" onClick={() => void copyId()} /></div>
         <p>{user.email || copy.noEmailYet}{dateLabel(user.createdAt) && ` · ${xumengPageFill(copy.joinedOn, { date: dateLabel(user.createdAt) })}`}</p>
         {preferences.bio && <p className={s.bio}>{preferences.bio}</p>}
       </div>
-      <button type="button" className={s.mineGear} aria-label={copy.settings} onClick={onSettings}><Icon name="sliders" size={18} /></button>
+      <button type="button" className={s.mineGear} aria-label={copy.settings} title={copy.settings} onClick={onSettings}><Icon name="sliders" size={18} /></button>
     </header>
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
     <div className={s.mineAssets}>
@@ -154,19 +160,18 @@ export function ProfileView({ user, characters, custom, favorites, conversations
       <button type="button" className={tab === "conversations" ? s.mineOn : ""} onClick={() => setTab("conversations")}><Icon name="chat" size={18} /><span>{copy.sessions}</span><strong>{conversations.length}</strong></button>
       <button type="button" className={tab === "following" ? s.mineOn : ""} onClick={() => setTab("following")}><Icon name="users" size={18} /><span>{copy.follow}</span><strong>{followedIds.length}</strong></button>
     </div>
-    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.inviteFriends}</span><h2>{copy.inviteTogether}</h2></div><button type="button" className={s.outline} onClick={onInvite}>{copy.inviteNow} <Icon name="chevron" size={14} /></button></div></section>}
+    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.inviteFriends}</span><h2>{copy.inviteTogether}</h2></div><ToolButton label={copy.inviteNow} icon="users" onClick={onInvite} /></div></section>}
     <nav className={s.accountMenu} aria-label={copy.accountActions}>
-      <button type="button" onClick={onEditProfile}><span><Icon name="edit" size={17} /><b>{copy.editProfile}</b></span><Icon name="chevron" size={16} /></button>
-      <button type="button" onClick={onCreateCharacter}><span><Icon name="plus" size={17} /><b>{createLabel}</b></span><Icon name="chevron" size={16} /></button>
-      <button type="button" onClick={onPresets}><span><Icon name="book" size={17} /><b>{copy.myPresets}</b></span><Icon name="chevron" size={16} /></button>
-      {onRecharge && <button type="button" onClick={onRecharge}><span><Icon name="wallet" size={17} /><b>{XUMENG_PAYMENTS_ENABLED ? copy.rechargeVip : copy.balancePerks}</b></span><Icon name="chevron" size={16} /></button>}
-      <button type="button" onClick={onSettings}><span><Icon name="sliders" size={17} /><b>{copy.settings}</b></span><Icon name="chevron" size={16} /></button>
-      {user.role === "super" && onAdmin && <button type="button" onClick={onAdmin}><span><Icon name="grid" size={17} /><b>{copy.admin}</b></span><Icon name="chevron" size={16} /></button>}
+      <ToolButton label={copy.editProfile} icon="edit" onClick={onEditProfile} />
+      <ToolButton label={createLabel} icon="plus" onClick={onCreateCharacter} />
+      <ToolButton label={copy.myPresets} icon="book" onClick={onPresets} />
+      {onRecharge && <ToolButton label={XUMENG_PAYMENTS_ENABLED ? copy.rechargeVip : copy.balancePerks} icon="wallet" onClick={onRecharge} />}
+      {user.role === "super" && onAdmin && <ToolButton label={copy.admin} icon="grid" onClick={onAdmin} />}
     </nav>
     {!user.isGuest && <DreamCoinPanel userId={user.id} compact />}
     <div className={`${s.tabs} ${s.contentTabs}`} role="tablist" aria-label={copy.myContent}>{([{ id: "timeline", label: copy.timeline }, { id: "characters", label: copy.roles }, { id: "favorites", label: copy.saved }, { id: "conversations", label: copy.sessions }, { id: "following", label: copy.follow }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
     {tab === "timeline" && (events.length ? <div className={s.timeline}>{events.map((event) => <button key={event.id} onClick={event.action}><span className={s.timelineDot} /><span><time>{dateLabel(event.date)}</time><strong>{event.text}</strong></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>{copy.noActivity}</Empty>)}
-    {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={xumengPageFill(copy.viewNamed, { name: character.name })}><img src={xumengCardCoverUrl(character.cover)} alt={character.name} /></button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button className={s.iconButton} onClick={() => onEditCharacter(character)} aria-label={xumengPageFill(copy.editNamed, { name: character.name })}><Icon name="edit" size={17} /></button>{onDeleteCharacter && <button className={s.deleteButton} onClick={() => setDeleting(character)} aria-label={xumengPageFill(copy.deleteNamed, { name: character.name })}>{copy.deleteWord}</button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? copy.noRolesYet : copy.noSavesYet}</Empty>)}
+    {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={xumengPageFill(copy.viewNamed, { name: character.name })}>{isDzmmCoverVideoUrl(character.cover) ? <CoverVisual src={xumengCardCoverUrl(character.cover)} alt={character.name} /> : <img src={xumengCardCoverUrl(character.cover)} alt={character.name} />}</button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button type="button" className={s.iconButton} onClick={() => onEditCharacter(character)} title={xumengPageFill(copy.editNamed, { name: character.name })} aria-label={xumengPageFill(copy.editNamed, { name: character.name })}><Icon name="edit" size={16} /></button>{onDeleteCharacter && <button type="button" className={`${s.iconButton} ${s.iconDanger}`} onClick={() => setDeleting(character)} title={xumengPageFill(copy.deleteNamed, { name: character.name })} aria-label={xumengPageFill(copy.deleteNamed, { name: character.name })}><Icon name="trash" size={16} /></button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? copy.noRolesYet : copy.noSavesYet}</Empty>)}
     {tab === "conversations" && (conversations.length ? <div className={s.conversations}>{conversations.map((conversation) => <button key={conversation.id} onClick={() => onConversation(conversation)}><Icon name="chat" size={20} /><span><strong>{conversation.title}</strong><small>{conversation.messages.at(-1)?.content || copy.noMessagesYet}</small></span><time>{dateLabel(conversation.updatedAt)}</time></button>)}</div> : <Empty>{copy.noSessionsYet}</Empty>)}
     {tab === "following" && (followed.length ? <div className={s.authorList}>{followed.map((author) => <button key={author.id} onClick={() => onAuthor(author)}><span className={s.smallAvatar}><UserMark /></span><span><strong>{author.name}</strong><small>{xumengPageFill(copy.worksCount, { count: author.characterIds.length })}</small></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>{copy.noFollowsYet}</Empty>)}
     {deleting && <Dialog title={copy.deleteRoleTitle} onClose={() => setDeleting(null)}><p className={s.confirmText}>{xumengPageFill(copy.deleteRoleBody, { name: deleting.name })}</p><div className={s.dialogActions}><button className={s.outline} onClick={() => setDeleting(null)}>{copy.cancel}</button><button className={s.danger} onClick={() => { onDeleteCharacter?.(deleting); setDeleting(null); }}>{copy.deleteRole}</button></div></Dialog>}

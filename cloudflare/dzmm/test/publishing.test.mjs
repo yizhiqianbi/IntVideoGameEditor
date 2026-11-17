@@ -286,6 +286,29 @@ test('a published cover card serves the washed file and keeps the original', asy
   expect(await new Client().request(cardPath), 404);
 });
 
+test('a published video cover keeps its extension and is not served as a washed image', async () => {
+  const mp4 = Buffer.from([
+    0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
+    0x00, 0x00, 0x00, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32,
+  ]);
+  const video = expect(await owner.request('/v1/media', { method: 'POST', raw: mp4, headers: { 'Content-Type': 'video/mp4' } }), 201).url;
+  assert.match(video, /\.mp4$/);
+  const gallery = await upload();
+  expect(await owner.request('/v1/publishing/submissions', { method: 'POST', body: { character: card({ cover: video, gallery: [video] }) } }), 400);
+  const submitted = await submit(card({ cover: video, gallery: [gallery] }));
+  assert.match(submitted.submission.previewCoverUrl, /\/cover\.mp4$/);
+  const approved = expect(await review(submitted), 200);
+  const published = expect(await new Client().request(`/v1/publishing/catalog/${approved.publication.id}`), 200).character;
+  assert.match(published.cover, /\/cover\.mp4$/);
+  assert.equal(published.gallery[0].endsWith('.mp4'), false);
+  const body = await new Client().request(published.cover.replace('/api/dzmm/backend', ''));
+  expect(body, 200);
+  assert.match(body.headers.get('content-type') ?? '', /^video\/mp4/);
+  assert.deepEqual(Buffer.from(body.bytes), mp4);
+  expect(await new Client().request(published.cover.replace('/api/dzmm/backend', '').replace(/\.mp4$/, '-card')), 404);
+  expect(await unpublish(approved.publication), 200);
+});
+
 test('approval refuses missing original media and obsolete revision images stop being public', async () => {
   const deleted = await upload();
   const submitted = await submit(card({ cover: deleted }));

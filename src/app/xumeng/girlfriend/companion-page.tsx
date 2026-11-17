@@ -129,6 +129,7 @@ function mediaValue(value: unknown): MessageMedia | null {
   const encoded = typeof base64 === "string" && typeof mimeType === "string" ? `data:${mimeType};base64,${base64}` : null;
   const url = safeMediaUrl(item.url ?? item.src ?? item.uri ?? data?.url ?? data?.src ?? encoded ?? (typeof item.data === "string" ? item.data : null));
   const text = typeof item.text === "string" ? item.text : typeof item.emoji === "string" ? item.emoji : typeof data?.text === "string" ? data.text : undefined;
+  const durationMs = mediaDurationMs(item, data);
   if (!url && kind !== "emoji" && !text) return null;
   return {
     kind, ...(url ? { url } : {}),
@@ -136,8 +137,16 @@ function mediaValue(value: unknown): MessageMedia | null {
     ...(typeof item.label === "string" ? { label: item.label.slice(0, 120) } : {}),
     ...(text ? { text: text.slice(0, 240) } : {}),
     ...(typeof mimeType === "string" ? { mimeType: mimeType.slice(0, 80) } : {}),
-    ...(typeof item.durationMs === "number" && Number.isFinite(item.durationMs) ? { durationMs: item.durationMs } : {}),
+    ...(durationMs !== undefined ? { durationMs } : {}),
   };
+}
+
+function mediaDurationMs(item: Record<string, unknown>, data: Record<string, unknown> | null): number | undefined {
+  const raw = item.durationMs ?? data?.durationMs;
+  if (typeof raw === "number" && Number.isFinite(raw) && raw >= 0) return Math.min(Math.round(raw), 30 * 60 * 1000);
+  const seconds = item.duration ?? data?.duration ?? item.durationSeconds ?? data?.durationSeconds;
+  if (typeof seconds === "number" && Number.isFinite(seconds) && seconds >= 0 && seconds < 30 * 60) return Math.round(seconds * 1000);
+  return undefined;
 }
 
 function messageIsVisible(message: { role?: string; text?: string; media?: unknown[]; attachments?: unknown[]; segments?: unknown[] }): boolean {
@@ -181,8 +190,11 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
   if (item.kind === "emoji" && (!item.url || failed) && item.text) {
     return <span className={styles.emoji} role="img" aria-label={item.label || "表情"}>{item.text}</span>;
   }
+  if (item.kind === "audio") {
+    return <VoiceNote src={item.url || ""} durationMs={item.durationMs} label={item.label || "她的语音消息"} assetId={mediaId} />;
+  }
   if (!item.url || failed) {
-    return <span className={styles.mediaUnavailable} role="status">{item.kind === "audio" ? "语音暂时无法播放" : item.kind === "image" ? "图片暂时无法显示" : "表情暂时无法显示"}</span>;
+    return <span className={styles.mediaUnavailable} role="status">{item.kind === "image" ? "图片暂时无法显示" : "表情暂时无法显示"}</span>;
   }
   if (item.kind === "image") {
     return <figure className={`${styles.picture} ${loaded ? styles.pictureReady : styles.pictureLoading}`}>
@@ -194,7 +206,7 @@ function MessageMediaItem({ item, index }: { item: MessageMedia; index: number }
   if (item.kind === "emoji") {
     return <span className={styles.sticker}><img src={item.url} alt={item.alt || item.label || item.text || "表情包"} loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} onLoad={event => { if (!event.currentTarget.naturalWidth) setFailed(true); }} /></span>;
   }
-  return <VoiceNote src={item.url} label={item.label || "她的语音消息"} assetId={mediaId} onError={() => setFailed(true)} />;
+  return null;
 }
 
 function restorePending(key: string): Pending[] {

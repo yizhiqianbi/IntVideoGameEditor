@@ -7,6 +7,7 @@ import {
   type DzmmCharacter,
   type DzmmChatMessage,
   type DzmmModelPreset,
+  type DzmmPromptStyle,
   type DzmmWorldContext,
 } from "./dzmm-chat";
 import {
@@ -34,6 +35,7 @@ export type DzmmPreparedRequest = {
   model: DzmmModelPreset;
   maxTokens?: number;
   locale?: XumengLocale;
+  promptStyle?: DzmmPromptStyle;
 };
 
 function frontendScriptsOf(character: object): readonly XumengFrontendScript[] | undefined {
@@ -59,7 +61,7 @@ export function prepareDzmmRequest(
   userPersona?: string,
   model: DzmmModelPreset = "balanced",
   maxTokens?: number,
-  options: { storyMemory?: DzmmStoryMemory; userName?: string; world?: DzmmWorldContext; locale?: XumengLocale } = {},
+  options: { storyMemory?: DzmmStoryMemory; userName?: string; world?: DzmmWorldContext; locale?: XumengLocale; promptStyle?: DzmmPromptStyle } = {},
 ): DzmmPreparedRequest {
   const { name, description, personality, scenario, firstMessage } = projectDzmmStoryCharacter(character);
   const latest = messages[messages.length - 1];
@@ -119,6 +121,7 @@ export function prepareDzmmRequest(
     model: normalized.model,
     ...(maxTokens === undefined ? {} : { maxTokens: normalized.maxTokens }),
     locale: normalized.locale ?? XUMENG_DEFAULT_LOCALE,
+    ...(options.promptStyle === "tavern" ? { promptStyle: "tavern" as const } : {}),
   };
   const encoder = new TextEncoder();
   function fits() {

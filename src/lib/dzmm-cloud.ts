@@ -5,6 +5,7 @@ import { DZMM_LISTED_CHARACTERS, type Character } from "./dzmm-characters";
 import { mergeDzmmSharedCatalog } from "./dzmm-catalog";
 import { DZMM_INITIAL_STATE, hydrateDzmmState, type DzmmSavedState } from "./dzmm-storage";
 import { xumengImageUrl } from "./xumeng-routes";
+import { checkDzmmCoverHeader, DZMM_COVER_HEADER_BYTES } from "./dzmm-cover-media";
 import { DzmmEmailAuthError, resetDzmmPassword, verifyDzmmEmailCode, type DzmmEmailCodeValues, type DzmmPasswordResetValues } from "./dzmm-email-auth";
 import { clearOwnDzmmCloudRecovery, discardDzmmCloudRecovery, dzmmCloudBackupChoice, dzmmCloudBackupKey, dzmmCloudTabBackupKey,
   parseDzmmCloudBackup, readDzmmCloudRecoveries, shouldRecoverDzmmCloudBackup, writeDzmmCloudRecovery,
@@ -58,11 +59,12 @@ export async function dzmmCloudRequest<T>(path: string, method = "GET", body?: u
   return data as T;
 }
 
-export async function uploadDzmmCover(file: File): Promise<string> {
-  if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(file.type)) throw new Error("封面仅支持 PNG、JPEG、WebP 或 GIF 图片。");
-  if (!file.size || file.size > 5 * 1024 * 1024) throw new Error("封面图片不能超过 5 MB。");
+export async function uploadDzmmCover(file: File, options?: { gallery?: boolean }): Promise<string> {
+  const header = new Uint8Array(await file.slice(0, DZMM_COVER_HEADER_BYTES).arrayBuffer());
+  const checked = checkDzmmCoverHeader({ bytes: header, byteLength: file.size, declaredType: file.type, filename: file.name, gallery: options?.gallery });
+  if (!checked.ok) throw new Error(checked.message);
   let response: Response;
-  try { response = await fetch(`${API_BASE}/media`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": file.type }, body: file }); }
+  try { response = await fetch(`${API_BASE}/media`, { method: "POST", credentials: "same-origin", headers: { "Content-Type": checked.type }, body: file }); }
   catch { throw new Error("封面上传无法连接，请稍后重试。"); }
   const data = await response.json().catch(() => null);
   if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : response.status === 503 ? "图片存储尚未连接，暂时无法上传封面。" : "封面上传失败，请重试。");

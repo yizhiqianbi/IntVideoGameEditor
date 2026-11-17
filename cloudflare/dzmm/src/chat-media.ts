@@ -14,6 +14,7 @@ import { chatMediaSourceHash, parseChatMediaDirectoryRequest, readChatMediaDirec
 
 export { chatMediaSourceHash };
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
+import { isDzmmCoverVideoUrl } from "../../../src/lib/dzmm-cover-media";
 import { rememberChatImage } from "./relationship-album";
 
 type Kind = "audio" | "image";
@@ -371,7 +372,7 @@ async function characterReference(env: Env, userId: string, conversationId: stri
     } catch { /* a malformed gallery must not prevent the cover from being used */ }
   }
   for (const candidate of candidates) {
-    if (!candidate || placeholderCover(candidate)) continue;
+    if (!candidate || placeholderCover(candidate) || isDzmmCoverVideoUrl(candidate)) continue;
     const owned = OWNED_MEDIA.exec(candidate);
     if (owned) {
       if (owned[1] !== userId || !env.MEDIA) continue;

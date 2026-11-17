@@ -40,6 +40,10 @@ test("actual USD costs use the frozen policy and cache discounts rather than ref
   assert.equal(chargeDzmmProviderCostUsd(1e-12, input), 1);
   assert.equal(chargeDzmmProviderCostUsd(0.002, input), 5);
   assert.equal(chargeDzmmProviderCostUsd(0.0005, input), 2);
+  assert.equal(chargeDzmmProviderCostUsd(0.0004, { ...input, multiplier: 5 }), 2);
+  assert.equal(chargeDzmmProviderCostUsd(0.002, { ...input, multiplier: 5 }), 7);
+  assert.equal(chargeDzmmProviderCostUsd(1, { ...input, multiplier: 5, usdToCny: 1 }), 500);
+  assert.equal(parseDzmmCreditCostPolicy({ ...input, multiplier: 5 })?.multiplier, 5);
   assert.equal(chargeDzmmProviderCostUsd(1, { ...input, usdToCny: 1 }), 300);
   assert.equal(chargeDzmmProviderCostUsd(0.01, { ...input, usdToCny: 1 }), 3);
   assert.throws(() => chargeDzmmProviderCostUsd(1e-13, input));

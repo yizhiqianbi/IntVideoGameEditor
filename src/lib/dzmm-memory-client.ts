@@ -1,5 +1,5 @@
 import { prepareDzmmRequest, type DzmmPreparedRequest } from "./dzmm-context";
-import type { DzmmCharacter, DzmmModelPreset, DzmmWorldContext } from "./dzmm-chat";
+import type { DzmmCharacter, DzmmModelPreset, DzmmPromptStyle, DzmmWorldContext } from "./dzmm-chat";
 import type { XumengLocale } from "./xumeng-i18n";
 import { projectDzmmSourceOpeningHistoryEntries } from "./dzmm-character-presentation";
 import { stripXumengPanelTails } from "./xumeng-interaction-panels";
@@ -16,6 +16,7 @@ export type DzmmRememberedRequestOptions = {
   userPersona?: string;
   userName?: string;
   locale?: XumengLocale;
+  promptStyle?: DzmmPromptStyle;
   model: DzmmModelPreset;
   maxTokens?: number;
   signal?: AbortSignal;
@@ -37,7 +38,7 @@ export async function prepareDzmmRememberedRequest(options: DzmmRememberedReques
   for (;;) {
     options.signal?.throwIfAborted();
     const request = prepareDzmmRequest(options.character, options.messages, options.preset, options.userPersona,
-      options.model, options.maxTokens, { storyMemory: memory, userName: options.userName, world: options.world, locale: options.locale });
+      options.model, options.maxTokens, { storyMemory: memory, userName: options.userName, world: options.world, locale: options.locale, promptStyle: options.promptStyle });
     const projected = projectDzmmSourceOpeningHistoryEntries(options.character, options.messages);
     // Omitted display-only opening turns are not a lost story prefix requiring an AI summary.
     const retained = projected.length - request.messages.length;

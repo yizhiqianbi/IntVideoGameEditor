@@ -1,4 +1,4 @@
-import { useEffect, useState, type ChangeEvent } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
   deleteGirlfriend,
   emptyGirlfriendDraft,
@@ -13,6 +13,7 @@ import {
   type GirlfriendDraft,
   type GirlfriendPersona,
 } from "./girlfriend-persona";
+import Icon from "@/components/dzmm/icons";
 import styles from "./girlfriend-studio.module.css";
 
 export default function GirlfriendStudio({ userId, isGuest, initialId, onRequireAccount, onBack, onOpen, onSaved, onDeleted, onDirtyChange }: {
@@ -34,6 +35,8 @@ export default function GirlfriendStudio({ userId, isGuest, initialId, onRequire
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [working, setWorking] = useState(false);
+  const coverInput = useRef<HTMLInputElement>(null);
+  const albumInput = useRef<HTMLInputElement>(null);
   useEffect(() => { onDirtyChange?.(editing && JSON.stringify(draft) !== saved); }, [draft, editing, onDirtyChange, saved]);
   useEffect(() => {
     if (!userId || isGuest) { setLibrary([]); return; }
@@ -89,14 +92,15 @@ export default function GirlfriendStudio({ userId, isGuest, initialId, onRequire
     finally { setWorking(false); }
   }
   function startNew() { setEditing(true); setCurrentId(null); setDraft(emptyGirlfriendDraft()); setSaved(JSON.stringify(emptyGirlfriendDraft())); setError(""); setNotice(""); }
+  const backLabel = editing && library.length ? "返回女友列表" : "返回";
   return <main className={styles.studio}>
     <header className={styles.header}>
       <div className={styles.row}>
-        <button className={styles.back} aria-label={editing && library.length ? "返回女友列表" : "返回"} onClick={() => editing && library.length ? setEditing(false) : onBack()}>{editing && library.length ? "列表" : "返回"}</button>
+        <button type="button" className={styles.back} aria-label={backLabel} title={backLabel} onClick={() => editing && library.length ? setEditing(false) : onBack()}><Icon name="back" size={19} /></button>
         <div><p className={styles.eyebrow}>女友</p><h1>{editing ? draft.nickname.trim() || "新的女友" : "我的女友"}</h1><p className={styles.status}>封面、相册，人设按 MaiBot 的身份、行为、说法和私聊来写。</p></div>
       </div>
       <div className={styles.actions}>
-        {editing ? <button className={styles.primary} disabled={working} onClick={() => void save()}>保存</button> : <button className={styles.primary} onClick={startNew}>新建女友</button>}
+        {editing ? <button type="button" className={`${styles.tool} ${styles.toolSave}`} disabled={working} aria-label="保存" title="保存" onClick={() => void save()}><Icon name="check" size={16} /></button> : <button type="button" className={styles.tool} aria-label="新建女友" title="新建女友" onClick={startNew}><Icon name="plus" size={16} /></button>}
       </div>
     </header>
     {error && <p className={styles.error} role="alert">{error}</p>}
@@ -106,14 +110,16 @@ export default function GirlfriendStudio({ userId, isGuest, initialId, onRequire
         <img src={person.cover} alt="" />
         <strong>{person.nickname}</strong>
         <span>{person.age}岁 · {person.lines[0]}</span>
-        <div className={styles.photoActions}><button onClick={() => onOpen(person.id)}>聊天</button><button onClick={() => { const next = girlfriendDraftFromPersona(person); setDraft(next); setSaved(JSON.stringify(next)); setCurrentId(person.id); setEditing(true); }}>编辑</button><button onClick={() => void remove(person)}>删除</button></div>
+        <div className={styles.photoActions}><button type="button" className={styles.tool} aria-label="聊天" title="聊天" onClick={() => onOpen(person.id)}><Icon name="chat" size={16} /></button><button type="button" className={styles.tool} aria-label="编辑" title="编辑" onClick={() => { const next = girlfriendDraftFromPersona(person); setDraft(next); setSaved(JSON.stringify(next)); setCurrentId(person.id); setEditing(true); }}><Icon name="edit" size={16} /></button><button type="button" className={`${styles.tool} ${styles.toolDanger}`} aria-label="删除" title="删除" onClick={() => void remove(person)}><Icon name="trash" size={16} /></button></div>
       </article>)}</div> : <p>还没有自己的女友。上传一张照片，再写身份、行为、说法和私聊。</p>}
     </section> : <div className={styles.layout}>
       <section className={styles.photos} aria-label="照片">
-        <div className={styles.row}><h2>照片</h2><div className={styles.photoActions}><label className={styles.quiet}>上传封面<input type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile(false)} /></label></div></div>
+        <div className={styles.row}><h2>照片</h2><div className={styles.photoActions}><button type="button" className={styles.tool} aria-label="上传封面" title="上传封面" onClick={() => coverInput.current?.click()}><Icon name="image" size={16} /></button></div></div>
         {draft.cover ? <img className={styles.cover} src={draft.cover} alt="" /> : <div className={`${styles.cover} ${styles.coverEmpty}`}>封面</div>}
-        <div className={styles.row} style={{ marginTop: 12 }}><h2>相册</h2><label className={styles.quiet}>添加图片<input type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={onFile(true)} /></label></div>
-        <div className={styles.album}>{draft.album.map(photo => <figure key={photo.id}><img src={photo.url} alt="" /><button type="button" aria-label="移出相册" onClick={() => patch({ album: draft.album.filter(item => item.id !== photo.id) })}>×</button></figure>)}</div>
+        <div className={styles.row} style={{ marginTop: 12 }}><h2>相册</h2><button type="button" className={styles.tool} aria-label="添加图片" title="添加图片" onClick={() => albumInput.current?.click()}><Icon name="plus" size={16} /></button></div>
+        <input ref={coverInput} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onFile(false)} />
+        <input ref={albumInput} type="file" accept="image/jpeg,image/png,image/webp" multiple hidden onChange={onFile(true)} />
+        <div className={styles.album}>{draft.album.map(photo => <figure key={photo.id}><img src={photo.url} alt="" /><button type="button" aria-label="移出相册" title="移出相册" onClick={() => patch({ album: draft.album.filter(item => item.id !== photo.id) })}><Icon name="close" size={12} /></button></figure>)}</div>
       </section>
       <section className={styles.persona} aria-label="人设">
         <h2>人设</h2>

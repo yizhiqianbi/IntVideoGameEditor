@@ -69,6 +69,7 @@ import { dzmmLocalLook } from "@/lib/dzmm-local-looks";
 import { usePublicCharacterShelf } from "./use-public-shelf";
 import Icon, { type IconName } from "./icons";
 import { ComposerQuickInsert } from "./composer-quick-insert";
+import { SpeechInputButton } from "./speech-input-button";
 import { dzmmChatDisplayStyle, dzmmEnterSends } from "@/lib/dzmm-chat-display";
 import ResponsiveNavigation from "./responsive-navigation";
 import CharacterDetail from "./character-detail";
@@ -94,6 +95,7 @@ import ChatSettings from "./chat-settings";
 import UnavailableConversation from "./unavailable-conversation";
 import { getDzmmCharacterMedia, withDzmmPublicOpening } from "@/lib/dzmm-character-media";
 import { CoverReel } from "./cover-reel";
+import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
 import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import { useGamePlayLibrary, type GamePlaySelection } from "./use-game-play-library";
 import { parseXumengGameId, XUMENG_BUILTIN_GAMES, xumengBuiltinGame } from "@/lib/xumeng-games";
@@ -266,6 +268,31 @@ function formatLikeTotal(character: Character, stat?: LikeStat) {
   }
   return String(total);
 }
+const SOCIAL_MARKS = {
+  youtube: "M23 12.2s0-3.2-.4-4.6c-.2-.9-.9-1.6-1.8-1.8C19.2 5.4 12 5.4 12 5.4s-7.2 0-8.8.4c-.9.2-1.6.9-1.8 1.8C1 9 1 12.2 1 12.2s0 3.2.4 4.6c.2.9.9 1.6 1.8 1.8 1.6.4 8.8.4 8.8.4s7.2 0 8.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.4.4-4.6.4-4.6zM9.8 15.5v-6.6l6.2 3.3-6.2 3.3z",
+  x: "M17.6 3H20.4L13.8 10.2 21.5 21h-6.2l-4.9-6.4L5.2 21H2.4l7.1-8.1L2 3h6.4l4.4 5.8L17.6 3zm-1.1 16.2h1.7L7.6 4.7H5.8l10.7 14.5z",
+  discord: "M19.3 5.2A17 17 0 0 0 15.1 4l-.4.8a15.6 15.6 0 0 1 4 1.6 16 16 0 0 0-13.4 0 12 12 0 0 1 3.9-1.6L9 4a17 17 0 0 0-4.3 1.2C2.1 8.4 1.4 12.2 1.6 16a17.4 17.4 0 0 0 5.3 2.7l.7-1.1a11.3 11.3 0 0 1-1.8-.9l.4-.3c3.6 1.7 7.5 1.7 11 0l.4.3c-.6.4-1.2.7-1.8.9l.7 1.1a17.4 17.4 0 0 0 5.3-2.7c.5-4.4-.7-8.1-2.5-10.8zM8.7 14.3c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.9 2.1-1.9 2.1z",
+  tiktok: "M14.5 3c.4 2.4 1.8 4 4.2 4.4v2.4c-1.5 0-2.9-.5-4.2-1.3v6.7c0 3.3-2.6 5.8-5.8 5.8S3 18.5 3 15.2c0-3.2 2.5-5.7 5.7-5.8v2.5c-1.8.1-3.2 1.6-3.2 3.3 0 1.8 1.5 3.3 3.3 3.3s3.3-1.5 3.3-3.3V3h2.4z",
+  instagram: "M8 3h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm8 2H8a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3zm-4 2.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5zM17.2 6.8a1 1 0 1 1-1 1 1 1 0 0 1 1-1z",
+  telegram: "M21.5 4.4 2.8 11.2c-1.3.5-1.2 1.2-.2 1.5l4.8 1.5 11.1-7c.5-.3 1-.1.6.2l-9 8.1-.3 4.8c.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.8-1.2-1.3z",
+} as const;
+
+const RAIL_SOCIALS = [
+  ["youtube", "YouTube"],
+  ["x", "X"],
+  ["discord", "Discord"],
+  ["tiktok", "TikTok"],
+  ["instagram", "Instagram"],
+] as const satisfies ReadonlyArray<readonly [keyof typeof SOCIAL_MARKS, string]>;
+
+function SocialMark({ name }: { name: keyof typeof SOCIAL_MARKS }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path fill="currentColor" d={SOCIAL_MARKS[name]} />
+    </svg>
+  );
+}
+
 const NAV: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
   { view: "videos", labelKey: "navVideos", icon: "video" },
   { view: "characters", labelKey: "navPlay", icon: "users" },
@@ -419,9 +446,11 @@ function chatPresence(character: { description: string; tags: string[] }, typing
 }
 
 function PlayBackdrop({ cover, scene }: { cover?: string; scene: string | null }) {
-  const coverUrl = xumengCardCoverUrl(cover || XUMENG_FALLBACK_COVER);
+  const videoCover = isDzmmCoverVideoUrl(cover);
+  const coverUrl = videoCover ? XUMENG_FALLBACK_COVER : xumengCardCoverUrl(cover || XUMENG_FALLBACK_COVER);
   const [src, setSrc] = useState(scene || coverUrl);
   useEffect(() => setSrc(scene || coverUrl), [coverUrl, scene]);
+  if (!scene && videoCover) return null;
   return <img className={s.chatBackdrop} alt="" src={src} onError={(event) => {
     const image = event.currentTarget;
     if (scene && (image.currentSrc || image.src).includes(scene)) {
@@ -467,6 +496,78 @@ function savedCatalogLook(): DzmmCatalogLook | null {
     /* The saved look can wait until the next visit. */
   }
   return null;
+}
+
+function PlayCharacterSheet({
+  character,
+  locale,
+  userName,
+  liked,
+  likeCount,
+  favorited,
+  onLike,
+  onFavorite,
+  onAuthor,
+  onOpenDetail,
+}: {
+  character: Character;
+  locale: XumengLocale;
+  userName?: string;
+  liked: boolean;
+  likeCount: string | number;
+  favorited: boolean;
+  onLike: () => void;
+  onFavorite: () => void;
+  onAuthor: () => void;
+  onOpenDetail: () => void;
+}) {
+  const copy = xumengPage(locale);
+  const profile = localizeCharacter(character, locale);
+  const authorName = xumengLocalizedAuthorName(character.author, locale);
+  const seen = new Set<string>();
+  const sections = [
+    { key: "intro", label: copy.playIntro, text: profile.introduction || profile.description || "" },
+    { key: "scene", label: copy.playScene, text: profile.scenario },
+    { key: "personality", label: copy.playPersonality, text: profile.personality },
+    { key: "appearance", label: copy.playAppearance, text: profile.appearance || "" },
+    { key: "interaction", label: copy.playInteraction, text: profile.interactionSettings || "" },
+  ].flatMap((section) => {
+    const text = section.text.trim();
+    if (!text || seen.has(text)) return [];
+    seen.add(text);
+    return [{ ...section, text }];
+  });
+  return (
+    <div className={s.playSheet}>
+      <div className={s.playSheetHead}>
+        <Cover character={character} className={s.playSheetAvatar} />
+        <div>
+          <strong>{profile.name}</strong>
+          <button type="button" onClick={onAuthor} aria-label={xumengPageFill(copy.viewAuthor, { name: authorName })}>{authorName}</button>
+        </div>
+      </div>
+      <div className={s.playSheetActions} role="group" aria-label={`${copy.like} / ${copy.favorite}`}>
+        <button type="button" onClick={onLike} aria-pressed={liked} aria-label={`${liked ? copy.unlike : copy.like} ${profile.name}`} title={liked ? copy.unlike : copy.like}>
+          <Icon name="heart" size={14} />
+          <span>{likeCount}</span>
+        </button>
+        <button type="button" onClick={onFavorite} aria-pressed={favorited} aria-label={`${favorited ? copy.unfavorite : copy.favorite} ${profile.name}`} title={favorited ? copy.unfavorite : copy.favorite}>
+          <Icon name="bookmark" size={14} />
+        </button>
+      </div>
+      {sections.length ? (
+        <div className={s.playSheetProfile}>
+          {sections.map((section) => (
+            <section key={section.key} className={s.playSheetSection}>
+              <h3>{section.label}</h3>
+              <CharacterIntroduction text={section.text} characterName={profile.name} userName={userName} bodyClassName={s.playSheetProse} />
+            </section>
+          ))}
+        </div>
+      ) : <p className={s.playSheetProse}>{copy.noBlurb}</p>}
+      <button type="button" className={s.playSheetMore} onClick={onOpenDetail}>{copy.viewSetting}</button>
+    </div>
+  );
 }
 
 function linkedPublishedCharacterId(): string | null {
@@ -594,6 +695,7 @@ export default function TavernApp() {
   const selectedConversationAccount = useRef<string | null>(null);
   const [conversationQuery, setConversationQuery] = useState("");
   const [conversationType, setConversationType] = useState<ChatSection>("stories");
+  const [playSheetOpen, setPlaySheetOpen] = useState(false);
   const [chatListOpen, setChatListOpen] = useState(() => {
     try { return sessionStorage.getItem("xumeng-chat-list") !== "closed"; }
     catch { return true; }
@@ -606,6 +708,7 @@ export default function TavernApp() {
       return next;
     });
   }
+  useEffect(() => { setPlaySheetOpen(false); }, [activeId]);
   const [companionOpen, setCompanionOpen] = useState(false);
   const [companionVariant, setCompanionVariant] = useState<CompanionVariant>("classic");
   const [customCompanion, setCustomCompanion] = useState<CompanionProfile | null>(null);
@@ -742,13 +845,9 @@ export default function TavernApp() {
     }
     return scoped({ tags: selectedShelfTags(genres), sort: xumengPlayCatalogSort(tab, sortMode) });
   }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, sortMode, genres, look, displayRecommendationIds]);
-  const localizedShelfRequest = useMemo(() => {
-    // Other languages only show cards that have a translation. Those cards are
-    // already in the local directory, so the public catalog is not paged.
-    if (locale !== "zh-Hans") return null;
-    return shelfRequest;
-  }, [shelfRequest, locale]);
-  const publicShelf = usePublicCharacterShelf(localizedShelfRequest);
+  // zh-Hant, en, ja and ko use the same public catalog page as zh-Hans.
+  // One page is loaded first. Later pages stay on the existing pager.
+  const publicShelf = usePublicCharacterShelf(shelfRequest);
   const shelfPaintKey = [view, tab, sortMode, look ?? "", category ?? "", selectedShelfTags(genres).join(","), discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, homeRecommendationPage?.join("\n") ?? ""].join("\0");
   const paintedShelf = useRef<{ key: string; characters: Character[] }>({ key: "", characters: [] });
   if (publicShelf.characters.length > 0) paintedShelf.current = { key: shelfPaintKey, characters: publicShelf.characters };
@@ -2332,6 +2431,7 @@ export default function TavernApp() {
     }
   }
   function startChat(character: Character, fresh = false, openingIndex = 0) {
+    if (anyReplyActive()) { setNotice("请先停止当前回复，再开始新的对话。"); return; }
     if (isDzmmListPreview(character) && isXumengPinnedCard(character)) {
       void dzmmBundledPlayableCharacter(character.id).then((full) => {
         if (!full) throw new Error("missing");
@@ -2401,7 +2501,10 @@ export default function TavernApp() {
     if (surface && isPublicRecommendationCharacter(character)) {
       void recordXumengRecommendationEvents([{ characterId: character.id, surface, action: "start" }]);
     }
-    setGameRequest(null); navigate("chat");
+    setGameRequest(null);
+    setChatListOpen(false);
+    try { sessionStorage.setItem("xumeng-chat-list", "closed"); } catch { /* The list still closes for this visit. */ }
+    navigate("chat");
   }
   function selectConversation(c: Conversation) {
     setConversationType("stories"); setCompanionOpen(false); setGameRequest(null); window.history.replaceState(null, "", "#chat");
@@ -2555,7 +2658,7 @@ export default function TavernApp() {
         world: { clockMode: conversation.worldClockMode ?? "story", ...(worldRuntime ? { state: worldRuntime.state,
           recordedAt: worldRuntime.recordedAt, previousClockMode: worldRuntime.clockMode } : {}) },
         memory: conversation.storyMemory, preset: state.preferences.preset, userPersona: resolveDzmmConversationPersona(state.preferences, conversationId),
-        userName: playUserName, locale, model: normalizeDzmmModelSelection(state.preferences.model), maxTokens: state.preferences.maxTokens, signal: abort.signal,
+        userName: playUserName, locale, promptStyle: state.preferences.promptStyle, model: normalizeDzmmModelSelection(state.preferences.model), maxTokens: state.preferences.maxTokens, signal: abort.signal,
         onSummaryStart: () => setGenerating(previous => previous[conversationId] ? { ...previous, [conversationId]: "summary" } : previous),
         onMemory: (storyMemory) => {
           if (activeAccount.current !== owner) return;
@@ -2660,15 +2763,8 @@ export default function TavernApp() {
     const rankedFeed = Boolean(rankQuery) && sortMode === "recommended" && (tab === "新手" || tab === "猜你喜欢");
     const hideRanked = tab === "新手" || tab === "猜你喜欢" || tab === "榜单" || tab === "分类";
     const translatedShelfReady = xumengCardTranslationsLoaded(locale);
-    const remote = shelfCharacters.filter((character) => {
-      if (!isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id))) {
-        if (locale !== XUMENG_DEFAULT_LOCALE && (character.sourceKind === "public-summary" || character.publication)) {
-          return translatedShelfReady && hasXumengCardTranslation(character.id, locale);
-        }
-        return true;
-      }
-      return false;
-    });
+    const remote = shelfCharacters.filter((character) =>
+      !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && !(hideRanked && hiddenIds.has(character.id)));
     const seen = new Set<string>();
     const pinLocal = view === "characters" && tab === "新手" && !rankedFeed;
     const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
@@ -3041,8 +3137,9 @@ export default function TavernApp() {
   const storyOpen = Boolean(activeCharacter && active && !companionInMain && !gameSelection);
   const [sceneBackdrop, setSceneBackdrop] = useState<{ id: string; url: string | null }>({ id: "", url: null });
   const sceneUrl = active && sceneBackdrop.id === active.id ? sceneBackdrop.url : null;
-  const playBackdrop = storyOpen && (state.preferences.chatBackground ?? "cover") === "cover";
-  const backdropCover = activeCharacter ? xumengCardCoverUrl(activeCharacter.cover || XUMENG_FALLBACK_COVER) : undefined;
+  const videoCover = isDzmmCoverVideoUrl(activeCharacter?.cover);
+  const backdropCover = activeCharacter && !videoCover ? xumengCardCoverUrl(activeCharacter.cover || XUMENG_FALLBACK_COVER) : undefined;
+  const playBackdrop = storyOpen && (state.preferences.chatBackground ?? "cover") === "cover" && Boolean(sceneUrl || backdropCover);
   const chatMainStyle = storyOpen ? {
     ...dzmmChatDisplayStyle(state.preferences),
     ...(playBackdrop && (sceneUrl || backdropCover)
@@ -3098,7 +3195,7 @@ export default function TavernApp() {
                       const displayTags = coverShelfTags(displayCharacter.tags, 2);
                       return <>
                     {tab === "榜单" && <span className={`${s.rankBadge} ${index < 3 ? s.rankTop : ""}`} aria-label={fill(copy.rankPlace, { n: index + 1 })}>#{index + 1}</span>}
-                    <CoverReel className={s.coverButton} character={displayCharacter} onOpen={() => showDetail(item.character)}>
+                    <CoverReel className={s.coverButton} character={displayCharacter} onOpen={() => startChat(item.character)}>
                       <span className={s.heat}>
                         <Icon name="flame" size={14} />
                         {item.character.heat || "—"}
@@ -3111,7 +3208,7 @@ export default function TavernApp() {
                       {displayTags.length > 0 && <div className={s.coverTags}>{displayTags.map((tag) => <button key={tag} type="button" data-tone={coverTagTone(tag)} onClick={() => { setAppliedTags([sourceCharacterTag(item.character, locale, tag)]); }} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
                       <button
                         className={s.cardText}
-                        onClick={() => showDetail(item.character)}
+                        onClick={() => startChat(item.character)}
                       >
                         <h2>{displayCharacter.name}</h2>
                         <p>{getDzmmCharacterCardBlurb(displayCharacter, playUserName)}</p>
@@ -3150,7 +3247,7 @@ export default function TavernApp() {
   return (
     <div
       ref={appRef}
-      className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
+      className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "chat" && !detail && storyOpen ? s.playFocus : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
     >
       <aside className={s.appRail} aria-label={copy.mainNav}>
         <a href="#characters" className={s.railBrand} aria-label={copy.brandSquare} onClick={(event) => { event.preventDefault(); navigate("characters"); }}>
@@ -3175,10 +3272,24 @@ export default function TavernApp() {
           {XUMENG_PAYMENTS_ENABLED && <a href="#recharge" className={view === "recharge" || view === "vip" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}><Icon name="wallet" size={18} />{t("utilityRechargeVip")}</a>}
           <a href="#app" className={view === "app" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("app"); }}><Icon name="download" size={18} />{t("utilityInstallApp")}</a>
         </nav>
-        <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
-          <span className={s.avatar}><UserMark /></span>
-          <strong>{accountLabel}</strong>
-        </button>
+        <div className={s.railDock}>
+          <div className={s.railSocial} role="group" aria-label={copy.socialLinks}>
+            {RAIL_SOCIALS.map(([name, label]) => (
+              <button key={name} type="button" className={s.railSocialItem} aria-disabled="true" aria-label={label} title={copy.socialSoon} onClick={(event) => event.preventDefault()}>
+                <SocialMark name={name} />
+              </button>
+            ))}
+            <a className={`${s.railSocialItem} ${s.railSocialLive}`} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title={copy.telegramJoin}><SocialMark name="telegram" /></a>
+            <button type="button" className={s.railSocialMore} aria-disabled="true" aria-label={copy.socialMore} title={copy.socialSoon} onClick={(event) => event.preventDefault()}>
+              <Icon name="more" size={14} />
+              <span>{copy.socialMore}</span>
+            </button>
+          </div>
+          <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
+            <span className={s.avatar}><UserMark /></span>
+            <strong>{accountLabel}</strong>
+          </button>
+        </div>
       </aside>
       <header className={s.topbar}>
         <a
@@ -3247,32 +3358,36 @@ export default function TavernApp() {
             </button>
           )}
         </label>
-        {XUMENG_PAYMENTS_ENABLED && <a href="#vip" className={s.vipEntry} aria-label={t("vipCenter")} onClick={event => { event.preventDefault(); navigate("vip"); }}>
-          <Icon name="crown" size={17} /><span>VIP</span>
-        </a>}
         <a href="#invite" className={s.referralTopEntry} aria-label={copy.inviteAria} onClick={event => { event.preventDefault(); navigate("invite"); }}>
           <Icon name="users" size={16} /><span>{copy.inviteFriends}</span><strong>{copy.earnCredit}</strong>
         </a>
-        <button
-          className={s.iconButton}
-          aria-label={dark ? t("themeLight") : t("themeDark")}
-          onClick={() =>
-            setState((p) => ({
-              ...p,
-              preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" },
-            }))
-          }
-        >
-          <Icon name={dark ? "moon" : "sun"} size={20} />
-        </button>
-        <label className={s.localePicker}>
-          <span className={s.srOnly}>{t("language")}</span>
-          <select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>
-            {XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}
-          </select>
-        </label>
+        <div className={s.topPrefs}>
+          <button
+            type="button"
+            className={s.themeToggle}
+            aria-label={dark ? t("themeLight") : t("themeDark")}
+            title={dark ? t("themeLight") : t("themeDark")}
+            onClick={() =>
+              setState((p) => ({
+                ...p,
+                preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" },
+              }))
+            }
+          >
+            <Icon name={dark ? "moon" : "sun"} size={15} />
+            <span>{dark ? t("themeDarkName") : t("themeLightName")}</span>
+          </button>
+          <label className={s.localePicker}>
+            <span className={s.srOnly}>{t("language")}</span>
+            <select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>
+              {XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}
+            </select>
+          </label>
+        </div>
         <div className={s.topEnd}>
-          <a className={s.telegramTop} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title={copy.telegramJoin}><Icon name="send" size={16} /></a>
+          {XUMENG_PAYMENTS_ENABLED && <a href="#vip" className={s.vipEntry} aria-label={t("vipCenter")} onClick={event => { event.preventDefault(); navigate("vip"); }}>
+            <Icon name="crown" size={15} /><span>{copy.planEntry}</span>
+          </a>}
           <button className={s.account} onClick={() => navigate("profile")}>
             <span className={s.avatar}><UserMark /></span>
             <span>{accountLabel}</span>
@@ -3282,6 +3397,18 @@ export default function TavernApp() {
 
       {(view === "characters" || view === "play-games") && !detail && (
         <>
+          {view === "characters" && !query.trim() && <section className={s.shelfHero} aria-labelledby="shelf-hero-title">
+            <img src="/assets/xumeng/home/shelf-hero.jpg" alt="" />
+            <div className={s.shelfHeroShade} aria-hidden="true" />
+            <div className={s.shelfHeroCopy}>
+              <h2 id="shelf-hero-title" className={s.shelfHeroScript} lang="en"><span>Play</span><span>With Them</span></h2>
+              <div className={s.shelfHeroRule} aria-hidden="true" />
+              <div className={s.shelfHeroActions}>
+                <button type="button" onClick={() => navigate("app")}><Icon name="download" size={15} />{copy.shelfHeroInstall}</button>
+                <button type="button" onClick={() => navigate("studio")}><Icon name="edit" size={15} />{copy.shelfHeroCreate}</button>
+              </div>
+            </div>
+          </section>}
           <div className={s.browseNav}>
             <div className={s.browseHead}>
             <div className={s.tabScroll} ref={tabsRef}>
@@ -3414,7 +3541,6 @@ export default function TavernApp() {
                 </button>)}</>
                 : <div className={gameNavigation.listState}><p>{conversationQuery && visibleBuiltinGames.length === 0 ? copy.noMatchGames : copy.noOwnGames}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>{copy.uploadGame}</button>}</div>}
               </>}
-              {conversationType === "chats" && <div className={gameNavigation.listState}><button onClick={() => openGirlfriendStudio("new")}>{copy.uploadGirlfriend}</button></div>}
               {conversationType === "chats" && visibleGirlfriends.map(person => <button key={person.id} className={gameNavigation.companionEntry} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
                 <span className={gameNavigation.companionFace}><span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span></span>
                 <span className={gameNavigation.companionCopy}><strong>{person.nickname}</strong><small>{person.lines[0]}</small></span>
@@ -3475,6 +3601,31 @@ export default function TavernApp() {
               {copy.importSession}
             </button>}
           </aside>
+          {storyOpen && activeCharacter && <aside className={s.playStage} data-open={playSheetOpen ? "true" : "false"}>
+            {!isDzmmCoverVideoUrl(activeCharacter.cover) && <Cover character={activeCharacter} className={s.playStageImage} />}
+            <div className={s.playStageBar}>
+              <button type="button" aria-label={copy.backToList} onClick={() => {
+                if (window.matchMedia("(max-width: 767px)").matches && playSheetOpen) { setPlaySheetOpen(false); return; }
+                if (anyReplyActive()) { setNotice("请先停止当前回复，再离开这段对话。"); return; }
+                setChatListOpen(true);
+                try { sessionStorage.setItem("xumeng-chat-list", "open"); } catch { /* The list still opens for this visit. */ }
+                setActiveId(null);
+              }}><Icon name="back" size={16} /></button>
+              <button type="button" aria-pressed={playSheetOpen} onClick={() => setPlaySheetOpen(open => !open)}>{playSheetOpen ? copy.hideProfile : copy.showProfile}</button>
+            </div>
+            <PlayCharacterSheet
+              character={activeCharacter}
+              locale={locale}
+              userName={playUserName}
+              liked={likeStats[activeCharacter.id]?.liked ?? likedForCurrentAccount.includes(activeCharacter.id)}
+              likeCount={likeStats[activeCharacter.id]?.count ?? activeCharacter.likes ?? "—"}
+              favorited={state.favorites.includes(activeCharacter.id)}
+              onLike={() => void toggleLike(activeCharacter.id)}
+              onFavorite={() => toggleFavorite(activeCharacter.id)}
+              onAuthor={() => showCharacterAuthor(activeCharacter)}
+              onOpenDetail={() => showDetail(activeCharacter)}
+            />
+          </aside>}
           <button
             type="button"
             className={s.chatListToggle}
@@ -3485,7 +3636,7 @@ export default function TavernApp() {
           >
             <Icon name="chevron" size={16} />
           </button>
-          <section className={`${s.chatMain} ${playBackdrop ? s.chatPlay : ""}`} data-scrim={state.preferences.dark ? "dark" : "light"} style={chatMainStyle}>
+          <section className={`${s.chatMain} ${storyOpen ? s.chatBesideStage : ""} ${playBackdrop ? s.chatPlay : ""}`} data-scrim={state.preferences.dark ? "dark" : "light"} style={chatMainStyle}>
               {companionInMain ? (
               <Deferred>
               {companionVariant === "qwen"
@@ -3514,7 +3665,8 @@ export default function TavernApp() {
                   </button>
                   <button
                     className={s.chatIdentity}
-                    onClick={() => showDetail(activeCharacter)}
+                    aria-expanded={playSheetOpen}
+                    onClick={() => setPlaySheetOpen(open => !open)}
                   >
                     <Cover character={activeCharacter} />
                     <span>
@@ -3634,10 +3786,16 @@ export default function TavernApp() {
                             && activeOpening.messages[index].content.trim() === m.content.trim() && (
                             <small className={s.openingTag}>{activeOpening.kind === "background" ? copy.storyBackground : activeOpening.kind === "welcome" ? copy.storyStart : copy.openingLine}</small>
                           )}
-                          <ChatMessageMedia message={m} disabled={busy} label={fill(copy.messageN, { n: index + 1 })}
+                          <ChatMessageMedia message={m} disabled={busy} locale={locale} label={fill(copy.messageN, { n: index + 1 })}
                             moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: m.id === streamingAssistantId ? [] : momentFields, sections: m.id === streamingAssistantId ? [] : momentSections, open: m.id !== streamingAssistantId, pending: m.id === streamingAssistantId } : undefined}
                             onCopy={() => { void copyMessage(splitXumengMomentTail(splitXumengPanelTail(m.content).body).body); }} onEdit={() => editMessage(m)}
-                            onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}>
+                            onRegenerate={canRegenerateDzmmMessage(active, m.id) ? () => regenerateMessage(m.id) : undefined}
+                            extra={m.role === "assistant" && m.content.trim() ? <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
+                              contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
+                              accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false} locale={locale}
+                              label={fill(copy.replyN, { n: index + 1 })} disabled={busy || cloud.authBusy || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
+                              historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
+                              onChoose={reply => chooseReplySuggestion(m.id, reply)} /> : undefined}>
                           <div className={s.messageBubble} data-message-text>
                             {m.role === "assistant" && activeOpening?.source === "template"
                               && activeOpening.messages[index]?.content.trim() === m.content.trim() ? <CharacterIntroduction text={m.content}
@@ -3648,12 +3806,6 @@ export default function TavernApp() {
                               renderBody={body => <MessageText text={body} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} holdStatus={m.id === streamingAssistantId} frontendScripts={activeCharacter.frontendScripts} messageDepth={active.messages.length - 1 - index} />} /> : <MessageText text={m.content} role={m.role} characterName={activeCharacter.name} userName={playUserName} statusLabels={statusBarLabels} showPeeledStatus={m.id !== momentMessageId} holdStatus={m.id === streamingAssistantId} frontendScripts={activeCharacter.frontendScripts} messageDepth={active.messages.length - 1 - index} />}
                           </div>
                           </ChatMessageMedia>
-                          {m.role === "assistant" && m.content.trim() && <ReplySuggestions key={`${profileUser.id}:${active.id}:${m.id}`}
-                            contextKey={`${profileUser.id}:${active.id}:${m.id}:${replySuggestionKeys[index]}`}
-                            accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false}
-                            label={fill(copy.replyN, { n: index + 1 })} disabled={busy || cloud.authBusy || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
-                            historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
-                            onChoose={reply => chooseReplySuggestion(m.id, reply)} />}
                         </div>
                       </div>
                     ))}
@@ -3745,6 +3897,13 @@ export default function TavernApp() {
                       }}
                     />
                     <div className={s.composerSendRow}>
+                    <SpeechInputButton
+                      disabled={!loaded || cloud.authBusy}
+                      signedIn={Boolean(cloud.user)}
+                      copy={copy}
+                      insert={insertComposerSnippet}
+                      notice={setNotice}
+                    />
                     {busy ? (
                       <button
                         key="stop-generation"
@@ -3752,8 +3911,9 @@ export default function TavernApp() {
                         type="button"
                         onClick={(e) => { e.preventDefault(); if (activeId) replyRequests.current.get(activeId)?.abort(); }}
                         aria-label={copy.stopGenerate}
+                        title={copy.stop}
                       >
-                        {copy.stop}
+                        <Icon name="stop" size={15} />
                       </button>
                     ) : (
                       <button
@@ -3836,7 +3996,7 @@ export default function TavernApp() {
               <div><strong>{cloud.syncMessage}</strong>{cloud.syncStatus === "synced" && cloud.lastSyncedAt && <small>{fill(copy.lastSync, { time: new Date(cloud.lastSyncedAt).toLocaleTimeString(xumengHtmlLang(locale), { timeZone: "Asia/Shanghai", hour: "2-digit", minute: "2-digit" }) })}</small>}</div>
             </div>
             <div className={s.cloudActions}>
-              {cloud.authenticated && <button className={s.secondary} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>{copy.logout}</button>}
+              {cloud.authenticated && <button className={s.secondary} title={copy.logout} disabled={cloud.authBusy || busy} onClick={() => void cloud.logout()}>{copy.logout}</button>}
               <button className={s.secondary} disabled={cloud.authBusy || busy || cloud.syncStatus === "saving" || cloud.syncStatus === "loading"} onClick={() => void (cloud.syncStatus === "conflict" ? cloud.reloadCloud() : cloud.retrySync())}><Icon name="refresh" size={14} />{cloud.syncStatus === "conflict" ? copy.loadCloud : copy.resync}</button>
               {cloud.backupAvailable && <>
                 <label className={s.backupChoice}>{copy.localRestore}

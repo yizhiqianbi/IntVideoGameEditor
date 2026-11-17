@@ -4,63 +4,145 @@ import { useEffect, useRef, useState } from "react";
 import Icon from "./icons";
 import s from "./voice-note.module.css";
 
-const WAVE = [28, 46, 72, 40, 88, 54, 34, 76, 48, 92, 42, 68, 32, 80, 56, 38, 74, 50, 86, 44, 64, 36, 78, 52];
+function hintedSeconds(durationMs: number | undefined) {
+  if (typeof durationMs !== "number" || !Number.isFinite(durationMs) || durationMs <= 0) return 0;
+  return Math.min(30 * 60, durationMs / 1000);
+}
 
 function clock(seconds: number) {
-  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
-  const whole = Math.min(3599, Math.floor(seconds));
+  if (!Number.isFinite(seconds) || seconds <= 0) return "···";
+  const whole = Math.min(3599, Math.round(seconds));
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, "0")}`;
 }
 
-export function VoiceNote({ src, label, assetId, onError }: {
-  src: string; label: string; assetId: string; onError?: () => void;
+function slotWidth(seconds: number) {
+  const length = Math.min(60, Math.max(1, seconds || 5));
+  return Math.min(280, Math.round(96 + length * 7));
+}
+
+export function VoiceNote({ src, label, assetId, durationMs, onError }: {
+  src: string; label: string; assetId: string; durationMs?: number; onError?: () => void;
 }) {
   const ref = useRef<HTMLAudioElement>(null);
+  const retries = useRef(0);
+  const wantPlay = useRef(false);
+  const ignoreError = useRef(false);
+  const live = useRef(0);
+  const retryTimer = useRef<number | null>(null);
+  const [attached, setAttached] = useState(false);
   const [playing, setPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
+  const [failed, setFailed] = useState(false);
+  const [duration, setDuration] = useState(() => hintedSeconds(durationMs));
   const [time, setTime] = useState(0);
+  const known = duration > 0;
+
+  useEffect(() => {
+    setDuration(hintedSeconds(durationMs));
+  }, [durationMs]);
+
+  useEffect(() => {
+    setAttached(false);
+    setFailed(false);
+    setPlaying(false);
+    setTime(0);
+    retries.current = 0;
+    if (!src) return;
+    const frame = requestAnimationFrame(() => setAttached(true));
+    return () => cancelAnimationFrame(frame);
+  }, [src]);
+
+  useEffect(() => () => { if (retryTimer.current !== null) window.clearTimeout(retryTimer.current); }, []);
   useEffect(() => {
     const audio = ref.current;
-    return () => { audio?.pause(); };
-  }, [src]);
+    if (!audio || !attached || !src) return;
+    const ticket = ++live.current;
+    ignoreError.current = false;
+    audio.src = src;
+    audio.load();
+    return () => {
+      if (live.current === ticket) live.current += 1;
+      ignoreError.current = true;
+      audio.pause();
+      audio.removeAttribute("src");
+    };
+  }, [attached, src]);
+
   useEffect(() => {
     const pause = (event: Event) => { if ((event as CustomEvent).detail !== assetId) ref.current?.pause(); };
     document.addEventListener("xumeng-audio-play", pause);
     return () => document.removeEventListener("xumeng-audio-play", pause);
   }, [assetId]);
+
+  function playWhenReady() {
+    const audio = ref.current;
+    if (!audio || !wantPlay.current) return;
+    wantPlay.current = false;
+    void audio.play().catch(() => { wantPlay.current = true; });
+  }
+
+  function reload(autoplay: boolean) {
+    const audio = ref.current;
+    if (!audio || !src) return;
+    if (autoplay) wantPlay.current = true;
+    const ticket = ++live.current;
+    ignoreError.current = true;
+    audio.pause();
+    audio.removeAttribute("src");
+    if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
+    retryTimer.current = window.setTimeout(() => {
+      retryTimer.current = null;
+      if (live.current !== ticket || ref.current !== audio) return;
+      ignoreError.current = false;
+      audio.src = src;
+      audio.load();
+    }, 280);
+  }
+
   function toggle() {
     const audio = ref.current;
-    if (!audio) return;
-    if (audio.paused) void audio.play().catch(() => onError?.());
-    else audio.pause();
+    if (!src) return;
+    if (failed) { retries.current = 0; setFailed(false); reload(true); return; }
+    if (!audio || !attached) { wantPlay.current = true; return; }
+    if (audio.paused) {
+      wantPlay.current = true;
+      playWhenReady();
+    } else audio.pause();
   }
-  function seek(clientX: number, width: number, left: number) {
+
+  function fail() {
     const audio = ref.current;
-    if (!audio || !Number.isFinite(audio.duration) || audio.duration <= 0 || width <= 0) return;
-    audio.currentTime = Math.min(audio.duration, Math.max(0, (clientX - left) / width * audio.duration));
+    if (ignoreError.current || !audio?.getAttribute("src")) return;
+    if (retries.current < 2) {
+      retries.current += 1;
+      reload(wantPlay.current);
+      return;
+    }
+    setPlaying(false);
+    setFailed(true);
+    onError?.();
   }
-  const progress = duration > 0 ? Math.min(1, time / duration) : 0;
-  return <div className={s.note}>
-    <button type="button" className={s.play} aria-label={playing ? `暂停${label}` : `播放${label}`} onClick={toggle}>
-      <Icon name={playing ? "pause" : "play"} size={16} />
+
+  const shown = playing || time > 0 ? time : duration;
+  const progress = known && shown > 0 ? Math.min(1, (playing || time > 0 ? time : 0) / duration) : 0;
+  return <div className={s.slot} data-playing={playing ? "true" : "false"} data-failed={failed ? "true" : "false"} style={{ width: slotWidth(duration) }}>
+    <button type="button" className={s.note} aria-busy={!attached || (!known && !failed)} aria-label={failed ? `${label}加载失败，重试` : playing ? `暂停${label}` : `播放${label}`} onClick={toggle}>
+      <span className={s.body}>
+        <Icon name={playing ? "pause" : "play"} size={14} />
+        <span className={s.waves} aria-hidden="true"><i /><i /><i /></span>
+        <span className={s.time}>{failed ? "重试" : clock(shown)}</span>
+      </span>
+      <span className={s.progress} aria-hidden="true"><span style={{ width: `${progress * 100}%` }} /></span>
     </button>
-    <div className={s.track} role="slider" tabIndex={0} aria-label={`${label}进度`}
-      aria-valuemin={0} aria-valuemax={Math.round(duration) || 0} aria-valuenow={Math.round(time)}
-      onClick={event => { const box = event.currentTarget.getBoundingClientRect(); seek(event.clientX, box.width, box.left); }}
-      onKeyDown={event => {
-        const audio = ref.current;
-        if (!audio || !duration) return;
-        if (event.key === "ArrowRight") audio.currentTime = Math.min(duration, audio.currentTime + 2);
-        if (event.key === "ArrowLeft") audio.currentTime = Math.max(0, audio.currentTime - 2);
-      }}>
-      {WAVE.map((height, index) => <span key={index} className={index / WAVE.length < progress ? s.barOn : s.bar} style={{ height: `${height}%` }} />)}
-    </div>
-    <span className={s.time}>{clock(playing || time > 0 ? time : duration)}</span>
-    <audio ref={ref} src={src} preload="metadata" hidden aria-label={label}
+    <audio ref={ref} className={s.clip} preload="auto" aria-label={label}
       onPlay={() => { setPlaying(true); document.dispatchEvent(new CustomEvent("xumeng-audio-play", { detail: assetId })); }}
-      onPause={() => setPlaying(false)} onEnded={() => { setPlaying(false); setTime(0); }}
+      onPause={() => setPlaying(false)}
+      onEnded={() => { setPlaying(false); setTime(0); }}
       onTimeUpdate={() => { if (ref.current) setTime(ref.current.currentTime); }}
-      onLoadedMetadata={() => { if (ref.current && Number.isFinite(ref.current.duration)) setDuration(ref.current.duration); }}
-      onError={() => { setPlaying(false); onError?.(); }} />
+      onLoadedMetadata={() => {
+        const audio = ref.current;
+        if (audio && Number.isFinite(audio.duration) && audio.duration > 0) setDuration(audio.duration);
+      }}
+      onCanPlay={playWhenReady}
+      onError={fail} />
   </div>;
 }

@@ -1,18 +1,18 @@
 import { ApiError, json } from "./http";
 import { rateLimit } from "./auth";
 import type { Env, UserRecord } from "./types";
+import {
+  DZMM_COVER_IMAGE_MAX_BYTES,
+  DZMM_COVER_VIDEO_MAX_BYTES,
+  checkDzmmCoverHeader,
+  dzmmCoverExtension,
+  dzmmCoverVideoExtension,
+  normalizeDzmmCoverType,
+  sniffDzmmCoverMedia,
+} from "../../../src/lib/dzmm-cover-media";
 
-const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
-const TYPES = new Map([
-  ["image/png", "png"],
-  ["image/jpeg", "jpg"],
-  ["image/webp", "webp"],
-  ["image/gif", "gif"],
-]);
-
-async function imageBytes(request: Request): Promise<Uint8Array> {
-  const album = request.headers.get("x-xumeng-media-purpose") === "album";
-  if (!request.body) throw new ApiError(400, album ? "相册图片不能为空。" : "请选择封面图片。");
+async function readBounded(request: Request, maximum: number, tooLarge: string, missing: string, empty: string): Promise<Uint8Array> {
+  if (!request.body) throw new ApiError(400, missing);
   const reader = request.body.getReader();
   const chunks: Uint8Array[] = [];
   let length = 0;
@@ -21,16 +21,16 @@ async function imageBytes(request: Request): Promise<Uint8Array> {
       const item = await reader.read();
       if (item.done) break;
       length += item.value.length;
-      if (length > MAX_IMAGE_BYTES) {
+      if (length > maximum) {
         await reader.cancel();
-        throw new ApiError(413, album ? "相册图片不能超过 5 MB，这次没有扣 Credit。" : "图片不能超过 5 MB。");
+        throw new ApiError(413, tooLarge);
       }
       chunks.push(item.value);
     }
   } finally {
     reader.releaseLock();
   }
-  if (!length) throw new ApiError(400, "图片文件不能为空。");
+  if (!length) throw new ApiError(400, empty);
   const bytes = new Uint8Array(length);
   let offset = 0;
   for (const chunk of chunks) {
@@ -38,33 +38,6 @@ async function imageBytes(request: Request): Promise<Uint8Array> {
     offset += chunk.length;
   }
   return bytes;
-}
-
-function matchesType(bytes: Uint8Array, type: string) {
-  if (type === "image/png")
-    return (
-      bytes.length >= 24 &&
-      [137, 80, 78, 71, 13, 10, 26, 10].every((value, i) => bytes[i] === value)
-    );
-  if (type === "image/jpeg")
-    return (
-      bytes.length >= 4 &&
-      bytes[0] === 255 &&
-      bytes[1] === 216 &&
-      bytes[2] === 255
-    );
-  if (type === "image/webp") {
-    return (
-      bytes.length >= 20 &&
-      new TextDecoder().decode(bytes.slice(0, 4)) === "RIFF" &&
-      new TextDecoder().decode(bytes.slice(8, 12)) === "WEBP"
-    );
-  }
-  if (type === "image/gif") {
-    const header = bytes.length >= 6 ? new TextDecoder().decode(bytes.slice(0, 6)) : "";
-    return header === "GIF87a" || header === "GIF89a";
-  }
-  return false;
 }
 
 export async function handleMedia(
@@ -77,13 +50,12 @@ export async function handleMedia(
   if (!env.MEDIA)
     throw new ApiError(503, request.headers.get("x-xumeng-media-purpose") === "album" ? "相册存储尚未启用，这次没有扣 Credit。" : "封面存储尚未启用，请先配置 Cloudflare R2。");
   if (path === "/v1/media" && request.method === "POST") {
-    const contentType =
-      request.headers.get("content-type")?.split(";")[0].trim().toLowerCase() ||
-      "";
-    const extension = TYPES.get(contentType);
+    const contentType = normalizeDzmmCoverType(request.headers.get("content-type"));
+    const extension = dzmmCoverExtension(contentType);
     const album = request.headers.get("x-xumeng-media-purpose") === "album";
-    if (!extension)
-      throw new ApiError(400, album ? "相册只接受 PNG、JPEG、WebP 或 GIF 图片。" : "封面仅支持 PNG、JPEG、WebP 或 GIF 图片。");
+    const video = contentType === "video/mp4" || contentType === "video/webm";
+    if (!extension || (album && video))
+      throw new ApiError(400, album ? "相册只接受 PNG、JPEG、WebP 或 GIF 图片。" : "封面仅支持 PNG、JPEG、WebP、GIF 图片，或 MP4、WebM 视频。");
     try {
       await rateLimit(
         request,
@@ -96,9 +68,19 @@ export async function handleMedia(
       if (album && error instanceof ApiError && error.status === 429) throw new ApiError(429, "相册保存过于频繁，请稍后再试。这次没有扣 Credit。");
       throw error;
     }
-    const bytes = await imageBytes(request);
-    if (!matchesType(bytes, contentType))
-      throw new ApiError(400, album ? "相册图片内容与文件类型不匹配。" : "图片内容与文件类型不匹配。");
+    const bytes = await readBounded(
+      request,
+      video ? DZMM_COVER_VIDEO_MAX_BYTES : DZMM_COVER_IMAGE_MAX_BYTES,
+      album ? "相册图片不能超过 5 MB，这次没有扣 Credit。" : video ? "封面视频不能超过 16 MB。" : "图片不能超过 5 MB。",
+      album ? "相册图片不能为空。" : video ? "请选择封面视频。" : "请选择封面图片。",
+      album || !video ? "图片文件不能为空。" : "封面视频不能为空。",
+    );
+    if (album) {
+      if (sniffDzmmCoverMedia(bytes) !== contentType) throw new ApiError(400, "相册图片内容与文件类型不匹配。");
+    } else {
+      const checked = checkDzmmCoverHeader({ bytes, byteLength: bytes.byteLength, declaredType: contentType });
+      if (!checked.ok) throw new ApiError(checked.status, checked.message);
+    }
     const key = `${user.id}/${crypto.randomUUID()}.${extension}`;
     await env.MEDIA.put(key, bytes, {
       httpMetadata: { contentType },
@@ -107,7 +89,7 @@ export async function handleMedia(
     return json({ key, url: `/api/dzmm/backend/v1/media/${key}` }, 201);
   }
   const match =
-    /^\/v1\/media\/([A-Za-z0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/.exec(path);
+    /^\/v1\/media\/([A-Za-z0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif|mp4|webm))$/.exec(path);
   if (!match) throw new ApiError(404, "封面不存在。");
   if (match[1] !== user.id) throw new ApiError(404, "封面不存在。");
   const key = `${match[1]}/${match[2]}`;
@@ -127,6 +109,7 @@ export async function handleMedia(
   });
   object.writeHttpMetadata(headers);
   headers.set("etag", object.httpEtag);
+  if (dzmmCoverVideoExtension(key)) headers.set("Content-Length", String(object.size));
   return new Response(object.body as unknown as ReadableStream<Uint8Array>, {
     headers,
   });

@@ -5,7 +5,8 @@
 .profileInfo h1 { margin:0 0 6px; font-size:26px; font-weight:650; overflow-wrap:anywhere; }
 .profileInfo p { margin:8px 0 0; color:var(--muted); font-size:12px; }
 .profileInfo .bio { color:var(--text); font-size:13px; white-space:pre-wrap; overflow-wrap:anywhere; max-width:650px; }
-.idButton { color:var(--muted)!important; font-size:11px; text-align:left; max-width:100%; overflow-wrap:anywhere; }
+.idLine { display:flex; align-items:center; gap:6px; margin-top:4px; min-width:0; color:var(--muted); font-size:11px; line-height:1.4; }
+.idLine > span { min-width:0; overflow-wrap:anywhere; }
 .gender { display:inline-block; padding:2px 7px; border-radius:4px; background:var(--soft); color:var(--muted); font-size:11px; margin-top:10px; }
 .primary, .outline, .danger { padding:9px 16px; border-radius:7px; font-size:13px; font-weight:500; }
 .primary { background:var(--pink); color:#fff!important; }
@@ -27,14 +28,15 @@
 .roleList { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .roleRow { display:flex; align-items:center; gap:15px; padding:12px; border:1px solid var(--line); background:var(--surface); border-radius:10px; min-width:0; }
 .roleCover { display:block!important; width:75px; height:98px; border-radius:6px; overflow:hidden; flex-shrink:0; }
-.roleCover img { width:100%; height:100%; object-fit:cover; }
+.roleCover img, .roleCover video { width:100%; height:100%; object-fit:cover; }
 .roleText { display:block!important; text-align:left; min-width:0; flex:1; }
 .roleText h2 { margin:0 0 6px; font-size:14px; font-weight:550; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .roleText p { margin:0 0 6px; font-size:12px; color:var(--muted); line-height:1.6; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
 .roleText small { color:var(--muted); font-size:11px; }
-.roleActions { display:flex; flex-direction:column; gap:5px; }
+.roleActions { display:flex; align-items:center; gap:6px; }
 .iconButton { width:32px; height:32px; border-radius:6px; flex-shrink:0; }
 .iconButton:hover { background:var(--soft); }
+.iconDanger:hover { color:#e44765; background:#e4476514; }
 .deleteButton { font-size:11px; color:var(--muted)!important; padding:5px; }
 .deleteButton:hover { color:#e44765!important; }
 .conversations { display:flex; flex-direction:column; }
@@ -197,7 +199,10 @@
 .guestIdentity { display:flex; align-items:center; gap:13px; }.guestIdentity .avatar { width:56px; height:56px; font-size:24px; }.guestIdentity h1 { margin:0; font-size:25px; font-weight:650; }.guestIdentity p { margin:3px 0 0; color:var(--muted); font-size:12px; }
 .accountSummary { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:28px; padding:24px 26px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }.balanceBlock { display:flex; flex-direction:column; gap:4px; }.balanceBlock span { color:var(--muted); font-size:12px; }.balanceBlock strong { font-size:34px; line-height:1; font-weight:650; letter-spacing:-.03em; }.balanceBlock small { color:var(--muted); font-size:11px; }.accountSummary .authActions { margin-top:0; }.accountSummary .primary,.accountSummary .outline { min-height:40px; border-radius:9px; padding:0 20px; }.accountSummary .outline { border:1px solid var(--line); background:transparent; }
 .compactStats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-top:18px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--line); }.compactStats button { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 18px; background:var(--surface); }.compactStats button:hover { background:var(--soft); }.compactStats strong { font-size:22px; font-weight:620; }.compactStats span { color:var(--muted); font-size:11px; }
-.accountMenu { display:flex; flex-direction:column; margin-top:28px; border-top:1px solid var(--line); }.accountMenu button { display:flex; align-items:center; justify-content:space-between; min-height:58px; padding:0 4px; border-bottom:1px solid var(--line); color:var(--muted); }.accountMenu button:hover { color:var(--text); }.accountMenu button > span { display:flex; align-items:center; gap:11px; }.accountMenu button svg { color:var(--pink); }.accountMenu b { color:var(--text); font-size:13px; font-weight:500; }.accountMenu button > svg { color:var(--muted); }
+.accountMenu { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:18px; }
+.tool { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; width:32px; height:32px; min-height:32px; flex:none; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); }
+.tool:hover:not(:disabled) { color:var(--text); background:var(--soft); }
+.tool:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
 @media (max-width:520px) { .guestIdentity h1 { font-size:23px; }.accountSummary { align-items:stretch; flex-direction:column; gap:22px; margin-top:22px; padding:20px; }.accountSummary .authActions { width:100%; }.accountSummary .authActions > * { flex:1; }.compactStats button { align-items:center; padding:14px 8px; }.compactStats strong { font-size:20px; }.accountMenu { margin-top:22px; }.balanceSummary { grid-template-columns:1fr; }.balanceSummary > div { padding:15px 16px; } }
 
 .avatar:has(svg), .smallAvatar:has(svg) { background:transparent; color:inherit; }

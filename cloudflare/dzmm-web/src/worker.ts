@@ -28,6 +28,7 @@ import { AiapiError, runAiapiJob, sniffAiapiBytes } from "../../../src/lib/aiapi
 import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availability";
 import { xumengLocaleFromCountry } from "../../../src/lib/xumeng-region";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
+import { DZMM_COVER_VIDEO_MAX_BYTES } from "../../../src/lib/dzmm-cover-media";
 import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
 import { publicOauthCookie, sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
@@ -99,6 +100,7 @@ const PUBLIC_ASSET_FILES = new Set([
   "brand/xumeng-character-placeholder.svg",
   "brand/xumeng-favicon.ico", "brand/sources.json", "manifest.webmanifest",
   "content-covers/yume.jpg", "content-covers/wanning.jpg", "content-covers/sumai.jpg", "content-covers/tangtang.jpg",
+  "home/shelf-hero.jpg", "home/great-vibes-latin.woff2", "home/great-vibes-OFL.txt",
   "public-character-samples.json", "public-character-introductions.json",
   "public-character-media.json", "public-category-covers.json",
   "generation-templates/manifest.json", "generation-templates/character.svg",
@@ -622,10 +624,13 @@ async function proxyBackend(request: Request, env: Env, prefix: string): Promise
     const range = request.headers.get("Range");
     if (range) headersForBackend.set("Range", range);
   }
+  const coverVideoUpload = request.method === "POST"
+    && target.pathname === "/v1/media"
+    && /^video\/(?:mp4|webm)\b/i.test(request.headers.get("content-type") || "");
   const upstream = await env.BACKEND.fetch(new Request(target, {
     method: request.method,
     headers: headersForBackend,
-    body: await proxyBody(request),
+    body: await proxyBody(request, coverVideoUpload ? DZMM_COVER_VIDEO_MAX_BYTES : MAX_PROXY_BODY_BYTES, coverVideoUpload ? "封面视频不能超过 16 MB。" : undefined),
     signal: request.signal,
     redirect: "manual",
   }));
