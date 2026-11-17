@@ -45,7 +45,7 @@ export async function optimizePrompt(text, kind) {
   const response = await fetch("/api/optimize-prompt", {
     method: "POST",
     headers: { "Content-Type": "application/json", [ADULT_HEADER]: "1" },
-    body: JSON.stringify({ text: text || "", kind: kind === "character" ? "character" : "video" }),
+    body: JSON.stringify({ text: text || "", kind: kind === "character" || kind === "image" || kind === "story" ? kind : "video" }),
   });
   const payload = await response.json().catch(() => null);
   if (!response.ok || !payload || typeof payload.prompt !== "string") {

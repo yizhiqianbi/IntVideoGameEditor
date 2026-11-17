@@ -3,14 +3,16 @@ import { channelBody, publishReference } from "@/lib/channel";
 import { editPrompt } from "@/lib/comfy-image.mjs";
 import { jsonError, sameOrigin } from "@/lib/http";
 import { normalizeImage } from "@/lib/reference-image.mjs";
+import { imagePixels } from "@/lib/wand-image.mjs";
 import { pollSeedream, startSeedream, yunqiaoTaskId } from "@/lib/yunqiao.mjs";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "去外套没有完成。";
-  const status = message.includes("还没配上") ? 503 : 502;
+  const raw = error instanceof Error ? error.message : "";
+  const message = /aborted due to timeout|TimeoutError/i.test(raw) ? "去衣这次等太久了。请再试一次。" : (raw || "去外套没有完成。");
+  const status = message.includes("还没配上") ? 503 : message.includes("等太久了") ? 504 : 502;
   return jsonError(message, status);
 }
 
@@ -47,12 +49,13 @@ export async function POST(request: Request) {
       if (!source.ok || !source.bytes || !source.type) return jsonError(source.error || "这张图片读不了。", 400);
       imageUrls.push(await publishReference(source.bytes, source.type));
     }
-    const aspect = body.ratio === "landscape" ? "16:9" : body.ratio === "square" ? "1:1" : "9:16";
+    const pixels = imagePixels(normalized.bytes);
     const taskId = await startSeedream({
       prompt: written.prompt || "",
       imageUrls,
-      clarity: "hd",
-      aspectRatio: aspect,
+      clarity: "sd",
+      width: pixels?.width || 0,
+      height: pixels?.height || 0,
     });
     return pending(taskId);
   } catch (error) {

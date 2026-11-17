@@ -9,8 +9,9 @@ export const maxDuration = 300;
 export const runtime = "nodejs";
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "图片没有完成。";
-  const status = message.includes("还没配上") ? 503 : 502;
+  const raw = error instanceof Error ? error.message : "";
+  const message = /aborted due to timeout|TimeoutError/i.test(raw) ? "出图这次等太久了。请再试一次。" : (raw || "图片没有完成。");
+  const status = message.includes("还没配上") ? 503 : message.includes("等太久了") ? 504 : 502;
   return jsonError(message, status);
 }
 
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
   try {
     const prompt = built.prompt.includes("二十一岁") ? built.prompt : adultAsk(built.prompt);
     const aspect = built.ratio === "landscape" ? "16:9" : built.ratio === "square" ? "1:1" : "9:16";
-    const taskId = await startSeedream({ prompt, imageUrls, clarity: built.clarity, aspectRatio: aspect });
+    const taskId = await startSeedream({ prompt, imageUrls, clarity: "sd", aspectRatio: aspect });
     return pending(taskId);
   } catch (error) {
     return failure(error);

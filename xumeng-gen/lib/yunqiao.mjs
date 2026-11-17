@@ -133,20 +133,31 @@ function publicHttps(url) {
   return parsed.toString();
 }
 
+function isTimeout(error) {
+  const name = error && typeof error === "object" ? String(error.name || "") : "";
+  return name === "TimeoutError" || name === "AbortError" || /aborted due to timeout/i.test(String(error?.message || ""));
+}
+
 async function api(path, options, env, fetchImpl) {
   const credentials = yunqiaoCredentials(env);
   if (!credentials) throw new Error(options.missing || "出图服务还没配上。");
-  const response = await fetchImpl(`${credentials.base}${path}`, {
-    method: options.method || "GET",
-    headers: {
-      Authorization: `Bearer ${credentials.key}`,
-      "User-Agent": "Mozilla/5.0",
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
-    },
-    body: options.body ? JSON.stringify(options.body) : undefined,
-    redirect: "manual",
-    signal: AbortSignal.timeout(options.timeoutMs || 60_000),
-  });
+  let response;
+  try {
+    response = await fetchImpl(`${credentials.base}${path}`, {
+      method: options.method || "GET",
+      headers: {
+        Authorization: `Bearer ${credentials.key}`,
+        "User-Agent": "Mozilla/5.0",
+        ...(options.body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      redirect: "manual",
+      signal: AbortSignal.timeout(options.timeoutMs || 60_000),
+    });
+  } catch (error) {
+    if (isTimeout(error)) throw new Error("出图这次等太久了。请再试一次。");
+    throw error;
+  }
   const payload = await response.json().catch(() => null);
   if (response.status >= 300 && response.status < 400) throw new Error("云桥没有返回任务结果。");
   if (!response.ok) {
@@ -161,7 +172,13 @@ async function downloadMedia(url, kind, fetchImpl) {
   for (let hop = 0; hop < 3; hop += 1) {
     const target = publicHttps(current);
     if (!target) throw new Error(kind === "video" ? "视频结果地址无效。" : "出图结果地址无效。");
-    const response = await fetchImpl(target, { redirect: "manual", signal: AbortSignal.timeout(120_000) });
+    let response;
+    try {
+      response = await fetchImpl(target, { redirect: "manual", signal: AbortSignal.timeout(120_000) });
+    } catch (error) {
+      if (isTimeout(error)) throw new Error("出图结果下载等太久了。请再试一次。");
+      throw error;
+    }
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
       if (!location) throw new Error(kind === "video" ? "视频结果地址无效。" : "出图结果地址无效。");
@@ -181,6 +198,7 @@ export async function startSeedream(input = {}, options = {}) {
     method: "POST",
     body: seedreamBody(input),
     missing: "出图服务还没配上。",
+    timeoutMs: 90_000,
   }, options.env || process.env, options.fetchImpl || fetch);
   const taskId = readTaskId(payload);
   if (!taskId) throw new Error("出图没有提交成功。");
@@ -189,9 +207,18 @@ export async function startSeedream(input = {}, options = {}) {
 
 export async function pollSeedream(taskId, options = {}) {
   if (!yunqiaoTaskId(taskId)) throw new Error("出图任务无效。");
-  const payload = await api(`/lithovas/api/generate/${encodeURIComponent(taskId)}`, {
-    missing: "出图服务还没配上。",
-  }, options.env || process.env, options.fetchImpl || fetch);
+  const env = options.env || process.env;
+  const fetchImpl = options.fetchImpl || fetch;
+  let payload;
+  try {
+    payload = await api(`/lithovas/api/generate/${encodeURIComponent(taskId)}`, {
+      missing: "出图服务还没配上。",
+      timeoutMs: 20_000,
+    }, env, fetchImpl);
+  } catch (error) {
+    if (isTimeout(error) || /等太久了/.test(String(error?.message || ""))) return null;
+    throw error;
+  }
   const bag = bagOf(payload);
   const state = phase(bag.state || bag.status);
   if (state === "failed") throw new Error(cleanMessage(bag.failMsg || bag.message, "出图没有完成。"));
@@ -199,7 +226,12 @@ export async function pollSeedream(taskId, options = {}) {
   const urls = bag.resultUrls || bag.result_urls || [];
   const url = (Array.isArray(urls) ? urls : [urls]).find(item => typeof item === "string" && item.startsWith("https://"));
   if (!url) throw new Error("出图结果里没有图片。");
-  return downloadMedia(url, "image", options.fetchImpl || fetch);
+  try {
+    return await downloadMedia(url, "image", fetchImpl);
+  } catch (error) {
+    if (isTimeout(error) || /等太久了/.test(String(error?.message || ""))) return null;
+    throw error;
+  }
 }
 
 export async function startWan(input = {}, options = {}) {

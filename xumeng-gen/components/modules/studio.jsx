@@ -181,7 +181,7 @@ function PromptBox({ label, value, onChange, max, min, ideas, placeholder, polis
     <div className="prompt-box">
       <div className="field-head">
         <p className="meta">{label} <em>必填</em></p>
-        <button type="button" disabled={polishing} onClick={polish ? runPolish : () => onChange(ideas[Math.floor(Math.random() * ideas.length)])}>{polishing ? "优化中…" : polish ? "提示词优化" : "试试灵感文案"}</button>
+        <button type="button" disabled={polishing} onClick={polish ? runPolish : () => onChange(ideas[Math.floor(Math.random() * ideas.length)])}>{polishing ? "优化中…" : "提示词优化"}</button>
         {value ? <button type="button" onClick={() => onChange("")}>清空</button> : null}
       </div>
       <textarea maxLength={max} value={value} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
@@ -259,7 +259,6 @@ function FaceForm() {
 function CoatForm() {
   const [file, setFile] = useState(null);
   const [references, setReferences] = useState([]);
-  const [ratio, setRatio] = useState("portrait");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
@@ -294,7 +293,7 @@ function CoatForm() {
       const image = await fileToDataUrl(file);
       const extras = [];
       for (const item of references) extras.push(await fileToDataUrl(item));
-      const result = await submitRemoveOuterwear(image, { adultConfirmed: true, prompt: DEFAULT_PROMPTS.coat, ratio, references: extras });
+      const result = await submitRemoveOuterwear(image, { adultConfirmed: true, prompt: DEFAULT_PROMPTS.coat, references: extras });
       if (!result.ok) {
         if (resultUrl) URL.revokeObjectURL(resultUrl);
         setResultUrl("");
@@ -314,7 +313,7 @@ function CoatForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="上传一张人物图" line="选好比例，直接开始生成" />
+        <Lead title="上传一张人物图" line="按原图尺寸直接开始生成" />
         <div className="stage">
         <PictureField
           title="点击上传图片"
@@ -327,10 +326,9 @@ function CoatForm() {
             readImage(next, setFile, setError);
           }}
         />
-        <Guide steps={["上传人物图片", "选择比例", "开始生成"]} />
+        <Guide steps={["上传人物图片", "开始生成"]} />
         </div>
         <Notes items={COMMON_NOTES} />
-        <RatioCards value={ratio} onChange={value => { setResultUrl(""); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || !file}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
@@ -520,11 +518,21 @@ function ImageForm() {
         <PromptBox
           label="画面描述"
           value={prompt}
-          max={200}
+          max={800}
           min={5}
-          ideas={["月光下的古风少女站在樱花树旁，远处山峦若隐若现，梦幻电影质感。", "窗边的蓝色灯塔，晨光平静，清晰的摄影质感。"]}
           placeholder="例如：月光下的古风少女站在樱花树旁，远处山峦若隐若现"
           onChange={value => { setResultUrl(""); setPrompt(value); }}
+          polish={async value => {
+            setError("");
+            const outcome = await optimizePrompt(value, "image");
+            if (!outcome.ok) {
+              setError(outcome.error);
+              return;
+            }
+            if (resultUrl) URL.revokeObjectURL(resultUrl);
+            setResultUrl("");
+            setPrompt(outcome.prompt);
+          }}
         />
         <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { setResultUrl(""); setPrompt(value); }} />
         <Notes items={COMMON_NOTES} />
@@ -616,11 +624,20 @@ function NovelForm() {
         <PromptBox
           label="故事描述"
           value={text}
-          max={300}
+          max={800}
           min={10}
-          ideas={["一个平凡少年意外获得预知未来的能力，却发现每次改变命运都会付出意想不到的代价。", "雨夜的旧书店里，一位三十岁的旅人打开一本没有结局的书。"]}
-          placeholder="例如：一个平凡少年意外获得预知未来的能力……"
+          placeholder="例如：一个三十岁的旅人在雨夜走进旧书店。"
           onChange={value => { setResult(""); setText(value); }}
+          polish={async value => {
+            setError("");
+            const outcome = await optimizePrompt(value, "story");
+            if (!outcome.ok) {
+              setError(outcome.error);
+              return;
+            }
+            setResult("");
+            setText(outcome.prompt);
+          }}
         />
         <Notes items={["请尽量写清人物、背景和主要情节。", "篇幅和情节会有差异，以生成结果为准。", "请勿生成违法或侵犯他人权益的内容。"]} />
         <div>

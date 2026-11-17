@@ -16,8 +16,9 @@ async function picture(value: unknown) {
 }
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "换脸没有完成。";
-  const status = message.includes("还没配上") ? 503 : 502;
+  const raw = error instanceof Error ? error.message : "";
+  const message = /aborted due to timeout|TimeoutError/i.test(raw) ? "换脸这次等太久了。请再试一次。" : (raw || "换脸没有完成。");
+  const status = message.includes("还没配上") ? 503 : message.includes("等太久了") ? 504 : 502;
   return jsonError(message, status);
 }
 
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     const taskId = await startSeedream({
       prompt: written.prompt || "",
       imageUrls: [sceneUrl, faceUrl],
-      clarity: "hd",
+      clarity: "sd",
       width: pixels?.width || 0,
       height: pixels?.height || 0,
     });

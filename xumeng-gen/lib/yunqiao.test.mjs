@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { seedreamBody, wanBody, yunqiaoCredentials } from "./yunqiao.mjs";
+import { pollSeedream, seedreamBody, wanBody, yunqiaoCredentials } from "./yunqiao.mjs";
 
 test("text jobs use Seedream text to image at 1K", () => {
   const body = seedreamBody({ prompt: "雨夜的月台。", clarity: "sd" });
@@ -54,6 +54,16 @@ test("reference video sends only the reference list", () => {
   });
   assert.deepEqual(body.reference_images, ["https://cdn.example/a.png", "https://cdn.example/b.png"]);
   assert.equal(body.image_url, undefined);
+});
+
+test("a slow image status check stays pending", async () => {
+  const error = new Error("The operation was aborted due to timeout");
+  error.name = "TimeoutError";
+  const result = await pollSeedream("task_abcdefgh", {
+    env: { YUNQIAO_API_KEY: "secret", YUNQIAO_API_BASE: "https://la-sealion.inaiai.com" },
+    fetchImpl: async () => { throw error; },
+  });
+  assert.equal(result, null);
 });
 
 test("missing Yunqiao credentials stay closed", () => {

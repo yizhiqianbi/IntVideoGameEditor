@@ -76,13 +76,13 @@ export function buildTextImage(input) {
   if (unexpected.length) return { ok: false, status: 400, error: "不能指定其他接口或额外字段。", code: "field-forbidden" };
   const prompt = clean(body.prompt);
   if (prompt.length < 5) return { ok: false, status: 400, error: prompt ? "请至少输入 5 个字符。" : "先写下要画的画面。" };
-  if (prompt.length > 200) return { ok: false, status: 400, error: "画面描述最多 200 个字符。" };
+  if (prompt.length > 800) return { ok: false, status: 400, error: "画面描述最多 800 个字符。" };
   const blocked = noteError(prompt);
   if (blocked) return { ok: false, status: 400, error: blocked };
   const ratio = body.ratio == null || body.ratio === "" ? "portrait" : body.ratio;
   if (!IMAGE_RATIOS.has(ratio)) return { ok: false, status: 400, error: "图片比例无效。" };
   const style = body.style == null || body.style === "" ? "" : body.style;
-  const clarity = body.clarity == null || body.clarity === "" ? "hd" : body.clarity;
+  const clarity = body.clarity == null || body.clarity === "" ? "sd" : body.clarity;
   if ((style && !STYLES.has(style)) || !CLARITY.has(clarity)) return { ok: false, status: 400, error: "风格或清晰度无效。" };
   const listed = Array.isArray(body.images) ? body.images.filter(item => item != null && item !== "") : [];
   const images = listed.length ? listed : (body.image != null && body.image !== "" ? [body.image] : []);

@@ -10,8 +10,9 @@ export async function POST(request: Request) {
   let body: { text?: unknown; kind?: unknown };
   try { body = await request.json(); } catch { return jsonError("请求格式无效。", 400); }
   if (body.text != null && typeof body.text !== "string") return jsonError("请求格式无效。", 400);
-  if (body.kind != null && body.kind !== "video" && body.kind !== "character") return jsonError("优化类型无效。", 400);
-  const result = await optimizePrompt(typeof body.text === "string" ? body.text : "", { kind: body.kind === "character" ? "character" : "video" });
+  const kind = body.kind === "character" || body.kind === "image" || body.kind === "story" || body.kind === "video" ? body.kind : body.kind == null ? "video" : "";
+  if (!kind) return jsonError("优化类型无效。", 400);
+  const result = await optimizePrompt(typeof body.text === "string" ? body.text : "", { kind });
   if (!result.ok) return jsonError(result.error || "提示词没有优化完。", result.error?.includes("还没配上") ? 503 : 502);
   return Response.json({ prompt: result.prompt }, { headers: { "cache-control": "no-store" } });
 }
