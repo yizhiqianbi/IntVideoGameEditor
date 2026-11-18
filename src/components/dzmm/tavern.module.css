@@ -302,6 +302,28 @@
 @keyframes navDrawer { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 @keyframes navFade { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .navDrawer, .navBackdrop { animation: none; } }
+.ratingSwitch {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  flex: none;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color .18s ease, background .18s ease, color .18s ease;
+}
+.ratingSwitch:disabled { opacity: .6; cursor: default; }
+.ratingDot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+.ratingSfw { color: #6ed6a4; border-color: color-mix(in srgb, #6ed6a4 45%, var(--line)); background: color-mix(in srgb, #6ed6a4 12%, transparent); }
+.ratingNsfw { color: #fb568e; border-color: color-mix(in srgb, #fb568e 48%, var(--line)); background: color-mix(in srgb, #fb568e 14%, transparent); }
+@media (max-width: 1280px) { .ratingSwitch { display: none; } }
 .search {
   min-width: 0;
   margin-left: auto;

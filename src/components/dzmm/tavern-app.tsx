@@ -974,7 +974,20 @@ export default function TavernApp() {
   const tagName = (id: string) => browseTagName(id, locale);
   const storedName = state.preferences.nickname.trim();
   const accountLabel = cloud.user?.isGuest && (!storedName || storedName === "游客") ? t("guestName") : (storedName || t("navProfile"));
-  const [contentRating, setContentRating] = useState<"nsfw" | "sfw">("nsfw");
+  const [contentRating, setContentRating] = useState<"nsfw" | "sfw">("sfw");
+  const [ratingBusy, setRatingBusy] = useState(false);
+  async function toggleContentRating() {
+    const next = contentRating === "nsfw" ? "sfw" : "nsfw";
+    setRatingBusy(true);
+    try {
+      const response = await fetch("/api/backend/v1/admin/rating", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating: next }) });
+      const payload = await response.json().catch(() => null) as { rating?: unknown; error?: unknown } | null;
+      if (!response.ok || (payload?.rating !== "nsfw" && payload?.rating !== "sfw")) throw new Error(typeof payload?.error === "string" ? payload.error : "切换失败。");
+      setContentRating(payload.rating);
+      setNotice(payload.rating === "sfw" ? "已切换到 SFW 书架，成人内容暂时隐藏。" : "已切换到 NSFW 书架，成人内容重新显示。");
+    } catch (error) { setNotice(error instanceof Error ? error.message : "切换失败。"); }
+    finally { setRatingBusy(false); }
+  }
   useEffect(() => {
     let live = true;
     void fetch("/api/backend/v1/site/rating", { cache: "no-store", credentials: "same-origin" })
@@ -3357,6 +3370,17 @@ export default function TavernApp() {
           currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
           footer={<><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
+        {cloud.user?.role === "super" && <button
+          type="button"
+          className={`${s.ratingSwitch} ${contentRating === "sfw" ? s.ratingSfw : s.ratingNsfw}`}
+          onClick={() => void toggleContentRating()}
+          disabled={ratingBusy}
+          title={contentRating === "sfw" ? "当前是 SFW 书架，点击切到 NSFW" : "当前是 NSFW 书架，点击切到 SFW"}
+          aria-label={`内容分级：${contentRating === "sfw" ? "SFW" : "NSFW"}`}
+        >
+          <span className={s.ratingDot} />
+          {contentRating === "sfw" ? "SFW" : "NSFW"}
+        </button>}
         <label className={s.search}>
           <Icon name="search" size={20} />
           <input

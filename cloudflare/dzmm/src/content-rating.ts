@@ -12,9 +12,9 @@ export function parseContentRating(value: unknown): ContentRating | null {
 export async function readContentRating(env: Pick<Env, "DB">): Promise<ContentRating> {
   try {
     const row = await env.DB.prepare("SELECT value FROM site_settings WHERE key=?").bind(KEY).first<{ value: string }>();
-    return parseContentRating(row?.value) ?? "nsfw";
+    return parseContentRating(row?.value) ?? "sfw";
   } catch {
-    return "nsfw";
+    return "sfw";
   }
 }
 
