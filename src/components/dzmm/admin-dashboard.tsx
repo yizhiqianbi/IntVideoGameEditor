@@ -87,6 +87,29 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
   const permitted = Boolean(user && !user.isGuest && user.role === "super");
   const accountId = user?.id ?? "";
   const [tab, setTab] = useState<Tab>(section ?? "overview");
+  const [ratingSwitch, setRatingSwitch] = useState<"nsfw" | "sfw" | null>(null);
+  const [ratingBusy, setRatingBusy] = useState(false);
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/backend/v1/site/rating", { cache: "no-store", credentials: "same-origin" })
+      .then(response => response.ok ? response.json() : null)
+      .then(payload => { if (live && (payload?.rating === "nsfw" || payload?.rating === "sfw")) setRatingSwitch(payload.rating); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  async function toggleRating() {
+    if (!ratingSwitch) return;
+    const next = ratingSwitch === "nsfw" ? "sfw" : "nsfw";
+    setRatingBusy(true);
+    try {
+      const response = await fetch("/api/backend/v1/admin/rating", { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ rating: next }) });
+      const payload = await response.json().catch(() => null) as { error?: unknown; rating?: unknown } | null;
+      if (!response.ok || (payload?.rating !== "nsfw" && payload?.rating !== "sfw")) throw new Error(typeof payload?.error === "string" ? payload.error : "切换失败。");
+      setRatingSwitch(payload.rating);
+      setNotice(`内容分级已切换为 ${payload.rating.toUpperCase()}。`);
+    } catch (error) { setNotice(error instanceof Error ? error.message : "切换失败。"); }
+    finally { setRatingBusy(false); }
+  }
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<"" | DzmmAdminRole>("");
   const [userIdInput, setUserIdInput] = useState("");
@@ -241,7 +264,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
   const data = current.data;
   const page = data && data.kind !== "overview" ? data.value : null;
   return <main className={section ? `${s.page} ${s.embeddedPage}` : s.page}>
-    {section ? null : <header className={s.heading}><div><p>{c.adEyebrow}</p><h1>{c.adTitle}</h1><span>{xumengStudioFill(c.adFull, { name: user?.nickname ?? "" })}</span></div><div className={s.headerActions}><span className={s.adminMark}><Icon name="crown" size={15} />Super</span>{!moderation && <button className={s.outline} disabled={current.loading || working} onClick={() => void load()}><Icon name="refresh" size={15} />{c.adRefresh}</button>}</div></header>}
+    {section ? null : <header className={s.heading}><div><p>{c.adEyebrow}</p><h1>{c.adTitle}</h1><span>{xumengStudioFill(c.adFull, { name: user?.nickname ?? "" })}</span></div><div className={s.headerActions}><button type="button" className={s.outline} disabled={ratingBusy || !ratingSwitch} onClick={() => void toggleRating()} title="切换书架内容分级"><Icon name="flag" size={15} />内容：{ratingSwitch === "sfw" ? "SFW" : "NSFW"}</button><span className={s.adminMark}><Icon name="crown" size={15} />Super</span>{!moderation && <button className={s.outline} disabled={current.loading || working} onClick={() => void load()}><Icon name="refresh" size={15} />{c.adRefresh}</button>}</div></header>}
     <div className={s.layout}>
       {section ? null : <nav className={s.navigation} aria-label={c.adNav}>{TABS.filter(item => item.id !== "publishing" || publishingReview).filter(item => item.id !== "forum" || forumModeration).map(item => <button type="button" key={item.id} aria-current={tab === item.id ? "page" : undefined} disabled={working} onClick={() => selectTab(item.id)}><Icon name={item.icon} size={17} />{tabText[item.id].label}</button>)}<p className={s.navigationNote}>{c.adNavNote}</p></nav>}
       <section className={s.workspace} aria-label={tabText[tab].label}>

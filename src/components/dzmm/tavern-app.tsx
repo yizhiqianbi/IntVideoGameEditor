@@ -140,7 +140,6 @@ const CharacterStudio = lazy(() => import("./character-studio"));
 const PublishingCenter = lazy(() => import("./publishing-center"));
 const CreatorCenter = lazy(() => import("./creator-center"));
 const CreatorWorks = lazy(() => import("./creator-works"));
-const StudioLab = lazy(() => import("./studio-lab"));
 const GameStudio = lazy(() => import("./game-studio"));
 const GamePlayer = lazy(() => import("./game-player").then((module) => ({ default: module.GamePlayer })));
 const ScenarioStudio = lazy(() => import("./scenario-studio").then((module) => ({ default: module.ScenarioStudio })));
@@ -169,7 +168,6 @@ function prefetchRoute(target: string) {
   else if (target.startsWith("chat/girlfriend")) void import("@/app/xumeng/girlfriend/companion-page");
   else if (target.startsWith("chat/game/")) void import("./game-player");
   else if (target.startsWith("studio/girlfriends")) void import("@/app/xumeng/girlfriend/girlfriend-studio");
-  else if (target.startsWith("studio/tools")) void import("./studio-lab");
   else if (target.startsWith("studio/games")) void import("./game-studio");
   else if (target.startsWith("studio/scenarios") || target.startsWith("studio/room/")) void import("./scenario-studio");
   else if (target === "studio/new" || target.startsWith("studio/edit/")) void import("./character-studio");
@@ -194,7 +192,7 @@ function prefetchRoute(target: string) {
   }
 }
 
-type View = "play-games" | "videos" | "characters" | "chat" | "forum" | "profile" | "search" | "author" | "settings" | "presets" | "admin" | "studio" | "studio-edit" | "studio-tools" | "games" | "girlfriends" | "scenarios" | "novels" | "live" | "voice" | "generation" | "tasks" | "app" | "recharge" | "vip" | "invite" | "checkin";
+type View = "play-games" | "videos" | "characters" | "chat" | "forum" | "profile" | "search" | "author" | "settings" | "presets" | "admin" | "studio" | "studio-edit"  | "games" | "girlfriends" | "scenarios" | "novels" | "live" | "voice" | "generation" | "tasks" | "app" | "recharge" | "vip" | "invite" | "checkin";
 type Message = DzmmSavedMessage;
 type Conversation = DzmmSavedConversation;
 type Preferences = DzmmPreferences;
@@ -652,7 +650,6 @@ export default function TavernApp() {
   const studioDirty = useRef(false);
   const studioBusy = useRef(false);
   const [creatorSection, setCreatorSection] = useState<"home" | "roles">("home");
-  const [studioLabTool, setStudioLabTool] = useState<"face" | "coat" | "prompt">("face");
   const [creatorInitial, setCreatorInitial] = useState<{ id?: string; roomCode?: string }>({});
   const creatorRoute = useRef("");
   const creatorDirty = useRef(false);
@@ -977,7 +974,17 @@ export default function TavernApp() {
   const tagName = (id: string) => browseTagName(id, locale);
   const storedName = state.preferences.nickname.trim();
   const accountLabel = cloud.user?.isGuest && (!storedName || storedName === "游客") ? t("guestName") : (storedName || t("navProfile"));
-  const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
+  const [contentRating, setContentRating] = useState<"nsfw" | "sfw">("nsfw");
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/backend/v1/site/rating", { cache: "no-store", credentials: "same-origin" })
+      .then(response => response.ok ? response.json() : null)
+      .then(payload => { if (live && (payload?.rating === "nsfw" || payload?.rating === "sfw")) setContentRating(payload.rating); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+  // SFW mode hides the adult shelf entries without dropping their routes.
+  const localizedNav = NAV.filter(item => !(item.view === "videos" && contentRating === "sfw")).map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
   // The mobile bar keeps four text tabs and lifts 创作 out as a round centre button.
@@ -1812,10 +1819,6 @@ export default function TavernApp() {
         try { id = target === "studio/girlfriends" ? "library" : decodeURIComponent(target.slice("studio/girlfriends/".length)) || "library"; } catch { return; }
         if (creatorRoute.current !== target) setCreatorInitial({ id });
         creatorRoute.current = target; setDetail(null); setView("girlfriends");
-      } else if (target === "studio/tools" || target.startsWith("studio/tools/")) {
-        const tool = target.split("/")[2];
-        setStudioLabTool(tool === "coat" || tool === "prompt" ? tool : "face");
-        setDetail(null); setView("studio-tools");
       } else if (/^studio\/(games|scenarios)(?:\/[^/]+)?$/.test(target) || /^studio\/room\/[A-Za-z0-9-]+$/.test(target)) {
         let id: string | undefined;
         try { id = target.split("/")[2] ? decodeURIComponent(target.split("/")[2]) : undefined; } catch { return; }
@@ -3986,7 +3989,6 @@ export default function TavernApp() {
       {view === "checkin" && !detail && (cloud.user ? <DailyCheckin locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onBack={() => navigate("tasks")} onTasks={() => navigate("tasks")} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {view === "studio" && !detail && <CreatorCenter locale={locale} key={profileUser.id} section={creatorSection} user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("register")} onCatalogChanged={cloud.refreshCatalog} onRoute={openCreatorRoute} />}
-      {view === "studio-tools" && !detail && <Deferred><StudioLab tool={studioLabTool} guest={!cloud.user || cloud.user.isGuest} onBack={() => navigate("studio")} onRequireAccount={() => openAccount("register")} /></Deferred>}
       {(view === "live" || view === "voice") && !detail && performanceLibrary.error && <div className={s.error} role="alert">{performanceLibrary.error}<button onClick={performanceLibrary.refresh}>重试加载人物</button></div>}
       {view === "live" && !detail && !XUMENG_CALLS_ENABLED && <main className={s.profileEmpty}><h1>{copy.callsClosed}</h1><p>{XUMENG_CALLS_LOCKED_MESSAGE}</p><button className={s.secondary} onClick={() => navigate("characters")}>{copy.backToRoles}</button></main>}
       {view === "live" && !detail && XUMENG_CALLS_ENABLED && (performanceCharacter ? (liveMode === "phone"
@@ -4091,7 +4093,7 @@ export default function TavernApp() {
           </a>
         ))}
       </nav>
-      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && view !== "studio" && view !== "studio-tools" && !detail && state.preferences.showFloatingChat !== false && (
+      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && view !== "studio" && !detail && state.preferences.showFloatingChat !== false && (
         <button
           className={s.floatingChat}
           style={{ opacity: (state.preferences.floatingOpacity ?? 100) / 100, width: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54, height: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54 }}

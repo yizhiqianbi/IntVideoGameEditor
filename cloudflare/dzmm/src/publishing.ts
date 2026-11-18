@@ -181,7 +181,8 @@ function catalogRank(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: st
 }
 
 function catalogWhere(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: string; bindings: unknown[] } {
-  const where = ["p.is_listed=1", "s.status='approved'", "s.revision=p.approved_revision"];
+  const where = ["p.is_listed=1", "s.status='approved'", "s.revision=p.approved_revision",
+    "(p.content_rating='sfw' OR COALESCE((SELECT value FROM site_settings WHERE key='content_rating'),'nsfw')<>'sfw')"];
   const bindings: unknown[] = [];
   if (query.q) {
     where.push(`(instr(lower(coalesce(json_extract(s.snapshot_json,'$.name'),'')), ?)

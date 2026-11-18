@@ -33,12 +33,7 @@ export default function CreatorCenter({ user, drafts, section = "home", locale =
             { key: "girlfriend", label: copy.uploadGirlfriend, icon: "upload" as const, art: "/assets/xumeng/content-covers/wanning.jpg", primary: false, run: () => onRoute("studio/girlfriends/new") },
             { key: "game", label: copy.uploadGame, icon: "play" as const, art: "/assets/xumeng/categories/rpg.webp", primary: false, run: () => onRoute("studio/games") },
             { key: "scenario", label: copy.createScenario, icon: "users" as const, art: "/assets/xumeng/categories/cultivation-sect.webp", primary: false, run: () => start("studio/scenarios/new") },
-            ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [
-              { key: "generate", label: copy.generate, icon: "image" as const, art: "/assets/xumeng/generation-templates/cover.svg", primary: false, run: () => onRoute("generation") },
-              { key: "face", label: "换脸", icon: "user" as const, art: "/assets/xumeng/categories/acg.webp", primary: false, run: () => onRoute("studio/tools/face") },
-              { key: "coat", label: "去衣", icon: "sparkles" as const, art: "/assets/xumeng/content-covers/sumai.jpg", primary: false, run: () => onRoute("studio/tools/coat") },
-              { key: "prompt", label: "优化提示词", icon: "edit" as const, art: "/assets/xumeng/generation-templates/product.svg", primary: false, run: () => onRoute("studio/tools/prompt") },
-            ] : []),
+            ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ key: "generate", label: copy.generate, icon: "image" as const, art: "/assets/xumeng/generation-templates/cover.svg", primary: false, run: () => onRoute("generation") }] : []),
           ]).map(tile => (
             <button key={tile.key} type="button" className={`${s.tile} ${tile.primary ? s.tilePrimary : ""}`} onClick={tile.run} title={tile.label}>
               <img className={s.tileArt} src={tile.art} alt="" loading="lazy" />
