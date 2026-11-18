@@ -2838,9 +2838,11 @@
   .playStage { display: none; width: auto; max-width: none; min-width: 0; border-radius: 0; }
   .playStage[data-open="true"] { position: fixed; z-index: 30; inset: 0; display: block; }
   .chatBesideStage { margin: 0; border-radius: 0; }
+  /* Portrait chat: the character shot sits behind the thread as a soft backdrop. */
+  .chatPlay > .chatBackdrop { filter: blur(22px) saturate(1.1); transform: scale(1.12); opacity: .6; }
   .chatBesideStage .chatBackdrop { filter: none; transform: none; }
   .chatPlay > .chatBackdropScrim.chatBackdropDark {
-    background: linear-gradient(to bottom, rgba(7, 3, 10, 0.72) 0, rgba(7, 3, 10, 0.64) 18%, rgba(7, 3, 10, 0.68) 62%, rgba(7, 3, 10, 0.86) 100%);
+    background: linear-gradient(to bottom, rgba(7, 3, 10, 0.58) 0, rgba(7, 3, 10, 0.5) 18%, rgba(7, 3, 10, 0.56) 62%, rgba(7, 3, 10, 0.82) 100%);
   }
   .chatPlay > .chatBackdropScrim.chatBackdropLight {
     background: linear-gradient(to bottom, rgba(255, 246, 250, 0.78) 0, rgba(255, 246, 250, 0.68) 18%, rgba(255, 246, 250, 0.72) 62%, rgba(255, 246, 250, 0.9) 100%);
