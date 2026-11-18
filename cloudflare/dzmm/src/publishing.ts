@@ -8,7 +8,6 @@ import { dzmmLocalLook } from "../../../src/lib/dzmm-local-looks";
 import { parseDzmmCatalogQuery, toDzmmCatalogCard, type DzmmCatalogSort } from "../../../src/lib/dzmm-public-shelf";
 import { normalizeDzmmReviewSearch, type DzmmPublication, type DzmmPublishingSubmission, type DzmmPublishedCharacter, type DzmmSubmissionStatus } from "../../../src/lib/dzmm-publishing";
 import { requireUser, rateLimit } from "./auth";
-import { readContentRating } from "./content-rating";
 import { listedOfficialCards } from "./ops-console";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
@@ -181,10 +180,8 @@ function catalogRank(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: st
   };
 }
 
-function catalogWhere(query: ReturnType<typeof parseDzmmCatalogQuery>, rating: "nsfw" | "sfw" = "nsfw"): { sql: string; bindings: unknown[] } {
+function catalogWhere(query: ReturnType<typeof parseDzmmCatalogQuery>): { sql: string; bindings: unknown[] } {
   const where = ["p.is_listed=1", "s.status='approved'", "s.revision=p.approved_revision"];
-  // The viewer's own switch wins; the site setting is only the default.
-  if (rating === "sfw") where.push("p.content_rating='sfw'");
   const bindings: unknown[] = [];
   if (query.q) {
     where.push(`(instr(lower(coalesce(json_extract(s.snapshot_json,'$.name'),'')), ?)
@@ -640,9 +637,7 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     let query: ReturnType<typeof parseDzmmCatalogQuery>;
     try { query = parseDzmmCatalogQuery(url.searchParams); }
     catch (error) { throw new ApiError(400, error instanceof Error ? error.message : "分页参数无效。"); }
-    const requested = url.searchParams.get("rating");
-    const rating = requested === "sfw" || requested === "nsfw" ? requested : await readContentRating(env);
-    const filter = catalogWhere(query, rating);
+    const filter = catalogWhere(query);
     const [characters, count] = await Promise.all([
       readCatalogPage(env, query),
       env.DB.prepare(`SELECT COUNT(*) AS total FROM character_submissions s JOIN character_publications p ON p.id=s.publication_id JOIN users u ON u.id=p.user_id WHERE ${filter.sql}`)

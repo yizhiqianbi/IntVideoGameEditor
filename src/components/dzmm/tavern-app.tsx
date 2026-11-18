@@ -599,11 +599,6 @@ export default function TavernApp() {
     return !hash || hash === "videos" || Boolean(xumengVideoDramaIdFromRoute(hash)) ? "videos" : "characters";
   });
   const [routeLocale, setRouteLocale] = useState<XumengLocale | null>(() => typeof window === "undefined" ? null : xumengLocaleFromPathname(window.location.pathname));
-  // View-only switch: every visitor picks their own shelf rating.
-  const [contentRating, setContentRating] = useState<"nsfw" | "sfw">(() => {
-    try { const saved = localStorage.getItem("xumeng-content-rating"); if (saved === "nsfw" || saved === "sfw") return saved; } catch { /* private mode */ }
-    return "sfw";
-  });
   const [cardTranslationRevision, setCardTranslationRevision] = useState(0);
   const [tab, setTab] = useState("新手");
   const [inviteCode, setInviteCode] = useState<string | null>(null);
@@ -852,7 +847,7 @@ export default function TavernApp() {
     return scoped({ tags: selectedShelfTags(genres), sort: xumengPlayCatalogSort(tab, sortMode) });
   }, [view, deferredQuery, authorId, tab, category, discoveryFilters.sort, discoveryFilters.time, deferredCategoryQuery, state.preferences.followedAuthors, recommendation.status, recommendation.ids, recommendation.key, rankQuery, canRank, rankReady, sortMode, genres, look, displayRecommendationIds]);
   // The shelf follows the visitor's own switch; the site setting only supplies the default.
-  const shelfRequest = useMemo((): DzmmCatalogRequest | null => (shelfRequestBase ? { ...shelfRequestBase, rating: contentRating } : null), [shelfRequestBase, contentRating]);
+  const shelfRequest = shelfRequestBase;
   // zh-Hant, en, ja and ko use the same public catalog page as zh-Hans.
   // One page is loaded first. Later pages stay on the existing pager.
   const publicShelf = usePublicCharacterShelf(shelfRequest);
@@ -981,23 +976,6 @@ export default function TavernApp() {
   const tagName = (id: string) => browseTagName(id, locale);
   const storedName = state.preferences.nickname.trim();
   const accountLabel = cloud.user?.isGuest && (!storedName || storedName === "游客") ? t("guestName") : (storedName || t("navProfile"));
-  const RATING_KEY = "xumeng-content-rating";
-  useEffect(() => {
-    let live = true;
-    try { if (localStorage.getItem(RATING_KEY)) return () => { live = false; }; } catch { /* private mode */ }
-    void fetch("/api/backend/v1/site/rating", { cache: "no-store", credentials: "same-origin" })
-      .then(response => response.ok ? response.json() : null)
-      .then(payload => { if (live && (payload?.rating === "nsfw" || payload?.rating === "sfw")) setContentRating(payload.rating); })
-      .catch(() => {});
-    return () => { live = false; };
-  }, []);
-  // The switch is a per-visitor view, so it never writes the site setting.
-  function toggleContentRating() {
-    const next = contentRating === "nsfw" ? "sfw" : "nsfw";
-    setContentRating(next);
-    try { localStorage.setItem(RATING_KEY, next); } catch { /* private mode */ }
-    setNotice(next === "sfw" ? "已切换到 SFW 视图，成人向角色卡已隐藏。" : "已切换到 NSFW 视图，成人向角色卡已显示。");
-  }
   const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
@@ -3374,16 +3352,6 @@ export default function TavernApp() {
           currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
           footer={<><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
-        <button
-          type="button"
-          className={`${s.ratingSwitch} ${contentRating === "sfw" ? s.ratingSfw : s.ratingNsfw}`}
-          onClick={() => void toggleContentRating()}
-          title={contentRating === "sfw" ? "当前是 SFW 视图，点击切到 NSFW" : "当前是 NSFW 视图，点击切到 SFW"}
-          aria-label={`内容分级：${contentRating === "sfw" ? "SFW" : "NSFW"}`}
-        >
-          <span className={s.ratingDot} />
-          {contentRating === "sfw" ? "SFW" : "NSFW"}
-        </button>
         <label className={s.search}>
           <Icon name="search" size={20} />
           <input
@@ -3440,7 +3408,7 @@ export default function TavernApp() {
       {(view === "characters" || view === "play-games") && !detail && (
         <>
           {view === "characters" && !query.trim() && <section className={s.shelfHero} aria-labelledby="shelf-hero-title">
-            {contentRating === "nsfw" && <img src="/assets/xumeng/home/shelf-hero.jpg" alt="" />}
+            <img src="/assets/xumeng/home/shelf-hero.jpg" alt="" />
             <div className={s.shelfHeroShade} aria-hidden="true" />
             <div className={s.shelfHeroCopy}>
               <h2 id="shelf-hero-title" className={s.shelfHeroScript} lang="en"><span>Play</span><span>With Them</span></h2>
@@ -3491,9 +3459,7 @@ export default function TavernApp() {
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label={copy.homeBanner}><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
-            {contentRating === "sfw" && shelfList.length === 0 ? (
-              <div className={s.empty} role="status"><h2>当前是 SFW 书架</h2><p>成人向内容已隐藏。管理员可在顶部切回 NSFW，或先上传 SFW 内容。</p></div>
-            ) : (homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
+            {(homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
               <div className={s.empty} role="status"><h2>{copy.loadingRoles}</h2><p>{copy.loadingSoon}</p></div>
             ) : featured.length || shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
