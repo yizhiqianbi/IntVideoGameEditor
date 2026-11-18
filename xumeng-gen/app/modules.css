@@ -218,13 +218,14 @@
   font-size: 26px;
   line-height: 1;
 }
-.modules .preview img, .modules .preview video, .modules .drop img {
+.modules .preview img, .modules .preview video, .modules .drop img, .modules .drop video {
   width: 100%;
   max-height: 460px;
   object-fit: contain;
   border-radius: 12px;
   background: #10131a;
 }
+.modules .drop video { height: 100%; max-height: 100%; }
 .modules .preview-text { align-content: start; justify-items: stretch; text-align: left; }
 .modules .quote, .modules .preview pre {
   margin: 0;

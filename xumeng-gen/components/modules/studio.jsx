@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { OUTERWEAR_COPY, fileToDataUrl, submitRemoveOuterwear } from "./remove-outerwear-client.js";
 import { NOVEL_COPY, defaultCount, submitNovel } from "./novel-client.js";
 import { DEFAULT_PROMPTS } from "./prompt-defaults.js";
-import { optimizePrompt, optimizeVideoPrompt, submitAnimeFace, submitImageVideo, submitTextImage } from "./studio-client.js";
+import { optimizePrompt, optimizeVideoPrompt, submitAnimeFace, submitFaceVideo, submitImageVideo, submitTextImage, uploadFaceVideo } from "./studio-client.js";
+import {
+  FACE_VIDEO_HINT,
+  FACE_VIDEO_PROMPT,
+  FACE_VIDEO_WAITING,
+  isVideoFile,
+  videoFileProblem,
+  videoSecondsProblem,
+} from "../../lib/face-video.mjs";
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif|tiff?)$/i;
 
@@ -36,7 +44,7 @@ function readImage(file, setFile, setError) {
   setFile(file);
 }
 
-function PictureField({ title, hint, mark, url, tall, onFile }) {
+function PictureField({ title, hint, mark, url, tall, onFile, accept = "image/*,.heic,.heif,.avif", video = false }) {
   const [over, setOver] = useState(false);
   return (
     <label
@@ -55,10 +63,10 @@ function PictureField({ title, hint, mark, url, tall, onFile }) {
       <input
         className="file"
         type="file"
-        accept="image/*,.heic,.heif,.avif"
+        accept={accept}
         onChange={event => onFile(event.target.files?.[0] ?? null)}
       />
-      {url ? <img src={url} alt="" /> : (
+      {url ? (video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt="" />) : (
         <>
           <span className="plus" aria-hidden="true">+</span>
           <strong>{title}</strong>
@@ -68,6 +76,18 @@ function PictureField({ title, hint, mark, url, tall, onFile }) {
       {url && mark ? <em className="ref-mark">{mark}</em> : null}
     </label>
   );
+}
+
+// 从本地视频里读时长，用来挡住过长的素材。
+function videoSeconds(file) {
+  const url = URL.createObjectURL(file);
+  return new Promise(resolve => {
+    const element = document.createElement("video");
+    element.preload = "metadata";
+    element.onloadedmetadata = () => resolve(Number.isFinite(element.duration) ? element.duration : 0);
+    element.onerror = () => resolve(0);
+    element.src = url;
+  }).finally(() => URL.revokeObjectURL(url));
 }
 
 function Chips({ label, value, options, onChange }) {
@@ -200,14 +220,46 @@ const COMMON_NOTES = [
 function FaceForm() {
   const [face, setFace] = useState(null);
   const [scene, setScene] = useState(null);
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPTS.face);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
+  const [resultVideo, setResultVideo] = useState(false);
   const faceUrl = usePreview(face);
   const sceneUrl = usePreview(scene);
+  const sceneIsVideo = scene ? isVideoFile(scene.name, scene.type) : false;
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => () => {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+  }, [resultUrl]);
+
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setResultVideo(false);
+  }
+
+  function takeScene(file) {
+    if (!file) return;
+    setError("");
+    clearResult();
+    if (isVideoFile(file.name, file.type)) {
+      const problem = videoFileProblem(file.name, file.type, file.size);
+      if (problem) {
+        setError(problem);
+        return;
+      }
+      setScene(file);
+      return;
+    }
+    readImage(file, setScene, setError);
+  }
+
+  function takeFace(file) {
+    if (!file) return;
+    setError("");
+    clearResult();
+    readImage(file, setFace, setError);
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -218,15 +270,39 @@ function FaceForm() {
     setError("");
     setBusy(true);
     try {
+      if (sceneIsVideo) {
+        const seconds = await videoSeconds(scene);
+        const problem = videoSecondsProblem(seconds);
+        if (problem) {
+          setError(problem);
+          return;
+        }
+        const uploaded = await uploadFaceVideo(scene);
+        if (!uploaded.ok) {
+          clearResult();
+          setError(uploaded.error || "视频没有传上去。");
+          return;
+        }
+        const result = await submitFaceVideo(await fileToDataUrl(face), uploaded.url, FACE_VIDEO_PROMPT);
+        if (!result.ok) {
+          clearResult();
+          setError(result.error);
+          return;
+        }
+        clearResult();
+        setResultVideo(true);
+        setResultUrl(result.url);
+        return;
+      }
       const result = await submitAnimeFace(await fileToDataUrl(face), await fileToDataUrl(scene), DEFAULT_PROMPTS.face);
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
       const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      clearResult();
+      setResultVideo(false);
       setResultUrl(next);
     } catch {
       setError("换脸没有完成。");
@@ -238,19 +314,28 @@ function FaceForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="AI 换脸" line="一键替换人脸，轻松创作" />
+        <Lead title="AI 换脸" line="一键替换人脸，图片和视频都行" />
         <div className="pair">
-          <PictureField title="选择素材" hint="原始画面，JPG、PNG" url={sceneUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setScene, setError); }} />
-          <PictureField title="选择素材" hint="目标人脸，JPG、PNG" url={faceUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setFace, setError); }} />
+          <PictureField
+            title="选择素材"
+            hint="原始画面，图片或视频"
+            accept="image/*,.heic,.heif,.avif,video/mp4,video/quicktime,video/x-m4v,.mp4,.mov,.m4v"
+            mark={sceneIsVideo ? "视频" : ""}
+            video={sceneIsVideo}
+            url={sceneUrl}
+            onFile={takeScene}
+          />
+          <PictureField title="选择素材" hint="目标人脸，JPG、PNG" url={faceUrl} onFile={takeFace} />
         </div>
-        <Guide steps={["上传原始画面", "上传目标人脸", "开始生成"]} />
-        <ExampleBar text="把参考脸换进原画面，保留姿势、服装和背景。" />
-        <Notes items={["请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
+        <Guide steps={["上传原始画面，可以是图片或视频", "上传目标人脸", "开始生成"]} />
+        <ExampleBar text="把参考脸换进原来的画面或视频，保留姿势、服装和背景。" />
+        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? "处理中…" : "开始生成"}</button>
+        <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? (sceneIsVideo ? "正在换脸…" : "处理中…") : "开始生成"}</button>
       </form>
-      <aside className="preview" id="result" aria-label="预览" hidden={!resultUrl}>
-        {resultUrl ? <img src={resultUrl} alt="换脸结果" /> : null}
+      <aside className="preview" id="result" aria-label="预览" hidden={!busy && !resultUrl}>
+        {busy ? <p className="hint" role="status">{sceneIsVideo ? FACE_VIDEO_WAITING : "处理中…"}</p> : null}
+        {!busy && resultUrl ? (resultVideo ? <video src={resultUrl} controls playsInline /> : <img src={resultUrl} alt="换脸结果" />) : null}
       </aside>
     </>
   );

@@ -6,7 +6,8 @@
     "build": "next build",
     "start": "next start",
     "test:outerwear": "node --test lib/remove-outerwear.test.mjs",
-    "test:studio": "node --test lib/remove-outerwear.test.mjs lib/novel-request.test.mjs",
+    "test:face-video": "node --test lib/face-video.test.mjs lib/channel-upload.test.mjs",
+    "test:studio": "node --test lib/remove-outerwear.test.mjs lib/novel-request.test.mjs lib/face-video.test.mjs lib/channel-upload.test.mjs",
     "test:novel": "node --test lib/novel-request.test.mjs"
   },
   "dependencies": {

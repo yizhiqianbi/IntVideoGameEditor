@@ -6,9 +6,22 @@ export function channelRequested(value: unknown): boolean {
   return value === "channel";
 }
 
+export function mediaOrigin(): string {
+  return (process.env.CREATE_MEDIA_ORIGIN || "https://channel-media.xumengchat.top").replace(/\/+$/, "");
+}
+
+function hostedByMediaOrigin(raw: unknown, origin: string): raw is string {
+  if (typeof raw !== "string") return false;
+  try {
+    return new URL(raw).origin === new URL(origin).origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function publishAsset(bytes: Buffer, type: string): Promise<string> {
   const secret = process.env.AIAPI_SECRETKEY?.trim() ?? "";
-  const origin = (process.env.CREATE_MEDIA_ORIGIN || "https://channel-media.xumengchat.top").replace(/\/$/, "");
+  const origin = mediaOrigin();
   if (!secret) throw new AiapiError("渠道密钥还没配上。", 503);
   const response = await fetch(`${origin}/api/studio/channel-reference`, {
     method: "POST",
@@ -18,7 +31,7 @@ export async function publishAsset(bytes: Buffer, type: string): Promise<string>
     signal: AbortSignal.timeout(30_000),
   });
   const payload = await response.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
-  if (!response.ok || typeof payload?.url !== "string" || !payload.url.startsWith("https://")) {
+  if (!response.ok || !hostedByMediaOrigin(payload?.url, origin)) {
     const error = typeof payload?.error === "string" ? payload.error.slice(0, 160) : "文件没有放到渠道能打开的地址。";
     throw new AiapiError(error, response.status === 503 ? 503 : 502);
   }

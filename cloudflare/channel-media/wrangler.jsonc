@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xumeng-channel-media",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-10-23",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "account_id": "274d62c1f24b885b3dfe562cda5d60c1",
+  "routes": [{ "pattern": "channel-media.xumengchat.top", "custom_domain": true }],
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "xumeng-create-media" }]
+}

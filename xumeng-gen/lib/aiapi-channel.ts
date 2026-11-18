@@ -197,13 +197,19 @@ export async function runAiapiJob(
   }, fetchImpl, now, wait);
 }
 
-export async function runAiapiRequest(
-  env: AiapiCredentials,
-  request: AiapiRequest,
-  fetchImpl: typeof fetch = fetch,
-  now: () => number = Date.now,
-  wait: (ms: number) => Promise<void> = delay,
-): Promise<{ bytes: Uint8Array; contentType: string }> {
+type AiapiTaskOutcome = {
+  latest: unknown;
+  view: TaskView;
+};
+
+export type AiapiTaskCheck = {
+  phase: "pending" | "done" | "failed";
+  taskId: string;
+  url: string;
+  error: string;
+};
+
+function channelRoot(env: AiapiCredentials): URL {
   const base = env.baseUrl?.trim().replace(/\/+$/, "") ?? "";
   const apiKey = env.apiKey?.trim() ?? "";
   const secretKey = env.secretKey?.trim() ?? "";
@@ -211,10 +217,66 @@ export async function runAiapiRequest(
   let root: URL;
   try { root = new URL(base); } catch { throw new AiapiError("渠道地址无效。", 503); }
   if (root.protocol !== "https:") throw new AiapiError("渠道地址无效。", 503);
-  const headers = { apikey: apiKey, SECRETKEY: secretKey };
-  const inputs = request.inputs ?? [];
+  return root;
+}
+
+function channelHeaders(env: AiapiCredentials): Record<string, string> {
+  return { apikey: env.apiKey?.trim() ?? "", SECRETKEY: env.secretKey?.trim() ?? "" };
+}
+
+function channelPath(request: AiapiRequest): string {
   if (!request.path.startsWith("/api/public/")) throw new AiapiError("这个渠道能力没有开放。", 400);
-  const created = await fetchImpl(new URL(request.path, root), {
+  return request.path;
+}
+
+// 只提交任务拿任务号；长视频换脸由浏览器每 4 秒回来查一次，避免单次函数被平台超时切断。
+export async function submitAiapiTask(
+  env: AiapiCredentials,
+  request: AiapiRequest,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AiapiTaskCheck> {
+  const root = channelRoot(env);
+  const created = await fetchImpl(new URL(channelPath(request), root), {
+    method: "POST",
+    headers: { ...channelHeaders(env), "Content-Type": "application/x-www-form-urlencoded" },
+    body: request.form,
+    redirect: "manual",
+  });
+  const latest = await created.json().catch(() => null);
+  if (!created.ok) throw new AiapiError(errorText(latest, "渠道没有接单。"));
+  const view = readAiapiTask(latest, request.inputs ?? []);
+  return { phase: view.phase, taskId: view.taskId || request.form.get("task_id") || "", url: view.url, error: view.error };
+}
+
+export async function checkAiapiTask(
+  env: AiapiCredentials,
+  request: AiapiRequest,
+  taskId: string,
+  fetchImpl: typeof fetch = fetch,
+): Promise<AiapiTaskCheck> {
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{7,127}$/.test(taskId)) throw new AiapiError("换脸任务无效。", 400);
+  const root = channelRoot(env);
+  const polled = await fetchImpl(new URL(`${TASK_PATH}?task_id=${encodeURIComponent(taskId)}`, root), {
+    headers: channelHeaders(env),
+    redirect: "manual",
+  });
+  const latest = await polled.json().catch(() => null);
+  if (!polled.ok) throw new AiapiError(errorText(latest, "渠道任务查询失败。"));
+  const view = readAiapiTask(latest, request.inputs ?? []);
+  return { phase: view.phase, taskId: view.taskId || taskId, url: view.url, error: view.error };
+}
+
+async function awaitAiapiTask(
+  env: AiapiCredentials,
+  request: AiapiRequest,
+  fetchImpl: typeof fetch,
+  now: () => number,
+  wait: (ms: number) => Promise<void>,
+): Promise<AiapiTaskOutcome> {
+  const root = channelRoot(env);
+  const headers = channelHeaders(env);
+  const inputs = request.inputs ?? [];
+  const created = await fetchImpl(new URL(channelPath(request), root), {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/x-www-form-urlencoded" },
     body: request.form,
@@ -237,6 +299,31 @@ export async function runAiapiRequest(
     const next = readAiapiTask(latest, inputs);
     view = { ...next, taskId: next.taskId || view.taskId };
   }
+  return { latest, view };
+}
+
+// 只等任务完成并拿结果地址，不把成片下载进函数（视频常超过 Vercel 4.5MB 响应上限）。
+export async function runAiapiUrl(
+  env: AiapiCredentials,
+  request: AiapiRequest,
+  fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now,
+  wait: (ms: number) => Promise<void> = delay,
+): Promise<string> {
+  const { view } = await awaitAiapiTask(env, request, fetchImpl, now, wait);
+  if (view.phase === "failed") throw new AiapiError(view.error || "渠道生成失败。");
+  if (!view.url) throw new AiapiError(missingResult(request.kind));
+  return view.url;
+}
+
+export async function runAiapiRequest(
+  env: AiapiCredentials,
+  request: AiapiRequest,
+  fetchImpl: typeof fetch = fetch,
+  now: () => number = Date.now,
+  wait: (ms: number) => Promise<void> = delay,
+): Promise<{ bytes: Uint8Array; contentType: string }> {
+  const { latest, view } = await awaitAiapiTask(env, request, fetchImpl, now, wait);
   if (request.kind === "text" && !view.url && (view.phase === "done" || view.error === "渠道结果里没有资源地址。")) {
     const inline = inlineText(latest) || "任务已完成。";
     return { bytes: new TextEncoder().encode(inline), contentType: "text/plain; charset=utf-8" };
@@ -420,8 +507,13 @@ export function aiapiPublicUrl(raw: string): boolean {
 function publicHttps(raw: string): string | null {
   let url: URL;
   try { url = new URL(raw); } catch { return null; }
-  if (url.protocol !== "https:" || url.username || url.password) return null;
+  if (url.username || url.password) return null;
   const host = url.hostname.toLowerCase();
+  // 本地联调时允许指向本机 worker；线上仍然是 https 公网地址。
+  if (process.env.NODE_ENV === "development" && (host === "localhost" || host === "127.0.0.1")) {
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : null;
+  }
+  if (url.protocol !== "https:") return null;
   if (host === "localhost" || host.endsWith(".local") || host.endsWith(".internal")) return null;
   if (/^\d+\.\d+\.\d+\.\d+$/.test(host)) {
     const [a, b] = host.split(".").map(Number);

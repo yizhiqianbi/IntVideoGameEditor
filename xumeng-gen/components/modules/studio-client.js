@@ -79,3 +79,63 @@ export async function submitImageVideo(images, action, seconds, mode) {
 export function submitAnimeFace(face, scene, prompt) {
   return post("/api/face-swap", { face, scene, prompt });
 }
+
+// 视频不经过 Vercel 的 4.5MB 请求体：先领票据，把文件直传到渠道素材库，再让服务端换脸。
+export async function uploadFaceVideo(file) {
+  const ticketResponse = await fetch("/api/upload-ticket", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", [ADULT_HEADER]: "1" },
+    body: JSON.stringify({ bytes: file.size }),
+  });
+  const ticket = await ticketResponse.json().catch(() => null);
+  const ticketError = ticket && typeof ticket.error === "string" ? ticket.error : "";
+  if (!ticketResponse.ok || !ticket || typeof ticket.url !== "string") {
+    return { ok: false, error: ticketError || "视频上传没有开始。" };
+  }
+  if (typeof ticket.maxBytes === "number" && file.size > ticket.maxBytes) {
+    return { ok: false, error: "视频请控制在 64MB 以内。" };
+  }
+  let upload = null;
+  try {
+    upload = await fetch(ticket.url, {
+      method: "PUT",
+      headers: { "Content-Type": file.type || "video/mp4" },
+      body: file,
+    });
+  } catch {
+    return { ok: false, error: "视频没有传上去。" };
+  }
+  const stored = await upload.json().catch(() => null);
+  const uploadError = stored && typeof stored.error === "string" ? stored.error : "";
+  if (!upload.ok || !stored || typeof stored.url !== "string") {
+    return { ok: false, error: uploadError || "视频没有传上去。" };
+  }
+  return { ok: true, url: stored.url };
+}
+
+export async function submitFaceVideo(face, videoUrl, prompt) {
+  let body = { face, videoUrl, prompt };
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    let response;
+    try {
+      response = await fetch("/api/face-swap", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", [ADULT_HEADER]: "1" },
+        body: JSON.stringify(body),
+      });
+    } catch {
+      return { ok: false, error: "换脸没有完成。" };
+    }
+    const payload = await response.json().catch(() => null);
+    if (response.ok && payload && typeof payload.url === "string") {
+      return { ok: true, url: payload.url, type: "video/mp4" };
+    }
+    if (response.status === 202 && payload && typeof payload.videoTaskId === "string") {
+      body = { videoTaskId: payload.videoTaskId, videoUrl: payload.videoUrl, faceUrl: payload.faceUrl };
+      await wait(4000);
+      continue;
+    }
+    return { ok: false, error: payload && typeof payload.error === "string" ? payload.error : "换脸没有完成。" };
+  }
+  return { ok: false, error: "换脸这次等太久了。请再试一次。" };
+}
