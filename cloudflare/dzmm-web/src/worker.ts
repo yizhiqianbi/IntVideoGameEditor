@@ -36,6 +36,7 @@ import { characterShareCoverResponse, characterShareResponse } from "./character
 import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
 import { XUMENG_USER_CARD_ASSET_PATHS } from "./user-card-assets";
 import { h3Query, h3Upstream } from "./h3-channel";
+import { handleStudioLab } from "./studio-lab";
 import { runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
 export { ViduLiveStudio } from "./vidu-live-studio";
 
@@ -1289,6 +1290,10 @@ export async function fetchRequest(
         return new Response(request.method === "HEAD" ? null : response.body, { status: response.status, headers });
       }
       checkMutationOrigin(request);
+      if (path.startsWith("/api/lab/")) {
+        const lab = await handleStudioLab(request, env);
+        if (lab) return lab;
+      }
       if (path === "/api/aiapi/still") return await aiapiStill(request, env);
       if (path === "/api/aiapi/video") return await aiapiVideo(request, env);
       if (path === "/api/h3/r2v") return await h3ReferenceVideo(request, env);
