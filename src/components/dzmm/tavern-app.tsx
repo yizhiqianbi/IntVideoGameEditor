@@ -996,6 +996,10 @@ export default function TavernApp() {
       .catch(() => {});
     return () => { live = false; };
   }, []);
+  useEffect(() => {
+    if (contentRating !== "sfw" || view !== "videos" || detail) return;
+    navigate("characters");
+  }, [contentRating, view, detail]);
   // SFW mode hides the adult shelf entries without dropping their routes.
   const localizedNav = NAV.filter(item => !(item.view === "videos" && contentRating === "sfw")).map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
@@ -2809,6 +2813,7 @@ export default function TavernApp() {
     }) : [];
     const orderedRemote = tab === "最新" ? orderDzmmShelfByTime(remote) : remote;
     const visible = [...searchLocalMatches, ...followedLocal, ...pinned, ...translatedLocal, ...orderedRemote].filter((character) => {
+      if (contentRating === "sfw" && !character.publication) return false;
       if (view !== "search" && (!character.cover || character.cover.includes("placeholder"))) return false;
       if (view !== "search" && look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
       if (seen.has(character.id)) return false;
@@ -3437,7 +3442,7 @@ export default function TavernApp() {
       {(view === "characters" || view === "play-games") && !detail && (
         <>
           {view === "characters" && !query.trim() && <section className={s.shelfHero} aria-labelledby="shelf-hero-title">
-            <img src="/assets/xumeng/home/shelf-hero.jpg" alt="" />
+            {contentRating === "nsfw" && <img src="/assets/xumeng/home/shelf-hero.jpg" alt="" />}
             <div className={s.shelfHeroShade} aria-hidden="true" />
             <div className={s.shelfHeroCopy}>
               <h2 id="shelf-hero-title" className={s.shelfHeroScript} lang="en"><span>Play</span><span>With Them</span></h2>
@@ -3488,7 +3493,9 @@ export default function TavernApp() {
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label={copy.homeBanner}><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
-            {(homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
+            {contentRating === "sfw" && shelfList.length === 0 ? (
+              <div className={s.empty} role="status"><h2>当前是 SFW 书架</h2><p>成人向内容已隐藏。管理员可在顶部切回 NSFW，或先上传 SFW 内容。</p></div>
+            ) : (homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
               <div className={s.empty} role="status"><h2>{copy.loadingRoles}</h2><p>{copy.loadingSoon}</p></div>
             ) : featured.length || shelf.length ? (
               <div className={`${s.cardGrid} ${state.preferences.homeLayout === "single" ? s.singleLayout : ""}`}>
