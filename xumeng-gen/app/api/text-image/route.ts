@@ -1,5 +1,6 @@
 import { channelBody, publishReference } from "@/lib/channel";
 import { adultAsk } from "@/lib/channel-env";
+import { imageLiteTaskId, pollImageLite, startImageLite } from "@/lib/image-lite.mjs";
 import { jsonError, sameOrigin } from "@/lib/http";
 import { normalizeImage } from "@/lib/reference-image.mjs";
 import { buildTextImage, imageFile } from "@/lib/studio-page.mjs";
@@ -25,8 +26,14 @@ export async function POST(request: Request) {
   let body: { image?: unknown; images?: unknown; taskId?: unknown } | null = null;
   try { body = await request.json(); } catch { return jsonError("请求格式无效。", 400); }
   if (body && typeof body.taskId === "string") {
-    if (Object.keys(body).some(key => key !== "taskId") || !yunqiaoTaskId(body.taskId)) return jsonError("出图任务无效。", 400);
+    if (Object.keys(body).some(key => key !== "taskId")) return jsonError("出图任务无效。", 400);
     try {
+      if (imageLiteTaskId(body.taskId)) {
+        const rendered = await pollImageLite(body.taskId);
+        if (!rendered) return pending(body.taskId);
+        return channelBody(rendered.bytes, rendered.contentType);
+      }
+      if (!yunqiaoTaskId(body.taskId)) return jsonError("出图任务无效。", 400);
       const rendered = await pollSeedream(body.taskId);
       if (!rendered) return pending(body.taskId);
       return channelBody(rendered.bytes, rendered.contentType);
@@ -55,8 +62,11 @@ export async function POST(request: Request) {
   }
   try {
     const prompt = built.prompt.includes("二十一岁") ? built.prompt : adultAsk(built.prompt);
-    const aspect = built.ratio === "landscape" ? "16:9" : built.ratio === "square" ? "1:1" : "9:16";
-    const taskId = await startSeedream({ prompt, imageUrls, clarity: "sd", aspectRatio: aspect });
+    const taskId = await startImageLite({
+      prompt,
+      imageUrls,
+      size: built.ratio,
+    });
     return pending(taskId);
   } catch (error) {
     return failure(error);

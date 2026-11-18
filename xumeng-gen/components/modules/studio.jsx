@@ -283,7 +283,7 @@ function FaceForm() {
           setError(uploaded.error || "视频没有传上去。");
           return;
         }
-        const result = await submitFaceVideo(await fileToDataUrl(face), uploaded.url, FACE_VIDEO_PROMPT);
+        const result = await submitFaceVideo(await fileToDataUrl(face), uploaded.url, FACE_VIDEO_PROMPT, seconds);
         if (!result.ok) {
           clearResult();
           setError(result.error);
@@ -329,7 +329,7 @@ function FaceForm() {
         </div>
         <Guide steps={["上传原始画面，可以是图片或视频", "上传目标人脸", "开始生成"]} />
         <ExampleBar text="把参考脸换进原来的画面或视频，保留姿势、服装和背景。" />
-        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
+        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "视频换脸会按参考视频的动作重新生成角色画面，成片 4–15 秒。", "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? (sceneIsVideo ? "正在换脸…" : "处理中…") : "开始生成"}</button>
       </form>
@@ -434,19 +434,23 @@ function VideoForm() {
   const [resultUrl, setResultUrl] = useState("");
   const [previews, setPreviews] = useState([]);
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => () => { if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
   useEffect(() => {
     const urls = files.map(file => URL.createObjectURL(file));
     setPreviews(urls);
     return () => urls.forEach(url => URL.revokeObjectURL(url));
   }, [files]);
 
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+  }
+
   function takeFiles(list) {
     const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
     if (!incoming.length) return;
     setError("");
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
-    setResultUrl("");
+    clearResult();
     setFiles(current => (mode === "first" ? incoming.slice(0, 1) : [...current, ...incoming]).slice(0, 10));
   }
 
@@ -468,13 +472,12 @@ function VideoForm() {
       for (const file of files) images.push(await fileToDataUrl(file));
       const result = await submitImageVideo(images, action, seconds, mode);
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
-      const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      const next = typeof result.url === "string" ? result.url : URL.createObjectURL(result.blob);
+      clearResult();
       setResultUrl(next);
     } catch {
       setError("视频没有完成。");

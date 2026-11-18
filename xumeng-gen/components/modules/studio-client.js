@@ -56,7 +56,7 @@ export async function optimizePrompt(text, kind) {
 
 export async function submitImageVideo(images, action, seconds, mode) {
   let body = { images, image: images[0], action, seconds, mode };
-  for (;;) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     const response = await fetch("/api/image-video", {
       method: "POST",
       headers: { "Content-Type": "application/json", [ADULT_HEADER]: "1" },
@@ -66,14 +66,18 @@ export async function submitImageVideo(images, action, seconds, mode) {
     if (response.ok && type.startsWith("video/")) return { ok: true, blob: await response.blob(), type };
     let payload = null;
     try { payload = await response.json(); } catch { payload = null; }
+    if (response.ok && payload && typeof payload.url === "string") {
+      return { ok: true, url: payload.url, type: type || "video/mp4" };
+    }
     if (response.status === 202 && payload && payload.taskId) {
       body = { taskId: payload.taskId };
-      await wait(4000);
+      await wait(8000);
       continue;
     }
-    if (response.status === 413) return { ok: false, error: "图片太大。" };
+    if (response.status === 413) return { ok: false, error: "视频太大。" };
     return { ok: false, error: payload && payload.error ? payload.error : "没有完成。" };
   }
+  return { ok: false, error: "视频这次等太久了。请再试一次。" };
 }
 
 export function submitAnimeFace(face, scene, prompt) {
@@ -113,8 +117,8 @@ export async function uploadFaceVideo(file) {
   return { ok: true, url: stored.url };
 }
 
-export async function submitFaceVideo(face, videoUrl, prompt) {
-  let body = { face, videoUrl, prompt };
+export async function submitFaceVideo(face, videoUrl, prompt, seconds) {
+  let body = { face, videoUrl, prompt, seconds };
   for (let attempt = 0; attempt < 120; attempt += 1) {
     let response;
     try {
@@ -131,8 +135,8 @@ export async function submitFaceVideo(face, videoUrl, prompt) {
       return { ok: true, url: payload.url, type: "video/mp4" };
     }
     if (response.status === 202 && payload && typeof payload.videoTaskId === "string") {
-      body = { videoTaskId: payload.videoTaskId, videoUrl: payload.videoUrl, faceUrl: payload.faceUrl };
-      await wait(4000);
+      body = { videoTaskId: payload.videoTaskId };
+      await wait(8000);
       continue;
     }
     return { ok: false, error: payload && typeof payload.error === "string" ? payload.error : "换脸没有完成。" };
