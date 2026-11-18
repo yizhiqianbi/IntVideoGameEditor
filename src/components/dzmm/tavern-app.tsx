@@ -996,12 +996,7 @@ export default function TavernApp() {
       .catch(() => {});
     return () => { live = false; };
   }, []);
-  useEffect(() => {
-    if (contentRating !== "sfw" || view !== "videos" || detail) return;
-    navigate("characters");
-  }, [contentRating, view, detail]);
-  // SFW mode hides the adult shelf entries without dropping their routes.
-  const localizedNav = NAV.filter(item => !(item.view === "videos" && contentRating === "sfw")).map(item => ({ ...item, label: t(item.labelKey) }));
+  const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
   // The mobile bar keeps four text tabs and lifts 创作 out as a round centre button.
