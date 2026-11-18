@@ -976,6 +976,10 @@ export default function TavernApp() {
   const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
+  // The mobile bar keeps four text tabs and lifts 创作 out as a round centre button.
+  const mobileNavItems = localizedNav.filter(item => item.view !== "studio");
+  const mobileNavSplit = Math.ceil(mobileNavItems.length / 2);
+  const mobileCreate = localizedNav.find(item => item.view === "studio");
   useEffect(() => {
     document.documentElement.lang = xumengHtmlLang(locale);
     const pathname = window.location.pathname;
@@ -4031,7 +4035,35 @@ export default function TavernApp() {
       </Deferred>
 
       <nav className={s.mobileNav} aria-label={copy.mainNav}>
-        {localizedNav.map((n) => (
+        {mobileNavItems.slice(0, mobileNavSplit).map((n) => (
+          <a
+            href={`#${n.view}`}
+            key={n.view}
+            onClick={(e) => {
+              e.preventDefault();
+              openNav(n.view);
+            }}
+            className={navigationCurrent(n.view) ? s.navActive : ""}
+          >
+            <Icon name={n.icon} size={21} />
+            <span>{n.label}</span>
+          </a>
+        ))}
+        {mobileCreate && (
+          <a
+            href="#studio"
+            aria-label={mobileCreate.label}
+            title={mobileCreate.label}
+            onClick={(e) => {
+              e.preventDefault();
+              openNav("studio");
+            }}
+            className={`${s.mobileCreate} ${navigationCurrent("studio") ? s.navActive : ""}`}
+          >
+            <span className={s.mobileCreateDisc}><Icon name="sparkles" size={26} /></span>
+          </a>
+        )}
+        {mobileNavItems.slice(mobileNavSplit).map((n) => (
           <a
             href={`#${n.view}`}
             key={n.view}

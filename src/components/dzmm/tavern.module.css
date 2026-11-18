@@ -2775,6 +2775,33 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* 创作 sits in the middle as a raised round AI button, the way short-video
+     apps lift their primary action out of the bar. */
+  .mobileNav a.mobileCreate {
+    flex: 0 0 68px;
+    padding: 0;
+    justify-content: center;
+    transform: translateY(-14px);
+  }
+  .mobileNav a.mobileCreate:hover,
+  .mobileNav a.mobileCreate.navActive { transform: translateY(-14px); color: white; }
+  .mobileNav a.mobileCreate span.mobileCreateDisc {
+    display: grid;
+    place-items: center;
+    width: 54px;
+    height: 54px;
+    max-width: none;
+    overflow: visible;
+    border-radius: 50%;
+    color: white;
+    background: linear-gradient(140deg, var(--pink) 10%, var(--pink-deep) 58%, #7b32d6 100%);
+    box-shadow: 0 10px 24px var(--rose-glow), 0 0 0 4px color-mix(in srgb, var(--bg) 82%, transparent), 0 0 0 5px color-mix(in srgb, var(--pink) 34%, transparent);
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .mobileNav a.mobileCreate:hover span.mobileCreateDisc { transform: scale(1.04); }
+  .mobileNav a.mobileCreate.navActive span.mobileCreateDisc {
+    box-shadow: 0 12px 28px var(--rose-glow), 0 0 0 4px color-mix(in srgb, var(--bg) 82%, transparent), 0 0 0 5px var(--pink);
+  }
   .floatingChat {
     bottom: 77px;
     right: 15px;
