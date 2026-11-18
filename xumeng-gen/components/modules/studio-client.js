@@ -28,11 +28,13 @@ async function post(url, body) {
   }
 }
 
-export function submitTextImage({ prompt, ratio, image }) {
+export function submitTextImage({ prompt, ratio, image, images }) {
   const body = { prompt, ratio: ratio || "portrait" };
-  if (image) {
-    body.image = image;
-    body.images = [image];
+  const chosen = (Array.isArray(images) ? images : []).filter(Boolean).slice(0, 2);
+  const sources = chosen.length ? chosen : (image ? [image] : []);
+  if (sources.length) {
+    body.image = sources[0];
+    body.images = sources;
   }
   return post("/api/text-image", body);
 }

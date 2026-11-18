@@ -78,6 +78,12 @@ function PictureField({ title, hint, mark, url, tall, onFile, accept = "image/*,
   );
 }
 
+// 参考图卡位：内部持有预览 URL，方便同时放两张可选参考图。
+function ReferenceSlot({ title, hint, file, onFile }) {
+  const url = usePreview(file);
+  return <PictureField title={title} hint={hint} url={url} onFile={onFile} />;
+}
+
 // 从本地视频里读时长，用来挡住过长的素材。
 function videoSeconds(file) {
   const url = URL.createObjectURL(file);
@@ -543,28 +549,29 @@ const IMAGE_CLARITY = [
 ];
 
 function ImageForm() {
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([null, null]);
   const [prompt, setPrompt] = useState("");
   const [ratio, setRatio] = useState("portrait");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
-  const [previews, setPreviews] = useState([]);
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
-  useEffect(() => {
-    const urls = files.map(file => URL.createObjectURL(file));
-    setPreviews(urls);
-    return () => urls.forEach(url => URL.revokeObjectURL(url));
-  }, [files]);
+  useEffect(() => () => { if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
-  function takeFiles(list) {
-    const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
-    if (!incoming.length) return;
-    setError("");
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
     setResultUrl("");
-    setFiles(incoming.slice(0, 1));
+  }
+
+  function takeFile(index, file) {
+    if (!file) return;
+    if (!acceptedImage(file)) {
+      setError("请上传图片。");
+      return;
+    }
+    setError("");
+    clearResult();
+    setFiles(current => current.map((item, position) => (position === index ? file : item)));
   }
 
   async function submit(event) {
@@ -577,16 +584,17 @@ function ImageForm() {
     setBusy(true);
     try {
       const images = [];
-      for (const file of files) images.push(await fileToDataUrl(file));
-      const result = await submitTextImage({ prompt, ratio, image: images[0] || "" });
+      for (const file of files) {
+        if (file) images.push(await fileToDataUrl(file));
+      }
+      const result = await submitTextImage({ prompt, ratio, images });
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
       const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      clearResult();
       setResultUrl(next);
     } catch {
       setError("图片没有完成。");
@@ -598,18 +606,21 @@ function ImageForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，让灵感变成图片" />
+        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，最多可以带两张参考图" />
         <div className="stage">
-          <PictureField title="点击上传图片" hint="选填，JPG、PNG" url={previews[0] || ""} onFile={file => takeFiles(file)} />
-          <Guide steps={["上传参考图片，可以不传", "输入想生成的画面", "选择比例，开始生成"]} />
+          <div className="pair">
+            <ReferenceSlot title="参考图 1" hint="选填，JPG、PNG" file={files[0]} onFile={file => takeFile(0, file)} />
+            <ReferenceSlot title="参考图 2" hint="选填，JPG、PNG" file={files[1]} onFile={file => takeFile(1, file)} />
+          </div>
+          <Guide steps={["最多上传两张参考图，可以不传", "输入想生成的画面", "选择比例，开始生成"]} />
         </div>
         <PromptBox
           label="画面描述"
           value={prompt}
           max={800}
           min={5}
-          placeholder="例如：月光下的古风少女站在樱花树旁，远处山峦若隐若现"
-          onChange={value => { setResultUrl(""); setPrompt(value); }}
+          placeholder="例如：让参考图里的人物穿成参考图 2 的衣服，站在月光下的樱花树旁"
+          onChange={value => { clearResult(); setPrompt(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "image");
@@ -617,14 +628,13 @@ function ImageForm() {
               setError(outcome.error);
               return;
             }
-            if (resultUrl) URL.revokeObjectURL(resultUrl);
-            setResultUrl("");
+            clearResult();
             setPrompt(outcome.prompt);
           }}
         />
-        <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { setResultUrl(""); setPrompt(value); }} />
-        <Notes items={COMMON_NOTES} />
-        <RatioCards value={ratio} onChange={value => { setResultUrl(""); setRatio(value); }} />
+        <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { clearResult(); setPrompt(value); }} />
+        <Notes items={["可以带两张参考图，比如一张人物、一张场景或服装。", "在描述里写清哪张参考图负责什么，生成会更贴近预期。", ...COMMON_NOTES]} />
+        <RatioCards value={ratio} onChange={value => { clearResult(); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
       </form>

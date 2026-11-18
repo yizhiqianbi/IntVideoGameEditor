@@ -23,6 +23,8 @@
 - 结果图片（PNG）由函数下载后直接回浏览器；参考图必须先放到渠道能公开读取的 https 地址
   （现在统一走 `channel-media` 素材库）。
 - 页面路径：AI生图 `/api/text-image`；换脸生图 `/api/face-swap` 的图片分支。
+- AI生图支持带 0–2 张参考图（页面两个卡位），`buildTextImage` 最多放过两张；Image Lite 本身支持最多 10 张，
+  要再加卡位只需放宽这个上限。
 - 换脸生图的提示词仍来自 `components/modules/prompt-defaults.js`，路由会把 `<image1>/<image2>` 换成
   「第一张参考图 / 第二张参考图」再发给 Image Lite。
 
