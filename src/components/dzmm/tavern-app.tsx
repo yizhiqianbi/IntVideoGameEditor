@@ -2813,7 +2813,9 @@ export default function TavernApp() {
     }) : [];
     const orderedRemote = tab === "最新" ? orderDzmmShelfByTime(remote) : remote;
     const visible = [...searchLocalMatches, ...followedLocal, ...pinned, ...translatedLocal, ...orderedRemote].filter((character) => {
-      if (contentRating === "sfw" && !character.publication) return false;
+      // Only published cards belong on the storefront; the bundled sample cards
+      // and the viewer's private drafts stay out of it in every mode.
+      if (!character.publication) return false;
       if (view !== "search" && (!character.cover || character.cover.includes("placeholder"))) return false;
       if (view !== "search" && look && !character.publication && dzmmLocalLook(character.id) !== look) return false;
       if (seen.has(character.id)) return false;
