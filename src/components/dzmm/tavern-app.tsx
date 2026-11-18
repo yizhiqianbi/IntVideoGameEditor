@@ -4083,7 +4083,7 @@ export default function TavernApp() {
           </a>
         ))}
       </nav>
-      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && !detail && state.preferences.showFloatingChat !== false && (
+      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && view !== "studio" && !detail && state.preferences.showFloatingChat !== false && (
         <button
           className={s.floatingChat}
           style={{ opacity: (state.preferences.floatingOpacity ?? 100) / 100, width: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54, height: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54 }}

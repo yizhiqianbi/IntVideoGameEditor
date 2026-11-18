@@ -24,15 +24,24 @@ export default function CreatorCenter({ user, drafts, section = "home", locale =
   const start = (route: string) => registered ? onRoute(route) : onRequireAccount();
   return <main className={s.workspace}>
     <section className={s.content}>
-      <header className={s.header}><div><p>{copy.creatorEyebrow}</p><h1>{section === "roles" ? copy.rolesAndPosts : copy.startCreating}</h1><span>{section === "roles" ? copy.rolesLead : copy.createLead}</span></div><div className={s.headerActions}>{section === "roles" && <button onClick={() => onRoute("studio")}><Icon name="back" size={16}/>{copy.workbench}</button>}<button onClick={() => onRoute("characters")}><Icon name="back" size={16}/>{copy.backToSite}</button></div></header>
+      <header className={`${s.header} ${section === "roles" ? "" : s.headerCompact}`}>{section === "roles" ? <div><p>{copy.creatorEyebrow}</p><h1>{copy.rolesAndPosts}</h1><span>{copy.rolesLead}</span></div> : <div><h1>{copy.startCreating}</h1></div>}<div className={s.headerActions}>{section === "roles" && <button onClick={() => onRoute("studio")}><Icon name="back" size={16}/>{copy.workbench}</button>}<button onClick={() => onRoute("characters")}><Icon name="back" size={16}/>{copy.backToSite}</button></div></header>
       {section === "roles" ? <PublishingCenter locale={locale} embedded user={user} drafts={drafts} onCreate={onCreate} onEdit={onEdit} onCharacter={onCharacter} onRequireAccount={onRequireAccount} onCatalogChanged={onCatalogChanged} onNovels={() => onRoute("novels")}/> : <>
-        <section className={s.starts} aria-label={copy.beginCreate}>
-          <button className={s.primaryStart} onClick={onCreate} title={copy.personaOpeningBook}><span className={s.mark}><Icon name="user" size={16}/></span><strong>{copy.createRole}</strong>{createCost ? <small className={s.price}>· {createCost} Credit</small> : null}<span className={s.hint}>{copy.personaOpeningBook}</span></button>
-          <button onClick={() => start("novels/new/novel")} title={copy.peopleOutlineChapters}><span className={s.mark}><Icon name="book" size={16}/></span><strong>{copy.novelsStories}</strong><span className={s.hint}>{copy.peopleOutlineChapters}</span></button>
-          <button onClick={() => onRoute("studio/girlfriends/new")} title={copy.coverAlbumPersona}><span className={s.mark}><Icon name="upload" size={16}/></span><strong>{copy.uploadGirlfriend}</strong><span className={s.hint}>{copy.coverAlbumPersona}</span></button>
-          <button onClick={() => onRoute("studio/games")} title={copy.importGameHint}><span className={s.mark}><Icon name="play" size={16}/></span><strong>{copy.uploadGame}</strong><span className={s.hint}>{copy.importGameHint}</span></button>
-          <button onClick={() => start("studio/scenarios/new")} title={copy.scenarioHint}><span className={s.mark}><Icon name="users" size={16}/></span><strong>{copy.createScenario}</strong><span className={s.hint}>{copy.scenarioHint}</span></button>
-          {XUMENG_GENERATION_WORKSPACE_ENABLED && <button onClick={() => onRoute("generation")} title={copy.generateHint}><span className={s.mark}><Icon name="image" size={16}/></span><strong>{copy.generate}</strong><span className={s.hint}>{copy.generateHint}</span></button>}
+        <section className={s.tiles} aria-label={copy.beginCreate}>
+          {([
+            { key: "role", label: copy.createRole, icon: "user" as const, art: "/assets/xumeng/content-covers/tangtang.jpg", primary: true, run: onCreate },
+            { key: "novel", label: copy.novelsStories, icon: "book" as const, art: "/assets/xumeng/generation-templates/scene.svg", primary: false, run: () => start("novels/new/novel") },
+            { key: "girlfriend", label: copy.uploadGirlfriend, icon: "upload" as const, art: "/assets/xumeng/content-covers/wanning.jpg", primary: false, run: () => onRoute("studio/girlfriends/new") },
+            { key: "game", label: copy.uploadGame, icon: "play" as const, art: "/assets/xumeng/categories/rpg.webp", primary: false, run: () => onRoute("studio/games") },
+            { key: "scenario", label: copy.createScenario, icon: "users" as const, art: "/assets/xumeng/categories/cultivation-sect.webp", primary: false, run: () => start("studio/scenarios/new") },
+            ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ key: "generate", label: copy.generate, icon: "image" as const, art: "/assets/xumeng/generation-templates/cover.svg", primary: false, run: () => onRoute("generation") }] : []),
+          ]).map(tile => (
+            <button key={tile.key} type="button" className={`${s.tile} ${tile.primary ? s.tilePrimary : ""}`} onClick={tile.run} title={tile.label}>
+              <img className={s.tileArt} src={tile.art} alt="" loading="lazy" />
+              <span className={s.tileShade} />
+              <span className={s.tileIcon}><Icon name={tile.icon} size={16} /></span>
+              <span className={s.tileLabel}>{tile.label}{tile.primary && createCost ? <small> · {createCost} Credit</small> : null}</span>
+            </button>
+          ))}
         </section>
       </>}
     </section>
