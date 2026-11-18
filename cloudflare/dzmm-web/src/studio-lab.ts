@@ -6,6 +6,10 @@ import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 export interface StudioLabEnv {
   SEALION_API_KEY?: string;
   SEALION_BASE_URL?: string;
+  GLM_API_KEY?: string;
+  GLM_BASE_URL?: string;
+  DZMM_API_KEY?: string;
+  DZMM_BASE_URL?: string;
   WHATSTOKEN_API_KEY?: string;
 }
 
@@ -52,36 +56,62 @@ function dataUrl(image: { bytes: Uint8Array; mime: string }): string {
   return `data:${image.mime};base64,${btoa(binary)}`;
 }
 
+type Provider = { label: string; url: string; key: string; model: string };
+
+/** The studio's old sealion key is dead, so the editor walks the providers the
+ * worker already holds and keeps the first answer that looks like a prompt. */
+function providers(env: StudioLabEnv): Provider[] {
+  const list: Provider[] = [];
+  const sealion = env.SEALION_API_KEY?.trim();
+  if (sealion) {
+    try {
+      const base = new URL(env.SEALION_BASE_URL?.trim() || `https://${SEALION_HOST}/v1`);
+      if (base.protocol === "https:" && base.hostname === SEALION_HOST) list.push({ label: "sealion", url: `${base.href.replace(/\/+$/, "")}/chat/completions`, key: sealion, model: SEALION_MODEL });
+    } catch { /* ignore a broken sealion base */ }
+  }
+  const glm = env.GLM_API_KEY?.trim();
+  if (glm) list.push({ label: "glm", url: `${(env.GLM_BASE_URL?.trim() || "https://8888ai.cc.cd/v1").replace(/\/+$/, "")}/chat/completions`, key: glm, model: "glm-5.2" });
+  const openrouter = env.DZMM_API_KEY?.trim();
+  if (openrouter) list.push({ label: "openrouter", url: `${(env.DZMM_BASE_URL?.trim() || "https://openrouter.ai/api/v1").replace(/\/+$/, "")}/chat/completions`, key: openrouter, model: "x-ai/grok-4.7" });
+  return list;
+}
+
 async function polish(body: Record<string, unknown>, env: StudioLabEnv): Promise<Response> {
-  const key = env.SEALION_API_KEY?.trim();
-  if (!key) return json({ error: "提示词优化还没配上。" }, 503);
   const kind: Kind = body.kind === "character" || body.kind === "story" || body.kind === "image" ? body.kind : "video";
   const source = (typeof body.text === "string" ? body.text : "").replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 800);
   if (BLOCKED.test(source)) return json({ error: "不能优化这段描述。" }, 400);
-  let endpoint: URL;
-  try { endpoint = new URL(`https://${SEALION_HOST}/v1/chat/completions`); } catch { return json({ error: "提示词优化地址无效。" }, 503); }
-  let response: Response;
-  try {
-    response = await fetch(endpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
-      body: JSON.stringify({
-        model: SEALION_MODEL,
-        messages: [
-          { role: "system", content: SYSTEMS[kind] },
-          { role: "user", content: source ? `用户原句：${source}` : "用户还没有写内容，写一段虚构的成年人场景。" },
-        ],
-      }),
-      redirect: "manual",
-      signal: AbortSignal.timeout(45_000),
-    });
-  } catch { return json({ error: "提示词没有优化完。" }, 502); }
-  if (!response.ok) { await response.body?.cancel(); return json({ error: "提示词没有优化完。" }, 502); }
-  const payload = await response.json().catch(() => null) as { choices?: { message?: { content?: unknown } }[] } | null;
-  const reply = payload?.choices?.[0]?.message?.content;
-  const prompt = typeof reply === "string" ? reply.replace(/^["'“”\s]+|["'“”\s]+$/g, "").slice(0, 800) : "";
-  if (prompt.length < 5 || BLOCKED.test(prompt)) return json({ error: "提示词没有优化完。" }, 502);
-  return json({ prompt });
+  const chain = providers(env);
+  if (!chain.length) return json({ error: "提示词优化还没配上。" }, 503);
+  for (const provider of chain) {
+    try {
+      const response = await fetch(provider.url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${provider.key}` },
+        body: JSON.stringify({
+          model: provider.model,
+          messages: [
+            { role: "system", content: SYSTEMS[kind] },
+            { role: "user", content: source ? `用户原句：${source}` : "用户还没有写内容，写一段虚构的成年人场景。" },
+          ],
+        }),
+        redirect: "manual",
+        signal: AbortSignal.timeout(45_000),
+      });
+      if (!response.ok) {
+        const detail = await response.text().catch(() => "");
+        console.warn("lab_optimize_provider_failed", { provider: provider.label, status: response.status, detail: detail.slice(0, 160) });
+        continue;
+      }
+      const payload = await response.json().catch(() => null) as { choices?: { message?: { content?: unknown } }[] } | null;
+      const reply = payload?.choices?.[0]?.message?.content;
+      const prompt = typeof reply === "string" ? reply.replace(/^["'“”\s]+|["'“”\s]+$/g, "").slice(0, 800) : "";
+      if (prompt.length < 5 || BLOCKED.test(prompt)) continue;
+      return json({ prompt });
+    } catch (error) {
+      console.warn("lab_optimize_provider_error", { provider: provider.label, error: error instanceof Error ? error.message.slice(0, 120) : "unknown" });
+    }
+  }
+  return json({ error: "提示词没有优化完。" }, 502);
 }
 
 async function edit(body: Record<string, unknown>, env: StudioLabEnv, kind: "coat" | "face"): Promise<Response> {
