@@ -139,6 +139,7 @@ const ForumView = lazy(() => import("./forum-view"));
 const CharacterStudio = lazy(() => import("./character-studio"));
 const PublishingCenter = lazy(() => import("./publishing-center"));
 const CreatorCenter = lazy(() => import("./creator-center"));
+const CreatorWorks = lazy(() => import("./creator-works"));
 const GameStudio = lazy(() => import("./game-studio"));
 const GamePlayer = lazy(() => import("./game-player").then((module) => ({ default: module.GamePlayer })));
 const ScenarioStudio = lazy(() => import("./scenario-studio").then((module) => ({ default: module.ScenarioStudio })));
@@ -4021,7 +4022,11 @@ export default function TavernApp() {
           </section>
           <button className={s.secondary} onClick={() => download("dzmm-account-backup.json", JSON.stringify(state, null, 2))}><Icon name="download" />{copy.exportRecords}</button>
           </>}
+          <Deferred>
+            <CreatorWorks key={`works:${profileUser.id}`} user={cloud.user} drafts={state.custom} locale={locale} onEdit={openStudio} onRoute={openCreatorRoute} onRequireAccount={() => openAccount("register")} />
+          </Deferred>
         </div>
+
       </>}
       {view === "invite" && !detail && <InviteCenter locale={locale} key={profileUser.id} user={cloud.user} onBack={() => navigate("profile")} onRegister={() => openAccount("register")} onWallet={() => navigate("profile")} />}
       {view === "settings" && !detail && <ProfileSettings key={profileUser.id} user={cloud.user} preferences={state.preferences} onPreferences={savePreferences} onBack={() => navigate("profile")} onPasswordChanged={cloud.passwordConfigured} onEmailBound={cloud.emailBound} />}
@@ -4078,7 +4083,7 @@ export default function TavernApp() {
           </a>
         ))}
       </nav>
-      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && !detail && state.preferences.showFloatingChat !== false && (
+      {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && !detail && state.preferences.showFloatingChat !== false && (
         <button
           className={s.floatingChat}
           style={{ opacity: (state.preferences.floatingOpacity ?? 100) / 100, width: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54, height: state.preferences.floatingSize === "small" ? 44 : state.preferences.floatingSize === "large" ? 64 : 54 }}
