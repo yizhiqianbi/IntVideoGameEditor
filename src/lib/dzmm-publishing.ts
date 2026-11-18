@@ -61,6 +61,7 @@ export function fetchDzmmPublicCharacters(query: number | DzmmCatalogRequest = 0
   if (input.ids?.length) params.set("ids", input.ids.join(","));
   if (input.since) params.set("since", String(input.since));
   if (input.look) params.set("look", input.look);
+  if (input.rating) params.set("rating", input.rating);
   return request<DzmmPublishingPage<{ characters: DzmmPublishedCharacter[] }>>(`/catalog?${params}`);
 }
 export async function fetchDzmmPlayMaterials(id: string, signal?: AbortSignal): Promise<Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar">> {

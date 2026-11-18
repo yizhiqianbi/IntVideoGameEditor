@@ -10,6 +10,7 @@ export const DZMM_CATALOG_LOOKS = ["photo", "anime"] as const;
 export type DzmmCatalogLook = (typeof DZMM_CATALOG_LOOKS)[number];
 
 export type DzmmCatalogRequest = {
+  rating?: "nsfw" | "sfw";
   offset?: number;
   limit?: number;
   q?: string;
