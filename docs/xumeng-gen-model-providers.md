@@ -30,14 +30,16 @@
 
 ## 视频：WAND-Vega-Video-1.5-Lite（图生视频）+ huanlian（换脸视频）
 
-2026-11-19 定稿路线：**图生视频用上一版 H3 fast，换脸视频用 huanlian 像素换脸 + 超清放大**。
+2026-11-19 定稿路线：**图生视频用 H3 fast + 超清放大，换脸视频用 huanlian 像素换脸 + 超清放大**。
 两条都可切换：`TENCENT_VIDEO_PROVIDER=wand-lite` 把图生视频切到 WAND；
 `FACE_VIDEO_PROVIDER=wand-lite` 把换脸视频切到 WAND 参考模式（SFW 可用，NSFW 会被内容审核拒）。
 
 ### H3 fast：图生视频（当前默认）
 
 - 页面路径：图生视频 `/api/image-video`；参数 4–15 秒、720P，首帧模式不传 ratio。
-- 成片转存 channel-media 后回地址。
+- 成片转存 channel-media 后，再走超清放大（`/api/public/ai_chuangzao_chaoqing_fangda`），
+  720×1280 → 1080×1920；放大失败回退原片。
+- 开关：`TENCENT_VIDEO_UPSCALE=off`；轮询同样会返回 `up:<taskId>:<原片URL>` 阶段。
 
 ### WAND-Vega-Video-1.5-Lite：视频备用通道 / 换脸视频（当前默认）
 

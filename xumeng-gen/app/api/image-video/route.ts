@@ -5,6 +5,7 @@ import { fitVideoFrame, normalizeImage } from "@/lib/reference-image.mjs";
 import { buildImageVideo } from "@/lib/studio-page.mjs";
 import { h3Duration, h3TaskId, pollH3Video, startH3Video } from "@/lib/tencent-video.mjs";
 import { pollVideoLite, startVideoLite, videoLiteTaskId } from "@/lib/wand-video-lite.mjs";
+import { pollUpscale, startUpscale } from "@/lib/video-upscale.mjs";
 import { pollWandVideo } from "@/lib/wand-video.mjs";
 
 export const maxDuration = 300;
@@ -37,17 +38,28 @@ export async function POST(request: Request) {
   if (typeof body.taskId === "string") {
     if (Object.keys(body).some(key => key !== "taskId")) return jsonError("视频任务无效。", 400);
     try {
+      if (body.taskId.startsWith("up:")) {
+        const [, upTaskId, encoded] = body.taskId.split(":");
+        const rawUrl = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
+        try {
+          const rendered = await pollUpscale(upTaskId);
+          if (!rendered) return pending(body.taskId);
+          const url = await storeVideo(rendered.bytes, rendered.contentType);
+          return done(url);
+        } catch {
+          if (!rawUrl) return jsonError("超清放大没有完成。", 502);
+          return done(rawUrl);
+        }
+      }
       if (videoLiteTaskId(body.taskId)) {
         const rendered = await pollVideoLite(body.taskId);
         if (!rendered) return pending(body.taskId);
-        const url = await storeVideo(rendered.bytes, rendered.contentType);
-        return done(url);
+        return finishVideo(await storeVideo(rendered.bytes, rendered.contentType));
       }
       if (h3TaskId(body.taskId)) {
         const rendered = await pollH3Video(body.taskId);
         if (!rendered) return pending(body.taskId);
-        const url = await storeVideo(rendered.bytes, rendered.contentType);
-        return done(url);
+        return finishVideo(await storeVideo(rendered.bytes, rendered.contentType));
       }
       if (!wandTaskId(body.taskId)) return jsonError("视频任务无效。", 400);
       const rendered = await pollWandVideo(body.taskId);
@@ -99,5 +111,16 @@ export async function POST(request: Request) {
     return pending(taskId);
   } catch (error) {
     return failure(error);
+  }
+}
+
+// 成片先落媒体库；开启超清放大时再走一次 up: 任务，失败回退原片。
+async function finishVideo(url: string) {
+  if (String(process.env.TENCENT_VIDEO_UPSCALE || "on").toLowerCase() === "off") return done(url);
+  try {
+    const upTaskId = await startUpscale(url);
+    return pending(`up:${upTaskId}:${Buffer.from(url, "utf8").toString("base64url")}`);
+  } catch {
+    return done(url);
   }
 }

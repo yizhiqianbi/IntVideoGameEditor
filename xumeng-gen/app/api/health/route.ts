@@ -18,6 +18,7 @@ export async function GET() {
     model: imageLite ? "WAND-Vega-Image-1.0-Lite" : "",
     video: videoProvider === "h3" ? Boolean(h3) : Boolean(videoLite),
     videoModel: videoProvider === "h3" ? "MiniMax H3 fast" : "WAND-Vega-Video-1.5-Lite",
+    videoUpscale: videoProvider === "h3" ? upscaleEnabled() && Boolean(upscaleCredentials()) : false,
     faceVideo: faceWand ? Boolean(videoLite) : Boolean(process.env.AIAPI_SECRETKEY),
     faceVideoModel: faceWand ? "WAND-Vega-Video-1.5-Lite" : "huanlian",
     faceVideoUpscale: faceWand ? false : upscale,

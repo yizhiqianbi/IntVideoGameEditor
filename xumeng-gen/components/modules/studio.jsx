@@ -501,7 +501,7 @@ function VideoForm() {
           <Guide steps={["上传一张清晰图片", "输入想生成的视频内容", "选择时长，开始生成"]} />
         </div>
         <ExampleBar text="人物微笑着缓缓转身，微风吹动头发，镜头逐渐拉近。" onUse={value => { setResultUrl(""); setAction(value); }} />
-        <Notes items={["上传图片需清晰，主体明确。", "描述人物动作、场景变化或镜头效果。", ...COMMON_NOTES]} />
+        <Notes items={["上传图片需清晰，主体明确。", "描述人物动作、场景变化或镜头效果。", "生成完成后自动超清放大到 1080 宽，会多等几分钟。", ...COMMON_NOTES]} />
         <PromptBox
           label="视频内容描述"
           value={action}
