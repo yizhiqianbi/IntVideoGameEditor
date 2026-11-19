@@ -66,7 +66,13 @@ export function videoLiteRead(payload) {
     return url ? { phase: "done", url, error: "" } : { phase: "failed", url: "", error: "视频地址没有返回。" };
   }
   if (status === "failed" || status === "cancelled" || status === "canceled") {
-    return { phase: "failed", url: "", error: String((bag && (bag.error || bag.message)) || "视频没有完成。").slice(0, 180) };
+    const raw = bag && bag.error;
+    const message = typeof raw === "string"
+      ? raw
+      : raw && typeof raw === "object"
+        ? String(raw.message_zh || raw.message || raw.code || "")
+        : String((bag && bag.message) || "");
+    return { phase: "failed", url: "", error: (message || "视频没有完成。").slice(0, 180) };
   }
   return { phase: "pending", url: "", error: "" };
 }
