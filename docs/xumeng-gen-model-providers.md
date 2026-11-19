@@ -28,22 +28,37 @@
 - 换脸生图的提示词仍来自 `components/modules/prompt-defaults.js`，路由会把 `<image1>/<image2>` 换成
   「第一张参考图 / 第二张参考图」再发给 Image Lite。
 
-## 视频：H3 fast
+## 视频：H3 fast（图生视频）+ huanlian（换脸视频）
+
+2026-11-19 定稿路线：**图生视频用 H3 fast，换脸视频用 huanlian**。H3 做不了真换脸（见下）。
+
+### H3 fast：图生视频
 
 - 提交：`POST /minimax/v2/video_generation/fast`；查询：`GET /minimax/query/{task_id}`，
   `running` 继续查，`succeeded` 取 `task.content.url`。
-- 参数：`duration` 4–15 秒整数；`resolution` 720P；首帧模式用 `role=first_frame` 且不传 ratio；
-  换脸视频用 `reference_image` + `reference_video`，ratio 用 `adaptive`。
+- 参数：`duration` 4–15 秒整数；`resolution` 720P；首帧模式用 `role=first_frame` 且不传 ratio。
 - 成片下载后经签名直传存进 `channel-media` 素材库，浏览器拿到的是
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
-- 页面路径：图生视频 `/api/image-video`；换脸视频 `/api/face-swap` 的视频分支。
-- 换脸视频的路线判断、执行脚本和实测证据封装在 skill：`.agents/skills/h3-face-swap-video/`（H3 与 huanlian 对比见 `references/evidence.md`）。
-- 换脸视频素材限制：15 秒、64MB（H3 成片 4–15 秒）；成片不是像素级换脸，而是「参考图角色重演参考视频的
-  动作/表情」，身份偶尔会向参考视频原角色漂移。
-- 2026-11-19 分项实测见
-  [腾讯模型分项实测](../output/xumeng/tencent-model-tests-20261119/report.md)：6 项全部出片，但换脸视频的
-  身份替换不稳定（3 次样本 1 次成功）；`first_frame`/`last_frame` 与 `reference_*` 混用会被接口 400 拒绝，
-  H3 没有精确视频换脸模式。需要稳定换脸时把 `/api/face-swap` 视频分支切回旧的 huanlian。
+- 页面路径：图生视频 `/api/image-video`。
+
+### huanlian：换脸视频（原视频保留，只换脸）
+
+- 页面路径：`/api/face-swap` 的视频分支，实现在 `xumeng-gen/lib/huanlian.mjs`。
+- 提交 `POST {AIAPI_BASE_URL}/api/public/huanlian`（form：`video_url`、`img_url`、`positive_prompt`、
+  `video_format`），查询 `GET /api/public/task?task_id=`，`status=2` 取 `out_data[]` 里的成片地址。
+- 像素级换脸：背景、发型、身体、动作、镜头都保留，只替换五官；成片约 10–20 秒。
+- 供应商回执带 `fee`（当时 10）和 watermark 标记；成片同样转存到 `channel-media`。
+- 素材限制：30 秒、64MB。
+
+### H3 不能做换脸视频（实测结论）
+
+- H3 全能参考（`reference_image` + `reference_video`）只会「保留参考视频原角色」或「整段按参考图重生成
+  画面」，拿不到「原视频不变、只换脸」。
+- 9 组 prompt 对照（含具体可见描述、复测、否定式、英文、通用模板），按真换脸标准成功 0 次；
+  否定句会反向保留原角色，`first_frame`/`last_frame` 与 `reference_*` 混用直接 400。
+- 证据与 prompt 样本：`.agents/skills/h3-face-swap-video/references/prompt-experiments.md`、
+  `output/xumeng/h3-prompt-experiment-20261119/`；huanlian 真换脸对比：
+  `output/xumeng/h3-face-swap-skill-20261119/verify/live-huanlian-check.jpg`。
 
 ## 交互与存储
 

@@ -55,3 +55,14 @@ node .agents/skills/h3-face-swap-video/scripts/h3-face-swap-video.mjs \
   按参考图重生成场景，拿不到「原视频不变、只换脸」。
 - 提示词加强、首帧预热都不能改变这一行为；`first_frame` 与 `reference_*` 不能混用。
 - 要稳定换脸视频：走 huanlian，单次约 10–20 秒，原视频画面保留；H3 只用于「角色参考重演」类生成。
+
+## 结论修正与 huanlian 线上验证（2026-11-19，用户指出「都没换脸成功」）
+
+- 按真·换脸标准（原视频画面/身体/服装保留、只换脸）重判：H3 的 9 组 prompt 对照 **真换脸成功 0 次**。
+  P3 只是场景和动作接近，服装/身体仍来自参考图。
+- 线上 `/face` 视频分支已切回 huanlian（`xumeng-gen/lib/huanlian.mjs`，任务号 `face-video-*`，
+  成片转存 channel-media）。
+- 同组素材线上实测：`output/xumeng/h3-face-swap-skill-20261119/verify/live-huanlian-check.jpg`
+  （左 1 = 参考脸；之后每对为源视频 / huanlian 结果：背景、双丸子头、肩线、眨眼与头部时间点一致，
+  只有五官换成参考脸）。
+- 线上接口实测：提交返回 202，约 2 次轮询（8 秒级）后拿到成片地址，808,548 B，21 秒级完成。
