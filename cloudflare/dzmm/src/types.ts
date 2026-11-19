@@ -15,6 +15,8 @@ export type Env = {
   TELEGRAM_FEEDBACK_ALLOWED_CHAT_IDS?: string;
   TELEGRAM_FEEDBACK_WEBHOOK_SECRET?: string;
   GENERATION_ENABLED?: string;
+  /** Set to "legacy" to fall back to the old chat still prompts. */
+  CHAT_STILL_PROMPT?: string;
   GENERATION_OPENROUTER_API_KEY?: string;
   GENERATION_USD_TO_CNY?: string;
   DB: D1Database;

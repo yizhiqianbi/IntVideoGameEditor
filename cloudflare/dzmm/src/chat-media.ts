@@ -88,16 +88,18 @@ async function conversationSpeechVoice(env: Env, userId: string, conversationId:
     return fallback;
   }
 }
-type StatusContext = { labels: string[]; initial: string };
+type StatusContext = { labels: string[]; initial: string; appearance: string };
 async function statusContext(env: Env, userId: string, conversationId: string): Promise<StatusContext> {
-  const row = await env.DB.prepare(`SELECT c.context_json AS context_json FROM conversations v
+  const row = await env.DB.prepare(`SELECT c.context_json AS context_json, c.description AS description FROM conversations v
     JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
-    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string }>();
-  if (!row?.context_json) return { labels: [], initial: "" };
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string; description: string | null }>();
+  if (!row) return { labels: [], initial: "", appearance: "" };
+  let appearance = "";
   try {
-    const parsed = JSON.parse(row.context_json) as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown } };
+    const parsed = JSON.parse(row.context_json || "{}") as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown }; appearance?: unknown };
+    if (typeof parsed.appearance === "string" && parsed.appearance.trim()) appearance = parsed.appearance.replace(/\s+/g, " ").trim().slice(0, 160);
     const bar = parsed.statusBar;
-    if (!bar || typeof bar !== "object") return { labels: [], initial: "" };
+    if (!bar || typeof bar !== "object") return { labels: [], initial: "", appearance };
     const normalized = {
       template: typeof bar.template === "string" ? bar.template : "",
       initialState: typeof bar.initialState === "string" ? bar.initialState : "",
@@ -107,9 +109,9 @@ async function statusContext(env: Env, userId: string, conversationId: string): 
       .filter(field => field.value.trim() && field.value.trim() !== "未记录")
       .map(field => `${field.label}：${field.value}`)
       .join("\n");
-    return { labels: xumengStatusBarLabels(normalized), initial };
+    return { labels: xumengStatusBarLabels(normalized), initial, appearance };
   } catch {
-    return { labels: [], initial: "" };
+    return { labels: [], initial: "", appearance };
   }
 }
 async function mediaNarrative(env: Env, userId: string, conversationId: string, messageId: string, source: MessageRow): Promise<string> {
@@ -234,9 +236,12 @@ export function chatScenePrompt(content: string): string {
   return prefix + visual.slice(0, 2048 - prefix.length).replace(/[\ud800-\udbff]$/, "");
 }
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
+const STILL_STYLE = "画风锁（最高优先级）：画风必须与参考图完全一致——二次元动漫插画、赛璐璐平涂上色、清晰线稿与高光；禁止写实照片、3D渲染、真人质感、塑料皮肤。";
+const STILL_CAMERA = "镜头：斜前方第三人称，人物占画面二分之一以上，能看清脸、发型和服装；不要远景小人、不要背对镜头。";
+const STILL_FALLBACK_IDENTITY = "角色：以参考图中的同一人物为准，五官、发型、瞳色和服装不变，不要换成别人。";
+const STILL_SUFFIX = "。所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
 const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。输入的参考图是唯一的角色身份、构图和连续性锚点；上一张已生成的剧情图片存在时，必须优先参考上一张做连续生图，保持同一张脸、发型、肤色、体型、服装轮廓、主要颜色、镜头关系和画风；如果这是第一张或上一张已不可用，则使用角色封面作为身份锚点。不要把参考图当成灵感图，也不要换成另一个人。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景；状态字段是当前画面的硬约束，低数值不要夸张，高数值不要省略。这一刻：";
 const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景。这一刻：";
-const STILL_SUFFIX = "。所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
 const STATUS_LABEL_CUES: [RegExp, string][] = [
   [/性欲|兴奋|唤起/u, "唤起程度按数值和备注呈现，不自行升级"],
   [/奶水|乳房|胸部|乳/u, "胸部状态只按数值和备注呈现，不用默认夸张体型替代"],
@@ -246,6 +251,19 @@ const STATUS_LABEL_CUES: [RegExp, string][] = [
   [/私处|下体|身体状态/u, "身体状态按字段执行，不用无关的默认状态覆盖"],
   [/地点|位置|场景|环境/u, "地点和环境决定背景、灯光与空间关系"],
 ];
+/** Status labels that actually describe what the camera should see. Anything
+ * else (abilities, prizes, inner monologue) is story state, not a picture. */
+const VISUAL_STATUS = /衣|服|裸|胸|乳|腿|腰|臀|唇|吻|湿|液|身|体|肌|私|性|姿|势|动|作|表|情|神|目|视|脸|发|手|抱|跪|躺|坐|站|靠|地点|位置|场景|环境|光|氛围/u;
+const VISUAL_SENTENCE = /衣|穿|裸|胸|腿|腰|臀|唇|吻|湿|跪|躺|抱|贴|坐|站|撑|握|抬|低|转|靠|闭|睁|发|脸|眼|肩|背|汗|房间|街道|森林|夜|灯|雨|雪|阳光|床|桌|窗|镜|水|地毯|沙发|庭|院|山|路/u;
+const DIALOGUE = /^[「『“"'"]|[」』”"'"']$|^[-—]?\s*(?:你|我|他|她|它)\s*[:：]/u;
+const SPEECH = /[「『“"][^」』”"]*[」』”"]|(?:说|道|问|答|喊|笑道|低语|开口)\s*[:：]/u;
+function visualOnly(text: string): string {
+  const parts = text.split(/(?<=[。！？.!?])\s*|\n+/u)
+    .map(part => part.replace(/^[」』”"'\s]+|[「『“"'\s]+$/gu, "").trim())
+    .filter(Boolean);
+  const kept = parts.filter(part => !DIALOGUE.test(part) && !SPEECH.test(part) && VISUAL_SENTENCE.test(part));
+  return (kept.length ? kept : parts).slice(0, 6).join("");
+}
 function statusVisualCues(scene: string): string {
   const cues = [...scene.matchAll(/([^：。]{1,16})：([^。]+)/gu)].flatMap((match) => {
     const label = match[1]?.trim() ?? "";
@@ -256,27 +274,36 @@ function statusVisualCues(scene: string): string {
   });
   return cues.length ? `状态字段视觉映射：${cues.slice(0, 16).join("；")}。` : "";
 }
-function stillPrompt(scene: string, reference: boolean): string {
-  const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
-  const semantic = statusVisualCues(scene);
-  const budget = 1400 - Array.from(prefix + semantic + STILL_SUFFIX).length;
-  return prefix + semantic + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
+export function stillPrompt(scene: string, reference: boolean, options: { appearance?: string; legacy?: boolean; statusScene?: boolean } = {}): string {
+  const semantic = options.statusScene ? statusVisualCues(scene) : "";
+  if (options.legacy) {
+    const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
+    const budget = 1400 - Array.from(prefix + semantic + STILL_SUFFIX).length;
+    return prefix + semantic + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
+  }
+  const identity = reference
+    ? options.appearance ? `角色：${options.appearance}；五官、发型、瞳色和服装以参考图为准，不要换成别人。` : STILL_FALLBACK_IDENTITY
+    : "";
+  const head = STILL_STYLE + identity + STILL_CAMERA;
+  const body = (visualOnly(scene) || scene).replace(/[。！？.!?\s]+$/u, "");
+  const budget = 1400 - Array.from(head + semantic + STILL_SUFFIX).length;
+  return head + semantic + Array.from(body).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
 }
 /** Scene text for Qwen Image. A cover keeps identity on the reference; otherwise the scene is text-to-image. */
-export function chatStillPrompt(content: string, reference = true): string | null {
+export function chatStillPrompt(content: string, reference = true, options: { appearance?: string; legacy?: boolean } = {}): string | null {
   const cleaned = cleanChatMediaText(content);
   if (!cleaned || MINOR_SCENE.test(cleaned)) return null;
   const scene = cleaned.split(/(?<=[。！？.!?])\s*|\n+/u).map(part => part.trim()).filter(part => part && !INSTRUCTION.test(part)).join("");
   if (!scene) return null;
-  return stillPrompt(scene, reference);
+  return stillPrompt(scene, reference, options);
 }
 /** The chosen shot is already capped at 800 characters. Keep the adult prefix without cutting the shot. */
-export function illustrationStillPrompt(scene: string, reference = true): string | null {
+export function illustrationStillPrompt(scene: string, reference = true, options: { appearance?: string; legacy?: boolean } = {}): string | null {
   const cleaned = cleanChatMediaText(scene);
   if (!cleaned || MINOR_SCENE.test(cleaned) || Array.from(cleaned).length > 800) return null;
   const kept = cleaned.split(/(?<=[。！？.!?])\s*|\n+/u).map(part => part.trim()).filter(part => part && !INSTRUCTION.test(part)).join("");
   if (!kept) return null;
-  return stillPrompt(kept, reference);
+  return stillPrompt(kept, reference, options);
 }
 const COVER_BYTES = 4_500_000;
 const OWNED_MEDIA = /^\/api\/dzmm\/backend\/v1\/media\/([A-Za-z0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/;
@@ -577,15 +604,18 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     // has an identity anchor instead of failing with a recovery error.
     const previous = regenerate ? await previousImageReference(env, user.id, existing) : null;
     const cover = previous ?? await characterReference(env, user.id, conversationId, messageId, options);
-    const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "" };
-    let fromStatus = stillOverride === null ? statusStillScene(source.content, status.labels) : null;
+    const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "", appearance: "" };
+    const visualLabels = status.labels.filter(label => VISUAL_STATUS.test(label));
+    let fromStatus = stillOverride === null ? statusStillScene(source.content, visualLabels) : null;
     if (!fromStatus && status.initial) {
-      fromStatus = statusStillScene(`${source.content}\n${status.initial}`, status.labels);
+      const visualInitial = status.initial.split("\n").filter(line => VISUAL_STATUS.test(line.split("：")[0] || "")).join("\n");
+      if (visualInitial) fromStatus = statusStillScene(`${source.content}\n${visualInitial}`, visualLabels);
     }
     const blocked = Boolean(fromStatus && "blocked" in fromStatus);
+    const promptOptions = { appearance: status.appearance, legacy: env.CHAT_STILL_PROMPT === "legacy", statusScene: Boolean(fromStatus && "scene" in fromStatus) };
     const built = blocked ? null
-      : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null)
-      : stillOverride === null ? chatStillPrompt(narrative, cover !== null) : illustrationStillPrompt(stillOverride, cover !== null);
+      : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null, promptOptions)
+      : stillOverride === null ? chatStillPrompt(narrative, cover !== null, promptOptions) : illustrationStillPrompt(stillOverride, cover !== null, promptOptions);
     const minor = MINOR_SCENE.test(stillOverride ?? text);
     if (!built) throw new ApiError(400, stillOverride === null
       ? ((minor || blocked) ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
