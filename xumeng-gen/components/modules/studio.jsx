@@ -335,7 +335,7 @@ function FaceForm() {
         </div>
         <Guide steps={["上传原始画面，可以是图片或视频", "上传目标人脸", "开始生成"]} />
         <ExampleBar text="把参考脸换进原来的画面或视频，保留姿势、服装和背景。" />
-        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "视频换脸保留原视频画面，只替换人脸；完成后自动超清放大。", "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
+        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "视频换脸默认 1080P 参考换脸，完成即可播放。", "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? (sceneIsVideo ? "正在换脸…" : "处理中…") : "开始生成"}</button>
       </form>

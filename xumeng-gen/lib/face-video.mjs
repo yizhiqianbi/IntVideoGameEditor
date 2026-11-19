@@ -8,6 +8,10 @@ export const FACE_VIDEO_MIN_BYTES = 1024;
 export const FACE_VIDEO_PROMPT =
   "把参考图里的人脸换到视频里的人物脸上。保留视频原有的动作、姿势、服装、场景、镜头和背景，只改五官、脸型和发型，并让新脸贴合原来的角度和光线。人物是虚构的成年人，二十一岁以上。";
 
+// WAN 3.0 Spicy Prime 参考模式（默认换脸视频通道）用的提示词。
+export const FACE_VIDEO_WAN_PROMPT =
+  "参考 Image 1 里的人物作为视频角色，按参考视频 Video 1 的动作、表情和镜头节奏生成；保留参考视频的动作、构图和背景，人物的五官、脸型和发型使用 Image 1，不要保留原视频里人物的脸。人物是虚构的成年人，二十一岁以上。";
+
 // WAND 参考模式（FACE_VIDEO_PROVIDER=wand-lite）用的提示词。
 export const FACE_VIDEO_REFERENCE_PROMPT =
   "以参考图里的人物作为角色，按参考视频的动作、表情和节奏生成视频。参考视频提供动作、镜头和节奏，参考图提供人物外观和画面风格，不要保留参考视频里原来的脸和身份。人物是虚构的成年人，二十一岁以上。";

@@ -7,8 +7,8 @@
     "start": "next start",
     "test:outerwear": "node --test lib/remove-outerwear.test.mjs",
     "test:face-video": "node --test lib/face-video.test.mjs lib/channel-upload.test.mjs lib/huanlian.test.mjs",
-    "test:providers": "node --test lib/tencent-video.test.mjs lib/image-lite.test.mjs lib/wand-video-lite.test.mjs lib/video-upscale.test.mjs",
-    "test:studio": "node --test lib/remove-outerwear.test.mjs lib/novel-request.test.mjs lib/face-video.test.mjs lib/channel-upload.test.mjs lib/huanlian.test.mjs lib/tencent-video.test.mjs lib/image-lite.test.mjs lib/wand-video-lite.test.mjs lib/video-upscale.test.mjs",
+    "test:providers": "node --test lib/tencent-video.test.mjs lib/image-lite.test.mjs lib/wand-video-lite.test.mjs lib/video-upscale.test.mjs lib/wan-video.test.mjs",
+    "test:studio": "node --test lib/remove-outerwear.test.mjs lib/novel-request.test.mjs lib/face-video.test.mjs lib/channel-upload.test.mjs lib/huanlian.test.mjs lib/tencent-video.test.mjs lib/image-lite.test.mjs lib/wand-video-lite.test.mjs lib/video-upscale.test.mjs lib/wan-video.test.mjs",
     "test:novel": "node --test lib/novel-request.test.mjs"
   },
   "dependencies": {
