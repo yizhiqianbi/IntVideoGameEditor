@@ -606,20 +606,17 @@ function ImageForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，最多可以带两张参考图" />
+        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，可选一张参考图" />
         <div className="stage">
-          <div className="pair">
-            <ReferenceSlot title="参考图 1" hint="选填，JPG、PNG" file={files[0]} onFile={file => takeFile(0, file)} />
-            <ReferenceSlot title="参考图 2" hint="选填，JPG、PNG" file={files[1]} onFile={file => takeFile(1, file)} />
-          </div>
-          <Guide steps={["最多上传两张参考图，可以不传", "输入想生成的画面", "选择比例，开始生成"]} />
+          <ReferenceSlot title="参考图" hint="选填，JPG、PNG" file={files[0]} onFile={file => takeFile(0, file)} />
+          <Guide steps={["参考图可选，最多一张", "输入想生成的画面", "选择比例，开始生成"]} />
         </div>
         <PromptBox
           label="画面描述"
           value={prompt}
           max={800}
           min={5}
-          placeholder="例如：让参考图里的人物穿成参考图 2 的衣服，站在月光下的樱花树旁"
+          placeholder="例如：让参考图里的人物站在月光下的樱花树旁"
           onChange={value => { clearResult(); setPrompt(value); }}
           polish={async value => {
             setError("");
