@@ -630,7 +630,7 @@ function ImageForm() {
           }}
         />
         <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { clearResult(); setPrompt(value); }} />
-        <Notes items={["可以带两张参考图，比如一张人物、一张场景或服装。", "在描述里写清哪张参考图负责什么，生成会更贴近预期。", ...COMMON_NOTES]} />
+        <Notes items={["可以带一张参考图，比如人物或服装。", "在描述里写清参考图负责什么，生成会更贴近预期。", ...COMMON_NOTES]} />
         <RatioCards value={ratio} onChange={value => { clearResult(); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
