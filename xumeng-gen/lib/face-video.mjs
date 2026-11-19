@@ -2,13 +2,17 @@
 // 这个文件会进入浏览器端，不能引用 node: 模块。
 
 export const FACE_VIDEO_MAX_BYTES = 64 * 1024 * 1024;
-export const FACE_VIDEO_MAX_SECONDS = 15;
+export const FACE_VIDEO_MAX_SECONDS = 30;
 export const FACE_VIDEO_MIN_BYTES = 1024;
 
 export const FACE_VIDEO_PROMPT =
+  "把参考图里的人脸换到视频里的人物脸上。保留视频原有的动作、姿势、服装、场景、镜头和背景，只改五官、脸型和发型，并让新脸贴合原来的角度和光线。人物是虚构的成年人，二十一岁以上。";
+
+// WAND 参考模式（FACE_VIDEO_PROVIDER=wand-lite）用的提示词。
+export const FACE_VIDEO_REFERENCE_PROMPT =
   "以参考图里的人物作为角色，按参考视频的动作、表情和节奏生成视频。参考视频提供动作、镜头和节奏，参考图提供人物外观和画面风格，不要保留参考视频里原来的脸和身份。人物是虚构的成年人，二十一岁以上。";
 
-export const FACE_VIDEO_HINT = "视频建议 15 秒以内、64MB 以内，MP4 或 MOV。";
+export const FACE_VIDEO_HINT = "视频建议 30 秒以内、64MB 以内，MP4 或 MOV；完成后会自动超清放大。";
 export const FACE_VIDEO_UPLOADING = "正在上传视频…";
 export const FACE_VIDEO_WAITING = "正在换脸，视频要稍等一会儿…";
 

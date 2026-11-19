@@ -30,9 +30,9 @@
 
 ## 视频：WAND-Vega-Video-1.5-Lite（图生视频）+ huanlian（换脸视频）
 
-2026-11-19 定稿路线：**图生视频用上一版 H3 fast，换脸视频用 WAND-Vega-Video-1.5-Lite**。
+2026-11-19 定稿路线：**图生视频用上一版 H3 fast，换脸视频用 huanlian 像素换脸 + 超清放大**。
 两条都可切换：`TENCENT_VIDEO_PROVIDER=wand-lite` 把图生视频切到 WAND；
-`FACE_VIDEO_PROVIDER=huanlian` 把换脸视频切回 huanlian 像素换脸。
+`FACE_VIDEO_PROVIDER=wand-lite` 把换脸视频切到 WAND 参考模式（SFW 可用，NSFW 会被内容审核拒）。
 
 ### H3 fast：图生视频（当前默认）
 
@@ -51,8 +51,9 @@
 - 实测：720P 文生视频 4 秒输入 → 5.79MB / 1280×720 / h264+aac，任务耗时约 6–7 分钟（比 H3 慢）。
 - 图生视频切到 WAND：`TENCENT_VIDEO_PROVIDER=wand-lite`；换脸视频切回 huanlian：
   `FACE_VIDEO_PROVIDER=huanlian`。
-- 换脸视频当前走 WAND 参考模式（`reference_image` + `reference_video`），实测不是真换脸：
-  身份会漂移、画面可能被参考图重生成；`first_frame` 不能和 `reference_*` 混用。
+- WAND 参考模式（`reference_image` + `reference_video`）实测不是真换脸：身份会漂移、
+  画面可能被参考图重生成；`first_frame` 不能和 `reference_*` 混用。
+- **NSFW 素材会被 TokenHub 内容审核拦**（`ContentModerationFailed` / Green net），所以换脸视频默认不用 WAND。
 - 成片同样转存 channel-media 后回地址。
 
 ### H3 fast 备用说明
@@ -64,7 +65,16 @@
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
 - 切回方式：默认就是 H3；`TENCENT_VIDEO_PROVIDER=wand-lite` 可切到 WAND。
 
-### huanlian：换脸视频备用（像素级真换脸）
+### huanlian + 超清放大：换脸视频（当前默认）
+
+- 流程：huanlian 像素换脸 → 成片先存 channel-media → 走「AI 创造 - 超清放大 - 视频」
+  (`/api/public/ai_chuangzao_chaoqing_fangda`) → 放大成片再存 channel-media。
+- 实测：480×832 / 5 秒的 huanlian 成片 → 1080×1872 / 5.16 秒 / 1.03MB，放大任务约 3 分钟。
+- 开关：`FACE_VIDEO_UPSCALE=off` 可关闭放大；放大失败自动回退到原始成片。
+- 轮询：huanlian 完成后接口返回 `up:<taskId>:<原片URL base64url>`，前端继续轮询即可。
+- 该放大模块在频道目录里是 retired（不开放给通用工作台），仅供换脸链路内部使用。
+
+### huanlian：像素级真换脸（放大前）
 
 - 页面路径：`/api/face-swap` 的视频分支；设 `FACE_VIDEO_PROVIDER=huanlian` 启用，实现在
   `xumeng-gen/lib/huanlian.mjs`。
