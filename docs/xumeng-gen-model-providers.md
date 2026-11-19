@@ -28,18 +28,31 @@
 - 换脸生图的提示词仍来自 `components/modules/prompt-defaults.js`，路由会把 `<image1>/<image2>` 换成
   「第一张参考图 / 第二张参考图」再发给 Image Lite。
 
-## 视频：H3 fast（图生视频）+ huanlian（换脸视频）
+## 视频：WAND-Vega-Video-1.5-Lite（图生视频）+ huanlian（换脸视频）
 
-2026-11-19 定稿路线：**图生视频用 H3 fast，换脸视频用 huanlian**。H3 做不了真换脸（见下）。
+2026-11-19 定稿路线：**图生视频用腾讯云 TokenHub 的 WAND-Vega-Video-1.5-Lite，换脸视频用 huanlian**。
+H3 fast 保留为可切换的备用通道（`TENCENT_VIDEO_PROVIDER=h3`）。
 
-### H3 fast：图生视频
+### WAND-Vega-Video-1.5-Lite：图生视频（当前默认）
+
+- 提交：`POST https://tokenhub-intl.tencentcloudmaas.com/v1/wand/vega-videos/tasks`，
+  `model=wand-vega-video-1.5-lite`；查询 `GET /v1/wand/vega-videos/tasks/{id}`，
+  `succeeded` 后取 `content.video_url`。
+- 凭据：复用 `TOKENHUB_*`（默认用 `TOKENHUB_IMAGE_LITE_API_KEY`；可用 `TOKENHUB_VIDEO_LITE_API_KEY` 单独配）。
+  模型名可用 `TOKENHUB_VIDEO_LITE_MODEL` 覆盖。
+- 参数：`resolution` 480P / 720P / 1080P / 2K（1.5-lite 实测这四个可用；768P 会报 invalid）；
+  `duration` 4–15 秒；首帧用 `role=first_frame` 且不传 ratio。
+- 实测：720P 文生视频 4 秒输入 → 5.79MB / 1280×720 / h264+aac，任务耗时约 6–7 分钟（比 H3 慢）。
+- 页面路径：图生视频 `/api/image-video`；成片同样转存 channel-media 后回地址。
+
+### H3 fast：备用图生视频通道
 
 - 提交：`POST /minimax/v2/video_generation/fast`；查询：`GET /minimax/query/{task_id}`，
   `running` 继续查，`succeeded` 取 `task.content.url`。
 - 参数：`duration` 4–15 秒整数；`resolution` 720P；首帧模式用 `role=first_frame` 且不传 ratio。
 - 成片下载后经签名直传存进 `channel-media` 素材库，浏览器拿到的是
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
-- 页面路径：图生视频 `/api/image-video`。
+- 切回方式：环境变量 `TENCENT_VIDEO_PROVIDER=h3`。
 
 ### huanlian：换脸视频（原视频保留，只换脸）
 

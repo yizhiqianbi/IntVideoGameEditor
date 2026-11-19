@@ -4,6 +4,7 @@ import { jsonError, sameOrigin } from "@/lib/http";
 import { fitVideoFrame, normalizeImage } from "@/lib/reference-image.mjs";
 import { buildImageVideo } from "@/lib/studio-page.mjs";
 import { h3Duration, h3TaskId, pollH3Video, startH3Video } from "@/lib/tencent-video.mjs";
+import { pollVideoLite, startVideoLite, videoLiteTaskId } from "@/lib/wand-video-lite.mjs";
 import { pollWandVideo } from "@/lib/wand-video.mjs";
 
 export const maxDuration = 300;
@@ -36,6 +37,12 @@ export async function POST(request: Request) {
   if (typeof body.taskId === "string") {
     if (Object.keys(body).some(key => key !== "taskId")) return jsonError("视频任务无效。", 400);
     try {
+      if (videoLiteTaskId(body.taskId)) {
+        const rendered = await pollVideoLite(body.taskId);
+        if (!rendered) return pending(body.taskId);
+        const url = await storeVideo(rendered.bytes, rendered.contentType);
+        return done(url);
+      }
       if (h3TaskId(body.taskId)) {
         const rendered = await pollH3Video(body.taskId);
         if (!rendered) return pending(body.taskId);
@@ -68,14 +75,26 @@ export async function POST(request: Request) {
   }
   const prompt = built.values.positive_prompt.includes("二十一岁") ? built.values.positive_prompt : adultAsk(built.values.positive_prompt);
   try {
-    const taskId = await startH3Video({
+    // 默认走腾讯云 WAND-Vega-Video-1.5-Lite；设 TENCENT_VIDEO_PROVIDER=h3 可切回 H3。
+    if (process.env.TENCENT_VIDEO_PROVIDER === "h3") {
+      const taskId = await startH3Video({
+        prompt,
+        firstFrame: built.mode === "first" ? imageUrls[0] : "",
+        imageUrls: built.mode === "reference" ? imageUrls : [],
+        duration: h3Duration(built.seconds),
+        resolution: "720P",
+        ratio: built.mode === "reference" ? "adaptive" : undefined,
+        removeAudio: false,
+      });
+      return pending(taskId);
+    }
+    const taskId = await startVideoLite({
       prompt,
       firstFrame: built.mode === "first" ? imageUrls[0] : "",
       imageUrls: built.mode === "reference" ? imageUrls : [],
-      duration: h3Duration(built.seconds),
+      duration: built.seconds,
       resolution: "720P",
       ratio: built.mode === "reference" ? "adaptive" : undefined,
-      removeAudio: false,
     });
     return pending(taskId);
   } catch (error) {
