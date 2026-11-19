@@ -236,10 +236,10 @@ export function chatScenePrompt(content: string): string {
   return prefix + visual.slice(0, 2048 - prefix.length).replace(/[\ud800-\udbff]$/, "");
 }
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
-const STILL_STYLE = "画风锁（最高优先级）：画风必须与参考图完全一致——二次元动漫插画、赛璐璐平涂上色、清晰线稿与高光；禁止写实照片、3D渲染、真人质感、塑料皮肤。";
+const STILL_STYLE = "画风：与参考图一致的二次元动漫插画，赛璐璐平涂上色、清晰线稿与高光；禁止写实照片、3D渲染、真人质感、塑料皮肤。";
 const STILL_CAMERA = "镜头：斜前方第三人称，人物占画面二分之一以上，能看清脸、发型和服装；不要远景小人、不要背对镜头。";
-const STILL_FALLBACK_IDENTITY = "角色：以参考图中的同一人物为准，五官、发型、瞳色和服装不变，不要换成别人。";
-const STILL_SUFFIX = "。所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
+const STILL_FALLBACK_IDENTITY = "以参考图中的同一人物为准，五官、发型、瞳色和服装不变，不要换成别人";
+const STILL_SUFFIX = "所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
 const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。输入的参考图是唯一的角色身份、构图和连续性锚点；上一张已生成的剧情图片存在时，必须优先参考上一张做连续生图，保持同一张脸、发型、肤色、体型、服装轮廓、主要颜色、镜头关系和画风；如果这是第一张或上一张已不可用，则使用角色封面作为身份锚点。不要把参考图当成灵感图，也不要换成另一个人。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景；状态字段是当前画面的硬约束，低数值不要夸张，高数值不要省略。这一刻：";
 const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景。这一刻：";
 const STATUS_LABEL_CUES: [RegExp, string][] = [
@@ -254,15 +254,47 @@ const STATUS_LABEL_CUES: [RegExp, string][] = [
 /** Status labels that actually describe what the camera should see. Anything
  * else (abilities, prizes, inner monologue) is story state, not a picture. */
 const VISUAL_STATUS = /衣|服|裸|胸|乳|腿|腰|臀|唇|吻|湿|液|身|体|肌|私|性|姿|势|动|作|表|情|神|目|视|脸|发|手|抱|跪|躺|坐|站|靠|地点|位置|场景|环境|光|氛围/u;
-const VISUAL_SENTENCE = /衣|穿|裸|胸|腿|腰|臀|唇|吻|湿|跪|躺|抱|贴|坐|站|撑|握|抬|低|转|靠|闭|睁|发|脸|眼|肩|背|汗|房间|街道|森林|夜|灯|雨|雪|阳光|床|桌|窗|镜|水|地毯|沙发|庭|院|山|路/u;
+const ACTION = /抬|握|指|跪|躺|抱|贴|坐|站|撑|靠|吻|触碰|抚|摸|解|褪|穿|脱|拉|按|压|缠|趴|俯|仰|转|低|闭|睁|笑|喘|颤抖|张|含|吮|夹|跨|蹲|倾|伸|收/u;
+const SCENE_WORD = /雨|雪|风|夜|灯|光|月|阳|树|林|山|水|河|湖|海|街|路|桥|房|屋|室|厅|床|桌|椅|窗|门|毯|沙发|庭|院|台|殿|塔|城|村|酒|茶|烟|火|云|雾/u;
 const DIALOGUE = /^[「『“"'"]|[」』”"'"']$|^[-—]?\s*(?:你|我|他|她|它)\s*[:：]/u;
 const SPEECH = /[「『“"][^」』”"]*[」』”"]|(?:说|道|问|答|喊|笑道|低语|开口)\s*[:：]/u;
-function visualOnly(text: string): string {
+function splitScene(text: string): { action: string; scene: string } {
   const parts = text.split(/(?<=[。！？.!?])\s*|\n+/u)
     .map(part => part.replace(/^[」』”"'\s]+|[「『“"'\s]+$/gu, "").trim())
-    .filter(Boolean);
-  const kept = parts.filter(part => !DIALOGUE.test(part) && !SPEECH.test(part) && VISUAL_SENTENCE.test(part));
-  return (kept.length ? kept : parts).slice(0, 6).join("");
+    .filter(Boolean)
+    .filter(part => !DIALOGUE.test(part) && !SPEECH.test(part));
+  const usable = parts.length ? parts : text.split(/(?<=[。！？.!?])/u).map(part => part.trim()).filter(Boolean);
+  const action: string[] = [], scene: string[] = [];
+  const hits = (pattern: RegExp, value: string) => [...value.matchAll(new RegExp(pattern.source, "gu"))].length;
+  for (const part of usable.slice(0, 8)) {
+    const actionHits = hits(ACTION, part), sceneHits = hits(SCENE_WORD, part);
+    if (sceneHits > actionHits) scene.push(part);
+    else if (actionHits > 0) action.push(part);
+    else if (action.length <= scene.length) action.push(part);
+    else scene.push(part);
+  }
+  return { action: action.join(""), scene: scene.join("") };
+}
+const DRESS_LABEL = /衣|服|穿|裸|鞋|袜|裙|饰/u;
+const EXPRESSION_LABEL = /表情|神态|目光|眼神|脸色/u;
+const POSE_LABEL = /姿|势|动|作|接触|身体|体态|手|腿|腰|臀|口|舌/u;
+const PLACE_LABEL = /地点|位置|场景|环境|时间|天气/u;
+function statusPromptParts(scene: string): { dress: string; expression: string; action: string; setting: string; state: string } {
+  const fields = [...scene.matchAll(/([^：。]{1,16})：([^。]+)/gu)]
+    .map(match => ({ label: (match[1] ?? "").trim(), value: (match[2] ?? "").trim() }))
+    .filter(field => field.label && field.value);
+  const groups = { dress: [] as string[], expression: [] as string[], action: [] as string[], setting: [] as string[], state: [] as string[] };
+  for (const field of fields) {
+    if (DRESS_LABEL.test(field.label)) groups.dress.push(field.value);
+    else if (EXPRESSION_LABEL.test(field.label)) groups.expression.push(field.value);
+    else if (POSE_LABEL.test(field.label)) groups.action.push(field.value);
+    else if (PLACE_LABEL.test(field.label)) groups.setting.push(field.value);
+    else groups.state.push(`${field.label}：${field.value}`);
+  }
+  return {
+    dress: groups.dress.join("。"), expression: groups.expression.join("。"),
+    action: groups.action.join("。"), setting: groups.setting.join("。"), state: groups.state.join("。"),
+  };
 }
 function statusVisualCues(scene: string): string {
   const cues = [...scene.matchAll(/([^：。]{1,16})：([^。]+)/gu)].flatMap((match) => {
@@ -275,20 +307,34 @@ function statusVisualCues(scene: string): string {
   return cues.length ? `状态字段视觉映射：${cues.slice(0, 16).join("；")}。` : "";
 }
 export function stillPrompt(scene: string, reference: boolean, options: { appearance?: string; legacy?: boolean; statusScene?: boolean } = {}): string {
-  const semantic = options.statusScene ? statusVisualCues(scene) : "";
+  const status = options.statusScene ? statusVisualCues(scene) : "";
   if (options.legacy) {
     const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
-    const budget = 1400 - Array.from(prefix + semantic + STILL_SUFFIX).length;
-    return prefix + semantic + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
+    const budget = 1400 - Array.from(prefix + status + STILL_SUFFIX).length;
+    return prefix + status + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
   }
   const identity = reference
-    ? options.appearance ? `角色：${options.appearance}；五官、发型、瞳色和服装以参考图为准，不要换成别人。` : STILL_FALLBACK_IDENTITY
+    ? options.appearance ? `身份：${options.appearance}；五官、发型、瞳色和服装以参考图为准，不要换人。` : `身份：${STILL_FALLBACK_IDENTITY}。`
     : "";
-  const head = STILL_STYLE + identity + STILL_CAMERA;
-  const body = (visualOnly(scene) || scene).replace(/[。！？.!?\s]+$/u, "");
-  const budget = 1400 - Array.from(head + semantic + STILL_SUFFIX).length;
-  return head + semantic + Array.from(body).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
+  const parts = options.statusScene ? statusPromptParts(scene) : null;
+  const split = parts ?? (() => { const { action, scene: setting } = splitScene(scene); return { dress: "", expression: "", action, setting, state: "" }; })();
+  const clean = (value: string) => value.replace(/[。！？.!?\s]+$/u, "");
+  const head = [
+    STILL_STYLE,
+    identity,
+    STILL_CAMERA,
+    split.action ? `动作：${clean(split.action)}。` : "",
+    split.setting ? `场景：${clean(split.setting)}。` : "",
+    split.dress ? `服装：${clean(split.dress)}。` : "",
+    split.expression ? `表情：${clean(split.expression)}。` : "",
+    split.state ? `状态：${clean(split.state)}。` : "",
+  ].filter(Boolean).join("");
+  const distributed = Boolean(parts && (parts.action || parts.setting || parts.dress || parts.expression));
+  const meta = status && !distributed ? `状态字段：${clean(status)}。` : "";
+  const prompt = head + meta + STILL_SUFFIX;
+  return Array.from(prompt).slice(0, 1400).join("").replace(/[\ud800-\udbff]$/, "");
 }
+
 /** Scene text for Qwen Image. A cover keeps identity on the reference; otherwise the scene is text-to-image. */
 export function chatStillPrompt(content: string, reference = true, options: { appearance?: string; legacy?: boolean } = {}): string | null {
   const cleaned = cleanChatMediaText(content);
