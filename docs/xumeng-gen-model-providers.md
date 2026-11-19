@@ -37,9 +37,9 @@
 ### H3 fast：图生视频（当前默认）
 
 - 页面路径：图生视频 `/api/image-video`；参数 4–15 秒、720P，首帧模式不传 ratio。
-- 成片转存 channel-media 后，再走超清放大（`/api/public/ai_chuangzao_chaoqing_fangda`），
-  720×1280 → 1080×1920；放大失败回退原片。
-- 开关：`TENCENT_VIDEO_UPSCALE=off`；轮询同样会返回 `up:<taskId>:<原片URL>` 阶段。
+- 默认保持 720P 成片，不做放大（快）；需要 1080 时设 `TENCENT_VIDEO_UPSCALE=on`，
+  成片再走 `/api/public/ai_chuangzao_chaoqing_fangda`（720→1080，失败回退原片）。
+- 换脸视频的超清放大默认仍开启（`FACE_VIDEO_UPSCALE=off` 可关）。
 
 ### WAND-Vega-Video-1.5-Lite：视频备用通道 / 换脸视频（当前默认）
 

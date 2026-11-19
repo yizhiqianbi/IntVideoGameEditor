@@ -114,9 +114,9 @@ export async function POST(request: Request) {
   }
 }
 
-// 成片先落媒体库；开启超清放大时再走一次 up: 任务，失败回退原片。
+// 成片先落媒体库；默认保持 720P，只有显式开 TENCENT_VIDEO_UPSCALE=on 才走超清放大。
 async function finishVideo(url: string) {
-  if (String(process.env.TENCENT_VIDEO_UPSCALE || "on").toLowerCase() === "off") return done(url);
+  if (String(process.env.TENCENT_VIDEO_UPSCALE || "off").toLowerCase() !== "on") return done(url);
   try {
     const upTaskId = await startUpscale(url);
     return pending(`up:${upTaskId}:${Buffer.from(url, "utf8").toString("base64url")}`);
