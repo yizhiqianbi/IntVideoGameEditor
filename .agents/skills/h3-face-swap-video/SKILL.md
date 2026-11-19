@@ -28,6 +28,9 @@ description: >-
 - 同一输入两条路线实跑对比：H3 153 秒且画面被重生成；huanlian 21 秒、原画面保留、身份换成功
   （`output/xumeng/h3-face-swap-skill-20261119/compare-strip.jpg`）。
 
+线上路由 2026-11-19 起：换脸视频默认走 **WAND-Vega-Video-1.5-Lite 参考模式**（`FACE_VIDEO_PROVIDER`
+不设时），设 `FACE_VIDEO_PROVIDER=huanlian` 切回像素级真换脸。WAND 参考模式同样不是真换脸（身份会漂移）。
+
 所以：**不要向用户承诺「H3 换脸视频」能保持身份**。2026-11-19 又测了 9 组 prompt（含 P3 具体描述、
 P3 复测 3 次），按真·换脸标准（原视频画面/身体/服装保留、只换脸）成功 **0 次**；线上 `/face` 视频分支
 已切回 huanlian，H3 只保留给图生视频。按需求选路线：

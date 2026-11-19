@@ -30,10 +30,16 @@
 
 ## 视频：WAND-Vega-Video-1.5-Lite（图生视频）+ huanlian（换脸视频）
 
-2026-11-19 定稿路线：**图生视频用腾讯云 TokenHub 的 WAND-Vega-Video-1.5-Lite，换脸视频用 huanlian**。
-H3 fast 保留为可切换的备用通道（`TENCENT_VIDEO_PROVIDER=h3`）。
+2026-11-19 定稿路线：**图生视频用上一版 H3 fast，换脸视频用 WAND-Vega-Video-1.5-Lite**。
+两条都可切换：`TENCENT_VIDEO_PROVIDER=wand-lite` 把图生视频切到 WAND；
+`FACE_VIDEO_PROVIDER=huanlian` 把换脸视频切回 huanlian 像素换脸。
 
-### WAND-Vega-Video-1.5-Lite：图生视频（当前默认）
+### H3 fast：图生视频（当前默认）
+
+- 页面路径：图生视频 `/api/image-video`；参数 4–15 秒、720P，首帧模式不传 ratio。
+- 成片转存 channel-media 后回地址。
+
+### WAND-Vega-Video-1.5-Lite：视频备用通道 / 换脸视频（当前默认）
 
 - 提交：`POST https://tokenhub-intl.tencentcloudmaas.com/v1/wand/vega-videos/tasks`，
   `model=wand-vega-video-1.5-lite`；查询 `GET /v1/wand/vega-videos/tasks/{id}`，
@@ -43,20 +49,25 @@ H3 fast 保留为可切换的备用通道（`TENCENT_VIDEO_PROVIDER=h3`）。
 - 参数：`resolution` 480P / 720P / 1080P / 2K（1.5-lite 实测这四个可用；768P 会报 invalid）；
   `duration` 4–15 秒；首帧用 `role=first_frame` 且不传 ratio。
 - 实测：720P 文生视频 4 秒输入 → 5.79MB / 1280×720 / h264+aac，任务耗时约 6–7 分钟（比 H3 慢）。
-- 页面路径：图生视频 `/api/image-video`；成片同样转存 channel-media 后回地址。
+- 图生视频切到 WAND：`TENCENT_VIDEO_PROVIDER=wand-lite`；换脸视频切回 huanlian：
+  `FACE_VIDEO_PROVIDER=huanlian`。
+- 换脸视频当前走 WAND 参考模式（`reference_image` + `reference_video`），实测不是真换脸：
+  身份会漂移、画面可能被参考图重生成；`first_frame` 不能和 `reference_*` 混用。
+- 成片同样转存 channel-media 后回地址。
 
-### H3 fast：备用图生视频通道
+### H3 fast 备用说明
 
 - 提交：`POST /minimax/v2/video_generation/fast`；查询：`GET /minimax/query/{task_id}`，
   `running` 继续查，`succeeded` 取 `task.content.url`。
 - 参数：`duration` 4–15 秒整数；`resolution` 720P；首帧模式用 `role=first_frame` 且不传 ratio。
 - 成片下载后经签名直传存进 `channel-media` 素材库，浏览器拿到的是
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
-- 切回方式：环境变量 `TENCENT_VIDEO_PROVIDER=h3`。
+- 切回方式：默认就是 H3；`TENCENT_VIDEO_PROVIDER=wand-lite` 可切到 WAND。
 
-### huanlian：换脸视频（原视频保留，只换脸）
+### huanlian：换脸视频备用（像素级真换脸）
 
-- 页面路径：`/api/face-swap` 的视频分支，实现在 `xumeng-gen/lib/huanlian.mjs`。
+- 页面路径：`/api/face-swap` 的视频分支；设 `FACE_VIDEO_PROVIDER=huanlian` 启用，实现在
+  `xumeng-gen/lib/huanlian.mjs`。
 - 提交 `POST {AIAPI_BASE_URL}/api/public/huanlian`（form：`video_url`、`img_url`、`positive_prompt`、
   `video_format`），查询 `GET /api/public/task?task_id=`，`status=2` 取 `out_data[]` 里的成片地址。
 - 像素级换脸：背景、发型、身体、动作、镜头都保留，只替换五官；成片约 10–20 秒。

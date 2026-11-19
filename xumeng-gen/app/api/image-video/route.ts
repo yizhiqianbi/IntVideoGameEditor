@@ -75,26 +75,26 @@ export async function POST(request: Request) {
   }
   const prompt = built.values.positive_prompt.includes("二十一岁") ? built.values.positive_prompt : adultAsk(built.values.positive_prompt);
   try {
-    // 默认走腾讯云 WAND-Vega-Video-1.5-Lite；设 TENCENT_VIDEO_PROVIDER=h3 可切回 H3。
-    if (process.env.TENCENT_VIDEO_PROVIDER === "h3") {
-      const taskId = await startH3Video({
+    // 默认走上一版：MiniMax H3 fast；设 TENCENT_VIDEO_PROVIDER=wand-lite 切到 WAND 1.5 Lite。
+    if (process.env.TENCENT_VIDEO_PROVIDER === "wand-lite") {
+      const taskId = await startVideoLite({
         prompt,
         firstFrame: built.mode === "first" ? imageUrls[0] : "",
         imageUrls: built.mode === "reference" ? imageUrls : [],
-        duration: h3Duration(built.seconds),
+        duration: built.seconds,
         resolution: "720P",
         ratio: built.mode === "reference" ? "adaptive" : undefined,
-        removeAudio: false,
       });
       return pending(taskId);
     }
-    const taskId = await startVideoLite({
+    const taskId = await startH3Video({
       prompt,
       firstFrame: built.mode === "first" ? imageUrls[0] : "",
       imageUrls: built.mode === "reference" ? imageUrls : [],
-      duration: built.seconds,
+      duration: h3Duration(built.seconds),
       resolution: "720P",
       ratio: built.mode === "reference" ? "adaptive" : undefined,
+      removeAudio: false,
     });
     return pending(taskId);
   } catch (error) {

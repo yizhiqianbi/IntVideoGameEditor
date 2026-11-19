@@ -10,7 +10,8 @@ import { HUANLIAN_PROMPT, huanlianTaskId, pollHuanlian, startHuanlian } from "@/
 import { imageLitePrompt, imageLiteSizeForPixels, imageLiteTaskId, pollImageLite, startImageLite } from "@/lib/image-lite.mjs";
 import { jsonError } from "@/lib/http";
 import { normalizeImage } from "@/lib/reference-image.mjs";
-import { h3TaskId, pollH3Video } from "@/lib/tencent-video.mjs";
+import { h3Duration, h3TaskId, pollH3Video } from "@/lib/tencent-video.mjs";
+import { pollVideoLite, startVideoLite, videoLiteTaskId } from "@/lib/wand-video-lite.mjs";
 import { imagePixels } from "@/lib/wand-image.mjs";
 import { pollSeedream, yunqiaoTaskId } from "@/lib/yunqiao.mjs";
 
@@ -73,17 +74,29 @@ async function startImageSwap(face: { bytes: Buffer; type: string }, body: { sce
   }
 }
 
-// 视频换脸：huanlian 像素换脸（原视频画面保留，只换脸）。
+// 视频换脸：默认 WAND-Vega-Video-1.5-Lite 参考模式（参考图 + 参考视频）；
+// 设 FACE_VIDEO_PROVIDER=huanlian 可切回像素级换脸（huanlian）。
 async function startVideoSwap(face: { bytes: Buffer; type: string }, body: { videoUrl?: unknown; prompt?: unknown; seconds?: unknown }) {
   const videoUrl = typeof body.videoUrl === "string" ? body.videoUrl : "";
   const address = mediaUrlProblem(videoUrl, mediaOrigin());
   if (address) return jsonError(address, 400);
-  const written = editPrompt(typeof body.prompt === "string" && body.prompt.trim() ? body.prompt : (HUANLIAN_PROMPT || FACE_VIDEO_PROMPT));
-  if (!written.ok) return jsonError(written.error || "先写下提示词。", 400);
   try {
     const faceUrl = await publishReference(face.bytes, face.type);
-    const started = await startHuanlian({ videoUrl, faceUrl, prompt: written.prompt });
-    return videoPending(started.taskId);
+    if (process.env.FACE_VIDEO_PROVIDER === "huanlian") {
+      const written = editPrompt(typeof body.prompt === "string" && body.prompt.trim() ? body.prompt : HUANLIAN_PROMPT);
+      if (!written.ok) return jsonError(written.error || "先写下提示词。", 400);
+      const started = await startHuanlian({ videoUrl, faceUrl, prompt: written.prompt });
+      return videoPending(started.taskId);
+    }
+    const taskId = await startVideoLite({
+      prompt: FACE_VIDEO_PROMPT,
+      imageUrls: [faceUrl],
+      videoUrls: [videoUrl],
+      duration: h3Duration(body.seconds),
+      resolution: "720P",
+      ratio: "adaptive",
+    });
+    return videoPending(taskId);
   } catch (error) {
     return videoFailure(error);
   }
@@ -122,6 +135,16 @@ export async function POST(request: Request) {
   }
 
   if (typeof body.videoTaskId === "string") {
+    if (videoLiteTaskId(body.videoTaskId)) {
+      try {
+        const rendered = await pollVideoLite(body.videoTaskId);
+        if (!rendered) return videoPending(body.videoTaskId);
+        const url = await storeVideo(rendered.bytes, rendered.contentType);
+        return videoDone(url);
+      } catch (error) {
+        return videoFailure(error);
+      }
+    }
     if (huanlianTaskId(body.videoTaskId)) {
       try {
         const rendered = await pollHuanlian(body.videoTaskId);

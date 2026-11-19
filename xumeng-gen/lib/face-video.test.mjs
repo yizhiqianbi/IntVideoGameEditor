@@ -24,16 +24,16 @@ test("video file checks cover type and size", () => {
   assert.match(videoFileProblem("clip.mp4", "video/mp4", 10), /读不了/);
 });
 
-test("video duration is capped at thirty seconds", () => {
+test("video duration is capped at fifteen seconds", () => {
   assert.equal(videoSecondsProblem(8), "");
   assert.equal(videoSecondsProblem(FACE_VIDEO_MAX_SECONDS), "");
-  assert.match(videoSecondsProblem(FACE_VIDEO_MAX_SECONDS + 5), /30 秒/);
+  assert.match(videoSecondsProblem(FACE_VIDEO_MAX_SECONDS + 5), /15 秒/);
   assert.match(videoSecondsProblem(0), /读不了/);
 });
 
-test("the video face prompt keeps the clip and only changes the face", () => {
-  assert.match(FACE_VIDEO_PROMPT, /换到视频里的人物脸上/);
-  assert.match(FACE_VIDEO_PROMPT, /保留视频原有的动作/);
-  assert.match(FACE_VIDEO_PROMPT, /只改五官/);
+test("the video face prompt references the picture and the clip", () => {
+  assert.match(FACE_VIDEO_PROMPT, /参考图/);
+  assert.match(FACE_VIDEO_PROMPT, /参考视频/);
+  assert.match(FACE_VIDEO_PROMPT, /动作/);
   assert.match(FACE_VIDEO_PROMPT, /成年/);
 });
