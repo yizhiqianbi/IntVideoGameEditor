@@ -1,0 +1,23 @@
+{
+  "name": "h3-face-swap-video",
+  "version": "1.0.0",
+  "owner": "xumeng-gen",
+  "updated_at": "2026-11-19",
+  "status": "active",
+  "maturity_tier": "prototype",
+  "lifecycle_stage": "production",
+  "review_cadence": "on-model-change",
+  "target_platforms": [
+    "claude",
+    "cursor",
+    "generic",
+    "agent-skills-compatible"
+  ],
+  "release_gates": [
+    "live_test_evidence",
+    "identity_qa",
+    "fallback_documented",
+    "credential_boundary",
+    "no_exact_swap_claim"
+  ]
+}

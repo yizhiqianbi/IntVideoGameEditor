@@ -37,6 +37,7 @@
 - 成片下载后经签名直传存进 `channel-media` 素材库，浏览器拿到的是
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
 - 页面路径：图生视频 `/api/image-video`；换脸视频 `/api/face-swap` 的视频分支。
+- 换脸视频的路线判断、执行脚本和实测证据封装在 skill：`.agents/skills/h3-face-swap-video/`（H3 与 huanlian 对比见 `references/evidence.md`）。
 - 换脸视频素材限制：15 秒、64MB（H3 成片 4–15 秒）；成片不是像素级换脸，而是「参考图角色重演参考视频的
   动作/表情」，身份偶尔会向参考视频原角色漂移。
 - 2026-11-19 分项实测见
