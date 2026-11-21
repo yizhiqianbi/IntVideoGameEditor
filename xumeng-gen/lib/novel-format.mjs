@@ -2,7 +2,7 @@
 // 生成时把格式要求注入 details 字段；返回后由 parseNovelOutput 拆出标题和段落。
 
 export const NOVEL_FORMAT_INSTRUCTION =
-  "输出格式：第一行只写小说标题，格式为「标题：标题文字」；从第二行开始写正文；正文按自然段分段，段与段之间空一行；对白单独成段；有章节时用「## 第X章 章节名」作为分节标题；不要输出提纲、解释、字数统计或任何前后缀。";
+  "输出格式：第一行只写小说标题，格式为「标题：标题文字」；从第二行开始写正文；正文按自然段分段，段与段之间空一行；对白单独成段；有章节时用「## 第X章 章节名」作为分节标题，章节标题必须单独占一行且前后各空一行；不要输出提纲、解释、字数统计或任何前后缀。";
 
 export function withNovelFormatInstruction(details) {
   const base = String(details ?? "").trim();
@@ -31,9 +31,15 @@ function deriveTitle(paragraph) {
   return cleanTitle(source.length > 24 ? `${source.slice(0, 24)}…` : source);
 }
 
+function normalizeHeadingBreaks(text) {
+  return text
+    .replace(/([^\n])\s*(#{1,4}\s+)/g, "$1\n$2")
+    .replace(/([。！？!?…”」』])\s*(第[一二三四五六七八九十百千0-9]+[章节回卷][^\n。！？!?]{0,24})(?=[。！？\n]|$)/g, "$1\n$2");
+}
+
 export function parseNovelOutput(raw, options = {}) {
   const deriveFallbackTitle = options.deriveTitle !== false;
-  const text = String(raw ?? "").replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ").trim();
+  const text = normalizeHeadingBreaks(String(raw ?? "").replace(/\r\n?/g, "\n").replace(/\u00a0/g, " ").trim());
   if (!text) return { title: "", sections: [], plain: "", wordCount: 0 };
 
   const lines = text.split("\n");

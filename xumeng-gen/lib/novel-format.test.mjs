@@ -49,6 +49,15 @@ test("newline-separated paragraphs are split when there are no blank lines", () 
   assert.deepEqual(parsed.sections[0].paragraphs, ["第一段。", "第二段。", "第三段。"]);
 });
 
+test("inline markdown and chapter headings get split out", () => {
+  const raw = "标题：雨夜旧书\n\n林晚放下笔。\n\n旅人问书。这里没有。\n\n“随缘。”她答。## 第二章 微光\n\n旅人拿走了那本书。";
+  const parsed = parseNovelOutput(raw);
+  assert.equal(parsed.title, "雨夜旧书");
+  assert.equal(parsed.sections.length, 2);
+  assert.equal(parsed.sections[1].heading, "第二章 微光");
+  assert.equal(parsed.sections[1].paragraphs[0], "旅人拿走了那本书。");
+});
+
 test("missing title falls back to the opening line", () => {
   const parsed = parseNovelOutput("雨夜，旅人推门走进旧书店。\n\n他收起伞。");
   assert.equal(parsed.title, "雨夜，旅人推门走进旧书店");
