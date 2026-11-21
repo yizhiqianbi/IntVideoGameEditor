@@ -653,7 +653,7 @@ function NovelForm() {
   const [count, setCount] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
   const words = Number(count);
   const countOk = Number.isInteger(words) && words >= 1 && words <= 6000;
 
@@ -681,13 +681,13 @@ function NovelForm() {
         count: String(words),
       }, { adultConfirmed: true });
       if (!outcome.ok) {
-        setResult("");
+        setResult(null);
         setError(outcome.error);
         return;
       }
-      setResult(outcome.text || "");
+      setResult(outcome.sections ? outcome : { title: "", sections: [{ heading: "", paragraphs: [outcome.text || ""] }] });
     } catch {
-      setResult("");
+      setResult(null);
       setError("小说没有完成。");
     } finally {
       setBusy(false);
@@ -704,7 +704,7 @@ function NovelForm() {
           max={800}
           min={2}
           placeholder="例如：林晚，二十八岁，书店店主，话少。"
-          onChange={value => { setResult(""); setCharacter(value); }}
+          onChange={value => { setResult(null); setCharacter(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "character");
@@ -712,7 +712,7 @@ function NovelForm() {
               setError(outcome.error);
               return;
             }
-            setResult("");
+            setResult(null);
             setCharacter(outcome.prompt);
           }}
         />
@@ -722,7 +722,7 @@ function NovelForm() {
           max={800}
           min={10}
           placeholder="例如：一个三十岁的旅人在雨夜走进旧书店。"
-          onChange={value => { setResult(""); setText(value); }}
+          onChange={value => { setResult(null); setText(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "story");
@@ -730,7 +730,7 @@ function NovelForm() {
               setError(outcome.error);
               return;
             }
-            setResult("");
+            setResult(null);
             setText(outcome.prompt);
           }}
         />
@@ -745,14 +745,26 @@ function NovelForm() {
         </div>
         <label>
           小说字数 必填
-          <input type="number" inputMode="numeric" min="1" max="6000" value={count} placeholder="请输入 1 到 6000" onChange={event => { setResult(""); setCount(event.target.value); }} />
+          <input type="number" inputMode="numeric" min="1" max="6000" value={count} placeholder="请输入 1 到 6000" onChange={event => { setResult(null); setCount(event.target.value); }} />
         </label>
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || character.trim().length < 2 || text.trim().length < 10 || !countOk}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
       <aside className="preview preview-text" id="result" aria-label="预览">
         {busy ? <p className="hint" role="status">{NOVEL_COPY.waiting}</p> : null}
-        {!busy && result ? <pre>{result}</pre> : null}
+        {!busy && result ? (
+          <article className="novel-doc">
+            {result.title ? <h3 className="novel-title">{result.title}</h3> : null}
+            {(result.sections || []).map((section, index) => (
+              <section className="novel-section" key={`${index}-${section.heading || ""}`}>
+                {section.heading ? <h4>{section.heading}</h4> : null}
+                {(section.paragraphs || []).map((paragraph, paragraphIndex) => (
+                  <p key={paragraphIndex}>{paragraph}</p>
+                ))}
+              </section>
+            ))}
+          </article>
+        ) : null}
         {!busy && !result ? <p className="hint">正文会显示在这里。</p> : null}
       </aside>
     </>

@@ -1,6 +1,7 @@
-import { channelBody, channelFailure } from "@/lib/channel";
+import { channelFailure } from "@/lib/channel";
 import { jsonError, sameOrigin } from "@/lib/http";
 import { buildNovelPayload } from "@/lib/novel-request.mjs";
+import { parseNovelOutput } from "@/lib/novel-format.mjs";
 import { connectNovel, connectNovelContinue } from "@/lib/studio-connect";
 
 export const maxDuration = 300;
@@ -28,7 +29,18 @@ export async function POST(request: Request) {
         values.location_scene ?? "",
         values.details ?? "",
       );
-    return channelBody(rendered.bytes, rendered.contentType || "text/plain; charset=utf-8");
+    const raw = Buffer.from(rendered.bytes).toString("utf8");
+    const mode = built.id === "continue-novel" ? "continue" : "new";
+    const parsed = parseNovelOutput(raw, { deriveTitle: mode === "new" });
+    return Response.json({
+      ok: true,
+      mode,
+      title: parsed.title,
+      sections: parsed.sections,
+      plain: parsed.plain,
+      wordCount: parsed.wordCount,
+      text: parsed.plain,
+    }, { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
   } catch (error) {
     return channelFailure(error);
   }
