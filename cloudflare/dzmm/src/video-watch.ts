@@ -2,6 +2,8 @@ import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
 
 export const VIDEO_EPISODE_CREDITS = 50;
+/** 每部短剧前 3 集免费试看。 */
+export const VIDEO_FREE_EPISODES = 3;
 
 const EPISODE = /^hg-([0-9]{4,8})-([0-9]{1,3})$/;
 
@@ -31,7 +33,7 @@ export async function handleVideoWatch(request: Request, env: Env, user: UserRec
   if (request.method !== "POST") throw new ApiError(405, "此接口仅支持 POST。");
   const target = videoEpisodeTarget(await readJson(request, 2048));
   if (!target) throw new ApiError(400, "剧集编号无效。");
-  if (target.episodeNumber === 1) return json({ unlocked: true, chargedCredits: 0, balance: await balance(env, user.id) });
+  if (target.episodeNumber <= VIDEO_FREE_EPISODES) return json({ unlocked: true, chargedCredits: 0, balance: await balance(env, user.id) });
   const now = Date.now();
   const vip = await env.DB.prepare(`SELECT 1 AS ok FROM subscription_periods WHERE user_id=? AND revoked_at IS NULL AND starts_at<=? AND expires_at>? LIMIT 1`)
     .bind(user.id, now, now).first<{ ok: number }>();

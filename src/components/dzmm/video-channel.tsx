@@ -15,6 +15,7 @@ const PROGRESS_KEY = "xumeng-video-progress";
 const CATALOG_TTL_MS = 60_000;
 const EPISODE_CREDITS = 50;
 const INTERACTIVE_CATEGORY = "互动剧";
+const FREE_EPISODE_COUNT = 3;
 const SWIPE_DISTANCE = 64;
 const SWIPE_MS = 180;
 
@@ -229,7 +230,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const hookCharacter = playing
     ? (hookConfig?.characterId ? characters.find(item => item.id === hookConfig.characterId) ?? null : matchXumengVideoCharacter(playing, characters))
     : null;
-  const episodeFree = (episode?.episodeNumber ?? 1) <= 1;
+  const episodeFree = (episode?.episodeNumber ?? 1) <= FREE_EPISODE_COUNT;
   const episodeOpen = episodeFree || (episode !== null && unlockedDrama === episode.dramaId && unlockedIds.has(episode.id));
   const dramaNotes = notes.filter(item => item.dramaId === drama?.dramaId);
   const panels = [visualIndex - 1, visualIndex, visualIndex + 1].flatMap(slot => {
@@ -931,7 +932,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
         <p>{xumengPageFill(copy.allEpisodes, { count: drama.episodes.length })}</p>
         <div className={s.episodeGrid}>
           {drama.episodes.map(item => {
-            const paid = item.episodeNumber > 1 && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
+            const paid = item.episodeNumber > FREE_EPISODE_COUNT && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
             return <button type="button" key={item.id} aria-pressed={item.id === episode?.id} onClick={() => { setEpisodeId(item.id); setSheet(""); }}>{item.episode}{paid ? ` · ${EPISODE_CREDITS}` : ""}</button>;
           })}
         </div>
