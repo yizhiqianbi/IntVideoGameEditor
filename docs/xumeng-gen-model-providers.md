@@ -30,9 +30,10 @@
 
 ## 视频：WAND-Vega-Video-1.5-Lite（图生视频）+ huanlian（换脸视频）
 
-2026-11-19 定稿路线：**图生视频用 H3 fast + 超清放大，换脸视频用 huanlian 像素换脸 + 超清放大**。
-两条都可切换：`TENCENT_VIDEO_PROVIDER=wand-lite` 把图生视频切到 WAND；
-`FACE_VIDEO_PROVIDER=wand-lite` 把换脸视频切到 WAND 参考模式（SFW 可用，NSFW 会被内容审核拒）。
+2026-11-19 定稿路线：**图生视频用 H3 fast 720P；换脸视频用云桥 Wan3.0 Spicy Prime 1080P 参考模式**。
+切换：`TENCENT_VIDEO_PROVIDER=wand-lite` 把图生视频切到 WAND（`on` 才放大）；
+`FACE_VIDEO_PROVIDER=huanlian` 切回 huanlian 像素换脸（更贴原视频但糊），
+`FACE_VIDEO_PROVIDER=wand-lite` 切 WAND 参考模式（NSFW 会被内容审核拒）。
 
 ### H3 fast：图生视频（当前默认）
 
@@ -67,7 +68,18 @@
   `https://channel-media.xumengchat.top/api/studio/media/...`，腾讯临时签名地址不直接给用户。
 - 切回方式：默认就是 H3；`TENCENT_VIDEO_PROVIDER=wand-lite` 可切到 WAND。
 
-### huanlian + 超清放大：换脸视频（当前默认）
+### 云桥 Wan3.0 Spicy Prime：换脸视频（当前默认）
+
+- 模型 ID：`w3.0-video-prime-spicy`；API Base `https://la-sealion.inaiai.com`；
+  提交 `POST /v1/tasks/wan3-0-video`，查询 `GET /v1/tasks/{id}`，
+  产物 `GET /v1/tasks/{id}/artifacts`（取 `content_url`）。
+- 换脸用参考模式：`reference_images=[目标脸]` + `reference_videos=[原视频]`，
+  `metadata.resolution=1080p`、`ratio=9:16`，duration 2–30 秒，录音 `enable_audio=true`。
+- 实测：NSFW 素材可用、原生 1080×1920 / 5 秒 / 12.8MB，画面明显比 huanlian 清楚；
+  代价是生成式换脸（动作/构图保留但会被重画），不是像素级换脸。
+- 凭据：`YUNQIAO_API_BASE` / `YUNQIAO_API_KEY`（与 Seedream 云桥共用一把 Key）。
+
+### huanlian + 超清放大：换脸视频备用（像素级、更糊）
 
 - 流程：huanlian 像素换脸 → 成片先存 channel-media → 走「AI 创造 - 超清放大 - 视频」
   (`/api/public/ai_chuangzao_chaoqing_fangda`) → 放大成片再存 channel-media。
@@ -79,7 +91,7 @@
 ### huanlian：像素级真换脸（放大前）
 
 - 页面路径：`/api/face-swap` 的视频分支；设 `FACE_VIDEO_PROVIDER=huanlian` 启用，实现在
-  `xumeng-gen/lib/huanlian.mjs`。
+  `xumeng-gen/lib/huanlian.mjs`；保留 `FACE_VIDEO_UPSCALE` 放大选项。
 - 提交 `POST {AIAPI_BASE_URL}/api/public/huanlian`（form：`video_url`、`img_url`、`positive_prompt`、
   `video_format`），查询 `GET /api/public/task?task_id=`，`status=2` 取 `out_data[]` 里的成片地址。
 - 像素级换脸：背景、发型、身体、动作、镜头都保留，只替换五官；成片约 10–20 秒。

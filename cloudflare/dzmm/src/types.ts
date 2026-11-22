@@ -26,6 +26,10 @@ export type Env = {
   /** Same image service as the studio stills tool (Qwen Image 2.1). */
   QWEN_IMAGE_URL?: string;
   WHATSTOKEN_API_KEY?: string;
+  TOKENHUB_BASE_URL?: string;
+  TOKENHUB_IMAGE_LITE_API_KEY?: string;
+  TOKENHUB_IMAGE_LITE_MODEL?: string;
+  TOKENHUB_VIDEO_LITE_MODEL?: string;
   VIDU_VOICE?: ViduVoiceServiceBinding;
   BREEZE_API_KEY?: string;
   ELEVENLABS_API_KEY?: string;
@@ -79,6 +83,7 @@ export type Env = {
   ZPAY_WXPAY_CHANNEL_ID?: string;
   /** Guagua CNY checkout. Secrets stay in Worker secrets, not in source. */
   GUAGUA_ENABLED?: string;
+  GUAGUA_PAY_HOSTS?: string;
   GUAGUA_MID?: string;
   GUAGUA_SECRET?: string;
   GUAGUA_CHANNEL_CODE?: string;

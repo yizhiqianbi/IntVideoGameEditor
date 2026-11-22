@@ -1,0 +1,27 @@
+.page { display: flex; flex-direction: column; gap: 18px; max-width: 980px; margin: 0 auto; padding: 26px 18px 90px; }
+.header { display: flex; align-items: flex-start; gap: 14px; }
+.back { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 9px; padding: 8px 11px; font: inherit; font-size: 12px; cursor: pointer; white-space: nowrap; }
+.title h1 { margin: 0; font-size: 26px; letter-spacing: -.02em; }
+.title p { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.card { position: relative; display: flex; align-items: center; gap: 14px; min-height: 118px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; background: linear-gradient(150deg, #241220, #1a0d15); color: var(--text); text-align: left; font: inherit; cursor: pointer; overflow: hidden; transition: transform .18s ease, border-color .18s ease; }
+.card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--pink) 46%, var(--line)); }
+.feature { border-color: color-mix(in srgb, var(--gold) 34%, var(--line)); background: linear-gradient(150deg, #33121f, #1d0d15); }
+.mark { display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 13px; background: rgba(217, 76, 119, .14); color: #f2a9c0; border: 1px solid rgba(217, 76, 119, .28); }
+.feature .mark { color: #f0c68f; background: rgba(215, 173, 120, .12); border-color: rgba(215, 173, 120, .3); }
+.copy { display: grid; gap: 5px; min-width: 0; }
+.copy strong { font-size: 17px; font-weight: 700; }
+.copy small { font-size: 12px; color: var(--muted); }
+.go { margin-left: auto; color: var(--muted); display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; border: 1px solid var(--line); flex: none; }
+.soon { cursor: default; opacity: .66; }
+.soon:hover { transform: none; border-color: var(--line); }
+.badge { margin-left: auto; font-size: 10.5px; color: #c79aa9; border: 1px solid var(--line); border-radius: 999px; padding: 4px 9px; flex: none; }
+.note { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 1.7; }
+@media (max-width: 720px) {
+  .page { padding: 18px 14px 100px; }
+  .title h1 { font-size: 22px; }
+  .grid { grid-template-columns: 1fr; gap: 10px; }
+  .card { min-height: 96px; padding: 14px; border-radius: 15px; }
+  .mark { width: 42px; height: 42px; }
+  .copy strong { font-size: 15.5px; }
+}

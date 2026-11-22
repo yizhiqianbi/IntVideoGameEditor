@@ -729,7 +729,7 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
     </header>
     {error && <div className={s.error} role="alert">{error}</div>}
     {notice && <div className={s.notice} role="status">{notice}</div>}
-    {!loading && availability && !realAllowed && <div className={s.accessNotice}><Icon name="user" size={15} /><div><strong>登录后即可拨打视频通话</strong><p>通话费用由站点 Vidu 账户结算，不扣本站 Credit。</p></div></div>}
+    {!loading && availability && !realAllowed && <div className={s.accessNotice}><Icon name="user" size={15} /><div><strong>登录后即可拨打视频通话</strong><p>通话费用由站点 Vidu 账户结算，不扣本站 金币。</p></div></div>}
     <div className={s.workspace}>
       <div className={s.callPanel}>
         <label className={preferVideo && characters.length > 0 ? s.pickerHidden : s.contactPicker}>通话对象<select aria-label="通话人物" value={selectedCharacter?.key ?? characters[0]?.key ?? ""} disabled={active || disabled} onChange={event => { const character = characters.find(item => item.key === event.target.value); if (character) selectCharacter(character); }}>
@@ -764,7 +764,7 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
           </div>
           {preferVideo && clipFile && !clipOn && <a className={s.clipLink} href={clipFile.url} download={clipFile.name}>下载录像</a>}
           {missingSetup && !active && <p className={s.setupLine} role="status">{missingSetup}</p>}
-          <small>{miniCpmMode ? "MiniCPM-o 4.5 原生双工音频 · 麦克风只在通话中开启" : "按 Vidu 通话时长结算，当前不扣本站 Credit · 通话保持到挂断或离开页面"}</small>
+          <small>{miniCpmMode ? "MiniCPM-o 4.5 原生双工音频 · 麦克风只在通话中开启" : "按 Vidu 通话时长结算，当前不扣本站 金币 · 通话保持到挂断或离开页面"}</small>
         </div>
         {active && <div className={s.stageTools}>
           {!miniCpmMode && <button disabled={disabled || !engine.current} onClick={() => { void action("audio", async (generation, lease) => { const rtc = engine.current; if (!rtc) return; rtc.muteAllRemoteAudioPlaying(false); for (const uid of remoteUsers.current) rtc.resumeRemoteAudioStream(uid); for (const video of remote.current?.querySelectorAll("video") ?? []) { if (video.dataset.uid) rtc.resumeRemoteMediaStream(video.dataset.uid, Number(video.dataset.track) === 2 ? 2 : 1); video.muted = false; await video.play(); } if (current(generation, lease) && engine.current === rtc) { setAudioAllowed(true); notify("已允许有声播放，请确认是否听到人物声音。"); } }); }}><Icon name="volume" size={16} />{audioAllowed ? "声音已开启" : "开启声音"}</button>}

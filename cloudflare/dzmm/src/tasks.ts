@@ -1,4 +1,5 @@
 import { recommendationDay, recommendationDayStart } from "../../../src/lib/xumeng-recommendations";
+import { checkinStatus } from "../../../src/lib/daily-checkin";
 import { rateLimit } from "./auth";
 import { readDailyCheckinCredits } from "./checkin-config";
 import { ApiError, json, readJson } from "./http";
@@ -40,6 +41,10 @@ function nextBeijingMidnight(now: number) { return recommendationDayStart(recomm
 /** One consistent D1 snapshot contains conditions, claims and balances, all scoped to this account. */
 export async function readTaskCenter(env: Env, user: UserRecord, now = Date.now()): Promise<DzmmTaskCenter> {
   const checkinCredits = await readDailyCheckinCredits(env.DB);
+  const today = recommendationDay(now);
+  const claimedDays = await env.DB.prepare("SELECT period FROM task_claims WHERE user_id=? AND task_id='daily_checkin' ORDER BY period DESC LIMIT 28")
+    .bind(user.id).all<{ period: string }>();
+  const checkin = checkinStatus((claimedDays.results ?? []).map(row => row.period), today, checkinCredits);
   const result = await env.DB.batch<Record<string, unknown>>([
     env.DB.prepare(`SELECT u.is_guest,${TASKS.map(task => `${CONDITIONS[task.id]} AS ${task.id}`).join(",")} FROM users u WHERE u.id=?`).bind(user.id),
     env.DB.prepare("SELECT task_id,period,points,claimed_at,expires_at FROM task_claims WHERE user_id=? AND (task_id<>'daily_checkin' OR period=?)").bind(user.id, period("daily_checkin", now)),
@@ -69,13 +74,14 @@ export async function readTaskCenter(env: Env, user: UserRecord, now = Date.now(
     pointsKind: "credit", modelBillingLinked: true, rewardUnit: "Credit", note: "任务和邀请奖励会直接计入聊天 Credit 钱包，可用于聊天与记忆；Credit 到账后长期有效。",
     points: { balance: Number(wallet.balance), totalEarned: Number(rewardStats.total_earned), expired: Number(rewardStats.expired),
       expiringSoon: Number(rewardStats.expiring_soon), earliestExpiryAt: rewardStats.earliest_expiry_at === null ? null : Number(rewardStats.earliest_expiry_at) },
+    checkin,
     tasks: TASKS.map(task => {
       const claim = claims.get(task.id);
       const currentProgress = Math.min(Number(progress[task.id]), task.target);
       const eligible = currentProgress >= task.target;
-      const rewardPoints = task.id === "daily_checkin" ? checkinCredits : task.points;
+      const rewardPoints = task.id === "daily_checkin" ? checkin.todayReward : task.points;
       const description = task.id === "daily_checkin"
-        ? `每天回来签到领取 ${rewardPoints} Credit，北京时间 00:00 重置，当天未签不能补签。`
+        ? `连续登录第 ${checkin.day} 天：今天签到可领 ${rewardPoints} 金币，第 7 天可领 ${checkin.rewards[6]} 金币，北京时间 00:00 重置。`
         : task.description;
       return { id: task.id, title: task.title, description, rewardPoints,
         repeat: task.id === "daily_checkin" ? "daily" : "once", expiresAfterDays: null,
@@ -105,7 +111,13 @@ export async function handleTasks(request: Request, env: Env, user: UserRecord):
   const taskId = match[1] as DzmmTaskId;
   const task = TASKS.find(candidate => candidate.id === taskId)!;
   const now = Date.now();
-  const rewardPoints = taskId === "daily_checkin" ? await readDailyCheckinCredits(env.DB) : task.points;
+  let rewardPoints = task.points;
+  if (taskId === "daily_checkin") {
+    const base = await readDailyCheckinCredits(env.DB);
+    const days = await env.DB.prepare("SELECT period FROM task_claims WHERE user_id=? AND task_id='daily_checkin' ORDER BY period DESC LIMIT 28")
+      .bind(user.id).all<{ period: string }>();
+    rewardPoints = checkinStatus((days.results ?? []).map(row => row.period), recommendationDay(now), base).todayReward;
+  }
   const claimPeriod = period(taskId, now);
   // Keep the legacy task table's daily expiry invariant for audit and
   // eligibility compatibility; the Credit projection remains permanent.

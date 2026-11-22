@@ -14,6 +14,7 @@ const NOTES_KEY = "xumeng-video-notes";
 const PROGRESS_KEY = "xumeng-video-progress";
 const CATALOG_TTL_MS = 60_000;
 const EPISODE_CREDITS = 50;
+const INTERACTIVE_CATEGORY = "互动剧";
 const SWIPE_DISTANCE = 64;
 const SWIPE_MS = 180;
 
@@ -145,10 +146,21 @@ export type VideoCharacterLink = {
   tags?: string[];
 };
 
-export default function VideoChannel({ characters = [], locale = "zh-Hans", onOpenCharacter, onRequireAccount }: {
+function interactiveBlurb(character: VideoCharacterLink) {
+  const intro = (character.introduction || "").trim();
+  const plain = (intro || character.description || "").replace(/^【[^】]*】/, "").replace(/\s+/g, " ").trim();
+  if (plain) return plain.length > 54 ? `${plain.slice(0, 54)}…` : plain;
+  const tags = (character.tags || []).slice(0, 3).join(" · ");
+  return tags || "";
+}
+
+export default function VideoChannel({ characters = [], locale = "zh-Hans", onOpenCharacter, onOpenPlay, onOpenStory, onCreateCharacter, onRequireAccount }: {
   characters?: readonly VideoCharacterLink[];
   locale?: XumengLocale;
   onOpenCharacter?: (id: string) => void;
+  onOpenPlay?: () => void;
+  onOpenStory?: (characterId: string) => void;
+  onCreateCharacter?: (drama: XumengVideoDrama) => Promise<void> | void;
   onRequireAccount?: () => void;
 }) {
   const copy = xumengPage(locale);
@@ -180,10 +192,14 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const [frameShown, setFrameShown] = useState(false);
   const [landscape, setLandscape] = useState(false);
   const [blurbOpen, setBlurbOpen] = useState(false);
+  const [hookOpen, setHookOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
+  const seekGesture = useRef<{ id: number; startX: number; startTime: number; active: boolean } | null>(null);
+  const [seekHud, setSeekHud] = useState<{ target: number; delta: number } | null>(null);
+  const [creatingCard, setCreatingCard] = useState(false);
   const wheeled = useRef(0);
   const moved = useRef(false);
   const sliding = useRef(false);
@@ -199,7 +215,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const ordered = useMemo(() => rankXumengVideoDramas(dramas), [dramas]);
   const [opening] = useState(() => takeOpeningTicket(typeof location !== "undefined" && Boolean(xumengVideoDramaIdFromRoute(location.hash))));
   const feed = useMemo(() => {
-    if (category) return ordered.filter(item => item.category === category);
+    if (category) return ordered.filter(item => item.category === category || item.category.includes(category));
     return rotateXumengVideoFeed(ordered, opening);
   }, [ordered, category, opening]);
   const keyword = query.trim().toLowerCase();
@@ -207,6 +223,12 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const playing = feed[index] ?? null;
   const drama = feed[visualIndex] ?? null;
   const episode = playing ? clipFor(playing, playing.dramaId, episodeId) : null;
+  const hookConfig = playing?.hook;
+  const storyTargetId = playing ? (playing.hook?.characterId || matchXumengVideoCharacter(playing, characters)?.id || "") : "";
+  const storyEntry = playing?.category.includes(INTERACTIVE_CATEGORY) && storyTargetId ? storyTargetId : "";
+  const hookCharacter = playing
+    ? (hookConfig?.characterId ? characters.find(item => item.id === hookConfig.characterId) ?? null : matchXumengVideoCharacter(playing, characters))
+    : null;
   const episodeFree = (episode?.episodeNumber ?? 1) <= 1;
   const episodeOpen = episodeFree || (episode !== null && unlockedDrama === episode.dramaId && unlockedIds.has(episode.id));
   const dramaNotes = notes.filter(item => item.dramaId === drama?.dramaId);
@@ -366,7 +388,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
       }
       setUnlockedIds(current => new Set(current).add(episode.id));
       setUnlockedDrama(episode.dramaId);
-      if (body?.chargedCredits === EPISODE_CREDITS) setToast(`已使用 ${EPISODE_CREDITS} Credit`);
+      if (body?.chargedCredits === EPISODE_CREDITS) setToast(`已使用 ${EPISODE_CREDITS} 金币`);
     } catch {
       setToast("网络异常，请再试一次。");
     } finally {
@@ -540,7 +562,18 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
     setEpisodeId("");
     setSheet("");
     setSearchOpen(false);
+    setHookOpen(false);
     resetTrack();
+  }
+
+  async function enterCharacterCard() {
+    if (!drama) return;
+    if (linkedCharacter) { openCharacter(); return; }
+    if (!onCreateCharacter) { setToast("请先登录后再生成角色卡。"); return; }
+    setCreatingCard(true);
+    try { await onCreateCharacter(drama); }
+    catch (error) { setToast(error instanceof Error ? error.message : "AI 角色卡生成失败，请重试。"); }
+    finally { setCreatingCard(false); }
   }
 
   function openCharacter() {
@@ -644,21 +677,40 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
     if (searchOpen || sheet || sliding.current || event.button !== 0) return;
     if ((event.target as HTMLElement).closest("button, input, a, label, [role='slider']")) return;
     pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    const node = videoRef.current;
+    seekGesture.current = node && Number.isFinite(node.duration) && node.duration > 0
+      ? { id: event.pointerId, startX: event.clientX, startTime: node.currentTime || 0, active: false }
+      : null;
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLElement>) {
     const start = pointer.current;
     if (!start || start.id !== event.pointerId || sliding.current) return;
-    placeTrack(event.clientY - start.y, false);
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
+    const seek = seekGesture.current;
+    if (seek && !seek.active && Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.15) seek.active = true;
+    if (seek?.active) {
+      const node = videoRef.current;
+      if (!node || !Number.isFinite(node.duration)) return;
+      event.preventDefault();
+      const width = Math.max(1, event.currentTarget.getBoundingClientRect().width);
+      const next = Math.max(0, Math.min(node.duration, seek.startTime + (dx / width) * node.duration));
+      node.currentTime = next;
+      setCurrentTime(next);
+      setSeekHud({ target: next, delta: next - seek.startTime });
+      return;
+    }
+    placeTrack(dy, false);
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLElement>) {
     const start = pointer.current;
     if (!start || start.id !== event.pointerId) return;
     pointer.current = null;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
+    const seek = seekGesture.current; seekGesture.current = null;
+    if (seek?.id === event.pointerId && seek.active) { setSeekHud(null); return; }
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
     if (Math.abs(dy) < SWIPE_DISTANCE || Math.abs(dy) < Math.abs(dx)) {
       placeTrack(0, true);
       if (Math.abs(dx) < 12 && Math.abs(dy) < 12) togglePlay();
@@ -668,7 +720,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   }
 
   function onPointerCancel() {
-    pointer.current = null;
+    pointer.current = null; seekGesture.current = null; setSeekHud(null);
     if (!sliding.current) placeTrack(0, true);
   }
 
@@ -724,9 +776,12 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
 
   return <div className={s.shell}>
     <section ref={stageRef} className={s.stage} aria-label={copy.shorts} tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
+      {seekHud && <div className={s.seekHud} aria-hidden="true"><div className={s.seekHudRow}><Icon name={seekHud.delta >= 0 ? "chevron" : "chevron"} size={18} /><strong>{formatTime(seekHud.target)}</strong><span>{seekHud.delta >= 0 ? "+" : ""}{Math.round(seekHud.delta)}s</span></div><div className={s.seekHudBar}><i style={{ width: `${duration > 0 ? Math.min(100, (seekHud.target / duration) * 100) : 0}%` }} /></div></div>}
       {loading && <p className={s.status}>{copy.openingShorts}</p>}
       {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>{copy.reloadShorts}</button></div>}
-      {!loading && !error && !drama && <p className={s.status}>{copy.noShorts}</p>}
+      {!loading && !error && !drama && (category === INTERACTIVE_CATEGORY
+        ? <div className={s.interactiveEmpty}><h2>{copy.interactiveEmpty}</h2><button type="button" onClick={() => chooseCategory("AI成人短剧")}>{copy.interactiveEmptyAction}</button></div>
+        : <p className={s.status}>{copy.noShorts}</p>)}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
           {panels.map(({ item, place, clip }) => <article key={item.dramaId} className={s.panel} data-place={place} aria-hidden={place !== "current"}>
@@ -777,8 +832,11 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
           onEnded={() => {
             if (episode) clearProgress(episode.id);
             const at = playing.episodes.findIndex(entry => entry.id === episode.id);
-            if (at >= 0 && at < playing.episodes.length - 1) setEpisodeId(playing.episodes[at + 1].id);
-            else settle(1);
+            const lastEpisode = at < 0 || at >= playing.episodes.length - 1;
+            if (!lastEpisode) { setEpisodeId(playing.episodes[at + 1].id); return; }
+            // 互动剧在结尾埋钩子：不自动滑走，先问「换你来选」
+            if (playing.category.includes(INTERACTIVE_CATEGORY) || playing.hook) { setHookOpen(true); setPaused(true); return; }
+            settle(1);
           }}
         />
         {!episodeOpen && <div className={s.payGate} role="dialog" aria-label={copy.unlockEpisode} onPointerDown={event => event.stopPropagation()}>
@@ -827,13 +885,24 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
             {synopsis.length > 18 && <button type="button" onClick={() => setBlurbOpen(value => !value)}>{blurbOpen ? copy.collapse : copy.expand}</button>}
           </p>}
           <div className={s.hashes}>{tags.map(tag => <span key={tag}>#{tag}</span>)}</div>
-          {linkedCharacter && <button type="button" className={s.playCard} onClick={openCharacter}>{copy.playThis}</button>}
+          <button type="button" className={s.playCard} disabled={creatingCard} onClick={() => void enterCharacterCard()}>
+            <Icon name="play" size={16} />
+            {creatingCard ? "正在打开角色卡…" : linkedCharacter ? `点击去玩 · ${linkedCharacter.name}` : "点击去玩"}
+          </button>
           <button type="button" className={s.watchAll} onClick={() => setSheet("episodes")}>
             <span>{xumengPageFill(copy.watchAll, { count: drama.episodes.length })}</span>
             <Icon name="chevron" size={16} />
           </button>
         </div>
       </>}
+      {hookOpen && playing && <div className={s.hook} role="dialog" aria-label={copy.hookTitle} onPointerDown={event => { event.stopPropagation(); if (event.target === event.currentTarget) { setHookOpen(false); settle(1); } }}>
+        <div className={s.hookCard}>
+          <span className={s.hookEyebrow}>{copy.interactive}</span>
+          <h2>{hookConfig?.title || copy.hookTitle}</h2>
+          <p>{hookConfig?.body || (hookCharacter ? xumengPageFill(copy.hookBodyNamed, { name: hookCharacter.name }) : copy.hookBody)}</p>
+          <button type="button" className={s.hookPlay} onClick={() => { const target = hookConfig?.characterId || hookCharacter?.id; setHookOpen(false); if (target && onOpenStory) onOpenStory(target); else if (target) onOpenCharacter?.(target); else onOpenPlay?.(); }}>{hookConfig?.action || copy.hookAction}<Icon name="chevron" size={16} /></button>
+        </div>
+      </div>}
       <header className={s.top} onPointerDown={event => event.stopPropagation()}>
         {searchOpen ? <label className={s.searchBox}>
           <Icon name="search" size={16} />

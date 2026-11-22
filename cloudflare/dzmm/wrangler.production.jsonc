@@ -32,7 +32,7 @@
     "COMPANION_BILLING_ENABLED": "true",
     "CHAT_MEDIA_ENABLED": "true",
     "SUBSCRIPTION_ENABLED": "true",
-    "SUBSCRIPTION_PLANS_JSON": "[{\"id\":\"vip_monthly\",\"label\":\"叙梦 VIP\",\"revision\":3,\"amountMinor\":2800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":300,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\"}]",
+    "SUBSCRIPTION_PLANS_JSON": "[{\"id\": \"vip_weekly\", \"label\": \"叙梦 VIP 周卡\", \"revision\": 1, \"amountMinor\": 2800, \"currency\": \"cny\", \"durationDays\": 7, \"dailyCredits\": 300, \"maxClaims\": 7, \"timezone\": \"Asia/Shanghai\"}]",
     "PAYMENTS_RETURN_ORIGIN": "https://xumengchat.top",
     "EMAIL_AUTH_ENABLED": "true",
     "EMAIL_PROVIDER": "cloudflare",

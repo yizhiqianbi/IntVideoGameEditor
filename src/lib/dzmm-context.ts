@@ -8,6 +8,9 @@ import {
   type DzmmChatMessage,
   type DzmmModelPreset,
   type DzmmPromptStyle,
+  type DzmmChatInput,
+  type DzmmGroupRequest,
+  type DzmmSamplerRequest,
   type DzmmWorldContext,
 } from "./dzmm-chat";
 import {
@@ -36,6 +39,9 @@ export type DzmmPreparedRequest = {
   maxTokens?: number;
   locale?: XumengLocale;
   promptStyle?: DzmmPromptStyle;
+  sampler?: DzmmSamplerRequest;
+  group?: DzmmGroupRequest;
+  memoryConfig?: DzmmChatInput["memoryConfig"];
 };
 
 function frontendScriptsOf(character: object): readonly XumengFrontendScript[] | undefined {
@@ -61,7 +67,7 @@ export function prepareDzmmRequest(
   userPersona?: string,
   model: DzmmModelPreset = "balanced",
   maxTokens?: number,
-  options: { storyMemory?: DzmmStoryMemory; userName?: string; world?: DzmmWorldContext; locale?: XumengLocale; promptStyle?: DzmmPromptStyle } = {},
+  options: { storyMemory?: DzmmStoryMemory; userName?: string; world?: DzmmWorldContext; locale?: XumengLocale; promptStyle?: DzmmPromptStyle; sampler?: DzmmSamplerRequest; group?: DzmmGroupRequest; memoryConfig?: DzmmChatInput["memoryConfig"] } = {},
 ): DzmmPreparedRequest {
   const { name, description, personality, scenario, firstMessage } = projectDzmmStoryCharacter(character);
   const latest = messages[messages.length - 1];
@@ -122,11 +128,18 @@ export function prepareDzmmRequest(
     ...(maxTokens === undefined ? {} : { maxTokens: normalized.maxTokens }),
     locale: normalized.locale ?? XUMENG_DEFAULT_LOCALE,
     ...(options.promptStyle === "tavern" ? { promptStyle: "tavern" as const } : {}),
+    ...(options.sampler ? { sampler: options.sampler } : {}),
+    ...(options.group ? { group: options.group } : {}),
+    ...(options.memoryConfig ? { memoryConfig: options.memoryConfig } : {}),
   };
   const encoder = new TextEncoder();
   function fits() {
-    if (characterBook) request.character.characterBook = activateDzmmCharacterBook(characterBook,
-      mergeDzmmOpeningMessages(opening, request.messages));
+    // The xumeng prompt needs pre-activated lore; the tavern engine activates the
+    // full book server-side and must keep every advanced field intact.
+    if (characterBook) {
+      request.character.characterBook = request.promptStyle === "tavern" ? characterBook : activateDzmmCharacterBook(characterBook,
+        mergeDzmmOpeningMessages(opening, request.messages));
+    }
     const chars = countDzmmContextText(request.character) + (request.preset?.length || 0)
       + (request.userPersona?.length || 0) + countDzmmContextText(request.storyMemory) + countDzmmContextText(request.world)
       + request.messages.reduce((sum, message) => sum + message.content.length, 0);

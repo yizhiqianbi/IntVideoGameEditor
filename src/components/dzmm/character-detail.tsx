@@ -30,6 +30,7 @@ export type CharacterDetailProps = {
   inviteCode?: string | null;
   onBack: () => void;
   onStart: (openingIndex?: number, fresh?: boolean) => void;
+  onGroupChat?: () => void;
   onLive?: () => void;
   onVoice?: () => void;
   onFavorite: () => void;
@@ -114,6 +115,7 @@ export default function CharacterDetail({
   inviteCode = null,
   onBack,
   onStart,
+  onGroupChat,
   onLive,
   onVoice,
   onFavorite,
@@ -353,6 +355,7 @@ export default function CharacterDetail({
           </div>
 
           <div className={s.primaryActions}>
+            {onGroupChat && <button className={s.outline} type="button" onClick={onGroupChat}><Icon name="users" size={15} />一起聊</button>}
             <button className={s.start} type="button" onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}>
               <Icon name="chat" size={18} />
               {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}

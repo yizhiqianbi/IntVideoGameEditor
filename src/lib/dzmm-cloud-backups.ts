@@ -90,7 +90,13 @@ export function writeDzmmCloudRecovery(backup: DzmmCloudBackup, writerId: string
   if (count >= DZMM_CLOUD_RECOVERY_MAX_ENTRIES || totalBytes > DZMM_CLOUD_RECOVERY_MAX_BYTES) {
     throw new Error("本地恢复备份容量已满，请先导出记录；其他页面的未同步备份会保留。");
   }
-  storage.setItem(key, raw);
+  try {
+    storage.setItem(key, raw);
+  } catch (error) {
+    if (!replacing) throw error;
+    storage.removeItem(replacing.key);
+    storage.setItem(key, raw);
+  }
   // Keys are immutable. A selected archived revision can be removed safely
   // without racing another document replacing that key with newer contents.
   if (replacing) clearOwnDzmmCloudRecovery(replacing, writerId, storage);

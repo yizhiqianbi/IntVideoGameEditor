@@ -45,11 +45,18 @@ export async function liveWallet(env: Env, user: UserRecord, provider: "stripe" 
   const results = await env.DB.batch(statements);
   const order = orderId ? results[2].results[0] as unknown as LiveOrder | undefined : undefined;
   if (orderId && !order) throw new ApiError(404, "充值订单不存在。");
+  const promo = await env.DB.prepare(`SELECT
+    (SELECT COUNT(*) FROM guagua_orders WHERE user_id=? AND paid_at IS NOT NULL)
+    +(SELECT COUNT(*) FROM zpay_orders WHERE user_id=? AND paid_at IS NOT NULL)
+    +(SELECT COUNT(*) FROM payment_orders WHERE user_id=? AND mode='live' AND paid_at IS NOT NULL) AS paid,
+    (SELECT COUNT(*) FROM guagua_orders WHERE user_id=? AND promotion='first_half') AS promo`)
+    .bind(user.id, user.id, user.id, user.id).first<{ paid: number; promo: number }>();
   const total = results[0].results[0] as unknown as { balance: number; total_purchased: number; total_refunded: number; total_subscription_granted: number;
     reserved_credits: number; total_spent: number; debt_credits: number };
   return { accountId: user.id, creditUnlimited: false, billingExempt: false, provider, mode: "live" as const, testMode: false, modelBillingLinked: creditBillingConfig(env).enabled,
     balance: Number(total.balance), totalPurchased: Number(total.total_purchased), totalRefunded: Number(total.total_refunded),
     totalSubscriptionGranted: Number(total.total_subscription_granted),
     reservedCredits: Number(total.reserved_credits), totalSpent: Number(total.total_spent), debtCredits: Number(total.debt_credits),
+    firstRechargeHalfAvailable: Number(promo?.paid ?? 0) === 0 && Number(promo?.promo ?? 0) === 0,
     orders: (results[1].results as unknown as LiveOrder[]).map(liveOrder), ...(order ? { order: liveOrder(order) } : {}) };
 }

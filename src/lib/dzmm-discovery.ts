@@ -20,6 +20,8 @@ export type DzmmForumTopic = {
 export const DZMM_DISCOVERY_CATEGORIES = [
   { slug: "truelove", name: "纯爱", tags: ["纯爱", "甜宠", "wholesome"] },
   { slug: "girl", name: "女性向", tags: ["女性向", "female-oriented", "fem-audience"] },
+  { slug: "boy", name: "男性向", tags: ["男性向", "male-oriented", "male-audience"] },
+  { slug: "donghua", name: "动画", tags: ["二次元", "动漫", "动画", "anime", "animation"] },
   { slug: "ntr", name: "NTR", tags: ["NTR"] },
   { slug: "history", name: "古风历史", tags: ["古风历史", "古风"] },
   { slug: "sm", name: "调教", tags: ["调教"] },

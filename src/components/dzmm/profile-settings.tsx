@@ -4,7 +4,7 @@ import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "../../l
 import { XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
 
 /* eslint-disable @next/next/no-img-element -- Character covers are imported media assets. */
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type FormEvent, type ReactNode } from "react";
 import { getDzmmCharacterCardBlurb } from "@/lib/dzmm-character-presentation";
 import type { Character } from "@/lib/dzmm-characters";
 import { DZMM_PERSONA_LIMIT, type DzmmChatFont, type DzmmChatFontSize, type DzmmPreferences, type DzmmSavedConversation, type DzmmSavedPersona, type DzmmSavedPreset } from "@/lib/dzmm-storage";
@@ -15,10 +15,11 @@ import { changeDzmmPassword, requestDzmmEmailBind, verifyDzmmEmailBind } from "@
 import { fetchDzmmReferral, type DzmmReferralInfo } from "@/lib/dzmm-referral";
 import { posterShareLocation, XUMENG_POSTERS } from "@/lib/xumeng-acquisition";
 import { fetchDzmmPaymentWallet } from "@/lib/dzmm-payments";
+import { DailyLogin } from "./daily-login";
+import { uploadDzmmCover } from "@/lib/dzmm-cloud";
 import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
 import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
-import { DreamCoinPanel } from "./dream-coin-panel";
-import { UserMark } from "./user-mark";
+import { AccountAvatar, UserMark } from "./user-mark";
 import { characterCreateLabel, useCharacterCreateCost } from "@/lib/dzmm-scene-prices";
 import { xumengTranslate } from "@/lib/xumeng-i18n";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
@@ -31,6 +32,13 @@ export type DzmmProfileUser = {
   role?: string; createdAt?: string | number;
   passwordSetupRequired?: boolean;
 };
+
+/** 大额余额用「亿 / 万」，完整数字放 title；小数值仍带千分位。 */
+function compactNumber(value: number): string {
+  if (value >= 1e8) return `${(Math.floor(value / 1e7) / 10).toFixed(1).replace(/\.0$/, "")} 亿`;
+  if (value >= 1e4) return `${(Math.floor(value / 1e2) / 100).toFixed(2).replace(/\.?0+$/, "")} 万`;
+  return value.toLocaleString("zh-CN");
+}
 
 function dateLabel(value: string | number | undefined) {
   if (value === undefined || !Number.isFinite(new Date(value).getTime())) return "";
@@ -63,7 +71,45 @@ function Dialog({ title, onClose, children }: { title: string; onClose: () => vo
 function Empty({ children }: { children: ReactNode }) { return <div className={s.empty}><Icon name="book" size={30} /><p>{children}</p></div>; }
 
 function ToolButton({ label, icon, onClick }: { label: string; icon: IconName; onClick?: () => void }) {
-  return <button type="button" className={s.tool} title={label} aria-label={label} onClick={onClick}><Icon name={icon} size={16} /></button>;
+  return <button type="button" className={`${s.tool} ${s.accountTool}`} title={label} aria-label={label} onClick={onClick}><Icon name={icon} size={17} /><span>{label}</span></button>;
+}
+
+
+/** Soft rose icons for the wallet / member / invite cards. */
+function MineRoseIcon({ kind }: { kind: "wallet" | "member" | "invite" }) {
+  const rose = `mine-rose-${kind}`;
+  const glow = `mine-rose-${kind}-glow`;
+  const defs = <defs>
+    <linearGradient id={rose} x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stopColor="#ffd6e2" />
+      <stop offset="55%" stopColor="#ef8fb1" />
+      <stop offset="100%" stopColor="#c74a72" />
+    </linearGradient>
+    <linearGradient id={glow} x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stopColor="#fff2f6" />
+      <stop offset="100%" stopColor="#f2a6c1" />
+    </linearGradient>
+  </defs>;
+  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+    {defs}
+    {kind === "wallet" && <>
+      <rect x="4" y="10" width="24" height="16" rx="4.5" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
+      <path d="M4 14.5h24" stroke={`url(#${rose})`} strokeWidth="1.5" opacity="0.65" />
+      <path d="M8.5 10V8.6c0-1 .8-1.8 1.8-1.8h11.4" stroke={`url(#${glow})`} strokeWidth="1.5" strokeLinecap="round" opacity="0.9" />
+      <circle cx="21.5" cy="20.5" r="2.4" fill={`url(#${glow})`} />
+    </>}
+    {kind === "member" && <>
+      <path d="M6 22.5l2-9 5.2 4.4L16 10l2.8 7.9L24 13.5l2 9z" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" strokeLinejoin="round" />
+      <path d="M6 25.4h20" stroke={`url(#${glow})`} strokeWidth="1.7" strokeLinecap="round" opacity="0.85" />
+      <circle cx="16" cy="17.4" r="1.5" fill={`url(#${glow})`} />
+    </>}
+    {kind === "invite" && <>
+      <rect x="6" y="14" width="20" height="12" rx="3" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
+      <rect x="4.6" y="10.2" width="22.8" height="6" rx="2.2" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
+      <path d="M16 10.2v15.8" stroke={`url(#${glow})`} strokeWidth="1.6" opacity="0.85" />
+      <path d="M16 10.2c-4-1-6.2-2.6-5.2-4.4 1-1.8 3.6-1.2 5.2 2.6 1.6-3.8 4.2-4.4 5.2-2.6 1 1.8-1.2 3.4-5.2 4.4z" fill="none" stroke={`url(#${glow})`} strokeWidth="1.5" strokeLinejoin="round" />
+    </>}
+  </svg>;
 }
 
 export type ProfileViewProps = {
@@ -74,11 +120,13 @@ export type ProfileViewProps = {
   onEditCharacter: (character: Character) => void; onCreateCharacter: () => void;
   onEditProfile: () => void; onSettings: () => void; onPresets: () => void; onRecharge?: () => void; onVip?: () => void;
   onInvite?: () => void;
+  /** Persists a freshly uploaded profile photo URL. */
+  onAvatar?: (url: string) => void | Promise<void>;
   onLogin?: () => void; onRegister?: () => void; onBrowse?: () => void;
   onDeleteCharacter?: (character: Character) => void; onAdmin?: () => void;
 };
 
-export function ProfileView({ user, characters, custom, favorites, conversations, authors, preferences, onCharacter, onAuthor, onConversation, onEditCharacter, onCreateCharacter, onEditProfile, onSettings, onPresets, onRecharge, onVip, onInvite, onLogin, onRegister, onBrowse, onDeleteCharacter, onAdmin }: ProfileViewProps) {
+export function ProfileView({ user, characters, custom, favorites, conversations, authors, preferences, onCharacter, onAuthor, onConversation, onEditCharacter, onCreateCharacter, onEditProfile, onSettings, onPresets, onRecharge, onVip, onInvite, onAvatar, onLogin, onRegister, onBrowse, onDeleteCharacter, onAdmin }: ProfileViewProps) {
   const copy = xumengPage(preferences.locale ?? "zh-Hans");
   const createLabel = characterCreateLabel(useCharacterCreateCost(), copy.createRole);
   const [tab, setTab] = useState<"timeline" | "characters" | "favorites" | "conversations" | "following">("characters");
@@ -100,6 +148,24 @@ export function ProfileView({ user, characters, custom, favorites, conversations
     }).catch(() => { if (!abort.signal.aborted) setCredits(null); });
     return () => abort.abort();
   }, [user]);
+  const avatarInput = useRef<HTMLInputElement>(null);
+  const [avatarBusy, setAvatarBusy] = useState(false);
+  async function changeAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file || !onAvatar) return;
+    if (file.size > 3_000_000) { setCopyStatus(copy.avatarTooLarge); return; }
+    setAvatarBusy(true); setCopyStatus("");
+    try {
+      const url = await uploadDzmmCover(file);
+      await onAvatar(url);
+      setCopyStatus(copy.avatarUpdated);
+    } catch (error) {
+      setCopyStatus(error instanceof Error && error.message ? error.message : copy.avatarUploadFailed);
+    } finally {
+      setAvatarBusy(false);
+    }
+  }
   async function copyId() { if (!user) return; try { await navigator.clipboard.writeText(user.id); setCopyStatus(copy.userCopied); } catch { setCopyStatus(copy.copyFailedSelect); } }
   if (!user || user.isGuest) {
     return <main className={`${s.page} ${s.guestPage}`}>
@@ -128,48 +194,79 @@ export function ProfileView({ user, characters, custom, favorites, conversations
   const openVip = onVip ?? onRecharge;
   return <main className={`${s.page} ${s.signedInPage} ${s.minePage}`}>
     <header className={s.mineHead}>
-      <span className={`${s.avatar} ${s.mineAvatar}`}><UserMark /></span>
+      <button type="button" className={s.mineAvatarUpload} onClick={() => avatarInput.current?.click()}
+        disabled={avatarBusy || !onAvatar} aria-label={copy.changeAvatar} title={copy.changeAvatar}>
+        <span className={`${s.avatar} ${s.mineAvatar}`}>
+          <AccountAvatar src={preferences.avatar} className={s.mineAvatarImage} alt={preferences.nickname} />
+        </span>
+        <span className={s.mineAvatarBadge} aria-hidden="true"><Icon name="image" size={12} /></span>
+      </button>
+      <input ref={avatarInput} className={s.avatarFile} type="file" accept="image/png,image/jpeg,image/webp" onChange={(event) => void changeAvatar(event)} />
       <div className={s.profileInfo}>
         <h1>{preferences.nickname}</h1>
-        <div className={s.idLine}><span>ID {user.id}</span><ToolButton label={copy.copyUserId} icon="copy" onClick={() => void copyId()} /></div>
-        <p>{user.email || copy.noEmailYet}{dateLabel(user.createdAt) && ` · ${xumengPageFill(copy.joinedOn, { date: dateLabel(user.createdAt) })}`}</p>
+        <div className={s.mineMeta}>
+          <span className={s.mineEmail}>{user.email || copy.noEmailYet}</span>
+          <button type="button" className={s.mineIdChip} title={user.id} aria-label={copy.copyUserId} onClick={() => void copyId()}>
+            <span>ID {user.id.slice(0, 8)}</span>
+            <Icon name="copy" size={12} />
+          </button>
+        </div>
         {preferences.bio && <p className={s.bio}>{preferences.bio}</p>}
       </div>
       <button type="button" className={s.mineGear} aria-label={copy.settings} title={copy.settings} onClick={onSettings}><Icon name="sliders" size={18} /></button>
     </header>
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
-    <div className={s.mineAssets}>
-      <button type="button" className={s.mineVip} onClick={openVip} disabled={!openVip}>
-        <span className={s.mineAssetIcon}><Icon name="crown" size={18} /></span>
-        <span><small>{copy.membership}</small><strong>{copy.viewPerks}</strong></span>
-        <Icon name="chevron" size={16} />
+
+    <section className={s.mineWallet} aria-label={copy.accountInfo}>
+      <button type="button" className={`${s.mineCard} ${s.mineCardWallet}`} onClick={onRecharge} disabled={!onRecharge}>
+        <span className={s.mineCardHead}>
+          <strong>{copy.walletCardTitle}</strong>
+          <span className={s.mineCardArt}><MineRoseIcon kind="wallet" /></span>
+        </span>
+        <span className={s.mineCardValue} title={credits === null ? undefined : credits.toLocaleString("zh-CN")}>{credits === null ? "…" : compactNumber(credits)}</span>
+        <span className={s.mineCardHint}>{copy.walletCardHint}</span>
+        <span className={s.mineCardFoot}>{copy.topUp}<Icon name="chevron" size={12} /></span>
       </button>
-      <button type="button" className={s.mineWallet} onClick={onRecharge} disabled={!onRecharge}>
-        <span className={s.mineAssetIcon}><Icon name="wallet" size={18} /></span>
-        <span><small>Credit</small><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></span>
-        <Icon name="chevron" size={16} />
-      </button>
-    </div>
-    {openVip && <button type="button" className={s.minePromo} onClick={openVip}>
-      <span><strong>{copy.memberOffer}</strong><small>{copy.memberOfferBody}</small></span>
-      <b>{copy.joinNow}</b>
-    </button>}
-    <div className={s.mineShortcuts} aria-label={copy.myContent}>
-      <button type="button" className={tab === "characters" ? s.mineOn : ""} onClick={() => setTab("characters")}><Icon name="user" size={18} /><span>{copy.roles}</span><strong>{custom.length}</strong></button>
-      <button type="button" className={tab === "favorites" ? s.mineOn : ""} onClick={() => setTab("favorites")}><Icon name="heart" size={18} /><span>{copy.saved}</span><strong>{favorites.length}</strong></button>
-      <button type="button" className={tab === "conversations" ? s.mineOn : ""} onClick={() => setTab("conversations")}><Icon name="chat" size={18} /><span>{copy.sessions}</span><strong>{conversations.length}</strong></button>
-      <button type="button" className={tab === "following" ? s.mineOn : ""} onClick={() => setTab("following")}><Icon name="users" size={18} /><span>{copy.follow}</span><strong>{followedIds.length}</strong></button>
-    </div>
-    {onInvite && <section className={`${s.referralCard} ${s.inviteBanner} ${s.mineInvite}`}><div className={s.referralHeading}><div><span className={s.referralEyebrow}>{copy.inviteFriends}</span><h2>{copy.inviteTogether}</h2></div><ToolButton label={copy.inviteNow} icon="users" onClick={onInvite} /></div></section>}
-    <nav className={s.accountMenu} aria-label={copy.accountActions}>
-      <ToolButton label={copy.editProfile} icon="edit" onClick={onEditProfile} />
-      <ToolButton label={createLabel} icon="plus" onClick={onCreateCharacter} />
-      <ToolButton label={copy.myPresets} icon="book" onClick={onPresets} />
-      {onRecharge && <ToolButton label={XUMENG_PAYMENTS_ENABLED ? copy.rechargeVip : copy.balancePerks} icon="wallet" onClick={onRecharge} />}
-      {user.role === "super" && onAdmin && <ToolButton label={copy.admin} icon="grid" onClick={onAdmin} />}
+      {openVip && <button type="button" className={s.mineCard} onClick={openVip}>
+        <span className={s.mineCardHead}>
+          <strong>{copy.membership}</strong>
+          <span className={s.mineCardArt}><MineRoseIcon kind="member" /></span>
+        </span>
+        <span className={s.mineCardHint}>{copy.memberCardHint}</span>
+        <span className={s.mineCardFoot}>{copy.joinNow}<Icon name="chevron" size={12} /></span>
+      </button>}
+      {onInvite && <button type="button" className={s.mineCard} onClick={onInvite}>
+        <span className={s.mineCardHead}>
+          <strong>{copy.inviteFriends}</strong>
+          <span className={s.mineCardArt}><MineRoseIcon kind="invite" /></span>
+        </span>
+        <span className={s.mineCardHint}>{copy.inviteCardHint}</span>
+        <span className={s.mineCardFoot}>{copy.inviteNow}<Icon name="chevron" size={12} /></span>
+      </button>}
+    </section>
+
+    {!user?.isGuest && <div className={s.mineDaily}><DailyLogin userId={user.id} isGuest={false}
+      locale={preferences.locale ?? "zh-Hans"} compact
+      onRequireAccount={() => onLogin?.()}
+      onCreditChanged={() => { void fetchDzmmPaymentWallet().then(wallet => { if (wallet.accountId === user.id) setCredits(wallet.balance); }).catch(() => undefined); }} /></div>}
+
+    <nav className={s.mineActions} aria-label={copy.accountActions}>
+      <button type="button" onClick={onEditProfile}><Icon name="edit" size={18} /><span>{copy.editProfile}</span></button>
+      <button type="button" onClick={onCreateCharacter}><Icon name="plus" size={18} /><span>{createLabel}</span></button>
+      <button type="button" onClick={onPresets}><Icon name="book" size={18} /><span>{copy.myPresets}</span></button>
+      {onRecharge && <button type="button" onClick={onRecharge}><Icon name="wallet" size={18} /><span>{XUMENG_PAYMENTS_ENABLED ? copy.rechargeVip : copy.balancePerks}</span></button>}
+      {user.role === "super" && onAdmin && <button type="button" onClick={onAdmin}><Icon name="grid" size={18} /><span>{copy.admin}</span></button>}
     </nav>
-    {!user.isGuest && <DreamCoinPanel userId={user.id} compact />}
-    <div className={`${s.tabs} ${s.contentTabs}`} role="tablist" aria-label={copy.myContent}>{([{ id: "timeline", label: copy.timeline }, { id: "characters", label: copy.roles }, { id: "favorites", label: copy.saved }, { id: "conversations", label: copy.sessions }, { id: "following", label: copy.follow }] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.activeTab : ""} onClick={() => setTab(item.id)}>{item.label}</button>)}</div>
+
+    <div className={s.mineTabs} role="tablist" aria-label={copy.myContent}>
+      {([
+        { id: "timeline", label: copy.timeline, count: events.length },
+        { id: "characters", label: copy.roles, count: custom.length },
+        { id: "favorites", label: copy.saved, count: favorites.length },
+        { id: "conversations", label: copy.sessions, count: conversations.length },
+        { id: "following", label: copy.follow, count: followedIds.length },
+      ] as const).map((item) => <button role="tab" aria-selected={tab === item.id} key={item.id} className={tab === item.id ? s.mineTabOn : ""} onClick={() => setTab(item.id)}><span>{item.label}</span><b>{item.count}</b></button>)}
+    </div>
     {tab === "timeline" && (events.length ? <div className={s.timeline}>{events.map((event) => <button key={event.id} onClick={event.action}><span className={s.timelineDot} /><span><time>{dateLabel(event.date)}</time><strong>{event.text}</strong></span><Icon name="chevron" size={16} /></button>)}</div> : <Empty>{copy.noActivity}</Empty>)}
     {(tab === "characters" || tab === "favorites") && ((tab === "characters" ? custom : favoriteRoles).length ? <div className={s.roleList}>{(tab === "characters" ? custom : favoriteRoles).map((character) => <article key={character.id} className={s.roleRow}><button className={s.roleCover} onClick={() => onCharacter(character)} aria-label={xumengPageFill(copy.viewNamed, { name: character.name })}>{isDzmmCoverVideoUrl(character.cover) ? <CoverVisual src={xumengCardCoverUrl(character.cover)} alt={character.name} /> : <img src={xumengCardCoverUrl(character.cover)} alt={character.name} />}</button><button className={s.roleText} onClick={() => onCharacter(character)}><h2>{character.name}</h2><p>{getDzmmCharacterCardBlurb(character, preferences.nickname)}</p><small>{character.author}</small></button>{tab === "characters" && <div className={s.roleActions}><button type="button" className={s.iconButton} onClick={() => onEditCharacter(character)} title={xumengPageFill(copy.editNamed, { name: character.name })} aria-label={xumengPageFill(copy.editNamed, { name: character.name })}><Icon name="edit" size={16} /></button>{onDeleteCharacter && <button type="button" className={`${s.iconButton} ${s.iconDanger}`} onClick={() => setDeleting(character)} title={xumengPageFill(copy.deleteNamed, { name: character.name })} aria-label={xumengPageFill(copy.deleteNamed, { name: character.name })}><Icon name="trash" size={16} /></button>}</div>}</article>)}</div> : <Empty>{tab === "characters" ? copy.noRolesYet : copy.noSavesYet}</Empty>)}
     {tab === "conversations" && (conversations.length ? <div className={s.conversations}>{conversations.map((conversation) => <button key={conversation.id} onClick={() => onConversation(conversation)}><Icon name="chat" size={20} /><span><strong>{conversation.title}</strong><small>{conversation.messages.at(-1)?.content || copy.noMessagesYet}</small></span><time>{dateLabel(conversation.updatedAt)}</time></button>)}</div> : <Empty>{copy.noSessionsYet}</Empty>)}
@@ -228,7 +325,6 @@ export function InviteCenter({ user, locale = "zh-Hans", onBack, onRegister, onW
         })}
       </section> : <p className={s.lead}>{copy.loadingCode}</p>}
     {copyStatus && <p className={s.status} role="status">{copyStatus}</p>}
-    <p className={s.lead}>{copy.dreamCoinNote}<button type="button" className={s.textLink} onClick={onWallet}>{copy.viewDreamCoin}</button></p>
   </main>;
 }
 

@@ -16,6 +16,9 @@ export { chatMediaSourceHash };
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { isDzmmCoverVideoUrl } from "../../../src/lib/dzmm-cover-media";
 import { rememberChatImage } from "./relationship-album";
+import { applyTavernImagePreset, parseTavernImagePresetId } from "../../../src/lib/tavern/image";
+import { composeTavernImagePrompt, parseTavernImageGeneration, type TavernImageGeneration } from "../../../src/lib/tavern/image-generation";
+import { readTavernFlags } from "../../../src/lib/tavern/flags";
 
 type Kind = "audio" | "image";
 type AiRunner = { run(model: string, input: Record<string, unknown>): Promise<unknown> };
@@ -352,7 +355,8 @@ export function illustrationStillPrompt(scene: string, reference = true, options
   return stillPrompt(kept, reference, options);
 }
 const COVER_BYTES = 4_500_000;
-const OWNED_MEDIA = /^\/api\/dzmm\/backend\/v1\/media\/([A-Za-z0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/;
+// Older uploads have no file extension at all, e.g. /media/<user>/<uuid>.
+const OWNED_MEDIA = /^\/api\/(?:dzmm\/)?backend\/v1\/media\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+(?:\.[A-Za-z0-9]{2,8})?)$/;
 function imageSignature(bytes: Uint8Array): boolean {
   const png = bytes.length >= 24 && [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => bytes[index] === value);
   const jpeg = bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
@@ -414,7 +418,37 @@ async function readCover(response: Response): Promise<Uint8Array | null> {
   if (bytes.byteLength < 32 || bytes.byteLength > COVER_BYTES || !imageSignature(bytes)) return null;
   return bytes;
 }
-async function characterReference(env: Env, userId: string, conversationId: string, messageId: string, options: ChatMediaOptions): Promise<Uint8Array | null> {
+/** Character fields injected into SillyTavern-style image prompt templates. */
+async function characterImageContext(env: Env, userId: string, conversationId: string): Promise<{
+  name: string; description: string; personality: string; scenario: string; appearance: string;
+}> {
+  const row = await env.DB.prepare(`SELECT c.name AS name, c.description AS description, c.personality AS personality,
+      c.scenario AS scenario, c.context_json AS context_json
+    FROM conversations v JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{
+      name: string; description: string | null; personality: string | null; scenario: string | null; context_json: string | null;
+    }>();
+  if (!row) return { name: "", description: "", personality: "", scenario: "", appearance: "" };
+  let appearance = "";
+  try {
+    const parsed = JSON.parse(row.context_json || "{}") as { appearance?: unknown };
+    if (typeof parsed.appearance === "string") appearance = parsed.appearance;
+  } catch { /* appearance is optional */ }
+  const clip = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
+  return { name: clip(row.name), description: clip(row.description), personality: clip(row.personality),
+    scenario: clip(row.scenario), appearance: clip(appearance) };
+}
+
+type CharacterReference = { bytes: Uint8Array; source: "previous" | "cover" };
+/** Owned R2 objects may predate the ownerId metadata; the key prefix is proof. */
+function ownedObjectKey(objectKey: string, userId: string): boolean {
+  return objectKey.startsWith(`${userId}/`);
+}
+function ownedBy(object: R2Object, objectKey: string, userId: string): boolean {
+  const owner = object.customMetadata?.ownerId;
+  return owner ? owner === userId : ownedObjectKey(objectKey, userId);
+}
+async function characterReference(env: Env, userId: string, conversationId: string, messageId: string, options: ChatMediaOptions): Promise<CharacterReference | null> {
   // Continue from the latest generated still in this conversation. The
   // current message is included so a regeneration also chains from its old
   // result before falling back to the character cover.
@@ -427,9 +461,9 @@ async function characterReference(env: Env, userId: string, conversationId: stri
       .bind(userId, conversationId, userId, conversationId, messageId).first<{ object_key: string }>();
     if (anchor?.object_key) {
       const object = await env.MEDIA.get(anchor.object_key);
-      if (object && object.customMetadata?.ownerId === userId) {
+      if (object && ownedBy(object, anchor.object_key, userId)) {
         const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-        if (bytes) return bytes;
+        if (bytes) return { bytes, source: "previous" };
       }
     }
   }
@@ -449,17 +483,18 @@ async function characterReference(env: Env, userId: string, conversationId: stri
     const owned = OWNED_MEDIA.exec(candidate);
     if (owned) {
       if (owned[1] !== userId || !env.MEDIA) continue;
-      const object = await env.MEDIA.get(`${owned[1]}/${owned[2]}`);
-      if (!object || object.customMetadata?.ownerId !== userId) continue;
+      const objectKey = `${owned[1]}/${owned[2]}`;
+      const object = await env.MEDIA.get(objectKey);
+      if (!object || !ownedBy(object, objectKey, userId)) continue;
       const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-      if (bytes) return bytes;
+      if (bytes) return { bytes, source: "cover" };
       continue;
     }
     const url = coverUrl(env, candidate);
     if (!url) continue;
     try {
       const bytes = await readCover(await (options.fetch ?? fetch)(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) }));
-      if (bytes) return bytes;
+      if (bytes) return { bytes, source: "cover" };
     } catch { /* try the next gallery image */ }
   }
   return null;
@@ -468,7 +503,7 @@ async function previousImageReference(env: Env, userId: string, asset: AssetRow 
   if (!asset || asset.status !== "ready" || asset.kind !== "image" || !env.MEDIA) return null;
   try {
     const object = await env.MEDIA.get(asset.object_key);
-    if (!object || object.customMetadata?.ownerId !== userId) return null;
+    if (!object || !ownedBy(object, asset.object_key, userId)) return null;
     return readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
   } catch { return null; }
 }
@@ -477,7 +512,7 @@ function bytesToBase64(bytes: Uint8Array): string {
   for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   return btoa(binary);
 }
-async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null, signal: AbortSignal, options: ChatMediaOptions): Promise<Uint8Array> {
+async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null, signal: AbortSignal, options: ChatMediaOptions, ratio = "3:4"): Promise<Uint8Array> {
   const apiKey = env.WHATSTOKEN_API_KEY?.trim();
   if (!apiKey) throw new ApiError(503, "出图服务还没接上。");
   const png = reference && reference.length >= 8 && reference[0] === 0x89 && reference[1] === 0x50;
@@ -488,7 +523,7 @@ async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null,
     ? `data:${png ? "image/png" : webp ? "image/webp" : "image/jpeg"};base64,${bytesToBase64(reference)}`
     : undefined;
   try {
-    const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio: "3:4", signal, fetchImpl: options.fetch });
+    const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio, signal, fetchImpl: options.fetch });
     return still.bytes;
   } catch (error) {
     if (signal.aborted) throw new ApiError(504, "生成超时，请稍后重试。");
@@ -595,8 +630,12 @@ async function fail(env: Env, userId: string, assetId: string, token: string, no
 
 async function generate(request: Request, env: Env, user: UserRecord, now: number, options: ChatMediaOptions): Promise<Response> {
   const illustrated = new URL(request.url).pathname === "/v1/chat-media/illustrate";
-  const body = await readJson(request, illustrated ? 12_000 : 2048);
+  const body = await readJson(request, illustrated ? 12_000 : 4096);
   let conversationId: string, messageId: string, kind: Kind, stillOverride: string | null = null, rememberImage = true, regenerate = false;
+  const tavernFlags = readTavernFlags(env as unknown as Record<string, string | undefined>);
+  let imagePreset = tavernFlags.imagePresets ? parseTavernImagePresetId((body as Record<string, unknown>).imagePreset) : undefined;
+  let imageTemplate: TavernImageGeneration | undefined;
+  let imageRatio = "3:4";
   if (illustrated) {
     let draft: ReturnType<typeof parseDzmmIllustrationDraft>;
     try { draft = parseDzmmIllustrationDraft(body); }
@@ -607,12 +646,18 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     messageId = draft.messageId;
     kind = "image";
     stillOverride = composeDzmmIllustration(draft);
+    imagePreset = parseTavernImagePresetId(draft.imagePreset) ?? imagePreset;
     rememberImage = draft.visibility === "public";
   } else {
-    if (Object.keys(body).length < 4 || Object.keys(body).length > 5 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate"].includes(key))
+    if (Object.keys(body).length < 4 || Object.keys(body).length > 6 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate","imagePreset","imageTemplate"].includes(key))
       || ![body.accountId,body.conversationId,body.messageId].every(value => typeof value === "string" && SAFE_ID.test(value))
       || (body.kind !== "audio" && body.kind !== "image") || (body.regenerate !== undefined && body.regenerate !== true)) throw new ApiError(400,"素材请求参数无效。");
     if (body.accountId !== user.id) throw new ApiError(409,"账户已切换，请刷新后重试。");
+    if (body.imageTemplate !== undefined) {
+      imageTemplate = parseTavernImageGeneration(body.imageTemplate);
+      if (!imageTemplate) throw new ApiError(400, "生图参数无效。");
+      if (body.kind !== "image") imageTemplate = undefined;
+    }
     conversationId = body.conversationId as string;
     messageId = body.messageId as string;
     kind = body.kind as Kind;
@@ -640,7 +685,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   }
   if (existing?.status === "pending") throw new ApiError(409,"这条消息的素材正在生成，请稍后查看。",{retryAfter:3});
   // Existing results and in-flight receipts remain recoverable while new images are paused.
-  let imagePrompt = "", reference: Uint8Array | null = null;
+  let imagePrompt = "", reference: Uint8Array | null = null, referenceSource: "previous" | "cover" | "none" = "none";
   if (kind === "image") {
     if (env.GENERATION_ENABLED === "false") throw new ApiError(503,"图片与视频生成已暂停开放。",{code:"media_generation_paused"});
     if (!env.WHATSTOKEN_API_KEY?.trim()) throw new ApiError(503,"出图服务还没接上。");
@@ -649,7 +694,9 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     // fall back to the character cover so the first reference generation still
     // has an identity anchor instead of failing with a recovery error.
     const previous = regenerate ? await previousImageReference(env, user.id, existing) : null;
-    const cover = previous ?? await characterReference(env, user.id, conversationId, messageId, options);
+    const resolved = previous ? { bytes: previous, source: "previous" as const } : await characterReference(env, user.id, conversationId, messageId, options);
+    const cover = resolved?.bytes ?? null;
+    referenceSource = resolved?.source ?? "none";
     const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "", appearance: "" };
     const visualLabels = status.labels.filter(label => VISUAL_STATUS.test(label));
     let fromStatus = stillOverride === null ? statusStillScene(source.content, visualLabels) : null;
@@ -666,7 +713,16 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     if (!built) throw new ApiError(400, stillOverride === null
       ? ((minor || blocked) ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
       : (minor ? "这条画面不能生成图片。" : "这条画面没有可生成的正文。"));
-    imagePrompt = built;
+    if (imageTemplate && tavernFlags.imagePresets !== false) {
+      const context = await characterImageContext(env, user.id, conversationId);
+      const templated = composeTavernImagePrompt({ base: built, generation: imageTemplate,
+        context: { characterName: context.name || "角色", userName: user.nickname || "你",
+          description: context.description, personality: context.personality, scenario: context.scenario, appearance: context.appearance } });
+      imagePrompt = applyTavernImagePreset(templated.prompt, imagePreset);
+      imageRatio = templated.size;
+    } else {
+      imagePrompt = applyTavernImagePreset(built, imagePreset);
+    }
     reference = cover;
   }
   await minuteLimit(env,user.id,now);
@@ -750,7 +806,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     }
     const asset = await lookup();
     if (!asset || asset.status !== "ready") throw new ApiError(409,"消息已更新，请重新保存后再生成。");
-    return json({accountId:user.id,asset:publicAsset(asset)},201);
+    return json({accountId:user.id,asset:publicAsset(asset)},201,{ "X-Xumeng-Reference-Image": referenceSource });
   } catch (error) {
     // No source text, account IDs, credentials or provider error messages.
     const provider = (env.AI ?? {}) as { lastRequestHttpStatusCode?: number; lastRequestInternalStatusCode?: number };

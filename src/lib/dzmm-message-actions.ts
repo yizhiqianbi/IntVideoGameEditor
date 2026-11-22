@@ -132,3 +132,52 @@ export function createDzmmReplySuggestionBranch(
     updatedAt: options.now ?? Date.now(), ...(storyMemory ? { storyMemory } : {}),
     ...(worldState ? { worldState } : {}) };
 }
+
+export const DZMM_MESSAGE_SWIPE_LIMIT = 8;
+
+function withSwipeMessages(
+  conversation: Readonly<DzmmSavedConversation>,
+  messageId: string,
+  update: (message: DzmmSavedConversation["messages"][number]) => DzmmSavedConversation["messages"][number] | undefined,
+  now: number,
+): DzmmSavedConversation {
+  const index = conversation.messages.findIndex(message => message.id === messageId);
+  if (index < 0) throw new Error("这条消息已不存在，请重新打开消息菜单。");
+  const updated = update(conversation.messages[index]);
+  if (!updated || updated === conversation.messages[index]) return conversation;
+  const messages = conversation.messages.map((message, position) => position === index ? updated : message);
+  const { opening, storyMemory: previousMemory, worldState: previousWorld, ...rest } = conversation;
+  const storyMemory = matchesDzmmStoryMemory(previousMemory, messages) ? parseStoryMemory(previousMemory) : undefined;
+  const worldState = pruneDzmmWorldJournal(previousWorld, messages);
+  void opening;
+  return { ...rest, messages, updatedAt: now,
+    ...(storyMemory ? { storyMemory } : {}), ...(worldState ? { worldState } : {}) };
+}
+
+/** Switch between stored swipe variants of one assistant turn. */
+export function switchDzmmMessageSwipe(
+  conversation: Readonly<DzmmSavedConversation>, messageId: string, index: number, options: { now?: number } = {},
+): DzmmSavedConversation {
+  return withSwipeMessages(conversation, messageId, message => {
+    if (message.role !== "assistant" || !message.swipes || message.swipes.length < 2) throw new Error("这条消息没有可切换的版本。");
+    if (!Number.isInteger(index) || index < 0 || index >= message.swipes.length) throw new Error("版本序号无效。");
+    if ((message.swipeIndex ?? 0) === index) return undefined;
+    return { ...message, content: message.swipes[index], swipeIndex: index };
+  }, options.now ?? Date.now());
+}
+
+/** Append one more generated variant and activate it. */
+export function appendDzmmMessageSwipe(
+  conversation: Readonly<DzmmSavedConversation>, messageId: string, content: string, options: { now?: number } = {},
+): DzmmSavedConversation {
+  if (typeof content !== "string" || !content.trim() || content.includes("\0") || content.length > DZMM_MESSAGE_EDIT_MAX_CHARS) {
+    throw new Error("新版本正文应为不超过 12000 字的非空文本。");
+  }
+  return withSwipeMessages(conversation, messageId, message => {
+    if (message.role !== "assistant") throw new Error("只有角色回复可以生成新版本。");
+    const swipes = [...(message.swipes ?? [message.content])];
+    if (swipes[swipes.length - 1] === content) throw new Error("新版本与当前版本相同。");
+    if (swipes.length >= DZMM_MESSAGE_SWIPE_LIMIT) throw new Error(`每条回复最多保存 ${DZMM_MESSAGE_SWIPE_LIMIT} 个版本。`);
+    return { ...message, content, swipes: [...swipes, content], swipeIndex: swipes.length };
+  }, options.now ?? Date.now());
+}

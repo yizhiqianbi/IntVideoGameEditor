@@ -16,6 +16,14 @@ export type XumengVideoEpisode = {
   episodeNumber: number;
 };
 
+/** 结尾钩子：不同剧可以配不同文案与跳转角色；不配就用默认文案。 */
+export type XumengVideoHook = {
+  title?: string;
+  body?: string;
+  action?: string;
+  characterId?: string;
+};
+
 export type XumengVideoDrama = {
   dramaId: string;
   title: string;
@@ -24,6 +32,7 @@ export type XumengVideoDrama = {
   characterId: string;
   synopsis: string;
   tags: string[];
+  hook?: XumengVideoHook;
 };
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -66,6 +75,13 @@ export function parseXumengVideoCatalog(value: unknown): XumengVideoDrama[] {
     const category = text(item.category, 40);
     const characterId = text(item.characterId, 80);
     const synopsis = text(item.synopsis, 400) || text(item.description, 400);
+    const hookTitle = text(item.hookTitle, 40);
+    const hookBody = text(item.hookBody, 160);
+    const hookAction = text(item.hookAction, 20);
+    const hookCharacterId = text(item.hookCharacterId, 80);
+    const hook: XumengVideoHook | undefined = hookTitle || hookBody || hookAction || hookCharacterId
+      ? { ...(hookTitle ? { title: hookTitle } : {}), ...(hookBody ? { body: hookBody } : {}), ...(hookAction ? { action: hookAction } : {}), ...(hookCharacterId ? { characterId: hookCharacterId } : {}) }
+      : undefined;
     const tags = Array.isArray(item.tags) ? item.tags.flatMap(tag => {
       const value = text(tag, 16);
       return value ? [value] : [];
@@ -80,6 +96,7 @@ export function parseXumengVideoCatalog(value: unknown): XumengVideoDrama[] {
     const current = groups.get(dramaId) ?? { dramaId, title, category, episodes: [], characterId: "", synopsis: "", tags: [] };
     if (!current.category && category) current.category = category;
     if (!current.characterId && characterId) current.characterId = characterId;
+    if (!current.hook && hook) current.hook = hook;
     if (!current.synopsis && synopsis) current.synopsis = synopsis;
     if (!current.tags.length && tags.length) current.tags = tags;
     if (!current.episodes.some(existing => existing.mediaKey === mediaKey)) {

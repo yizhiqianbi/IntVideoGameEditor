@@ -33,6 +33,9 @@ export async function handleVideoWatch(request: Request, env: Env, user: UserRec
   if (!target) throw new ApiError(400, "剧集编号无效。");
   if (target.episodeNumber === 1) return json({ unlocked: true, chargedCredits: 0, balance: await balance(env, user.id) });
   const now = Date.now();
+  const vip = await env.DB.prepare(`SELECT 1 AS ok FROM subscription_periods WHERE user_id=? AND revoked_at IS NULL AND starts_at<=? AND expires_at>? LIMIT 1`)
+    .bind(user.id, now, now).first<{ ok: number }>();
+  if (vip) return json({ unlocked: true, chargedCredits: 0, vip: true, balance: await balance(env, user.id) });
   const inserted = await env.DB.prepare(`INSERT INTO video_episode_unlocks(user_id,episode_id,drama_id,episode_number,credits,created_at)
     SELECT ?1,?2,?3,?4,${VIDEO_EPISODE_CREDITS},?5
     WHERE EXISTS(SELECT 1 FROM users WHERE id=?1 AND is_guest=0)

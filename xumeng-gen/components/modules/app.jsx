@@ -69,14 +69,36 @@ function HubCard({ id, feature = false, go }) {
 }
 
 function Home({ go }) {
+  const [fromXumeng, setFromXumeng] = useState(false);
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setFromXumeng(params.get("from") === "xumeng");
+  }, []);
   return (
     <Shell go={go} home>
       <section className="home" aria-label="创作模块">
-        <header className="tech-hero">
-          <p className="tech-kicker">AI科技</p>
-          <h1>把想象变成作品</h1>
-          <p>影像 · 故事 · 创意</p>
+        <header className="xm-top">
+          <span className="xm-top-brand"><i aria-hidden="true">☾</i>叙梦 <em>·</em> AI 生成</span>
+          <a className="xm-back" href="https://xumengchat.top" target="_blank" rel="noopener noreferrer">返回叙梦 →</a>
         </header>
+        {fromXumeng ? (
+          <section className="xumeng-hero" aria-label="从叙梦进入">
+            <p className="xm-kicker">从叙梦角色卡进入</p>
+            <h1>把她的封面，做成一段视频</h1>
+            <p className="xm-line">用角色封面作为第一帧生成图生视频；也可以文生图、换脸、换造型或写小说。</p>
+            <div className="xm-actions">
+              <button type="button" className="xm-primary" onClick={() => go("/video")}>用封面做视频</button>
+              <button type="button" className="xm-ghost" onClick={() => go("/image")}>文生图</button>
+            </div>
+            <p className="xm-note">这里只生成虚构的成年角色。</p>
+          </section>
+        ) : (
+          <header className="tech-hero">
+            <p className="tech-kicker">AI科技</p>
+            <h1>把想象变成作品</h1>
+            <p>影像 · 故事 · 创意</p>
+          </header>
+        )}
         <HubCard id="video" feature go={go} />
         <div className="tech-grid">
           {["image", "face", "coat", "novel"].map(id => <HubCard id={id} key={id} go={go} />)}

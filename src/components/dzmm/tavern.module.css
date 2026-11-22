@@ -375,6 +375,8 @@
 .vipEntry:hover { background: rgba(180, 122, 69, .22); }
 .vipEntry:hover svg { transform: translateY(-1px) rotate(-5deg); }
 @media (max-width: 480px) { .vipEntry { padding: 7px; } .vipEntry span { display: none; } }
+.avatarImage { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+
 .avatar {
   width: 26px;
   height: 26px;
@@ -1503,7 +1505,7 @@
 .chatHeaderTools .iconButton[aria-pressed="true"] { color: var(--pink); border-color: color-mix(in srgb, var(--pink) 40%, var(--line)); background: var(--pink-soft); }
 .chatAlbum {
   position: absolute;
-  z-index: 12;
+  z-index: 46;
   top: 64px;
   right: 12px;
   width: min(360px, calc(100% - 24px));
@@ -1576,6 +1578,20 @@
 }
 .modelButton svg {
   transform: rotate(90deg);
+}
+/* 浮层菜单：挂在 body 上，避免被聊天内容/层级上下文盖住 */
+.modelMenuPortal {
+  --surface: #1e1018;
+  --line: #4b2636;
+  --text: #f8e8eb;
+  --muted: #c79aa9;
+  --pink: #d94c77;
+  --soft: #321723;
+  position: fixed;
+  z-index: 1000;
+  top: 72px;
+  left: 24px;
+  box-shadow: 0 24px 70px #0009;
 }
 .modelMenu {
   position: absolute;
@@ -2836,7 +2852,7 @@
   }
   .chatLayout:has(.playStage) { gap: 0; padding: 0; }
   .playStage { display: none; width: auto; max-width: none; min-width: 0; border-radius: 0; }
-  .playStage[data-open="true"] { position: fixed; z-index: 30; inset: 0; display: block; }
+  .playStage[data-open="true"] { position: fixed; z-index: 55; inset: 0; display: block; }
   .chatBesideStage { margin: 0; border-radius: 0; }
   /* Portrait chat: the character shot sits behind the thread as a soft backdrop. */
   .chatPlay > .chatBackdrop { filter: blur(22px) saturate(1.1); transform: scale(1.12); opacity: .6; }
@@ -3202,7 +3218,7 @@
     padding: 6px 8px 8px;
     gap: 6px 5px;
     position: relative;
-    z-index: 4;
+    z-index: 40;
   }
   .chatIdentity {
     display: flex !important;
@@ -3233,7 +3249,7 @@
     left: auto;
     order: 2;
     flex: 1 0 100%;
-    z-index: 5;
+    z-index: 41;
   }
   .modelButton {
     font-size: 10px;
@@ -3246,6 +3262,15 @@
   .modelMenu {
     top: 32px;
     width: min(340px, 100%);
+    z-index: 60;
+  }
+  .modelMenuPortal {
+    top: calc(var(--vv-top, 0px) + 108px);
+    left: 8px;
+    right: 8px;
+    width: auto;
+    max-height: 62vh;
+    overflow: auto;
   }
   .messageScroll {
     padding: 14px 12px 28px;
@@ -3492,7 +3517,16 @@
 .homeTags .tagConfirmReady { background: var(--pink); color: #fff; }
 @font-face { font-family: "Xumeng Script"; src: url("/assets/xumeng/home/great-vibes-latin.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
 .shelfHero { position: relative; height: clamp(196px, 24vw, 268px); margin: 10px 16px 2px; overflow: hidden; border-radius: 18px; background: #140810; color: #fff; isolation: isolate; }
-.shelfHero img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: 72% center; }
+.shelfHeroTrack { position: absolute; inset: 0; display: flex; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; scrollbar-width: none; overscroll-behavior-x: contain; }
+.shelfHeroTrack::-webkit-scrollbar { display: none; }
+.shelfHeroImage { position: relative; flex: 0 0 100%; width: 100%; height: 100%; object-fit: cover; object-position: 72% 20%; scroll-snap-align: start; }
+.shelfHeroDots { position: absolute; z-index: 3; right: 16px; bottom: 14px; display: flex; gap: 6px; }
+.shelfHeroDot { width: 6px; height: 6px; padding: 0; border: 0; border-radius: 999px; background: rgba(255, 255, 255, .3); cursor: pointer; transition: width .2s ease, background .2s ease; }
+.shelfHeroDotOn { width: 20px; background: #fff; }
+.shelfHeroArrow { position: absolute; z-index: 3; top: calc(50% - 17px); display: grid; place-items: center; width: 34px; height: 34px; padding: 0 0 2px; border-radius: 50%; border: 1px solid rgba(255, 255, 255, .24); background: rgba(8, 4, 8, .4); backdrop-filter: blur(8px); color: #fff; font-size: 20px; line-height: 1; cursor: pointer; transition: background .18s ease; }
+.shelfHeroArrow:hover { background: rgba(8, 4, 8, .64); }
+.shelfHeroArrowPrev { left: 12px; }
+.shelfHeroArrowNext { right: 12px; }
 .shelfHeroShade { position: absolute; inset: 0; background: linear-gradient(90deg, rgba(10, 4, 8, .86) 0%, rgba(10, 4, 8, .5) 34%, rgba(10, 4, 8, .08) 62%); }
 .shelfHeroCopy { position: relative; z-index: 1; display: flex; flex-direction: column; justify-content: center; height: 100%; max-width: 460px; padding: 18px 40px 20px; }
 .shelfHeroScript { display: flex; flex-direction: column; margin: 0; font-family: "Xumeng Script", "Snell Roundhand", cursive; font-weight: 400; line-height: .82; text-shadow: 0 12px 28px rgba(0, 0, 0, .42); }
@@ -3504,6 +3538,8 @@
 .shelfHeroActions button:hover { background: rgba(255, 255, 255, .16); color: #fff; }
 @media (max-width: 767px) {
   .shelfHero { height: 188px; margin: 8px 12px 0; border-radius: 14px; }
+  .shelfHeroArrow { display: none; }
+  .shelfHeroDots { right: 12px; bottom: 10px; }
   .shelfHeroCopy { max-width: none; padding: 14px 16px 12px; }
   .shelfHeroScript span:first-child { font-size: 58px; }
   .shelfHeroScript span:last-child { margin: -2px 0 0 28px; font-size: 32px; }
@@ -3515,3 +3551,23 @@
 .homeBanner p { margin: 0; color: var(--muted); }
 .homeRails { display: flex; flex-direction: column; gap: 8px; }
 .cardAge { margin-left: 6px; color: var(--muted); font-size: 12px; font-weight: 500; }
+
+/* 顶部内容取向：全部 / 女性向 / 男性向 / 动画 */
+.audienceNav { display:flex; align-items:center; gap:8px; margin:10px 16px 2px; padding:5px; width:fit-content; border:1px solid var(--line, #3b2030); border-radius:999px; background:rgba(28,14,22,.72); }
+.audienceNav button { border:0; border-radius:999px; padding:7px 15px; background:transparent; color:var(--muted, #c79aa9); font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; white-space:nowrap; }
+.audienceNav button:hover { color:var(--text, #f8e8eb); }
+.audienceNav .audienceOn { background:linear-gradient(120deg, #e4557f, #b9365f); color:#fff; box-shadow:0 8px 18px -10px rgba(217,76,119,.8); }
+@media (max-width: 720px) {
+  .audienceNav { width:calc(100% - 24px); margin:8px 12px 0; gap:4px; }
+  .audienceNav button { flex:1; padding:8px 6px; font-size:12px; }
+}
+
+/* 头部取向 tabs：桌面在 header 内，手机在内容顶部 */
+.audienceHost { display:flex; align-items:center; flex:none; }
+.audienceHost .audienceNav { margin:0; padding:3px; background:rgba(255,255,255,.04); }
+.audienceHost .audienceNav button { padding:5px 11px; font-size:12px; }
+.audienceMobile { display:none; }
+@media (max-width: 1100px) {
+  .audienceHost { display:none; }
+  .audienceMobile { display:block; }
+}

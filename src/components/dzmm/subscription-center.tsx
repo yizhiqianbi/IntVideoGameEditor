@@ -308,7 +308,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         requestId: requestId(key), provider: "zpay", mode: "live" }, controller.signal);
       if (!mounted.current || controller.signal.aborted || currentContext.current !== contextKey) return;
       if (read > applied.current) { applied.current = read; setOverview(result); }
-      setNotice(`今日已领取 ${number(result.claim.credits)} Credit，已计入你的余额。`);
+      setNotice(`今日已领取 ${number(result.claim.credits)} 金币，已计入你的余额。`);
       onChanged.current?.();
     } catch (failure) {
       if (!mounted.current || controller.signal.aborted || currentContext.current !== contextKey) return;
@@ -355,7 +355,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
   let receiptMessage = "正在核对付款与会员权益。支付完成后，请以这里显示的开通结果为准。";
   if (receivedSubscription?.status === "active") receiptMessage = `已开通${receivedSubscription.label}，有效至 ${date(receivedSubscription.expiresAt)}。现在可查看今日签到状态。`;
   else if (receivedSubscription?.status === "queued") receiptMessage = `已购买${receivedSubscription.label}，将于 ${date(receivedSubscription.startsAt)} 生效，接续已有会员周期。`;
-  else if (receivedSubscription?.status === "expired") receiptMessage = "这期会员已到期，已领取的 Credit 仍保留在余额中。";
+  else if (receivedSubscription?.status === "expired") receiptMessage = "这期会员已到期，已领取的 金币 仍保留在余额中。";
   else if (receivedSubscription?.status === "revoked" || currentOrder?.status === "refunded") receiptMessage = "这笔会员权益已停止，具体处理结果以订单记录为准。";
   else if (currentOrder?.status === "paid") receiptMessage = "付款已确认，会员开通结果仍在核对中。请稍后重新核对。";
   else if (currentOrder?.status === "pending") receiptMessage = verifying
@@ -376,15 +376,15 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     <div className={s.checkin} aria-label="VIP 每日签到">
       <div>
         <span className={s.eyebrow}>{current ? `${current.checkin.dayKey} · 北京时间` : "每日签到"}</span>
-        <h3>{checkinOnly ? current?.checkin.claimed ? "VIP 今日已领取" : "VIP 每日领取" : current?.checkin.claimed ? "今日 Credit 已领取" : "领取今日 Credit"}</h3>
-        {dailyReward !== undefined && <strong className={s.dailyReward}>{number(dailyReward)} <span>Credit</span></strong>}
+        <h3>{checkinOnly ? current?.checkin.claimed ? "VIP 今日已领取" : "VIP 每日领取" : current?.checkin.claimed ? "今日 金币 已领取" : "领取今日 金币"}</h3>
+        {dailyReward !== undefined && <strong className={s.dailyReward}>{number(dailyReward)} <span>金币</span></strong>}
         <p>{current?.checkin.claimed ? "已计入你的余额，会员有效期内每天领取一次。" : activeSubscription ? "登录后点击领取，每天一次；当天未领取的额度不累计。" : "会员生效后，每天登录，在这里点击领取。"}</p>
       </div>
       <div className={s.checkinAction}>
-        {isGuest ? <button type="button" className={s.outline} onClick={onRequireAccount}>登录领取 Credit</button>
+        {isGuest ? <button type="button" className={s.outline} onClick={onRequireAccount}>登录领取 金币</button>
           : current?.checkin.claimed ? <strong className={s.claimed}><Icon name="check" size={16} />今日已领取</strong>
           : <button type="button" className={s.primary} disabled={busy || !current?.checkin.claimable} onClick={() => void claim()}>
-            {acting === "claim" ? "领取中…" : current?.checkin.claimable ? `领取今日 ${number(current.checkin.rewardCredits)} Credit`
+            {acting === "claim" ? "领取中…" : current?.checkin.claimable ? `领取今日 ${number(current.checkin.rewardCredits)} 金币`
               : !current ? loading || !paymentConfig ? "读取签到状态…" : "刷新后查看签到"
               : queued.length && !activeSubscription ? "生效后可签到" : activeSubscription ? "今日暂不可签到" : checkinOnly ? "VIP 生效后可领取" : "开通后可签到"}
           </button>}
@@ -392,7 +392,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       </div>
     </div>
     {current?.checkin.claimed && activeSubscription && claimedSubscription && claimedSubscription.id !== activeSubscription.id &&
-      <p className={s.rules}>今日领取来自「{claimedSubscription.label}」，每个账户每天仅领取一次 Credit。</p>}
+      <p className={s.rules}>今日领取来自「{claimedSubscription.label}」，每个账户每天仅领取一次 金币。</p>}
   </>;
 
   if (checkinOnly) return current?.superAccess ? null : <section className={s.section} aria-label="VIP 每日领取">
@@ -403,21 +403,21 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
 
   if (current?.superAccess) return <section className={s.section} aria-labelledby="subscription-title">
     <div className={s.heading}>
-      <div><h2 id="subscription-title">Super 全站权益</h2><p>管理员账号已开通全部会员功能，Credit 按普通账户规则结算。</p></div>
+      <div><h2 id="subscription-title">Super 全站权益</h2><p>管理员账号已开通全部会员功能，金币 按普通账户规则结算。</p></div>
       <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新状态"}</button>
     </div>
     {error && <p className={s.error} role="alert">{error}</p>}
     <div className={s.membership}>
       <div className={s.membershipHeading}><h3>叙梦 Super</h3><span className={`${s.status} ${s.activeStatus}`}>Super 权限</span></div>
-      <p className={s.period}>管理员账号不单独展示媒体额度。语音、图片和聊天都按普通账户的 Credit 规则结算，权限以服务器当前账号角色为准。</p>
-      <dl className={s.accountFacts}><div><dt>可用 Credit</dt><dd>{number(current.balance)}</dd></div><div><dt>Credit 结算</dt><dd>按普通账户规则</dd></div></dl>
+      <p className={s.period}>管理员账号不单独展示媒体额度。语音、图片和聊天都按普通账户的 金币 规则结算，权限以服务器当前账号角色为准。</p>
+      <dl className={s.accountFacts}><div><dt>可用 金币</dt><dd>{number(current.balance)}</dd></div><div><dt>金币 结算</dt><dd>按普通账户规则</dd></div></dl>
     </div>
     <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
   </section>;
 
   return <section className={s.section} aria-labelledby="subscription-title">
     <div className={s.heading}>
-      <div><h2 id="subscription-title">会员</h2><p>有效期内每天领取一次 Credit。微信或 USDT 购买。</p></div>
+      <div><h2 id="subscription-title">会员</h2><p>有效期内每天领取一次 金币。微信或 USDT 购买。</p></div>
       <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}>
         <Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新状态"}
       </button>
@@ -436,7 +436,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       {(currentIntent || recoveredOrder) && <dl className={s.orderFacts}>
         <div><dt>原套餐</dt><dd>{currentIntent?.plan.label ?? recoveredOrder?.label}</dd></div>
         <div><dt>支付金额</dt><dd>{money(currentIntent?.plan.amountMinor ?? recoveredOrder!.amountMinor)}</dd></div>
-        <div><dt>每日领取</dt><dd>{number(currentIntent?.plan.dailyCredits ?? recoveredOrder!.dailyCredits)} Credit</dd></div>
+        <div><dt>每日领取</dt><dd>{number(currentIntent?.plan.dailyCredits ?? recoveredOrder!.dailyCredits)} 金币</dd></div>
         <div><dt>支付方式</dt><dd>{(currentIntent?.request.method ?? recoveredOrder?.method) === "wxpay" ? "微信支付" : "支付宝"}</dd></div>
       </dl>}
       {recoveredOrder && <details className={s.orderNumber}><summary>查看原订单编号</summary><code>{recoveredOrder.id}</code></details>}
@@ -467,7 +467,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       {currentOrder && <dl className={s.orderFacts}>
         <div><dt>支付金额</dt><dd>{money(currentOrder.amountMinor)}</dd></div>
         <div><dt>会员周期</dt><dd>{currentOrder.durationDays} 天</dd></div>
-        <div><dt>每日领取</dt><dd>{number(currentOrder.dailyCredits)} Credit</dd></div>
+        <div><dt>每日领取</dt><dd>{number(currentOrder.dailyCredits)} 金币</dd></div>
       </dl>}
       <details className={s.orderNumber}><summary>查看订单编号</summary><code>{activeOrderId}</code></details>
       {verificationError && <p className={s.error} role="alert">{verificationError}</p>}
@@ -487,12 +487,12 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         ? `${date(activeSubscription.startsAt)} 至 ${date(activeSubscription.expiresAt)}（北京时间）`
         : isGuest ? "登录后查看你的会员与今日签到状态。"
         : queued.length ? `下一期将于 ${date(queued[0].startsAt)} 生效。`
-        : lastSubscription?.status === "expired" ? `已于 ${date(lastSubscription.expiresAt)} 到期，已领取的 Credit 继续保留。`
+        : lastSubscription?.status === "expired" ? `已于 ${date(lastSubscription.expiresAt)} 到期，已领取的 金币 继续保留。`
         : lastSubscription?.status === "revoked" ? "这期会员已停止，请查看订单处理结果或联系管理员。"
-        : current ? "会员周期以购买方案为准，生效后每天登录并手动领取 Credit。" : "刷新状态后查看会员有效期和签到记录。"}</p>
+        : current ? "会员周期以购买方案为准，生效后每天登录并手动领取 金币。" : "刷新状态后查看会员有效期和签到记录。"}</p>
       {current && <dl className={s.accountFacts}>
-        <div><dt>Credit 余额</dt><dd>{number(current.balance)}</dd></div>
-        <div><dt>VIP 累计领取</dt><dd>{number(current.totalSubscriptionGranted)} <small>Credit</small></dd></div>
+        <div><dt>金币 余额</dt><dd>{number(current.balance)}</dd></div>
+        <div><dt>VIP 累计领取</dt><dd>{number(current.totalSubscriptionGranted)} <small>金币</small></dd></div>
         {activeSubscription && <div><dt>本期已签到</dt><dd>{activeSubscription.claimsCount}<small> / {activeSubscription.maxClaims} 次</small></dd></div>}
       </dl>}
     </div>
@@ -502,7 +502,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       <h3>已购 · 待生效</h3>
       <ul className={s.queued} aria-label="待生效会员">{queued.map(entry => <li key={entry.id}>
         <div><strong>{entry.label}</strong><span>{date(entry.startsAt)} 至 {date(entry.expiresAt)}</span></div>
-        <span>每日 {number(entry.dailyCredits)} Credit</span>
+        <span>每日 {number(entry.dailyCredits)} 金币</span>
       </li>)}</ul>
     </div>}
 
@@ -511,14 +511,15 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       <ul className={s.mediaBenefits} aria-label="VIP 媒体权益">
         <li><Icon name="chat" size={17} /><span>中文语音</span><strong>每日 20 条</strong></li>
         <li><Icon name="sparkles" size={17} /><span>剧情图片</span><strong>每日 5 张</strong></li>
+        <li><Icon name="video" size={17} /><span>全站短剧</span><strong>会员期内免费看</strong></li>
       </ul>
-      <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于 Credit，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
+      <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于 金币，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
       {config?.plans.length ? <>
         <fieldset className={s.plans} disabled={busy || purchaseBlocked}><legend className={s.srOnly}>VIP 会员套餐</legend>
           {config.plans.map(entry => <label className={`${s.plan} ${entry.id === plan?.id ? s.selected : ""}`} key={entry.id}>
             <input type="radio" name="subscription-plan" checked={entry.id === plan?.id} onChange={() => setSelected(entry.id)} />
             <div className={s.planOffer}><span className={s.planName}>{entry.label}</span><strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays} 天</small></strong></div>
-            <div className={s.planBenefit}><span className={s.daily}>{number(entry.dailyCredits)}<small> Credit / 每日领取</small></span><span className={s.limit}>每期最多 {entry.maxClaims} 次 · 漏签不补</span></div>
+            <div className={s.planBenefit}><span className={s.daily}>{number(entry.dailyCredits)}<small> 金币 / 每日领取</small></span><span className={s.limit}>每期最多 {entry.maxClaims} 次 · 漏签不补 · 短剧免费</span></div>
           </label>)}
         </fieldset>
         <div className={s.purchase}>
@@ -537,8 +538,8 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     </div>}
     <ul className={s.rulesList} aria-label="VIP 领取与续订规则">
       <li>每日北京时间 00:00 重置，每天手动领取一次；每期领取上限以购买方案与会员状态为准，当天未领取的额度不补发。</li>
-      <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买 Credit，两种来源进入同一余额，已到账 Credit 不随会员到期失效。" : "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。"}</li>
-      <li>{config?.modelBillingLinked ? "Credit 可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前 Credit 尚未接入聊天扣费。"}</li>
+      <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买 金币，两种来源进入同一余额，已到账 金币 不随会员到期失效。" : "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。"}</li>
+      <li>{config?.modelBillingLinked ? "金币 可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前 金币 尚未接入聊天扣费。"}</li>
     </ul>
     <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
   </section>;

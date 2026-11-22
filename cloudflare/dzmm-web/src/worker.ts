@@ -31,12 +31,14 @@ import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billi
 import { DZMM_COVER_VIDEO_MAX_BYTES } from "../../../src/lib/dzmm-cover-media";
 import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
 import { publicOauthCookie, sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
+import { generateVideoCharacter } from "./video-character";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
 import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
 import { XUMENG_USER_CARD_ASSET_PATHS } from "./user-card-assets";
 import { h3Query, h3Upstream } from "./h3-channel";
 import { runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
+import { TAVERN_ENGINE_SOURCE_TEXT } from "./tavern-notice";
 export { ViduLiveStudio } from "./vidu-live-studio";
 
 type ServiceFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
@@ -100,7 +102,10 @@ const PUBLIC_ASSET_FILES = new Set([
   "brand/xumeng-character-placeholder.svg",
   "brand/xumeng-favicon.ico", "brand/sources.json", "manifest.webmanifest",
   "content-covers/yume.jpg", "content-covers/wanning.jpg", "content-covers/sumai.jpg", "content-covers/tangtang.jpg",
-  "home/shelf-hero.jpg", "home/great-vibes-latin.woff2", "home/great-vibes-OFL.txt",
+  "content-covers/promo-member.webp", "content-covers/promo-recharge.webp", "content-covers/promo-invite.webp",
+  "content-covers/create-hero.webp", "content-covers/create-role.webp", "content-covers/create-novel.webp", "content-covers/create-girlfriend.webp",
+  "content-covers/create-game.webp", "content-covers/create-scenario.webp", "content-covers/create-generate.webp",
+  "home/shelf-hero.webp", "home/hero-1.webp", "home/hero-2.webp", "home/hero-3.webp", "home/great-vibes-latin.woff2", "home/great-vibes-OFL.txt",
   "public-character-samples.json", "public-character-introductions.json",
   "public-character-media.json", "public-category-covers.json",
   "generation-templates/manifest.json", "generation-templates/character.svg",
@@ -228,7 +233,31 @@ async function publicAsset(request: Request, env: Env): Promise<Response> {
     headers.set("X-Content-Type-Options", "nosniff");
     return new Response(response.body, { status: response.status, headers });
   }
+  // Our own media (hero/creative covers/brand images) changes rarely; let
+  // browsers keep it for a week instead of re-downloading on every visit.
+  const assetPath = new URL(request.url).pathname;
+  if (/^\/assets\/xumeng\/(?:home|content-covers|brand|categories|covers|gallery|generation-templates)\/[^/]+\.(?:webp|jpg|jpeg|png|svg|ico)$/.test(assetPath)) {
+    const headers = new Headers(response.headers);
+    headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
+    headers.set("X-Content-Type-Options", "nosniff");
+    return new Response(response.body, { status: response.status, headers });
+  }
   return response;
+}
+
+/** 文件名带 8 位内容哈希的 js/css：换构建就是新 URL，可以放心让浏览器缓存一年。 */
+const HASHED_BUNDLE_PATH = /^\/assets\/[^/]+-[A-Za-z0-9_-]{8}\.(?:js|css)$/;
+
+/**
+ * Workers 静态资源默认返回 `public, max-age=0, must-revalidate`，回头客每次站内跳转
+ * 都要多一轮协商。这里只给哈希命名的 js/css 覆盖成长缓存，其它资源保持原行为。
+ */
+function withHashedBundleCache(response: Response, pathname: string): Response {
+  if (!HASHED_BUNDLE_PATH.test(pathname)) return response;
+  if (response.status !== 200 && response.status !== 304) return response;
+  const headers = new Headers(response.headers);
+  headers.set("Cache-Control", "public, max-age=31536000, immutable");
+  return new Response(response.body, { status: response.status, headers });
 }
 
 async function loadKrea2Poster(request: Request, env: Env, templateId: string): Promise<string> {
@@ -468,14 +497,92 @@ async function telegramFeedbackWebhook(request: Request, env: Env): Promise<Resp
 
 const GUAGUA_ORDER_ID = /^gg_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const GUAGUA_CALLBACK_IP = "136.110.35.126";
+/** 支付通道会更换收银台域名；这里只放行明确配置过的域名。 */
+const GUAGUA_PAY_HOSTS = new Set(["alipay.dthzf001.cn", "wxpay.xqlwl2026.cn", "pay.y1yun.net", "y1yun.net", "pay.zhifuyu.com"]);
 
 function guaguaPayLocation(value: string | null): URL | null {
   if (!value) return null;
   let url: URL;
   try { url = new URL(value); } catch { return null; }
-  if (url.protocol !== "https:" || url.hostname !== "alipay.dthzf001.cn" || url.port || url.username || url.password || url.hash
-    || !url.pathname.startsWith("/pay/")) return null;
+  if (url.protocol !== "https:" || !GUAGUA_PAY_HOSTS.has(url.hostname.toLowerCase()) || url.port || url.username || url.password || url.hash
+    || !/^\/(?:pay|cashier)\//.test(url.pathname)) return null;
   return url;
+}
+
+/** Public, JS-free readable share page; social previews get title/description. */
+async function sharedCardPage(request: Request, env: Env, slug: string): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
+  const upstream = await env.BACKEND.fetch(new URL(`/v1/shares/${encodeURIComponent(slug)}`, BACKEND_ORIGIN), {
+    method: "GET", headers: { Accept: "application/json" }, signal: request.signal,
+  }).catch(() => null);
+  const payload = upstream && upstream.ok ? await upstream.json().catch(() => null) as { share?: Record<string, unknown> } | null : null;
+  const share = payload?.share;
+  if (!share || typeof share.title !== "string") return new Response(shareNotFoundHtml(), { status: 404, headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-store" } });
+  const title = `${share.title} · 叙梦分享`;
+  const description = (typeof share.body === "string" ? share.body.replace(/\s+/g, " ").slice(0, 120) : "在叙梦留下的分享卡片");
+  const author = typeof share.author === "string" ? share.author : "叙梦玩家";
+  const kind = typeof share.kind === "string" ? share.kind : "game";
+  const kindLabel = ({ game: "游戏", character: "角色", story: "故事", drama: "短剧" } as Record<string, string>)[kind] ?? "作品";
+  const body = typeof share.body === "string" ? share.body : "";
+  const cover = typeof share.coverUrl === "string" && share.coverUrl ? share.coverUrl : "";
+  const html = sharedCardHtml({ title, heading: share.title, description, author, kindLabel, body, cover, slug });
+  const headers = new Headers({ "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=120, must-revalidate", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" });
+  return new Response(request.method === "HEAD" ? null : html, { status: 200, headers });
+}
+
+function escapeHtml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+
+function sharedCardHtml(input: { title: string; heading: string; description: string; author: string; kindLabel: string; body: string; cover: string; slug: string }): string {
+  const title = escapeHtml(input.title);
+  const heading = escapeHtml(input.heading);
+  const description = escapeHtml(input.description);
+  const body = escapeHtml(input.body);
+  const author = escapeHtml(input.author);
+  const cover = input.cover ? `<img class="cover" src="${escapeHtml(input.cover)}" alt="" />` : "";
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>${title}</title><meta name="description" content="${description}" />
+<meta property="og:type" content="article" /><meta property="og:title" content="${title}" />
+<meta property="og:description" content="${description}" /><meta property="og:url" content="https://xumengchat.top/s/${input.slug}" />
+<meta name="twitter:card" content="summary_large_image" />
+<style>
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(720px 420px at 85% -10%,rgba(217,76,119,.22),transparent 60%),#12080f;color:#f8e8eb;font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}
+main{max-width:680px;margin:0 auto;padding:42px 22px 64px}.brand{display:flex;align-items:center;gap:9px;color:#c79aa9;font-size:13px;letter-spacing:.04em}
+.brand i{width:22px;height:22px;border-radius:50%;background:linear-gradient(135deg,#ff7aa8,#b9365f);display:inline-block}
+.kicker{margin-top:34px;color:#e8c8a0;font-size:12px;letter-spacing:.14em;text-transform:uppercase}
+h1{font-size:clamp(26px,5vw,38px);line-height:1.25;margin:10px 0 8px;letter-spacing:-.02em}
+.meta{color:#c79aa9;font-size:13px}.cover{width:100%;margin-top:22px;border-radius:20px;border:1px solid rgba(255,255,255,.12);display:block}
+.post{margin-top:22px;padding:22px;border:1px solid rgba(255,255,255,.1);border-radius:18px;background:rgba(35,19,32,.66);white-space:pre-wrap;word-break:break-word}
+.cta{display:flex;gap:12px;align-items:center;margin-top:26px;flex-wrap:wrap}
+a.primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:48px;padding:0 24px;border-radius:999px;background:linear-gradient(120deg,#e4557f,#b9365f);color:#fff;text-decoration:none;font-weight:650;box-shadow:0 14px 30px -16px rgba(217,76,119,.9)}
+a.ghost{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 20px;border-radius:999px;border:1px solid rgba(255,255,255,.18);color:#f8e8eb;text-decoration:none;font-size:13px}
+footer{margin-top:34px;color:#7d5a6a;font-size:12px}@media(max-width:480px){main{padding-top:26px}}
+</style></head><body><main><div class="brand"><i></i>叙梦 XUMENG · 分享卡片</div>
+<p class="kicker">${escapeHtml(input.kindLabel)} · SHARE</p><h1>${heading}</h1>
+<p class="meta">${author} 分享于叙梦</p>${cover}<article class="post">${body || description}</article>
+<div class="cta"><a class="primary" href="https://xumengchat.top/?from=share">打开叙梦 · 开始创作</a><a class="ghost" href="https://xumengchat.top/?from=share">扫码入口见分享海报</a></div>
+<footer>在叙梦，把想象变成作品。本页面为公开分享卡片，内容由分享者提供。</footer></main></body></html>`;
+}
+
+function shareNotFoundHtml(): string {
+  return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>分享卡片不存在 · 叙梦</title><meta name="robots" content="noindex"></head><body style="margin:0;background:#12080f;color:#f8e8eb;font:16px/1.8 -apple-system,BlinkMacSystemFont,'PingFang SC',sans-serif"><main style="max-width:560px;margin:0 auto;padding:64px 24px"><h1>分享卡片不存在或已删除</h1><p style="color:#c79aa9">这张卡片可能已过期，或链接不完整。</p><a href="https://xumengchat.top/" style="display:inline-flex;margin-top:18px;padding:12px 22px;border-radius:999px;background:#d94c77;color:#fff;text-decoration:none">打开叙梦</a></main></body></html>`;
+}
+
+/** 站内分发的 Android 测试包，放在 R2 MEDIA 里，避免大文件进构建产物。 */
+async function androidApkResponse(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
+  if (!env.MEDIA) return json({ error: "安装包暂未发布。" }, 503);
+  const object = await env.MEDIA.get("downloads/xumeng-android.apk");
+  if (!object) return json({ error: "安装包暂未发布。" }, 404);
+  const headers = new Headers({
+    "Content-Type": "application/vnd.android.package-archive",
+    "Content-Disposition": 'attachment; filename="xumeng-android.apk"',
+    "Cache-Control": "public, max-age=300, must-revalidate",
+    "X-Content-Type-Options": "nosniff",
+  });
+  if (object.size) headers.set("Content-Length", String(object.size));
+  return new Response(request.method === "HEAD" ? null : object.body, { headers });
 }
 
 async function guaguaPayment(request: Request, env: Env, path: string): Promise<Response> {
@@ -667,6 +774,44 @@ function channelFailure(error: unknown): Response {
   const message = error instanceof AiapiError ? error.message : "渠道生成没有完成。";
   const status = error instanceof AiapiError && error.status >= 400 && error.status < 600 ? error.status : 502;
   return json({ error: message }, status);
+}
+
+async function videoCharacterApi(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: "POST" });
+  const session = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/session`, { headers: backendHeaders(request), redirect: "manual" }));
+  const account = await session.json().catch(() => null) as { user?: { id?: unknown; isGuest?: unknown } } | null;
+  if (session.status === 401 || !account?.user || typeof account.user.id !== "string") return json({ error: "请先登录后再生成角色卡。" }, 401);
+  if (!session.ok) return json({ error: "账户服务暂时不可用。" }, 503);
+  if (account.user.isGuest !== false) return json({ error: "请先注册或登录正式账户。" }, 403);
+  const limit = await env.CHAT_RATE_LIMITER.limit({ key: `video-card:${account.user.id}` });
+  if (!limit.success) return json({ error: "角色卡生成太频繁，请稍后再试。" }, 429);
+  const body = await request.json().catch(() => null) as { dramaId?: unknown; title?: unknown; synopsis?: unknown; tags?: unknown; category?: unknown } | null;
+  const dramaId = typeof body?.dramaId === "string" ? body.dramaId.trim() : "";
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(dramaId)) return json({ error: "缺少短剧编号。" }, 400);
+  const existing = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/video-characters/${encodeURIComponent(dramaId)}`, {
+    headers: backendHeaders(request), redirect: "manual",
+  })).catch(() => null);
+  if (existing && existing.ok) {
+    const saved = await existing.json().catch(() => null) as { card?: unknown; official?: unknown; dramaId?: unknown } | null;
+    if (saved?.card) return json({ card: saved.card, official: true, cached: true, dramaId });
+  }
+  const title = typeof body?.title === "string" ? body.title.trim().slice(0, 120) : "";
+  if (!title) return json({ error: "缺少短剧信息。" }, 400);
+  const synopsis = typeof body?.synopsis === "string" ? body.synopsis.trim().slice(0, 1200) : "";
+  const category = typeof body?.category === "string" ? body.category.trim().slice(0, 40) : "";
+  const tags = Array.isArray(body?.tags) ? body.tags.filter(tag => typeof tag === "string").slice(0, 10).map(tag => (tag as string).slice(0, 30)) : [];
+  try {
+    const card = await generateVideoCharacter(env, { title, synopsis, tags, category });
+    let official = false;
+    const save = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/video-characters`, {
+      method: "POST", headers: backendHeaders(request), redirect: "manual",
+      body: JSON.stringify({ dramaId, card }),
+    })).catch(() => null);
+    if (save && (save.ok || save.status === 409)) official = true;
+    return json({ card, official, dramaId });
+  } catch (error) {
+    return json({ error: error instanceof Error ? error.message : "AI 角色卡生成失败，请稍后再试。" }, 502);
+  }
 }
 
 async function aiapiCaller(request: Request, env: Env): Promise<Response | null> {
@@ -1252,10 +1397,18 @@ export async function fetchRequest(
         ? redirectPage(request, `${PUBLIC_ASSET_PREFIX}${mappedPath}`)
         : json({ error: "页面不存在。" }, 404);
     }
+    if (path === "/download/xumeng-android.apk") return await androidApkResponse(request, env);
+    const shareMatch = /^\/s\/([a-z0-9]{8,16})$/.exec(path);
+    if (shareMatch) return await sharedCardPage(request, env, shareMatch[1]);
     if (path === "/health") {
       return request.method === "GET"
         ? json({ ok: true, service: "dzmm-web" })
         : json({ error: "请求方法不支持。" }, 405, { Allow: "GET" });
+    }
+    if (path === "/legal/tavern-engine" || path === "/legal/tavern-engine.txt") {
+      return new Response(TAVERN_ENGINE_SOURCE_TEXT, {
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "public, max-age=300" },
+      });
     }
     if (path.startsWith("/api/")) {
       if (path === TELEGRAM_FEEDBACK_WEBHOOK) return await telegramFeedbackWebhook(request, env);
@@ -1289,6 +1442,7 @@ export async function fetchRequest(
         return new Response(request.method === "HEAD" ? null : response.body, { status: response.status, headers });
       }
       checkMutationOrigin(request);
+      if (path === "/api/xumeng/video-character") return await videoCharacterApi(request, env);
       if (path === "/api/aiapi/still") return await aiapiStill(request, env);
       if (path === "/api/aiapi/video") return await aiapiVideo(request, env);
       if (path === "/api/h3/r2v") return await h3ReferenceVideo(request, env);
@@ -1437,7 +1591,7 @@ export async function fetchRequest(
       headers.set("X-Content-Type-Options", "nosniff");
       return new Response(page.body, { status: page.status, headers });
     }
-    return await env.ASSETS.fetch(request);
+    return withHashedBundleCache(await env.ASSETS.fetch(request), new URL(request.url).pathname);
   } catch (error) {
     return error instanceof GatewayError
       ? json({ error: error.message }, error.status)

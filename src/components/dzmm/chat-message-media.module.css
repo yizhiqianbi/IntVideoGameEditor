@@ -44,3 +44,23 @@
 @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 600px) { .action { width: 36px; height: 36px; min-height: 36px; } .priced { width: auto; } }
 @media (prefers-reduced-motion: reduce) { .loader { animation: none; } .picture img, .action { transition: none; } }
+
+/* SillyTavern-style swipe controls for one assistant turn. */
+.swipes { display: flex; align-items: center; gap: 2px; margin: 4px 0 2px; color: var(--muted, #85858d); font-size: 12px; }
+.swipeButton {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line, #eee);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.swipeButton:disabled { opacity: .4; cursor: default; }
+.swipes span { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }

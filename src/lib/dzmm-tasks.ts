@@ -1,3 +1,5 @@
+import type { CheckinStatus } from "./daily-checkin";
+
 export type DzmmTaskId = "daily_checkin" | "first_conversation" | "publish_character" | "follow_authors" | "complete_profile" | "forum_reply";
 export type DzmmTaskClaim = {
   taskId: DzmmTaskId; period: string; points: number; claimedAt: number; expiresAt: number | null;
@@ -12,6 +14,8 @@ export type DzmmTaskCenter = {
   accountId: string; isGuest: boolean; serverTime: number; resetAt: number; timezone: "Asia/Shanghai";
   pointsKind: "credit"; modelBillingLinked: true; rewardUnit?: "Credit"; note: string;
   points: { balance: number; totalEarned: number; expired: number; expiringSoon: number; earliestExpiryAt: number | null };
+  /** Seven-day login streak state (absent on older servers). */
+  checkin?: CheckinStatus;
   tasks: DzmmTask[]; recentClaims: DzmmTaskClaim[];
 };
 export type DzmmTaskClaimResult = DzmmTaskCenter & { claim: DzmmTaskClaim };

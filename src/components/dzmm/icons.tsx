@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { CSSProperties } from "react";
 
 export type IconName =
@@ -255,6 +256,48 @@ const paths: Record<IconName, React.ReactNode> = {
     </>
   ),
 };
+
+/** Glossy 3D gold dollar coin used wherever Coins are shown. */
+export function CoinIcon({ size = 16, className, style }: { size?: number; className?: string; style?: CSSProperties }) {
+  const raw = useId();
+  const id = raw.replace(/[^a-zA-Z0-9_-]/g, "");
+  return (
+    <svg width={size} height={size} viewBox="0 0 64 64" className={className} style={style} aria-hidden="true" data-icon="coin-3d">
+      <defs>
+        <radialGradient id={`coin-face-${id}`} cx="34%" cy="24%" r="82%">
+          <stop offset="0%" stopColor="#fff8da" />
+          <stop offset="26%" stopColor="#ffe079" />
+          <stop offset="56%" stopColor="#f8b62f" />
+          <stop offset="82%" stopColor="#d8860f" />
+          <stop offset="100%" stopColor="#a95f05" />
+        </radialGradient>
+        <linearGradient id={`coin-rim-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffeaa8" />
+          <stop offset="48%" stopColor="#d5951d" />
+          <stop offset="100%" stopColor="#7d4b03" />
+        </linearGradient>
+        <linearGradient id={`coin-dollar-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#8a5205" />
+          <stop offset="55%" stopColor="#b9720c" />
+          <stop offset="100%" stopColor="#e0a327" />
+        </linearGradient>
+        <linearGradient id={`coin-gloss-${id}`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stopColor="#ffffff" stopOpacity=".9" />
+          <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+        </linearGradient>
+      </defs>
+      <circle cx="32" cy="33" r="30" fill={`url(#coin-rim-${id})`} />
+      <circle cx="32" cy="30" r="27.5" fill={`url(#coin-face-${id})`} />
+      <circle cx="32" cy="30" r="23.4" fill="none" stroke="#a86405" strokeOpacity=".5" strokeWidth="2.1" />
+      <circle cx="32" cy="30" r="21.6" fill="none" stroke="#fff4c8" strokeOpacity=".45" strokeWidth="1.2" />
+      <ellipse cx="24" cy="15.5" rx="15" ry="6.4" fill={`url(#coin-gloss-${id})`} opacity=".7" transform="rotate(-16 24 15.5)" />
+      <text x="32" y="31.5" textAnchor="middle" dominantBaseline="central" fontSize="27" fontWeight="800"
+        fontFamily="Georgia, 'Times New Roman', 'Songti SC', serif" fill={`url(#coin-dollar-${id})`}
+        stroke="#7d4a04" strokeWidth=".5" paintOrder="stroke">$</text>
+      <path d="M32 8.8v5.4" stroke="#fff8da" strokeOpacity=".75" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  );
+}
 
 export default function Icon({
   name,

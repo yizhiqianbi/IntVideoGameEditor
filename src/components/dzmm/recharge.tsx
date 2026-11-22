@@ -6,9 +6,11 @@ import {
   fetchDzmmPaymentWallet, isDzmmCheckoutUrl, type DzmmPaymentConfig,
   type DzmmPaymentMethod, type DzmmPaymentOrder, type DzmmPaymentStatus, type DzmmPaymentWallet,
 } from "../../lib/dzmm-payments";
-import Icon from "./icons";
+import Icon, { CoinIcon } from "./icons";
 import { SubscriptionCenter } from "./subscription-center";
 import { BillingCenter } from "./billing-center";
+import { DailyLogin } from "./daily-login";
+import { DreamCoinPanel } from "./dream-coin-panel";
 import s from "./recharge.module.css";
 import { XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
 import type { XumengLocale } from "../../lib/xumeng-i18n";
@@ -17,6 +19,7 @@ import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 export type RechargeProps = {
   userId: string; isGuest: boolean; onRequireAccount: () => void;
   returnOrderId?: string; cancelled?: boolean; onBack?: () => void; focusVip?: boolean; locale?: XumengLocale;
+  onCheckin?: () => void;
 };
 const STATUS: Record<DzmmPaymentStatus, string> = {
   pending: "待支付确认", paid: "已到账", partially_refunded: "部分退款", refunded: "已退款", expired: "已过期", failed: "未完成支付",
@@ -29,7 +32,7 @@ function money(amountMinor: number, currency: string) {
 }
 const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false }: RechargeProps) {
+export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false, onCheckin }: RechargeProps) {
   const copy = xumengPage(locale);
   const statusText = (status: DzmmPaymentStatus) => status === "pending" ? copy.payPending : status === "paid" ? copy.payPaid : status === "partially_refunded" ? copy.payPartial : status === "refunded" ? copy.payRefunded : status === "expired" ? copy.payExpired : copy.payFailed;
   const [config, setConfig] = useState<DzmmPaymentConfig | null>(null);
@@ -82,6 +85,10 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const wechatMethods = config?.methods.filter(item => item.id === "wxpay") ?? [];
   const wechatReady = cnyCheckout && wechatMethods.length > 0;
   const methodId = wechatMethods.some(item => item.id === selectedMethod) ? selectedMethod : wechatMethods[0]?.id ?? "";
+  const firstHalf = currentWallet?.firstRechargeHalfAvailable === true;
+  /** 首单半价只作用于固定档位，自定义金额不参与；与后端按分取整保持一致。 */
+  const payAmount = (item: { id: string; amountMinor: number }) =>
+    firstHalf && item.id !== "cny_custom" ? Math.max(100, Math.round(item.amountMinor / 2)) : item.amountMinor;
   const canResume = (entry: DzmmPaymentOrder) => XUMENG_PAYMENTS_ENABLED && !!config?.enabled && entry.provider === "guagua"
     && entry.provider === config.provider && entry.mode === config.mode && entry.status === "pending" && !!entry.checkoutUrl
     && entry.method === "wxpay" && config.methods.some(item => item.id === entry.method);
@@ -241,8 +248,8 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
 
   const working = loading || checkoutBusy;
   const checkoutMessage = config?.enabled
-    ? wechatReady ? "使用微信支付。扣款成功后，由本站确认再发放 Credit。"
-      : "Credit 充值目前只接受微信支付。"
+    ? wechatReady ? "使用微信支付。扣款成功后，由本站确认再发放 金币。"
+      : "金币 充值目前只接受微信支付。"
     : config?.note || "微信支付暂未开通。";
   const checkoutLabel = checkoutBusy ? "正在创建订单…" : !config?.enabled
     ? "微信支付暂未开通"
@@ -276,9 +283,29 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
       <div>
         {onBack && <button type="button" className={s.back} onClick={onBack}><Icon name="back" size={16} />{copy.rechargeCenter}</button>}
         {!onBack && <h1>{copy.rechargeCenter}</h1>}
-        <p>{xumengPageFill(copy.availableAmount, { balance: currentWallet ? points(currentWallet.balance) : "—" })}</p>
+        <p>{xumengPageFill(copy.availableAmount, { balance: currentWallet ? points(currentWallet.balance) : "—" })} · {copy.walletGoldHint}</p>
       </div>
     </header>
+
+    <section className={s.walletHero} aria-label={copy.walletGold}>
+      <div className={s.walletMain}>
+        <span className={s.walletLabel}><CoinIcon size={20} />{copy.walletGold}</span>
+        <strong>{currentWallet ? points(currentWallet.balance) : "—"}</strong>
+        <small>用于聊天、游玩与生图，所有 AI 功能共用</small>
+      </div>
+      <div className={s.walletSide}>
+        <span className={s.walletPill}>微信支付</span>
+        <small>支付成功后自动到账</small>
+      </div>
+    </section>
+
+    {firstHalf && <div className={s.promoBanner} role="status">
+      <div><strong>首单半价</strong><p>第一笔充值 5 折，到账金币不变，仅限一次。</p></div>
+      <span>已生效</span>
+    </div>}
+
+    <DailyLogin userId={userId} isGuest={isGuest} locale={locale} onRequireAccount={onRequireAccount}
+      onCreditChanged={() => { void refresh(); }} onViewAll={onCheckin} />
 
     <div className={s.tabs} role="tablist" aria-label={copy.rechargeType}>
       <button type="button" role="tab" aria-selected={pane === "vip"} className={pane === "vip" ? s.tabOn : ""} onClick={() => setPane("vip")}>{copy.member}</button>
@@ -289,7 +316,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
     {XUMENG_PAYMENTS_ENABLED && config && !config.enabled && <p className={s.notice} role="note">{config.note || "微信支付暂未开通。已有余额和订单仍可查看。"}</p>}
 
     {isGuest && <section className={s.guest}><div><strong>{copy.loginToTopUp}</strong><p>{copy.balanceStays}</p></div><button type="button" className={s.primary} onClick={onRequireAccount}>{copy.login}</button></section>}
-    {error && <p className={s.error} role="alert">{error}</p>}
+    {error && <div className={s.errorBox} role="alert"><p>{error}</p><button type="button" className={s.errorRetry} disabled={working} onClick={() => void refresh()}>重试</button></div>}
     {activeOrderId && <section className={s.returnState} aria-live="polite" aria-label="支付返回订单状态">
       <div className={s.returnTitle}><h2>{currentOrder ? statusText(currentOrder.status) : cancelledReturn ? copy.back : copy.confirming}</h2>{verifying && <span className={s.polling}>{copy.confirming}</span>}</div>
       <p>{isGuest ? "登录订单所属账号后，可以核对是否到账。" : orderMessage}</p>
@@ -304,46 +331,67 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
 
     {pane === "vip" && <section className={s.vipPane} aria-label="会员">
       <div className={s.vipBanner}>
-        <strong>会员每天领取点数</strong>
-        <span>按有效期领取，点数和充值进入同一个余额。</span>
+        <strong>会员每天领取金币</strong>
+        <span>按有效期领取，金币和充值进入同一个余额。</span>
       </div>
       {membership}
     </section>}
 
     {XUMENG_PAYMENTS_ENABLED && pane === "points" && <section className={s.purchase} aria-labelledby="recharge-packages-title">
       <div className={s.pointsHead}>
-        <h2 id="recharge-packages-title">补充点数</h2>
-        <p>按需充值，所有 AI 功能共用。</p>
+        <h2 id="recharge-packages-title">补充金币</h2>
+        <p>金币用于聊天、游玩与生图；按需充值，所有 AI 功能共用。</p>
       </div>
       <button type="button" className={s.vipHint} onClick={() => setPane("vip")}>
-        <span><Icon name="crown" size={14} />经常聊天？会员每天领点数，长期更划算。</span>
+        <span><Icon name="crown" size={14} />经常聊天？会员每天领金币，长期更划算。</span>
         <strong>去看看</strong>
       </button>
       {config ? config.packages.length ? <>
         <fieldset className={s.packages} disabled={working}>
-          <legend className={s.srOnly}>Credit 购买档位</legend>
+          <legend className={s.srOnly}>金币购买档位</legend>
           {config.packages.map(item => {
             const offer = granted(item);
             return <label className={`${s.package} ${packageId === item.id ? s.selected : ""}`} key={item.id}>
               <input type="radio" name="recharge-package" value={item.id} checked={packageId === item.id} onChange={() => setSelected(item.id)} />
               {item.id === bestBonusId && <em className={s.badge}>最划算</em>}
-              <span className={s.packageCredits}><Icon name="heart" size={16} />{points(offer.total)}</span>
+              <span className={s.packageCredits}><CoinIcon size={18} />{points(offer.total)}{packageId === item.id && <i className={s.packageCheck}>✓</i>}</span>
               <span className={s.packageSplit}>{offer.bonus ? `${points(offer.base)} + ${points(offer.bonus)} 赠送` : "到账点数"}</span>
-              <span className={s.pricePill}>{money(item.amountMinor, item.currency)}</span>
+              <span className={s.pricePill}>{firstHalf && item.id !== "cny_custom"
+                ? <><s>{money(item.amountMinor, item.currency)}</s>{money(payAmount(item), item.currency)}</>
+                : money(item.amountMinor, item.currency)}</span>
+              {firstHalf && item.id !== "cny_custom" && <em className={s.promoTag}>首单 5 折</em>}
             </label>;
           })}
-          {custom && <label className={`${s.package} ${s.customPackage} ${packageId === custom.id ? s.selected : ""}`}>
-            <input type="radio" name="recharge-package" value={custom.id} checked={packageId === custom.id} onChange={() => setSelected(custom.id)} />
-            <span className={s.packageCredits}>{customValid ? points(customMinor) : "自定义"}<small>Credit</small></span>
-            <span className={s.customField}>¥<input inputMode="numeric" aria-label="自定义充值金额（元）" placeholder={`${custom.minMinor / 100}–${custom.maxMinor / 100}`}
+          {custom && <div className={`${s.customCard} ${packageId === custom.id ? s.selected : ""}`} role="radio" aria-checked={packageId === custom.id} tabIndex={0}
+            onClick={() => setSelected(custom.id)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(custom.id); } }}>
+            <div className={s.customHead}>
+              <span><strong>自定义金额</strong><small>1 元 = 1 金币，按需充值</small></span>
+              {customValid && <em className={s.customValue}>{points(customMinor)} 金币</em>}
+            </div>
+            <div className={s.customChips}>
+              {[10, 30, 50, 100, 200].filter(value => value * 100 >= custom.minMinor && value * 100 <= custom.maxMinor).map(value =>
+                <button type="button" key={value} className={customYuan === String(value) ? s.chipOn : ""} onClick={event => { event.stopPropagation(); setCustomYuan(String(value)); setSelected(custom.id); }}>¥{value}</button>)}
+            </div>
+            <label className={s.customField}>¥<input inputMode="numeric" aria-label="自定义充值金额（元）" placeholder={`${custom.minMinor / 100}–${custom.maxMinor / 100}`}
               value={customYuan} onFocus={() => setSelected(custom.id)}
-              onChange={event => { setCustomYuan(event.target.value.trim().slice(0, 8)); setSelected(custom.id); }} /></span>
-          </label>}
+              onChange={event => { setCustomYuan(event.target.value.trim().slice(0, 8)); setSelected(custom.id); }} /></label>
+            {packageId === custom.id && !customValid && <p className={s.customHint}>请输入 {custom.minMinor / 100}–{custom.maxMinor / 100} 元之间的金额</p>}
+          </div>}
         </fieldset>
+        <div className={s.methodRow}>
+          <span className={s.methodIcon}>微</span>
+          <div><strong>微信支付</strong><small>跳转微信收银台完成付款，支持微信余额与银行卡</small></div>
+          <span className={s.methodReady}><Icon name="check" size={12} />已接入</span>
+        </div>
+        <ul className={s.trustRow}>
+          <li>支付成功后自动到账</li>
+          <li>订单可在下方核对</li>
+          <li>退款请联系客服处理</li>
+        </ul>
         <div className={s.paybar}>
-          <div>
-            <span>{selectedPackage ? `已选 · 到账 ${points(selectedPackage.credits)}` : "请选择档位"}</span>
-            <strong>{selectedPackage ? `已选 ${money(selectedPackage.amountMinor, selectedPackage.currency)}` : custom && packageId === custom.id ? `请输入 ${custom.minMinor / 100}–${custom.maxMinor / 100} 元` : "未选择"}</strong>
+          <div className={s.payInfo}>
+            <span>实付 <strong>{selectedPackage ? money(payAmount(selectedPackage), selectedPackage.currency) : "—"}</strong>{selectedPackage && firstHalf && selectedPackage.id !== "cny_custom" && <small className={s.promoOld}>原价 {money(selectedPackage.amountMinor, selectedPackage.currency)}</small>}</span>
+            <span>到账 <em>{selectedPackage ? `${points(selectedPackage.credits)} 金币` : "请选择档位"}</em></span>
           </div>
           <button type="button" className={s.primary} disabled={working || !wechatReady || !config.enabled || !selectedPackage} onClick={() => void checkout()}>{checkoutLabel}</button>
         </div>
@@ -353,11 +401,30 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
 
     {pane === "points" && <BillingCenter key={accountKey} userId={userId} isGuest={isGuest} modelBillingLinked={config?.modelBillingLinked ?? false} refreshKey={billingRefresh} onRequireAccount={onRequireAccount} />}
 
+    {!isGuest && <section className={s.currencies} aria-labelledby="recharge-currencies-title">
+      <h2 id="recharge-currencies-title">金币与梦币</h2>
+      <div className={s.currencyRow}>
+        <div className={s.currencyCard}>
+          <span className={s.currencyName}><CoinIcon size={18} />{copy.walletGold}</span>
+          <strong>{currentWallet ? points(currentWallet.balance) : "—"}</strong>
+          <p>{copy.walletGoldHint}</p>
+          <small>每日登录、任务奖励、充值获得。</small>
+        </div>
+        <div className={s.currencyCard}>
+          <span className={s.currencyName}><Icon name="sparkles" size={15} />{copy.walletDream}</span>
+          <strong>{copy.creatorIncentive}</strong>
+          <p>{copy.walletDreamHint}</p>
+          <small>作品被游玩、被收藏产生的分成，按人民币记账。</small>
+        </div>
+      </div>
+      <DreamCoinPanel userId={userId} compact />
+    </section>}
+
     <section className={s.history} aria-labelledby="recharge-orders-title">
       <div className={s.sectionHeading}><h2 id="recharge-orders-title">订单</h2><span>{currentWallet ? `${currentWallet.orders.length}` : ""}</span></div>
       {isGuest ? <p className={s.empty}>登录后查看订单。</p> : currentWallet ? currentWallet.orders.length ? <ul>{currentWallet.orders.map(entry => <li className={s.order} key={entry.id}>
         <div className={s.orderMain}>
-          <strong>{money(entry.amountMinor, entry.currency)}<span>{points(entry.credits)} Credit</span></strong>
+          <strong>{money(entry.amountMinor, entry.currency)}<span>{points(entry.credits)} 金币</span></strong>
           <time dateTime={new Date(entry.createdAt).toISOString()}>{date(entry.createdAt)} · {channelName(entry.provider, entry.method)}</time>
         </div>
         <div className={s.orderAction}>

@@ -321,10 +321,23 @@ export async function copyVerifiedAssets({
     "brand/xumeng-icon-512.png",
     "brand/xumeng-favicon.ico",
     "brand/sources.json",
-    "home/shelf-hero.jpg",
+    "home/shelf-hero.webp",
+    "home/hero-1.webp",
+    "home/hero-2.webp",
+    "home/hero-3.webp",
     "home/great-vibes-latin.woff2",
     "home/great-vibes-OFL.txt",
     "manifest.webmanifest",
+    "content-covers/promo-member.webp",
+    "content-covers/promo-recharge.webp",
+    "content-covers/promo-invite.webp",
+    "content-covers/create-hero.webp",
+    "content-covers/create-role.webp",
+    "content-covers/create-novel.webp",
+    "content-covers/create-girlfriend.webp",
+    "content-covers/create-game.webp",
+    "content-covers/create-scenario.webp",
+    "content-covers/create-generate.webp",
     "content-covers/yume.jpg",
     "content-covers/tangtang.jpg",
     "content-covers/wanning.jpg",
@@ -387,8 +400,10 @@ export async function copyVerifiedAssets({
   for (const relativeFile of files) {
     if (relativeFile.startsWith("content-covers/")) {
       const cover = await readFile(join(sourceRoot, relativeFile));
-      if (cover.length < 20_000 || cover.length > 2_000_000 || cover[0] !== 0xff || cover[1] !== 0xd8 || cover[2] !== 0xff || cover.at(-2) !== 0xff || cover.at(-1) !== 0xd9) {
-        throw new Error(`内容封面必须是完整 JPEG：${relativeFile}`);
+      const jpeg = cover[0] === 0xff && cover[1] === 0xd8 && cover[2] === 0xff && cover.at(-2) === 0xff && cover.at(-1) === 0xd9;
+      const webp = cover.subarray(0, 4).toString("ascii") === "RIFF" && cover.subarray(8, 12).toString("ascii") === "WEBP";
+      if (cover.length < 20_000 || cover.length > 2_000_000 || (!jpeg && !webp)) {
+        throw new Error(`内容封面必须是完整 JPEG 或 WebP：${relativeFile}`);
       }
     }
     const source = join(sourceRoot, relativeFile);

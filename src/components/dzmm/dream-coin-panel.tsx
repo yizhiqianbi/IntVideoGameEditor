@@ -6,7 +6,7 @@ import { fetchDzmmPaymentWallet } from "@/lib/dzmm-payments";
 import s from "./profile-settings.module.css";
 
 const KIND: Record<string, string> = {
-  invite_rebate: "邀请返利", creator_reward: "创作者激励", exchange: "兑换 Credit", withdraw_hold: "提现冻结", withdraw_release: "提现退回",
+  invite_rebate: "邀请返利", creator_reward: "创作者激励", exchange: "兑换金币", withdraw_hold: "提现冻结", withdraw_release: "提现退回",
 };
 const STATUS: Record<string, string> = { pending: "待打款", paid: "已打款", rejected: "已退回" };
 
@@ -50,7 +50,7 @@ export function DreamCoinPanel({ userId, compact = false }: { userId: string; co
         ? await exchangeDreamCoin(userId, amount)
         : await withdrawDreamCoin(userId, amount, account);
       setWallet(next);
-      setNotice(action === "exchange" ? `已兑换 ${formatDreamCoin(amount)}，Credit 已到账。` : "提现申请已提交，打款完成后会记在下面的记录里。");
+      setNotice(action === "exchange" ? `已兑换 ${formatDreamCoin(amount)}，金币 已到账。` : "提现申请已提交，打款完成后会记在下面的记录里。");
     } catch (failure) {
       setError(failure instanceof DreamCoinError ? failure.message : "梦币操作没有完成，请稍后重试。");
     } finally { setBusy(""); }
@@ -58,17 +58,17 @@ export function DreamCoinPanel({ userId, compact = false }: { userId: string; co
   if (error && !wallet) return <p className={s.error} role="alert">{error}</p>;
   if (!wallet) return <section className={s.referralCard} aria-label="梦币"><p>正在读取梦币…</p></section>;
   if (compact) return <section className={`${s.referralCard} ${s.balanceSummary}`} aria-label="余额">
-    <div><span>Credit 余额</span><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
+    <div><span>金币 余额</span><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
     <div><span>梦币余额</span><strong>{formatDreamCoin(wallet.balanceFen)}</strong></div>
   </section>;
   return <section className={s.referralCard} aria-label="余额">
-    <div className={s.referralHeading}><div><span className={s.referralEyebrow}>可用 Credit</span><h2>聊天、语音和图片使用 Credit</h2></div><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
-    <div className={s.referralHeading}><div><span className={s.referralEyebrow}>梦币</span><h2>按人民币记账，可兑换，可申请提现</h2></div><strong>{formatDreamCoin(wallet.balanceFen)}</strong></div>
-    <p>好友微信支付的实付金额按 {wallet.rebatePercent}% 记入人民币余额。1 元 = ¥1 = {wallet.creditsPerYuan} Credit。创作者激励使用同一本账。提现最低 {formatDreamCoin(wallet.minWithdrawFen)}，两次成功提现至少间隔 {wallet.withdrawIntervalDays} 天，由站点人工打款。</p>
+    <div className={s.referralHeading}><div><span className={s.referralEyebrow}>可用 金币</span><h2>聊天、语音和图片使用 金币</h2></div><strong>{credits === null ? "…" : credits.toLocaleString("zh-CN")}</strong></div>
+    <div className={s.referralHeading}><div><span className={s.referralEyebrow}>梦币</span><h2>创作者激励 · 按人民币记账，可兑换金币或申请提现</h2></div><strong>{formatDreamCoin(wallet.balanceFen)}</strong></div>
+    <p>好友微信支付的实付金额按 {wallet.rebatePercent}% 记入人民币余额。1 元 = ¥1 = {wallet.creditsPerYuan} 金币。创作者激励使用同一本账。提现最低 {formatDreamCoin(wallet.minWithdrawFen)}，两次成功提现至少间隔 {wallet.withdrawIntervalDays} 天，由站点人工打款。</p>
     {notice && <p className={s.status} role="status">{notice}</p>}
     {error && <p className={s.error} role="alert">{error}</p>}
     <form className={s.dreamForm} onSubmit={event => void submit(event, "exchange")}>
-      <label>兑换为 Credit<input inputMode="numeric" value={exchangeYuan} onChange={event => setExchangeYuan(event.target.value.replace(/\D/g, "").slice(0, 6))} aria-label="兑换梦币金额" /></label>
+      <label>兑换为金币<input inputMode="numeric" value={exchangeYuan} onChange={event => setExchangeYuan(event.target.value.replace(/\D/g, "").slice(0, 6))} aria-label="兑换梦币金额" /></label>
       <button className={s.outline} disabled={!!busy}>{busy === "exchange" ? "兑换中…" : "兑换"}</button>
     </form>
     <form className={s.dreamForm} onSubmit={event => void submit(event, "withdraw")}>

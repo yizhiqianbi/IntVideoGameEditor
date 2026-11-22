@@ -282,30 +282,38 @@
   background: linear-gradient(90deg, rgba(255, 255, 255, 0.88) var(--played, 0%), rgba(255, 255, 255, 0.22) var(--played, 0%));
 }
 .scrub:focus-visible { outline: none; }
-.full svg,
-.rail svg { width: 18px; height: 18px; display: block; }
-.rail svg { width: 28px; height: 28px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45)); }
+.full svg { width: 18px; height: 18px; display: block; }
+
+/* 右侧竖排：参照抖音，统一白色图标 + 下方小字计数，间距均匀 */
 .rail {
   position: absolute;
   z-index: 3;
-  right: 8px;
-  bottom: 148px;
+  right: 6px;
+  bottom: 140px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16px;
+  gap: 20px;
 }
 .rail button {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 2px;
+  gap: 4px;
   min-width: 48px;
+  color: #fff;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
 }
+.rail > button > svg {
+  width: 36px;
+  height: 36px;
+  display: block;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
 .rail button span:empty { display: none; }
-.rail button span { font-size: 12px; line-height: 1.2; }
+.rail button span { font-size: 11px; font-weight: 500; line-height: 1.2; color: rgba(255, 255, 255, 0.95); }
 .railOn { color: var(--pink); }
+.railOn > svg { filter: drop-shadow(0 2px 6px rgba(255, 71, 126, 0.5)); }
 .mark {
   display: flex;
   flex-direction: column;
@@ -315,9 +323,9 @@
 }
 .mark > span {
   position: relative;
-  width: 48px;
-  height: 48px;
-  border: 2px solid #fff;
+  width: 50px;
+  height: 50px;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
   border-radius: 50%;
   background: #111;
 }
@@ -633,3 +641,121 @@
   .navButton { display: none; }
   .back { width: 36px; height: 36px; }
 }
+
+/* 互动剧：和普通剧一样是视频流，只在结尾埋一个「我来玩」的钩子 */
+.interactiveEmpty {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  place-content: center;
+  gap: 14px;
+  padding: 40px 28px;
+  text-align: center;
+}
+.interactiveEmpty h2 {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 15px;
+  font-weight: 500;
+  line-height: 1.8;
+}
+.interactiveEmpty button {
+  justify-self: center;
+  padding: 9px 16px;
+  border: 1px solid rgba(255, 71, 126, 0.5);
+  border-radius: 999px;
+  background: rgba(255, 71, 126, 0.12);
+  color: #ff9dba;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.interactiveEmpty button:hover { background: rgba(255, 71, 126, 0.22); }
+.hook {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(6, 4, 9, 0.72);
+  backdrop-filter: blur(6px);
+}
+.hookCard {
+  width: 100%;
+  max-width: 340px;
+  padding: 22px 20px;
+  border: 1px solid rgba(255, 71, 126, 0.42);
+  border-radius: 20px;
+  background: linear-gradient(150deg, rgba(255, 71, 126, 0.18), rgba(20, 10, 16, 0.96) 62%);
+  text-align: left;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+}
+.hookEyebrow {
+  display: inline-block;
+  margin-bottom: 10px;
+  padding: 3px 10px;
+  border: 1px solid rgba(255, 71, 126, 0.45);
+  border-radius: 999px;
+  color: #ff8fb3;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+}
+.hookCard h2 { margin: 0; font-size: 22px; font-weight: 750; letter-spacing: -0.02em; }
+.hookCard p { margin: 9px 0 18px; color: rgba(255, 255, 255, 0.66); font-size: 12.5px; line-height: 1.75; }
+.hookPlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 12px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(100deg, #ff477e, #e5648f);
+  color: #fff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+}
+.hookPlay:hover { filter: brightness(1.06); }
+
+/* 右侧竖排里的「游玩」入口：互动剧绑定了剧情时出现 */
+.railPlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 48px;
+  color: #fff;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.65);
+  cursor: pointer;
+}
+.railPlayIcon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(255, 255, 255, 0.92);
+  background: rgba(0, 0, 0, 0.3);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+}
+.railPlayIcon svg { width: 22px; height: 22px; display: block; filter: none; }
+.railPlay:hover .railPlayIcon { background: rgba(255, 71, 126, 0.55); }
+
+.seekHud { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:12; min-width:190px; padding:14px 18px 12px; border-radius:16px; background:rgba(10,6,12,.78); border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(10px); pointer-events:none; text-align:center; }
+.seekHudRow { display:flex; align-items:center; justify-content:center; gap:8px; color:#fff3f6; }
+.seekHudRow strong { font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em; }
+.seekHudRow span { font-size:12px; color:#e4a9bd; font-variant-numeric:tabular-nums; }
+.seekHudBar { height:4px; margin-top:10px; border-radius:999px; background:rgba(255,255,255,.18); overflow:hidden; }
+.seekHudBar i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg,#e4557f,#f3a4b8); transition:width .06s linear; }

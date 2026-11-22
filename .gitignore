@@ -68,3 +68,11 @@ next-env.d.ts
 .worktrees/
 .claude/worktrees/
 .codex-merge-*/
+
+# 本地 wrangler OAuth 凭据（含 token，禁止提交）
+.wrangler-home/
+
+# 用户 PII 导出（含注册邮箱，禁止提交）
+output/xumeng/user-emails-*/
+output/xumeng/user-backup-*/
+output/xumeng/backups/

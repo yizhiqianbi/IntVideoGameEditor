@@ -110,6 +110,23 @@ test('strict request only references the signed-in account and its saved assista
   await updateMessage(f,'用户的话','user');expect(await generate(f),404);assert.equal(f.calls.length,0);
 });
 
+test('image preset is accepted as an optional generate parameter',async()=>{
+  const f=await fixture();
+  expect(await generate(f,'image',{imagePreset:'xumeng'}),201);
+  expect(await generate(f,'image',{imagePreset:'cinematic'}),201);
+  expect(await generate(f,'image',{imagePreset:'no-such-preset'}),201);
+  expect(await generate(f,'audio',{imagePreset:'xumeng'}),201);
+  expect(await generate(f,'audio',{imagePreset:42}),400);
+});
+
+test('SillyTavern-style image templates are validated and accepted',async()=>{
+  const f=await fixture();
+  expect(await generate(f,'image',{imageTemplate:{enabled:true,autoMode:'off',interval:3,size:'3:4',promptPrefix:'{{char}} style',mainPrompt:'user {{user}}',negativePrompt:'lowres',injectCharacter:true,injectScenario:false}}),201);
+  expect(await generate(f,'image',{imageTemplate:{size:'banana',enabled:true}}),201);
+  expect(await generate(f,'image',{imageTemplate:'not-an-object'}),400);
+  expect(await generate(f,'image',{imageTemplate:42}),400);
+});
+
 test('guests are blocked while non-VIP accounts generate Credit-backed audio and images',async()=>{
   const guest=await fixture({guest:true});expect(await generate(guest),403);assert.equal(guest.calls.length,0);
   const ordinary=await fixture({vip:false});expect(await generate(ordinary),201);expect(await generate(ordinary,'image'),201);assert.equal(ordinary.calls.length,2);

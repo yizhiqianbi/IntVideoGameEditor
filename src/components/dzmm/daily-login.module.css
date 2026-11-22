@@ -1,0 +1,28 @@
+.card { display: grid; gap: 14px; border: 1px solid var(--line, #4b2636); border-radius: 18px; padding: 16px; background: linear-gradient(160deg, rgba(120, 42, 66, 0.22), rgba(30, 16, 24, 0.85)); }
+.compact { gap: 10px; padding: 13px; }
+.head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.title { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.sun { width: 34px; height: 34px; flex: none; display: grid; place-items: center; border-radius: 50%; color: #ffc58a; background: rgba(255, 154, 95, 0.16); }
+.title h2 { margin: 0; font-size: 15px; }
+.title p { margin: 2px 0 0; font-size: 12px; color: #c79aa9; }
+.more { display: inline-flex; align-items: center; gap: 4px; border: 1px solid #4b2636; background: transparent; color: #e8c8a0; border-radius: 999px; padding: 5px 10px; font-size: 11px; cursor: pointer; white-space: nowrap; }
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin: 0; padding: 0; list-style: none; }
+.day { display: grid; justify-items: center; gap: 4px; padding: 8px 2px; border-radius: 12px; border: 1px solid #3b2030; background: rgba(20, 10, 16, 0.6); }
+.day.today { border-color: #d94c77; background: rgba(217, 76, 119, 0.16); box-shadow: 0 0 0 1px rgba(217, 76, 119, 0.25) inset; }
+.day.done { opacity: 0.62; }
+.dayLabel { font-size: 10px; color: #c79aa9; }
+.reward { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; color: #ffd9c4; }
+.reward svg { filter: drop-shadow(0 1px 1px rgba(60, 28, 0, 0.45)); }
+.mark { min-height: 14px; font-size: 9px; color: #d94c77; }
+.actions { display: flex; align-items: center; gap: 10px; }
+.primary { flex: 1; border: 0; border-radius: 12px; padding: 10px 14px; font-size: 13px; font-weight: 600; color: #fff; background: linear-gradient(120deg, #d94c77, #b93a62); cursor: pointer; }
+.primary:disabled { opacity: 0.6; cursor: default; }
+.claimed { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: #c79aa9; }
+.error { margin: 0; font-size: 12px; color: #ff8ea8; }
+.notice { margin: 0; font-size: 12px; color: #8fe0b0; }
+@media (max-width: 520px) {
+  .days { gap: 4px; }
+  .day { padding: 6px 1px; }
+  .dayLabel { font-size: 9px; }
+  .reward { font-size: 10px; }
+}

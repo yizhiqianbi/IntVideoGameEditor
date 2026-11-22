@@ -5,7 +5,6 @@ import type { Character } from "@/lib/dzmm-characters";
 import type { DzmmCloudUser } from "@/lib/dzmm-cloud";
 import { getDzmmCharacterCardBlurb } from "@/lib/dzmm-character-presentation";
 import { fetchDzmmNovels } from "@/lib/dzmm-novels-client";
-import { fetchXumengGames } from "@/lib/xumeng-games-client";
 import { fetchXumengScenarios } from "@/lib/xumeng-scenarios-client";
 import { loadCreatorSections } from "@/lib/xumeng-creator-load";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
@@ -48,12 +47,11 @@ export default function CreatorWorks({
     if (!user || user.isGuest) { setLoading(false); return; }
     const accountId = user.id, abort = new AbortController(), generation = ++scope.current;
     const current = () => !abort.signal.aborted && scope.current === generation && activeAccount.current === accountId;
-    const sections: Work[][] = [[], [], []]; const failures = new Map<number, string>();
-    const labels = ["小说和故事", "游戏", "团本"];
+    const sections: Work[][] = [[], []]; const failures = new Map<number, string>();
+    const labels = ["小说和故事", "团本"];
     setLoading(true);
     void loadCreatorSections<Work[]>([
       async signal => (await fetchDzmmNovels(accountId, signal)).works.map(work => ({ id: work.id, kind: work.type, title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: `${work.chapterCount} 章 · ${work.wordCount.toLocaleString()} 字` })),
-      async signal => (await fetchXumengGames(accountId, signal)).games.map(work => ({ id: work.id, kind: "game", title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: "私人 HTML 项目" })),
       async signal => (await fetchXumengScenarios(accountId, signal)).scenarios.map(work => ({ id: work.id, kind: "scenario", title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: "私人团本剧本" })),
     ], abort.signal, ({ index, result, pending }) => {
       if (!current()) return;
@@ -80,9 +78,9 @@ export default function CreatorWorks({
 
   return <section className={s.library} aria-label={copy.myWorks}>
     <header className={s.libraryHead}><h2>{copy.myWorks}</h2><button className={s.toolIcon} onClick={() => setRevision(value => value + 1)} disabled={loading} title={loading ? copy.loadingFrame : copy.refreshWorks} aria-label={loading ? copy.loadingFrame : copy.refreshWorks}><Icon name="refresh" size={16}/></button></header>
-    <div className={s.toolbar}><div className={s.filters} aria-label={copy.workKinds}><button aria-pressed={kind === "all"} onClick={() => setKind("all")}>{copy.all}</button>{(["character", "novel", "story", "game", "scenario"] as const).map((key) => <button key={key} aria-pressed={kind === key} onClick={() => setKind(key)}>{{ character: copy.roles, novel: copy.novel, story: copy.story, game: copy.gamesTab, scenario: copy.scenario }[key]}</button>)}</div><label className={s.search}><Icon name="search" size={15}/><input aria-label={copy.searchMyWorks} placeholder={copy.findWorks} value={query} onChange={event => setQuery(event.target.value)} maxLength={120}/></label></div>
+    <div className={s.toolbar}><div className={s.filters} aria-label={copy.workKinds}><button aria-pressed={kind === "all"} onClick={() => setKind("all")}>{copy.all}</button>{(["character", "novel", "story", "scenario"] as const).map((key) => <button key={key} aria-pressed={kind === key} onClick={() => setKind(key)}>{{ character: copy.roles, novel: copy.novel, story: copy.story, scenario: copy.scenario }[key]}</button>)}</div><label className={s.search}><Icon name="search" size={15}/><input aria-label={copy.searchMyWorks} placeholder={copy.findWorks} value={query} onChange={event => setQuery(event.target.value)} maxLength={120}/></label></div>
     {errors.length > 0 && <p className={s.error} role="alert">{errors.join("、")}暂时加载失败。其他作品仍可使用，请点击刷新重试。</p>}
-    {!registered && <p className={s.guest}>登录后可查看云端作品并保存游戏、小说和团本。<button onClick={onRequireAccount}>登录 / 注册</button></p>}
+    {!registered && <p className={s.guest}>登录后可查看云端作品并保存小说和团本。<button onClick={onRequireAccount}>登录 / 注册</button></p>}
     {filtered.length ? <div className={s.works}>{filtered.map(work => <button key={`${work.kind}:${work.id}`} className={s.work} onClick={() => open(work)}><span className={s.workIcon}><Icon name={KINDS[work.kind].icon}/></span><div><strong>{work.title || "未命名作品"}</strong><p>{work.synopsis || "还没有填写简介"}</p><small>{KINDS[work.kind].label} · {work.detail}{work.updatedAt > 0 ? ` · ${new Date(work.updatedAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}` : ""}</small></div><span className={s.continue} title={copy.continueWork}><Icon name="edit" size={15}/><span className={s.hint}>{copy.continueWork}</span></span></button>)}</div> : <div className={s.empty}><Icon name={query || kind !== "all" ? "search" : "edit"} size={32}/><h3>{loading ? "正在加载作品" : query || kind !== "all" ? "没有匹配的已加载作品" : errors.length ? "暂时未能载入作品" : "你的第一部作品，从这里开始"}</h3><p>{query || kind !== "all" ? "换个词或选择其他类型。" : "从创作页选择一种方式，保存后会出现在这里。"}</p></div>}
   </section>;
 }

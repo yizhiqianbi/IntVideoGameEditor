@@ -2,7 +2,7 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from "node:crypto";
 import { ApiError, json, readJson, readOptionalJson } from "./http";
 import type { Env, UserRecord } from "./types";
 import { handleEmailAuth, type EmailAuthOptions } from "./email-auth";
-import { guestWelcomeCreditStatement, passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
+import { NEW_GUEST_CREDITS, guestWelcomeCreditStatement, passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
 import { referralCodeForUser, referralCodeFromBody, findInviter, referralRewardStatements, acquisitionRegisteredStatement } from "./referrals";
 import { rememberDailyVisit } from "./visits";
 
@@ -288,7 +288,9 @@ async function createGuest(request: Request, env: Env) {
   const currentToken = tokenFrom(request);
   if (existing && currentToken)
     return json({ user: existing, authenticated: !existing.isGuest }, 200, authCookies(request, currentToken));
-  await rateLimit(request, env, "guest", 60);
+  // Every landing page used to mint a guest row (4.6k empty accounts). Keep a
+  // stricter per-network budget so crawlers and scripts cannot mass-create.
+  await rateLimit(request, env, "guest", 20);
   const user: UserRecord = {
     id: crypto.randomUUID(),
     email: null,
@@ -313,7 +315,7 @@ async function createGuest(request: Request, env: Env) {
   // The first guest from a network can try the tavern. Another incognito window
   // is still a guest, but it does not receive the welcome Credit again.
   try {
-    if (await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
+    if (NEW_GUEST_CREDITS > 0 && await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
   } catch {
     /* A grant failure must never block the guest session. */
   }

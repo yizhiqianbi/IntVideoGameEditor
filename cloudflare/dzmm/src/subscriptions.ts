@@ -17,10 +17,10 @@ const ORIGIN = "https://xumengchat.top", CALLBACK = "/api/payments/zpay/subscrip
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 export const SUBSCRIPTION_ORDER_ID = /^sp_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const PERIOD_ID = /^sub_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
-type Plan = { id: string; label: string; revision: number; amountMinor: number; currency: "cny"; durationDays: 30;
-  dailyCredits: number; maxClaims: 30; timezone: "Asia/Shanghai" };
+type Plan = { id: string; label: string; revision: number; amountMinor: number; currency: "cny"; durationDays: 7 | 30;
+  dailyCredits: number; maxClaims: 7 | 30; timezone: "Asia/Shanghai" };
 type Order = { id: string; user_id: string; request_id: string; plan_id: string; plan_revision: number; label: string; amount_minor: number;
-  currency: "cny"; duration_days: 30; daily_credits: number; max_claims: 30; timezone: "Asia/Shanghai"; method: "alipay" | "wxpay";
+  currency: "cny"; duration_days: 7 | 30; daily_credits: number; max_claims: 7 | 30; timezone: "Asia/Shanghai"; method: "alipay" | "wxpay";
   out_trade_no: string; merchant_pid: string; channel_id: string; payment_name: string; provider_trade_no: string | null;
   checkout_url: string; status: string; created_at: number; updated_at: number; paid_at: number | null; subscription_id?: string | null };
 type Period = { id: string; order_id: string; plan_id: string; plan_revision: number; label: string; starts_at: number; expires_at: number;
@@ -45,7 +45,7 @@ export function readSubscriptionPlans(env: Env): Plan[] {
     if (!record(plan) || Object.keys(plan).some(key => !fields.includes(key)) || typeof plan.id !== "string" || !/^[a-z][a-z0-9_]{1,59}$/.test(plan.id)
       || typeof plan.label !== "string" || plan.label.trim() !== plan.label || !plan.label || plan.label.length > 60 || /[\0\r\n]/.test(plan.label)
       || !positive(plan.revision, 1000000) || !positive(plan.amountMinor, 1000000) || !positive(plan.dailyCredits, 1000000)
-      || plan.currency !== "cny" || plan.durationDays !== 30 || plan.maxClaims !== 30 || plan.timezone !== "Asia/Shanghai"
+      || plan.currency !== "cny" || (plan.durationDays !== 7 && plan.durationDays !== 30) || plan.maxClaims !== plan.durationDays || plan.timezone !== "Asia/Shanghai"
       || plans.some(existing => existing.id === plan.id)) throw new ApiError(503, "订阅套餐配置无效，暂未开放购买。");
     plans.push(plan as Plan);
   }
@@ -65,14 +65,15 @@ function configuration(env: Env) {
   return { ...context, modelBillingLinked: creditBillingConfig(env).enabled, enabled, currency: "cny", timezone: "Asia/Shanghai", renewal: "manual", autoRenew: false, plans,
     methods: wechat ? (guaguaVipReady(env) ? [{ id: "wxpay" as const, label: "微信支付" }] : []) : zpayMethods(env),
     note: !paymentCollectionEnabled(env) ? PAYMENT_PAUSED_NOTE
-      : enabled ? `月卡需手动购买续期；北京时间每日领取一次，每期最多30次，漏签不补。已领取点数不随月卡到期失效，${creditBillingConfig(env).enabled ? "用于模型对话与剧情记忆的 Token 费用" : "目前不抵扣模型费用"}。退款需管理员人工处理并核对。`
+      : enabled ? `会员卡需手动购买续期；北京时间每日领取一次，周卡每天 ${plans[0]?.dailyCredits ?? 300} 金币，每期最多 ${plans[0]?.maxClaims ?? 7} 次，漏签不补；会员期内短剧免费看。已领取金币不随会员到期失效。退款需管理员人工处理并核对。`
         : "订阅购买暂未开放，套餐和权益正在确认。已购买的有效权益仍可领取；不会自动扣费。退款需管理员人工处理并核对。" };
 }
 function requireConfiguration(env: Env) { const config = configuration(env); if (!config.enabled) throw new ApiError(503, "订阅套餐尚未开放购买，请稍后再试。"); return config; }
-function account(body: Record<string, unknown>, user: UserRecord) {
+function account(body: Record<string, unknown>, user: UserRecord, env: Env) {
   if (typeof body.accountId !== "string" || !UUID.test(body.accountId)) throw new ApiError(400, "请提供当前账户编号。");
   if (body.accountId !== user.id) throw new ApiError(409, "账户已切换，请刷新订阅页面后重试。");
-  if (body.provider !== "zpay" || body.mode !== "live") throw new ApiError(409, "订阅支付环境已改变，请刷新后重试。");
+  const provider = env.PAYMENT_PROVIDER === "guagua" ? "guagua" : "zpay";
+  if (body.provider !== provider || body.mode !== "live") throw new ApiError(409, "订阅支付环境已改变，请刷新后重试。");
 }
 function sessionHash(request: Request) { const token = tokenFrom(request); if (!token) throw new ApiError(401, "登录状态已失效，请重新登录。"); return digest(token); }
 function orderValue(order: Order, env: Env) {
@@ -117,7 +118,7 @@ async function guaguaCheckout(request: Request, env: Env, user: UserRecord, plan
       SELECT ?,u.id,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,? FROM users u WHERE u.id=? AND u.is_guest=0
       AND EXISTS(SELECT 1 FROM sessions WHERE token_hash=? AND user_id=u.id AND expires_at>?) ON CONFLICT(user_id,request_id) DO NOTHING`)
       .bind(id, requestId, plan.id, plan.revision, plan.label, plan.amountMinor, plan.durationDays, plan.dailyCredits, plan.maxClaims, plan.timezone,
-        method, outTradeNo, env.GUAGUA_MID!, env.GUAGUA_CHANNEL_CODE!, `叙梦 AI 对话月卡 · ${plan.label}`, checkoutUrl, now, now, user.id, hash, now),
+        method, outTradeNo, env.GUAGUA_MID!, env.GUAGUA_CHANNEL_CODE!, `叙梦 VIP · ${plan.label}`, checkoutUrl, now, now, user.id, hash, now),
     env.DB.prepare(`INSERT INTO guagua_vip_orders(subscription_order_id,mer_order_tid,merchant_mid,channel_code)
       SELECT id,?,?,? FROM subscription_orders WHERE user_id=? AND request_id=? AND method='wxpay' AND merchant_pid=? AND channel_id=?
       ON CONFLICT(subscription_order_id) DO NOTHING`)
@@ -132,7 +133,7 @@ async function guaguaCheckout(request: Request, env: Env, user: UserRecord, plan
   return json({ ...context, modelBillingLinked: creditBillingConfig(env).enabled, accountId: user.id, order: orderValue(order, env), checkoutUrl: order.checkout_url }, results[0].meta.changes === 1 ? 201 : 200);
 }
 async function checkout(request: Request, env: Env, user: UserRecord, options: ZpayOptions & GuaguaOptions) {
-  const config = requireConfiguration(env), body = await readJson(request, 2048); account(body, user);
+  const config = requireConfiguration(env), body = await readJson(request, 2048); account(body, user, env);
   if (Object.keys(body).some(key => !["accountId", "planId", "planRevision", "requestId", "provider", "mode", "method"].includes(key))) throw new ApiError(400, "订阅价格与权益只能由服务端确定。");
   const plan = config.plans.find(plan => plan.id === body.planId);
   if (!plan || typeof body.requestId !== "string" || !UUID.test(body.requestId) || (body.method !== "alipay" && body.method !== "wxpay")) throw new ApiError(400, "请选择有效的订阅套餐和支付方式。");
@@ -212,7 +213,7 @@ async function notification(request: Request, env: Env, options: ZpayOptions, re
 }
 
 async function checkin(request: Request, env: Env, user: UserRecord, options: ZpayOptions) {
-  const body = await readJson(request, 2048); account(body, user);
+  const body = await readJson(request, 2048); account(body, user, env);
   if (Object.keys(body).some(key => !["accountId", "subscriptionId", "requestId", "provider", "mode"].includes(key))
     || typeof body.subscriptionId !== "string" || !PERIOD_ID.test(body.subscriptionId) || typeof body.requestId !== "string" || !UUID.test(body.requestId)) throw new ApiError(400, "领取日期和点数只能由服务端确定，请刷新订阅状态。");
   const hash = sessionHash(request), nonce = crypto.randomUUID(), claimId = `sc_${crypto.randomUUID()}`;

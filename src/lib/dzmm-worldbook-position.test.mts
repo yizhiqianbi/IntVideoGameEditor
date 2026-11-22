@@ -38,12 +38,22 @@ test("v2 position survives import and normalized export without changing the omi
 });
 
 test("unsupported worldbook positions fail validation instead of silently moving a source entry", () => {
-  for (const position of [null, 0, "before_system", "at_depth", "", {}]) {
+  for (const position of [null, "before_system", "", {}]) {
     const context = { character_book: { entries: [{ keys: [], constant: true, content: "资料", position }] } };
     assert.throws(() => parseDzmmCharacterContext(context), /世界书位置/);
     assert.throws(() => validateDzmmChatInput({ character: { name: "档案员", characterBook: context.character_book }, messages: [{ role: "user", content: "你好" }] }),
       /世界书位置/);
   }
+});
+
+test("SillyTavern insertion positions are accepted and preserved", () => {
+  const context = parseDzmmCharacterContext({ character_book: { entries: [
+    { keys: ["a"], content: "A", position: "at_depth", extensions: { depth: 2, role: 0 } },
+    { keys: ["b"], content: "B", extensions: { position: 2 } },
+    { keys: ["c"], content: "C", position: 0 },
+    { keys: ["d"], content: "D", position: 4 },
+  ] } });
+  assert.deepEqual(context.characterBook?.entries.map(entry => entry.position), ["at_depth", "an_top", "before_char", "at_depth"]);
 });
 
 test("before-char placement stays after platform rules and before character data with stable per-position order", () => {

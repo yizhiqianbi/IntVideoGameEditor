@@ -89,27 +89,27 @@ export function BillingCenter({ userId, isGuest, modelBillingLinked, refreshKey,
   }
 
   return <section className={s.section} aria-labelledby="billing-title">
-    <div className={s.heading}><div><h2 id="billing-title">聊天费率与消费记录</h2><p>查看正式账户的 Token 用量和 Credit 扣费。</p></div><button type="button" className={s.outline} disabled={loading || loadingMore} onClick={() => void refresh()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新消费"}</button></div>
+    <div className={s.heading}><div><h2 id="billing-title">聊天费率与消费记录</h2><p>查看正式账户的 Token 用量和 金币 扣费。</p></div><button type="button" className={s.outline} disabled={loading || loadingMore} onClick={() => void refresh()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新消费"}</button></div>
     {linked ? <div className={s.rules} role="note">
       <strong>聊天按实际用量结算</strong>
-      {config?.enabled ? <p>100 Credit 等于 1 元。发送前按预计用量预留，完成后按发票结算并返还未使用部分；失败且没有有效输出时不会扣费。余额只剩 1 Credit 也能发最后一轮，扣到 0 为止。</p> : <p>聊天扣费已接入，当前费率暂时无法读取，请刷新后查看。</p>}
-      <p>不足 1 Credit 向上取整。{config?.memoryBilled ? "长对话自动整理剧情记忆也会单独计费。" : config?.enabled ? "自动整理剧情记忆不计费。" : "自动记忆计费状态以服务器配置为准。"}</p>
-      <p>发送前暂时预留 Credit，完成后返还未使用部分；没有有效输出的失败请求不会扣费。超过 {config ? config.reservationTtlMs / 60_000 : 10} 分钟未完成的预留会自动返还。</p>
+      {config?.enabled ? <p>100 金币 等于 1 元。发送前按预计用量预留，完成后按发票结算并返还未使用部分；失败且没有有效输出时不会扣费。余额只剩 1 金币 也能发最后一轮，扣到 0 为止。</p> : <p>聊天扣费已接入，当前费率暂时无法读取，请刷新后查看。</p>}
+      <p>不足 1 金币 向上取整。{config?.memoryBilled ? "长对话自动整理剧情记忆也会单独计费。" : config?.enabled ? "自动整理剧情记忆不计费。" : "自动记忆计费状态以服务器配置为准。"}</p>
+      <p>发送前暂时预留 金币，完成后返还未使用部分；没有有效输出的失败请求不会扣费。超过 {config ? config.reservationTtlMs / 60_000 : 10} 分钟未完成的预留会自动返还。</p>
     </div> : <p className={s.notice} role="note">当前尚未接入聊天扣费。开放后的 Token 费率和记忆计费规则会显示在这里。</p>}
     {configError && <p className={s.error} role="status">{configError} 充值套餐与支付订单仍可单独查看。</p>}
     {currentUsage && usageRefreshFailed && <p className={s.notice} role="note">刷新未成功，以下保留上次读取的记录和统计，可能不是最新状态。请重新刷新后继续加载。</p>}
-    {currentUsage && <div className={s.metrics}><span>已结算消费 <strong>{points(currentUsage.totalSpent)} Credit</strong></span><span>暂时预留 <strong>{points(currentUsage.reservedCredits)} Credit</strong></span>{currentUsage.debtCredits > 0 && <span>待补足 <strong>{points(currentUsage.debtCredits)} Credit</strong></span>}</div>}
+    {currentUsage && <div className={s.metrics}><span>已结算消费 <strong>{points(currentUsage.totalSpent)} 金币</strong></span><span>暂时预留 <strong>{points(currentUsage.reservedCredits)} 金币</strong></span>{currentUsage.debtCredits > 0 && <span>待补足 <strong>{points(currentUsage.debtCredits)} 金币</strong></span>}</div>}
     {isGuest ? <div className={s.guest}><p>登录后查看本人的消费记录。</p><button type="button" className={s.outline} onClick={onRequireAccount}>登录查看消费</button></div> : currentUsage?.items.length ? <ul className={s.list}>{currentUsage.items.map(item => {
       const expired = (item.status === "reserved" || item.status === "pending") && item.expiresAt <= usageReadAt;
       return <li className={s.item} key={item.id}>
       <div className={s.itemMain}><strong>{item.operation === "memory" ? "剧情记忆整理" : "角色聊天"}<span>{item.outcome === "cancelled" ? " · 已停止" : item.outcome === "failed" ? " · 生成未完成" : ""}</span></strong><time dateTime={new Date(item.createdAt).toISOString()}>{date(item.createdAt)} · {item.model}</time><p>{item.promptTokens === null ? "Token 用量待核对" : `输入 ${points(item.promptTokens)} · 输出 ${points(item.completionTokens!)} Token`}{item.usageExceedsReservation ? " · 扣费已按预留上限封顶" : ""}</p>
       {item.costPolicy && <p>按实际用量结算</p>}</div>
-      <div className={s.itemAmount}><strong>{item.billingExempt ? "历史免扣" : item.status === "settled" ? `−${points(item.chargedCredits)}` : item.status === "released" ? "0" : `${expired ? "历史预留" : "预留"} ${points(item.reservedCredits)}`}<small> Credit</small></strong><span>{expired ? "已到期，预留已解除" : status[item.status]}{item.returnedCredits > 0 ? ` · 返还 ${points(item.returnedCredits)}` : ""}</span></div>
+      <div className={s.itemAmount}><strong>{item.billingExempt ? "历史免扣" : item.status === "settled" ? `−${points(item.chargedCredits)}` : item.status === "released" ? "0" : `${expired ? "历史预留" : "预留"} ${points(item.reservedCredits)}`}<small> 金币</small></strong><span>{expired ? "已到期，预留已解除" : status[item.status]}{item.returnedCredits > 0 ? ` · 返还 ${points(item.returnedCredits)}` : ""}</span></div>
     </li>;
     })}</ul> : <p className={s.empty}>{loading ? "正在读取消费记录…" : usageError ? "暂时无法读取消费记录。" : "还没有聊天消费记录。"}</p>}
     {currentUsage?.activity?.length ? <ul className={s.list} aria-label="语音、图片、视频、陪伴和画面消费">{currentUsage.activity.map(item => {
       const label = item.kind === "audio" ? "语音" : item.kind === "phone" ? "语音通话" : item.kind === "live" ? "视频通话" : item.kind === "image" ? "剧情图片" : item.kind === "video" ? "视频" : item.kind === "companion" ? "陪伴对话" : "画面";
-      return <li className={s.item} key={item.id}><div className={s.itemMain}><strong>{label}</strong><time dateTime={new Date(item.createdAt).toISOString()}>{date(item.createdAt)}</time></div><div className={s.itemAmount}><strong>−{points(item.credits)}<small> Credit</small></strong><span>已结算</span></div></li>;
+      return <li className={s.item} key={item.id}><div className={s.itemMain}><strong>{label}</strong><time dateTime={new Date(item.createdAt).toISOString()}>{date(item.createdAt)}</time></div><div className={s.itemAmount}><strong>−{points(item.credits)}<small> 金币</small></strong><span>已结算</span></div></li>;
     })}</ul> : null}
     {usageError && <div className={s.error} role="status"><p>{usageError}</p>{usageRefreshFailed && <button type="button" className={s.outline} disabled={loading || loadingMore} onClick={() => void refresh()}>重新刷新消费</button>}</div>}
     <p className={s.empty}>{XUMENG_GENERATION_WORKSPACE_ENABLED ? "图片和视频的费用、预留与结果可在" : "图片与视频新生成已暂停。已有结果和费用可在"} <a href="#generation">我的生成历史</a> 查看。</p>

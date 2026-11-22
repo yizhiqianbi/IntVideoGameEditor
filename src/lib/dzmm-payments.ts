@@ -20,6 +20,8 @@ export type DzmmPaymentOrder = DzmmPaymentPackage & {
 export type DzmmPaymentWallet = DzmmPaymentEnvironment & {
   accountId: string; provider: DzmmPaymentProvider; balance: number;
   totalPurchased: number; totalRefunded: number; orders: DzmmPaymentOrder[];
+  /** 首单半价：没有已支付订单，也没有占用首单优惠的待支付订单。 */
+  firstRechargeHalfAvailable?: boolean;
   creditUnlimited?: boolean; billingExempt?: boolean;
 };
 export type DzmmPaymentOrderResult = DzmmPaymentWallet & { order: DzmmPaymentOrder };
@@ -138,7 +140,8 @@ function parseWallet(value: unknown, expected?: DzmmPaymentContext): DzmmPayment
   if (!record(value) || !text(value.accountId) || !amount(value.balance)
     || !amount(value.totalPurchased) || !amount(value.totalRefunded) || !Array.isArray(value.orders)
     || value.orders.length > 200) throw malformed();
-  if ((value.creditUnlimited !== undefined && typeof value.creditUnlimited !== "boolean")
+  if ((value.firstRechargeHalfAvailable !== undefined && typeof value.firstRechargeHalfAvailable !== "boolean")
+    || (value.creditUnlimited !== undefined && typeof value.creditUnlimited !== "boolean")
     || (value.billingExempt !== undefined && typeof value.billingExempt !== "boolean")
     || (value.creditUnlimited === true && value.billingExempt !== true)) throw malformed();
   const environment = parseEnvironment(value, expected?.mode);
@@ -147,6 +150,7 @@ function parseWallet(value: unknown, expected?: DzmmPaymentContext): DzmmPayment
   if (expected !== undefined && value.accountId !== expected.accountId) throw malformed();
   return { accountId: value.accountId, ...environment, provider, balance: value.balance,
     totalPurchased: value.totalPurchased, totalRefunded: value.totalRefunded,
+    ...(value.firstRechargeHalfAvailable !== undefined ? { firstRechargeHalfAvailable: value.firstRechargeHalfAvailable } : {}),
     orders: value.orders.map(order => parseOrder(order, value.accountId as string, environment.mode)),
     ...(value.creditUnlimited !== undefined ? { creditUnlimited: value.creditUnlimited } : {}),
     ...(value.billingExempt !== undefined ? { billingExempt: value.billingExempt } : {}) };
