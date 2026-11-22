@@ -208,6 +208,8 @@ type Preferences = DzmmPreferences;
 type ChatSection = "stories" | "chats" | "games";
 const CHAT_SECTION_ROUTES: Record<ChatSection, string> = { stories: "chat", chats: "chat/chats", games: "chat/games" };
 const TABS = ["新手", "猜你喜欢", "关注", "最新", "榜单", "分类"];
+/** 短剧专栏暂时下线；恢复时改回 true。 */
+const SHOW_SHORT_DRAMA_COLUMN = false;
 const FEATURED_CHARACTER_COUNT = 13;
 const MODEL_MODES = DZMM_OFFERED_MODEL_OPTIONS;
 const MAX_PARALLEL_REPLIES = 3;
@@ -3083,7 +3085,7 @@ export default function TavernApp() {
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
   }, [shelfCharacters, publicShelf.characters.length, publicShelf.loading, characters, searchLocalMatches, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, displayRecommendationIds, homeRecommendationPage, sortMode, locale, cardTranslationRevision]);
   const shortDramaColumn = useMemo(
-    () => view === "characters" && !query.trim() && tab !== "关注" && tab !== "榜单" && look !== "anime"
+    () => SHOW_SHORT_DRAMA_COLUMN && view === "characters" && !query.trim() && tab !== "关注" && tab !== "榜单" && look !== "anime"
       ? xumengShortDramaColumn(selectedShelfTags(genres))
       : [],
     [view, query, tab, look, genres],
