@@ -35,6 +35,7 @@ import {
 import { getDzmmNewConversationBlockReason, loadMissingPublishedCharacters, mergeDzmmConversationCharacters, selectDzmmDirectory } from "@/lib/dzmm-catalog";
 import { DzmmMemoryRequestError, prepareDzmmRememberedRequest } from "@/lib/dzmm-memory-client";
 import { generateXumengVideoCharacter } from "@/lib/xumeng-video-character";
+import { XUMENG_SHORT_DRAMA_CARDS, xumengShortDramaColumn } from "@/lib/xumeng-short-drama-cards";
 import { applyDzmmConversationOpening, captureDzmmConversationOpening, parseDzmmConversationOpening,
   reconcileDzmmConversationOpening, resolveDzmmConversationOpening, restoreDzmmConversationContexts } from "@/lib/dzmm-conversation-context";
 import { DZMM_CONVERSATION_BACKUP_MAX_BYTES, parseDzmmConversationBackup } from "@/lib/dzmm-conversation-backup";
@@ -1381,7 +1382,8 @@ export default function TavernApp() {
       });
       const known = new Set(shared.map((card) => card.id));
       const extras = resolvedCards.filter((card) => !known.has(card.id));
-      return selectDzmmDirectory(state.custom, [...shared, ...extras].map(withDzmmPublicOpening), new Set(cloud.suppressedPrivateIds)).map((character) => ({
+      const shortDrama = XUMENG_SHORT_DRAMA_CARDS.filter((card) => !known.has(card.id) && !extras.some((item) => item.id === card.id));
+      return selectDzmmDirectory(state.custom, [...shared, ...extras, ...shortDrama].map(withDzmmPublicOpening), new Set(cloud.suppressedPrivateIds)).map((character) => ({
         ...character,
         likes: formatLikeTotal(character, likeStats[character.id]),
       }));
@@ -3080,6 +3082,12 @@ export default function TavernApp() {
     const order = new Map(displayRecommendationIds.map((id, index) => [id, index]));
     return visible.filter((character) => order.has(character.id)).sort((left, right) => order.get(left.id)! - order.get(right.id)!);
   }, [shelfCharacters, publicShelf.characters.length, publicShelf.loading, characters, searchLocalMatches, state.preferences.blockedTags, state.preferences.followedAuthors, view, tab, genres, authors, hiddenIds, look, rankQuery, rankReady, displayRecommendationIds, homeRecommendationPage, sortMode, locale, cardTranslationRevision]);
+  const shortDramaColumn = useMemo(
+    () => view === "characters" && !query.trim() && tab !== "关注" && tab !== "榜单" && look !== "anime"
+      ? xumengShortDramaColumn(selectedShelfTags(genres))
+      : [],
+    [view, query, tab, look, genres],
+  );
   const homeBatchLoading = Boolean(homeRecommendationPage?.length) && shelfList.length === 0
     && (publicShelf.loading || publicShelf.characters.some((character) => !homeRecommendationPage?.includes(character.id)));
   const relatedCards = useMemo(() => {
@@ -3720,6 +3728,7 @@ export default function TavernApp() {
               ))}
             </nav>
             </div>
+            {shortDramaColumn.length > 0 && <div className={s.shortDramaInline}><h2>{copy.shortDramaColumn}</h2><p>{copy.shortDramaNote}</p></div>}
             {rankQuery?.surface === "home" && canRank && <button type="button" className={`${s.secondary} ${s.recommendRefresh}`} aria-label={copy.refreshBatch} disabled={rankWaiting} onClick={refreshHomeRecommendations}><Icon name="refresh" size={14} />{copy.refreshBatch}</button>}
             </div>
           </div>
@@ -3737,6 +3746,18 @@ export default function TavernApp() {
             {homeBanners.length > 0 && <div className={s.homeRails}>{homeBanners.map((banner) => banner.href
               ? <a key={banner.id} className={s.homeBanner} href={banner.href}><strong>{banner.title}</strong><p>{banner.body}</p></a>
               : <section key={banner.id} className={s.homeBanner} aria-label={copy.homeBanner}><strong>{banner.title}</strong><p>{banner.body}</p></section>)}</div>}
+            {shortDramaColumn.length > 0 && <section className={s.shortDramaColumn} aria-label={copy.shortDramaColumn}>
+              <div className={s.shortDramaRail}>
+                {shortDramaColumn.map((item) => (
+                  <button key={item.character.id} type="button" className={s.shortDramaCard} onClick={() => { rememberCharacter(item.character); showDetail(item.character); }}>
+                    <img src={item.character.cover} alt="" />
+                    <strong>{item.character.name}</strong>
+                    <small>{item.dramaTitle}</small>
+                    <span>{item.character.introduction}</span>
+                  </button>
+                ))}
+              </div>
+            </section>}
             {(homeBatchLoading || ((publicShelf.loading || rankWaiting) && shelfList.length === 0)) ? (
               <div className={s.empty} role="status"><h2>{copy.loadingRoles}</h2><p>{copy.loadingSoon}</p></div>
             ) : featured.length || shelf.length ? (
