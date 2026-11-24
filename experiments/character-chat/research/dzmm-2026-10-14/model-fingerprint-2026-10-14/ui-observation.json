@@ -1,0 +1,21 @@
+{
+  "date": "2026-10-14",
+  "url": "https://www.dzmm.ai/chat?c=8132070e-a494-44b0-a3c3-ae2ca7d28b97",
+  "mode": "read-only existing agent-created test conversation",
+  "newGenerationRequests": 0,
+  "displayedModel": "Surge-0923-b (16K)",
+  "visibleModelValue": "x-apex-surge-0923-b-16k",
+  "tokenLogs": [],
+  "usageLogs": [],
+  "menu": [
+    "选择",
+    "复制",
+    "编辑",
+    "重新生成",
+    "回复不错",
+    "回复不好",
+    "播放语音",
+    "生成图片"
+  ],
+  "observation": "No native token counts, IDs or logprobs found on this inspected conversation UI or token/usage-filtered captured logs. This is not proof that the server or all other UI lacks them."
+}

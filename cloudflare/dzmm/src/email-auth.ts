@@ -282,7 +282,7 @@ function bindFields(body: Record<string, unknown>, fields: string[]): void {
 async function requestBind(request: Request, env: Env, options: EmailAuthOptions): Promise<Response> {
   requireConfiguration(env);
   const user = await requireUser(request, env);
-  if (user.isGuest) throw new ApiError(400, "请先用名字注册，再绑定邮箱。");
+  if (user.isGuest) throw new ApiError(400, "请先注册账号，再绑定邮箱。");
   if (user.email) throw new ApiError(409, "这个账号已经绑定邮箱。");
   const body = await readJson(request, 2048);
   bindFields(body, ["email", "accountId"]);
@@ -326,7 +326,7 @@ async function requestBind(request: Request, env: Env, options: EmailAuthOptions
 async function verifyBind(request: Request, env: Env): Promise<Response> {
   requireConfiguration(env);
   const user = await requireUser(request, env);
-  if (user.isGuest) throw new ApiError(400, "请先用名字注册，再绑定邮箱。");
+  if (user.isGuest) throw new ApiError(400, "请先注册账号，再绑定邮箱。");
   if (user.email) throw new ApiError(409, "这个账号已经绑定邮箱。");
   const body = await readJson(request, 2048);
   bindFields(body, ["email", "challengeId", "code", "accountId"]);

@@ -2,9 +2,12 @@
 
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent, type PointerEvent as ReactPointerEvent, type ReactNode } from "react";
 import { isXumengVideoDramaId, matchXumengVideoCharacter, parseXumengVideoCatalog, rankXumengVideoDramas, rotateXumengVideoFeed, xumengVideoDramaIdFromRoute, xumengVideoMediaUrl, xumengVideoPosterUrl, type XumengVideoDrama } from "@/lib/xumeng-video-catalog";
+import { attachXumengShortDramaCards, xumengShortDramaForDrama } from "@/lib/xumeng-short-drama-cards";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
+import { shareHookLine } from "@/lib/xumeng-share-poster";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import Icon from "./icons";
+import { SharePoster, type XumengSharePoster } from "./share-game";
 import s from "./video-channel.module.css";
 
 const CATALOG_URLS = ["/assets/xumeng/video-catalog.json", "/api/xumeng-video/catalog"];
@@ -14,13 +17,15 @@ const NOTES_KEY = "xumeng-video-notes";
 const PROGRESS_KEY = "xumeng-video-progress";
 const CATALOG_TTL_MS = 60_000;
 const EPISODE_CREDITS = 50;
+const INTERACTIVE_CATEGORY = "互动剧";
+const FREE_EPISODE_COUNT = 3;
 const SWIPE_DISTANCE = 64;
 const SWIPE_MS = 180;
 
 type Drama = XumengVideoDrama;
 type SheetId = "" | "episodes" | "comments";
 type Marks = { likes: string[]; saves: string[] };
-type Note = { id: string; dramaId: string; body: string; at: number };
+type Note = { id: string; dramaId: string; body: string; at: number; mine?: boolean };
 type WatchProgress = { dramaId: string; episodeId: string; currentTime: number; duration: number; updatedAt: number };
 
 const record = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
@@ -35,7 +40,7 @@ async function loadCatalog(signal: AbortSignal): Promise<Drama[]> {
     try {
       const response = await fetch(url, { cache: "default", signal });
       if (!response.ok) continue;
-      const dramas = parseXumengVideoCatalog(await response.json());
+      const dramas = attachXumengShortDramaCards(parseXumengVideoCatalog(await response.json()));
       catalogCache = { at: Date.now(), dramas };
       return dramas;
     } catch (error) {
@@ -75,7 +80,7 @@ function readNotes(): Note[] {
       const dramaId = text(item.dramaId, 16);
       const body = text(item.body, 120);
       const at = typeof item.at === "number" && Number.isFinite(item.at) ? item.at : 0;
-      return id && isXumengVideoDramaId(dramaId) && body ? [{ id, dramaId, body, at }] : [];
+      return id && isXumengVideoDramaId(dramaId) && body ? [{ id, dramaId, body, at, ...(item.mine === true ? { mine: true } : {}) }] : [];
     }).slice(0, 80);
   } catch {
     return [];
@@ -143,12 +148,25 @@ export type VideoCharacterLink = {
   introduction?: string;
   scenario?: string;
   tags?: string[];
+  cover?: string;
 };
 
-export default function VideoChannel({ characters = [], locale = "zh-Hans", onOpenCharacter, onRequireAccount }: {
+function interactiveBlurb(character: VideoCharacterLink) {
+  const intro = (character.introduction || "").trim();
+  const plain = (intro || character.description || "").replace(/^【[^】]*】/, "").replace(/\s+/g, " ").trim();
+  if (plain) return plain.length > 54 ? `${plain.slice(0, 54)}…` : plain;
+  const tags = (character.tags || []).slice(0, 3).join(" · ");
+  return tags || "";
+}
+
+export default function VideoChannel({ characters = [], locale = "zh-Hans", signedIn = false, onOpenCharacter, onOpenPlay, onOpenStory, onCreateCharacter, onRequireAccount }: {
   characters?: readonly VideoCharacterLink[];
   locale?: XumengLocale;
+  signedIn?: boolean;
   onOpenCharacter?: (id: string) => void;
+  onOpenPlay?: () => void;
+  onOpenStory?: (characterId: string) => void;
+  onCreateCharacter?: (drama: XumengVideoDrama) => Promise<void> | void;
   onRequireAccount?: () => void;
 }) {
   const copy = xumengPage(locale);
@@ -172,18 +190,24 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const [notes, setNotes] = useState<Note[]>([]);
   const [draft, setDraft] = useState("");
   const [toast, setToast] = useState("");
+  const [poster, setPoster] = useState<XumengSharePoster | null>(null);
   const [videoError, setVideoError] = useState(false);
   const [videoRetry, setVideoRetry] = useState(0);
   const [unlockedDrama, setUnlockedDrama] = useState("");
   const [unlockedIds, setUnlockedIds] = useState<ReadonlySet<string>>(() => new Set());
   const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState("");
   const [frameShown, setFrameShown] = useState(false);
   const [landscape, setLandscape] = useState(false);
   const [blurbOpen, setBlurbOpen] = useState(false);
+  const [hookOpen, setHookOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
+  const seekGesture = useRef<{ id: number; startX: number; startTime: number; active: boolean } | null>(null);
+  const [seekHud, setSeekHud] = useState<{ target: number; delta: number } | null>(null);
+  const [creatingCard, setCreatingCard] = useState(false);
   const wheeled = useRef(0);
   const moved = useRef(false);
   const sliding = useRef(false);
@@ -199,7 +223,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const ordered = useMemo(() => rankXumengVideoDramas(dramas), [dramas]);
   const [opening] = useState(() => takeOpeningTicket(typeof location !== "undefined" && Boolean(xumengVideoDramaIdFromRoute(location.hash))));
   const feed = useMemo(() => {
-    if (category) return ordered.filter(item => item.category === category);
+    if (category) return ordered.filter(item => item.category === category || item.category.includes(category));
     return rotateXumengVideoFeed(ordered, opening);
   }, [ordered, category, opening]);
   const keyword = query.trim().toLowerCase();
@@ -207,7 +231,13 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   const playing = feed[index] ?? null;
   const drama = feed[visualIndex] ?? null;
   const episode = playing ? clipFor(playing, playing.dramaId, episodeId) : null;
-  const episodeFree = (episode?.episodeNumber ?? 1) <= 1;
+  const hookConfig = playing?.hook;
+  const storyTargetId = playing ? (playing.hook?.characterId || matchXumengVideoCharacter(playing, characters)?.id || "") : "";
+  const storyEntry = playing?.category.includes(INTERACTIVE_CATEGORY) && storyTargetId ? storyTargetId : "";
+  const hookCharacter = playing
+    ? (hookConfig?.characterId ? characters.find(item => item.id === hookConfig.characterId) ?? null : matchXumengVideoCharacter(playing, characters))
+    : null;
+  const episodeFree = (episode?.episodeNumber ?? 1) <= FREE_EPISODE_COUNT;
   const episodeOpen = episodeFree || (episode !== null && unlockedDrama === episode.dramaId && unlockedIds.has(episode.id));
   const dramaNotes = notes.filter(item => item.dramaId === drama?.dramaId);
   const panels = [visualIndex - 1, visualIndex, visualIndex + 1].flatMap(slot => {
@@ -345,10 +375,17 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   }, [playing?.dramaId]);
 
   useEffect(() => { setBlurbOpen(false); }, [drama?.dramaId]);
+  useEffect(() => { setPayError(""); }, [episode?.id]);
 
   async function payForEpisode() {
     if (!episode || episodeFree || paying) return;
+    if (!signedIn) {
+      setPayError("请先登录后再观看。");
+      onRequireAccount?.();
+      return;
+    }
     setPaying(true);
+    setPayError("");
     try {
       const response = await fetch("/api/backend/v1/videos/unlock", {
         method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" },
@@ -356,18 +393,24 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
       });
       const body = await response.json().catch(() => null) as { error?: unknown; chargedCredits?: unknown } | null;
       if (response.status === 401 || response.status === 403) {
-        setToast(typeof body?.error === "string" ? body.error : "请先登录后再观看。");
+        const message = typeof body?.error === "string" ? body.error : "请先登录后再观看。";
+        setPayError(message);
+        setToast(message);
         onRequireAccount?.();
         return;
       }
       if (!response.ok) {
-        setToast(typeof body?.error === "string" ? body.error : "这一集暂时不能打开。");
+        const message = typeof body?.error === "string" ? body.error : "这一集暂时不能打开。";
+        setPayError(message);
+        setToast(message);
         return;
       }
       setUnlockedIds(current => new Set(current).add(episode.id));
       setUnlockedDrama(episode.dramaId);
-      if (body?.chargedCredits === EPISODE_CREDITS) setToast(`已使用 ${EPISODE_CREDITS} Credit`);
+      setPayError("");
+      if (body?.chargedCredits === EPISODE_CREDITS) setToast(`已使用 ${EPISODE_CREDITS} ${copy.coinBalance}`);
     } catch {
+      setPayError("网络异常，请再试一次。");
       setToast("网络异常，请再试一次。");
     } finally {
       setPaying(false);
@@ -540,11 +583,26 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
     setEpisodeId("");
     setSheet("");
     setSearchOpen(false);
+    setHookOpen(false);
     resetTrack();
+  }
+
+  async function enterCharacterCard() {
+    if (!drama) return;
+    const official = xumengShortDramaForDrama(drama.dramaId);
+    if (official && onOpenCharacter) { onOpenCharacter(official.character.id); return; }
+    if (linkedCharacter) { openCharacter(); return; }
+    if (!onCreateCharacter) { setToast("请先登录后再生成角色卡。"); return; }
+    setCreatingCard(true);
+    try { await onCreateCharacter(drama); }
+    catch (error) { setToast(error instanceof Error ? error.message : "AI 角色卡生成失败，请重试。"); }
+    finally { setCreatingCard(false); }
   }
 
   function openCharacter() {
     if (!drama) return;
+    const official = xumengShortDramaForDrama(drama.dramaId);
+    if (official && onOpenCharacter) { onOpenCharacter(official.character.id); return; }
     const character = matchXumengVideoCharacter(drama, characters);
     if (!character || !onOpenCharacter) {
       setToast("这部剧还没有对应的角色卡");
@@ -612,53 +670,75 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
     if (event.key === "ArrowLeft") seekTo(currentTime - 5);
   }
 
-  async function shareDrama() {
+  function shareDrama() {
     if (!drama) return;
-    const url = `${location.origin}${location.pathname}${location.search}${dramaHash(drama.dramaId)}`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: drama.title, url });
-        return;
-      }
-    } catch {
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(`${drama.title} ${url}`);
-      setToast("链接已复制");
-    } catch {
-      setToast("当前环境复制不了链接");
-    }
+    const clip = episode && episode.dramaId === drama.dramaId ? episode : drama.episodes[0];
+    const character = matchXumengVideoCharacter(drama, characters);
+    setPoster({
+      title: drama.title,
+      hook: shareHookLine(dramaSynopsis(drama, character)),
+      coverUrl: clip ? xumengVideoPosterUrl(clip.posterKey) : "",
+      url: new URL(`${location.pathname}${location.search}#videos/${drama.dramaId}`, location.origin).toString(),
+      kicker: "叙梦短剧",
+    });
   }
 
   function publishNote() {
     const body = draft.trim();
     if (!drama || !body) return;
-    const next = [{ id: `${drama.dramaId}-${Date.now()}`, dramaId: drama.dramaId, body: body.slice(0, 120), at: Date.now() }, ...notes].slice(0, 80);
+    if (!signedIn) { onRequireAccount?.(); return; }
+    const next = [{ id: `${drama.dramaId}-${Date.now()}`, dramaId: drama.dramaId, body: body.slice(0, 120), at: Date.now(), mine: true }, ...notes].slice(0, 80);
     setNotes(next);
     setDraft("");
     try { localStorage.setItem(NOTES_KEY, JSON.stringify(next)); } catch { /* The note stays on screen for this visit. */ }
+  }
+
+  function removeNote(id: string) {
+    setNotes(current => {
+      const next = current.filter(item => item.id !== id);
+      try { localStorage.setItem(NOTES_KEY, JSON.stringify(next)); } catch { /* The list stays on screen for this visit. */ }
+      return next;
+    });
   }
 
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (searchOpen || sheet || sliding.current || event.button !== 0) return;
     if ((event.target as HTMLElement).closest("button, input, a, label, [role='slider']")) return;
     pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
+    const node = videoRef.current;
+    seekGesture.current = node && Number.isFinite(node.duration) && node.duration > 0
+      ? { id: event.pointerId, startX: event.clientX, startTime: node.currentTime || 0, active: false }
+      : null;
     event.currentTarget.setPointerCapture(event.pointerId);
   }
 
   function onPointerMove(event: ReactPointerEvent<HTMLElement>) {
     const start = pointer.current;
     if (!start || start.id !== event.pointerId || sliding.current) return;
-    placeTrack(event.clientY - start.y, false);
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
+    const seek = seekGesture.current;
+    if (seek && !seek.active && Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.15) seek.active = true;
+    if (seek?.active) {
+      const node = videoRef.current;
+      if (!node || !Number.isFinite(node.duration)) return;
+      event.preventDefault();
+      const width = Math.max(1, event.currentTarget.getBoundingClientRect().width);
+      const next = Math.max(0, Math.min(node.duration, seek.startTime + (dx / width) * node.duration));
+      node.currentTime = next;
+      setCurrentTime(next);
+      setSeekHud({ target: next, delta: next - seek.startTime });
+      return;
+    }
+    placeTrack(dy, false);
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLElement>) {
     const start = pointer.current;
     if (!start || start.id !== event.pointerId) return;
     pointer.current = null;
-    const dx = event.clientX - start.x;
-    const dy = event.clientY - start.y;
+    const seek = seekGesture.current; seekGesture.current = null;
+    if (seek?.id === event.pointerId && seek.active) { setSeekHud(null); return; }
+    const dx = event.clientX - start.x, dy = event.clientY - start.y;
     if (Math.abs(dy) < SWIPE_DISTANCE || Math.abs(dy) < Math.abs(dx)) {
       placeTrack(0, true);
       if (Math.abs(dx) < 12 && Math.abs(dy) < 12) togglePlay();
@@ -668,7 +748,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
   }
 
   function onPointerCancel() {
-    pointer.current = null;
+    pointer.current = null; seekGesture.current = null; setSeekHud(null);
     if (!sliding.current) placeTrack(0, true);
   }
 
@@ -724,9 +804,12 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
 
   return <div className={s.shell}>
     <section ref={stageRef} className={s.stage} aria-label={copy.shorts} tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
+      {seekHud && <div className={s.seekHud} aria-hidden="true"><div className={s.seekHudRow}><Icon name={seekHud.delta >= 0 ? "chevron" : "chevron"} size={18} /><strong>{formatTime(seekHud.target)}</strong><span>{seekHud.delta >= 0 ? "+" : ""}{Math.round(seekHud.delta)}s</span></div><div className={s.seekHudBar}><i style={{ width: `${duration > 0 ? Math.min(100, (seekHud.target / duration) * 100) : 0}%` }} /></div></div>}
       {loading && <p className={s.status}>{copy.openingShorts}</p>}
       {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>{copy.reloadShorts}</button></div>}
-      {!loading && !error && !drama && <p className={s.status}>{copy.noShorts}</p>}
+      {!loading && !error && !drama && (category === INTERACTIVE_CATEGORY
+        ? <div className={s.interactiveEmpty}><h2>{copy.interactiveEmpty}</h2><button type="button" onClick={() => chooseCategory("AI成人短剧")}>{copy.interactiveEmptyAction}</button></div>
+        : <p className={s.status}>{copy.noShorts}</p>)}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
           {panels.map(({ item, place, clip }) => <article key={item.dramaId} className={s.panel} data-place={place} aria-hidden={place !== "current"}>
@@ -777,13 +860,16 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
           onEnded={() => {
             if (episode) clearProgress(episode.id);
             const at = playing.episodes.findIndex(entry => entry.id === episode.id);
-            if (at >= 0 && at < playing.episodes.length - 1) setEpisodeId(playing.episodes[at + 1].id);
-            else settle(1);
+            const lastEpisode = at < 0 || at >= playing.episodes.length - 1;
+            if (!lastEpisode) { setEpisodeId(playing.episodes[at + 1].id); return; }
+            // 互动剧在结尾埋钩子：不自动滑走，先问「换你来选」
+            if (playing.category.includes(INTERACTIVE_CATEGORY) || playing.hook) { setHookOpen(true); setPaused(true); return; }
+            settle(1);
           }}
         />
         {!episodeOpen && <div className={s.payGate} role="dialog" aria-label={copy.unlockEpisode} onPointerDown={event => event.stopPropagation()}>
           <p>{xumengPageFill(copy.episodeNeeds, { episode: episode?.episode ?? "", credits: EPISODE_CREDITS })}</p>
-          <small>{copy.firstFree}</small>
+          {payError && <p className={s.payError} role="alert">{payError}</p>}
           <button type="button" disabled={paying} onClick={() => void payForEpisode()}>{paying ? copy.confirming : copy.payWatch}</button>
         </div>}
         {videoError && episodeOpen && <div className={s.videoError} role="alert">
@@ -827,13 +913,25 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
             {synopsis.length > 18 && <button type="button" onClick={() => setBlurbOpen(value => !value)}>{blurbOpen ? copy.collapse : copy.expand}</button>}
           </p>}
           <div className={s.hashes}>{tags.map(tag => <span key={tag}>#{tag}</span>)}</div>
-          {linkedCharacter && <button type="button" className={s.playCard} onClick={openCharacter}>{copy.playThis}</button>}
+          <button type="button" className={s.playCard} disabled={creatingCard} onClick={() => void enterCharacterCard()}>
+            <Icon name="play" size={16} />
+            {linkedCharacter?.cover && <img src={linkedCharacter.cover} alt="" />}
+            {creatingCard ? "正在打开角色卡…" : linkedCharacter ? `点击去玩 · ${linkedCharacter.name}` : "点击去玩"}
+          </button>
           <button type="button" className={s.watchAll} onClick={() => setSheet("episodes")}>
             <span>{xumengPageFill(copy.watchAll, { count: drama.episodes.length })}</span>
             <Icon name="chevron" size={16} />
           </button>
         </div>
       </>}
+      {hookOpen && playing && <div className={s.hook} role="dialog" aria-label={copy.hookTitle} onPointerDown={event => { event.stopPropagation(); if (event.target === event.currentTarget) { setHookOpen(false); settle(1); } }}>
+        <div className={s.hookCard}>
+          <span className={s.hookEyebrow}>{copy.interactive}</span>
+          <h2>{hookConfig?.title || copy.hookTitle}</h2>
+          <p>{hookConfig?.body || (hookCharacter ? xumengPageFill(copy.hookBodyNamed, { name: hookCharacter.name }) : copy.hookBody)}</p>
+          <button type="button" className={s.hookPlay} onClick={() => { const target = hookConfig?.characterId || hookCharacter?.id; setHookOpen(false); if (target && onOpenStory) onOpenStory(target); else if (target) onOpenCharacter?.(target); else onOpenPlay?.(); }}>{hookConfig?.action || copy.hookAction}<Icon name="chevron" size={16} /></button>
+        </div>
+      </div>}
       <header className={s.top} onPointerDown={event => event.stopPropagation()}>
         {searchOpen ? <label className={s.searchBox}>
           <Icon name="search" size={16} />
@@ -859,11 +957,15 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
     {sheet === "episodes" && drama && <div className={s.mask} onClick={() => setSheet("")}>
       <div className={s.sheet} role="dialog" aria-label={copy.episodes} onClick={event => event.stopPropagation()}>
         <header><strong>{drama.title}</strong><button type="button" aria-label={copy.close} onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
+        {linkedCharacter && <button type="button" className={s.sheetCard} onClick={() => { setSheet(""); openCharacter(); }}>
+          {linkedCharacter.cover && <img src={linkedCharacter.cover} alt="" />}
+          <span><strong>{linkedCharacter.name}</strong><small>这部剧的角色卡</small></span>
+        </button>}
         <p>{xumengPageFill(copy.allEpisodes, { count: drama.episodes.length })}</p>
         <div className={s.episodeGrid}>
           {drama.episodes.map(item => {
-            const paid = item.episodeNumber > 1 && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
-            return <button type="button" key={item.id} aria-pressed={item.id === episode?.id} onClick={() => { setEpisodeId(item.id); setSheet(""); }}>{item.episode}{paid ? ` · ${EPISODE_CREDITS}` : ""}</button>;
+            const paid = item.episodeNumber > FREE_EPISODE_COUNT && !(unlockedDrama === drama.dramaId && unlockedIds.has(item.id));
+            return <button type="button" key={item.id} aria-pressed={item.id === episode?.id} onClick={() => { setEpisodeId(item.id); setSheet(""); }}>{item.episode}{paid ? ` · ${EPISODE_CREDITS} ${copy.coinBalance}` : ""}</button>;
           })}
         </div>
       </div>
@@ -873,7 +975,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
         <header><strong>{copy.comments}</strong><button type="button" aria-label={copy.close} onClick={() => setSheet("")}><Icon name="close" size={18} /></button></header>
         <div className={s.noteList}>
           {dramaNotes.length === 0 && <p>{copy.noComments}</p>}
-          {dramaNotes.map(item => <article key={item.id}><b>{copy.me}</b><span>{item.body}</span></article>)}
+          {dramaNotes.map(item => <article key={item.id}><div className={s.noteHead}><b>{item.mine ? copy.me : copy.commentGuest}</b><button type="button" onClick={() => removeNote(item.id)}>{copy.deleteComment}</button></div><span>{item.body}</span></article>)}
         </div>
         <form className={s.composer} onSubmit={event => { event.preventDefault(); publishNote(); }}>
           <input aria-label={copy.writeComment} placeholder={copy.writeComment} value={draft} maxLength={120} onChange={event => setDraft(event.target.value)} />
@@ -882,6 +984,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", onOp
       </div>
     </div>}
     {toast && <p className={s.toast} role="status">{toast}</p>}
+    {poster && <SharePoster poster={poster} onClose={() => setPoster(null)} />}
   </div>;
 }
 

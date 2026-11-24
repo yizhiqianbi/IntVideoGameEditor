@@ -1,0 +1,100 @@
+Support · NariYume
+← Back to NariYume
+Help & feedback
+Questions, bugs and ideas go to the developer at Koro Interactive.
+Send a note
+In the
+web app
+, open Settings → Help & feedback → Send feedback or report a bug. Choose a bug, idea or developer note. You can send feedback with a free account; no subscription is required.
+The form confirms delivery with a reference number. Your note, selected character and web version are linked to your account in the developer inbox. Chat history, audio and local diagnostics are not attached. Include your account email only if you want a reply.
+Cannot sign in? Email
+[email protected]
+. Include your browser or device and the steps that led to the problem. Leave out passwords and payment-card details.
+Contact
+General support:
+[email protected]
+Privacy and data requests:
+[email protected]
+Legal:
+[email protected]
+Impressum (Deutschland):
+nariyume.com/impressum
+Mail: Koro Interactive Pte. Ltd., 60 Paya Lebar Road, #06-28, Paya Lebar Square, Singapore 409051
+Intimate images shared without consent (US: TAKE IT DOWN Act).
+If an intimate image of you, or a sexual depiction of you, was shared through NariYume without your consent, email
+[email protected]
+with what and where it is and a way to confirm it is you. We remove valid requests within 48 hours.
+Common questions
+How do I delete my account?
+On the web, open
+Settings → Data & deletion → Delete account
+and confirm your sign-in. In the iOS App, open your profile and use
+Delete Account
+. Deletion happens right away and is permanent.
+      If you can no longer sign in, email
+[email protected]
+from the address on your account. Web
+      conversation history is browser-local; clear it from Settings or remove
+      nariyume.com site data in your browser as well.
+How do I cancel my subscription?
+For an Apple purchase, open
+Settings → [your name] →
+      Subscriptions
+on your iPhone, select NariYume Premium, and tap
+      Cancel. For a web purchase, open NariYume Settings and choose
+Usage & subscription
+, then open billing management for cancellation and payment changes. Deleting
+      the App, clearing browser data, or signing out does not cancel a
+      subscription.
+How do I report a message?
+Use the flag button beside a character reply, then choose
+Report message
+. A record is sent to our moderation queue
+      and you’ll see a confirmation. We review reports by hand.
+My conversation is stuck or off-the-rails.
+Try sending again after checking your connection. If a reply stays stuck,
+      report the problem through Settings → Help & feedback before clearing
+      anything. Clearing chat and memories is permanent; it is not required to report a bug.
+I signed out but my data is still there.
+Signing out preserves your account profile and subscription. iOS data
+      that is eligible for sync remains in the cloud. Web conversation history
+      stays in the browser where it was created and does not follow you to a
+      different browser or device.
+Voice mode doesn't work on launch.
+On the web, opening call mode requests microphone access. Allow it in
+      your browser's permission prompt. Transcription is handled online; a
+      browser speech-recognition engine or model download is not required.
+      If access was blocked, change microphone access in the browser's site
+      settings, then try again. Typed chat remains available. For the native
+      iOS app, check Settings → NariYume.
+I bought Premium but it didn't unlock.
+In the web app, choose
+Refresh access
+after returning
+      from Stripe Checkout. For an Apple purchase, use Restore Purchases in
+      the iOS App. If access still does not appear, email
+[email protected]
+from the
+      account address and say whether you paid through Apple or Stripe. Do not
+      send a full card number.
+What AI model powers Nari?
+Nari is backed by large-language models accessed through our
+      inference proxy. The specific model may change over time as
+      we improve quality. See our
+Privacy Policy
+for how your messages are
+      sent to the inference provider and what happens to them.
+Outage and status
+If the app can't reach our servers, you'll see a banner in the
+      chat view. Most outages are transient and resolve within a few
+      minutes. If a problem persists, email support and include your device,
+      operating-system and browser or app version, plus a description of what
+      you were doing. Do not include passwords or payment-card details.
+Feedback
+We read every piece of feedback. Bug reports with reproduction
+      steps, feature ideas, and "this is weird" observations are all
+      welcome.
+Read
+the opening note from the studio
+for the idea behind NariYume and the web launch.
+← Back to NariYume

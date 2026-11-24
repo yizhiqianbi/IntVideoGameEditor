@@ -20,6 +20,8 @@ export type DzmmForumTopic = {
 export const DZMM_DISCOVERY_CATEGORIES = [
   { slug: "truelove", name: "纯爱", tags: ["纯爱", "甜宠", "wholesome"] },
   { slug: "girl", name: "女性向", tags: ["女性向", "female-oriented", "fem-audience"] },
+  { slug: "boy", name: "男性向", tags: ["男性向", "male-oriented", "male-audience"] },
+  { slug: "donghua", name: "动画", tags: ["二次元", "动漫", "动画", "anime", "animation"] },
   { slug: "ntr", name: "NTR", tags: ["NTR"] },
   { slug: "history", name: "古风历史", tags: ["古风历史", "古风"] },
   { slug: "sm", name: "调教", tags: ["调教"] },
@@ -37,6 +39,7 @@ export const DZMM_DISCOVERY_CATEGORIES = [
   { slug: "gay", name: "男同", tags: ["男同"] },
   { slug: "for-girls", name: "女性视角", tags: ["女性视角"] },
   { slug: "rpg", name: "游戏", tags: ["游戏", "RPG"] },
+  { slug: "shorts", name: "短剧", tags: ["短剧"] },
 ] as const;
 
 export type DzmmDiscoverySort = "hot" | "new" | "likes";

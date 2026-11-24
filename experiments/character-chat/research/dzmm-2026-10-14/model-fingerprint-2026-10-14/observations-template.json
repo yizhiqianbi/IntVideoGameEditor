@@ -1,0 +1,20 @@
+{
+  "status": "UNOBSERVED_TEMPLATE_NOT_TARGET_DATA",
+  "measurement_type": null,
+  "overhead_assumption": null,
+  "notes": "Use native input/prompt tokens only; keep hidden prompt/history/worldbook/template/normalization fixed. Do not use model self-reported counts or SSE chunk counts.",
+  "observations": {
+    "zh_common": null,
+    "zh_rare": null,
+    "zh_traditional": null,
+    "zh_mixed": null,
+    "en_morphology": null,
+    "code": null,
+    "digits": null,
+    "numbers": null,
+    "whitespace": null,
+    "emoji": null,
+    "unicode_nfc": null,
+    "unicode_nfd": null
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "Supplemental excerpts for compatibility prompt; actual prompt text not recovered.",
+  "extracts": [
+    {
+      "id": "card-preview-contract",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 146228,
+      "byteEndExclusive": 146713,
+      "excerpt": "var $u=({data:e})=>{var t,n,r,i,a,o;let s=C(`nianbai.studio-copilot`),c=xe(),l=Oe(),[u,d]=(0,F.useState)(!1),p=e.needsConfirmation?(t=e.previewId)==null?``:t:``,m=c.agent.studioCopilot.status.queryOptions({previewId:p}),h=ke({...m,enabled:s&&p!==``,staleTime:0}),g={onSuccess:e=>l.setQueryData(m.queryKey,e)},_=A(c.agent.studioCopilot.confirm.mutationOptions(g)),v=A(c.agent.studioCopilot.cancel.mutationOptions(g));if(!s||!p||!((n=e.changes)!=null&&n.length))return null;let y=h.data,"
+    },
+    {
+      "id": "card-confirm-controls",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 147805,
+      "byteEndExclusive": 148450,
+      "excerpt": "ee===`pending`&&(0,$.jsxs)(`div`,{className:`flex flex-wrap items-center gap-2`,children:[(0,$.jsxs)(T,{size:`sm`,className:`rounded-full`,disabled:te,onClick:()=>_.mutate({previewId:p}),children:[(0,$.jsx)(Ce,{className:`mr-1 h-3 w-3`}),`确认保存`]}),(0,$.jsx)(T,{size:`sm`,variant:`outline`,className:`rounded-full`,disabled:te,onClick:()=>v.mutate({previewId:p}),children:`不用了`}),(0,$.jsx)(`span`,{className:`text-xs text-muted-foreground`,children:`只存成工坊草稿，发布仍由你自己在工坊里操作`})]}),ee===`applied`&&(0,$.jsxs)(`p`,{className:`text-xs text-muted-foreground`,children:[`已存进工坊草稿`,(y=="
+    },
+    {
+      "id": "proposed-action",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 153461,
+      "byteEndExclusive": 154311,
+      "excerpt": "od=({data:e})=>{let t=xe(),n=Oe(),r=e.proposed&&e.actionId?e.actionId:``,i=C(`nianbai.image-gen`),a=C(`nianbai.forum`),{profile:o}=M(),s=(0,F.useRef)(o==null?void 0:o.id);s.current=o==null?void 0:o.id;let{open:c,composer:l}=it(),[u,d]=(0,F.useState)(null),f=t.agent.actions.get.queryKey({id:r}),p=ke(t.agent.actions.get.queryOptions({id:r},{enabled:r!==``,retry:1,staleTime:3e4})),m=A(t.agent.actions.confirm.mutationOptions({onSuccess:e=>{var t;n.setQueryData(f,e.view),d((t=ad[e.outcome])==null?null:t)},onError:e=>d(e.message||`操作失败，请稍后再试`)})),h=A(t.agent.actions.cancel.mutationOptions({onSuccess:e=>n.setQueryData(f,e),onError:e=>d(e.message||`操作失败，请稍后再试`)})),g=A({mutationFn:async({id:e,actorId:r})=>{let i=await n.fetchQuery(t.agent.actions.get.queryOptions({id:e},{staleTime:0}));if(!r||r!==s.current)r"
+    },
+    {
+      "id": "image-forum-confirm",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 154991,
+      "byteEndExclusive": 155420,
+      "excerpt": "onConfirm:()=>{var e,t;d(null),_.kind===`forum_post`?g.mutate({id:_.id,actorId:(e=o==null?void 0:o.id)==null?void 0:e}):m.mutate({id:_.id,expectedCreditsPerImage:(t=_.image)==null?void 0:t.creditsPerImage})},onCancel:()=>{d(null),h.mutate({id:_.id})}}),l]}):p.isError?(0,$.jsx)(`p`,{className:`rounded-xl border border-border/70 px-4 py-2.5 text-xs text-muted-foreground`,children:`这张卡片已失效`}):null},sd=Ee({id:O([k()"
+    },
+    {
+      "id": "reminder-settings-schema",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 183024,
+      "byteEndExclusive": 183688,
+      "excerpt": "var Hd=Ee({enabled:le(),hour:k().int().min(8).max(21),telegram:le()}),Ud={enabled:!1,hour:18,telegram:!0};Ee({action:he([`status`,`enable`,`disable`,`update`]),hour:Hd.shape.hour.optional(),telegram:le().optional()}).strict().refine(e=>e.action===`enable`||(e.action===`update`?e.hour!==void 0||e.telegram!==void 0:e.hour===void 0&&e.telegram===void 0)),Hd.extend({conversationId:N().uuid(),locale:he(fe),client:he([`web`,`mobile`])}),Ee({day:N(),seen:be(N()),pending:Ee({title:N(),body:N(),conversationId:N().uuid(),messageId:N().uuid(),nextAt:N().datetime().optional()}).optional()});function Wd({conversationId:e}){return C(`nianbai.offline-task-reminders`)?(0,"
+    }
+  ]
+}

@@ -12,12 +12,24 @@ import { isXumengLocale, type XumengLocale } from "./xumeng-i18n";
 import { isDzmmDeferredAiArchiveId } from "./dzmm-ai-archive-ids";
 import { isDzmmDeferredIntroductionId } from "./dzmm-public-introduction-ids";
 import { DZMM_CHARACTER_PROSE_LIMIT } from "./dzmm-character-context";
+import type { DzmmSamplerRequest } from "./dzmm-chat";
+import { parseTavernImagePresetId } from "./tavern/image";
+import { parseTavernMemoryProfile, type TavernMemoryProfile } from "./tavern/memory";
+import { parseTavernImageGeneration, type TavernImageGeneration } from "./tavern/image-generation";
 
 export type DzmmSavedMessage = {
   id: string;
   role: "user" | "assistant";
   content: string;
+  /** Group chat only: which member produced this assistant turn. */
+  speaker?: string;
+  /** SillyTavern-style swipes: alternative replies, with `content === swipes[swipeIndex]`. */
+  swipes?: string[];
+  swipeIndex?: number;
 };
+
+/** A group-chat member: the primary character stays members[0]. */
+export type DzmmChatMember = { characterId: string; name: string };
 
 export type DzmmSavedConversation = {
   id: string;
@@ -29,6 +41,8 @@ export type DzmmSavedConversation = {
   storyMemory?: DzmmStoryMemory;
   worldState?: DzmmWorldJournal;
   worldClockMode?: "story" | "realtime";
+  /** Present on group conversations; absent means the original single-character chat. */
+  members?: DzmmChatMember[];
 };
 
 export type DzmmPreferences = {
@@ -38,6 +52,8 @@ export type DzmmPreferences = {
   model: DzmmModelPreset;
   dark: boolean;
   bio?: string;
+  /** Uploaded profile photo URL (media path); absent means the default avatar. */
+  avatar?: string;
   gender?: "male" | "female" | "other";
   theme?: "light" | "dark" | "system";
   homeLayout?: "single" | "double";
@@ -65,6 +81,15 @@ export type DzmmPreferences = {
   chatBackground?: "site" | "cover" | "plain";
   /** Omitted keeps the Xumeng prompt. "tavern" uses SillyTavern's order with Xumeng's adult writing. */
   promptStyle?: "xumeng" | "tavern";
+  /** Optional SillyTavern-style sampler overrides; absent keeps the legacy defaults. */
+  sampler?: DzmmSamplerRequest;
+  /** ST-style image preset id used by in-chat illustration. */
+  imagePreset?: string;
+  /** SillyTavern-style image generation templates, negative prompt and triggers. */
+  imageGeneration?: TavernImageGeneration;
+  /** Summarizer verbosity and memory injection depth (SillyTavern-style memory). */
+  memoryProfile?: TavernMemoryProfile;
+  memoryDepth?: number;
 };
 
 export type DzmmSavedPreset = { id: string; name: string; content: string };
@@ -223,6 +248,13 @@ function hydratePreferences(
     if (isText(value.bio, 500)) preferences.bio = value.bio;
     else invalid("bio");
   }
+  if (value.avatar !== undefined) {
+    const avatar = typeof value.avatar === "string" && value.avatar.length <= 512
+      && /^\/(?:api\/backend|api\/dzmm\/backend)\/v1\/media\/[A-Za-z0-9-]+\/[A-Za-z0-9-]+\.(?:png|jpg|jpeg|webp)$/.test(value.avatar)
+      ? value.avatar : undefined;
+    if (avatar) preferences.avatar = avatar;
+    else invalid("avatar");
+  }
   function enumeration<T extends string>(field: string, choices: readonly T[]): T | undefined {
     if (suppliedPreferences[field] === undefined) return undefined;
     if (typeof suppliedPreferences[field] === "string" && choices.includes(suppliedPreferences[field] as T)) return suppliedPreferences[field] as T;
@@ -324,6 +356,46 @@ function hydratePreferences(
   if (chatFont !== undefined) preferences.chatFont = chatFont;
   if (chatBackground !== undefined) preferences.chatBackground = chatBackground;
   if (promptStyle !== undefined) preferences.promptStyle = promptStyle;
+  if (value.imagePreset !== undefined) {
+    const preset = parseTavernImagePresetId(value.imagePreset);
+    if (preset) preferences.imagePreset = preset;
+    else invalid("imagePreset");
+  }
+  if (value.imageGeneration !== undefined) {
+    const generation = parseTavernImageGeneration(value.imageGeneration);
+    if (generation) preferences.imageGeneration = generation;
+    else invalid("imageGeneration");
+  }
+  if (value.memoryProfile !== undefined) {
+    const profile = parseTavernMemoryProfile(value.memoryProfile);
+    if (profile) preferences.memoryProfile = profile;
+    else invalid("memoryProfile");
+  }
+  if (value.memoryDepth !== undefined) {
+    const depth = value.memoryDepth;
+    if (typeof depth === "number" && Number.isInteger(depth) && depth >= 0 && depth <= 20) preferences.memoryDepth = depth;
+    else invalid("memoryDepth");
+  }
+  if (value.sampler !== undefined) {
+    if (!isRecord(value.sampler)) invalid("sampler");
+    else {
+      const sampler: Record<string, number | string[]> = {};
+      for (const [key, min, max] of [["temperature", 0, 2], ["topP", 0, 1], ["topK", 0, 200],
+        ["frequencyPenalty", -2, 2], ["presencePenalty", -2, 2], ["repeatPenalty", 0.5, 2],
+        ["contextTokens", 512, 1_048_576]] as const) {
+        const field = (value.sampler as Record<string, unknown>)[key];
+        if (field === undefined) continue;
+        if (typeof field === "number" && Number.isFinite(field) && field >= min && field <= max) sampler[key] = field;
+        else invalid("sampler");
+      }
+      const stop = (value.sampler as Record<string, unknown>).stop;
+      if (stop !== undefined) {
+        if (Array.isArray(stop) && stop.length <= 8 && stop.every(item => isText(item, 200, true))) sampler.stop = stop as string[];
+        else invalid("sampler");
+      }
+      if (Object.keys(sampler).length) preferences.sampler = sampler as DzmmSamplerRequest;
+    }
+  }
   for (const field of ["userBubbleColor", "assistantBubbleColor"] as const) {
     const color = value[field];
     if (color === undefined) continue;
@@ -336,6 +408,22 @@ function hydratePreferences(
     else invalid("bubbleOpacity");
   }
   return preferences;
+}
+
+/** Validate stored group members. The primary character must stay members[0]. */
+export function parseDzmmConversationMembers(value: unknown): DzmmChatMember[] | undefined {
+  if (value === undefined || value === null) return undefined;
+  if (!Array.isArray(value) || value.length < 2 || value.length > 4) throw new Error("群聊成员必须是 2 至 4 人。");
+  const seen = new Set<string>();
+  const members = value.map((candidate): DzmmChatMember => {
+    if (!isRecord(candidate)) throw new Error("群聊成员格式无效。");
+    const characterId = readId(candidate.characterId);
+    const name = candidate.name;
+    if (!characterId || seen.has(characterId) || !isText(name, 80, true)) throw new Error("群聊成员格式无效。");
+    seen.add(characterId);
+    return { characterId, name };
+  });
+  return members;
 }
 
 function hydrateMessages(
@@ -353,6 +441,19 @@ function hydrateMessages(
     ) {
       throw new Error("聊天消息格式无效。");
     }
+    let swipes: string[] | undefined;
+    let swipeIndex: number | undefined;
+    if (message.role === "assistant" && message.swipes !== undefined) {
+      if (Array.isArray(message.swipes) && message.swipes.length >= 2 && message.swipes.length <= 8
+        && message.swipes.every(item => isText(item, DZMM_CHARACTER_PROSE_LIMIT, true))) {
+        const index = typeof message.swipeIndex === "number" && Number.isInteger(message.swipeIndex) && message.swipeIndex >= 0 && message.swipeIndex < message.swipes.length
+          ? message.swipeIndex : 0;
+        if (message.swipes[index] === message.content) { swipes = message.swipes as string[]; swipeIndex = index; }
+      }
+    }
+    const speaker = message.role === "assistant" && message.speaker !== undefined
+      ? (isText(message.speaker, 80, true) ? message.speaker : undefined)
+      : undefined;
     return {
       id: recordId(
         message.id,
@@ -362,6 +463,8 @@ function hydrateMessages(
       ),
       role: message.role,
       content: message.content,
+      ...(speaker ? { speaker } : {}),
+      ...(swipes ? { swipes, swipeIndex } : {}),
     };
   });
 }
@@ -486,8 +589,20 @@ export function hydrateDzmmState(raw: string): {
       if (record.worldClockMode !== undefined && worldClockMode === undefined) {
         warnings.push(`第 ${index + 1} 个对话的世界时间模式无效，已忽略该设置。`);
       }
+      let members: DzmmChatMember[] | undefined;
+      if (record.members !== undefined) {
+        try {
+          const parsed = parseDzmmConversationMembers(record.members)!;
+          const primary = parsed[0].characterId;
+          if (primary !== characterId) throw new Error("群聊主角色不一致。");
+          const known = (memberId: string) => knownCharacters.has(memberId) || isDzmmPublishedCharacterId(memberId)
+            || isDzmmDeferredIntroductionId(memberId) || isDzmmDeferredAiArchiveId(memberId);
+          if (!parsed.every(member => known(member.characterId))) throw new Error("群聊成员角色不存在。");
+          members = parsed;
+        } catch { warnings.push(`第 ${index + 1} 个对话的群聊成员无效，已按单角色会话加载。`); }
+      }
       conversations.push({ id, characterId, title, messages, updatedAt, ...(opening ? { opening } : {}), ...(storyMemory ? { storyMemory } : {}),
-        ...(worldState ? { worldState } : {}), ...(worldClockMode ? { worldClockMode } : {}) });
+        ...(worldState ? { worldState } : {}), ...(worldClockMode ? { worldClockMode } : {}), ...(members ? { members } : {}) });
     } catch {
       warnings.push(`第 ${index + 1} 个本地对话无效，已跳过该对话。`);
     }

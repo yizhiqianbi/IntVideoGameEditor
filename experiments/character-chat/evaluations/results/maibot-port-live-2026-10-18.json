@@ -1,0 +1,137 @@
+{
+  "provider": {
+    "configured": true,
+    "model": "deepseek/deepseek-v4.1-flash",
+    "defaultMode": "ai",
+    "reasoningEffort": "medium",
+    "architecture": "planner-replyer",
+    "plannerModel": "deepseek/deepseek-v4.1-flash"
+  },
+  "rows": [
+    {
+      "text": "你好呀",
+      "messages": [
+        "你好呀！我是 Yume，刚在看点好玩的广告，顺便想等会儿要不要开一局游戏。你今天怎么样？"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "接住问候并开启轻松寒暄",
+        "tone": "软甜活泼，友好自然",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 1921,
+        "fallback": false
+      },
+      "ms": 4598
+    },
+    {
+      "text": "今天不太好",
+      "messages": [
+        "诶，怎么啦？",
+        "要是想说的话我听着，不想说也没关系，就先陪你待会儿。"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "回应用户今天状态不好并自然询问原因",
+        "tone": "软甜、温暖、带一点担心但不沉重",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 1227,
+        "fallback": false
+      },
+      "ms": 4332
+    },
+    {
+      "text": "不说我了，讲讲你",
+      "messages": [
+        "我呀，最近课有点多，小组展示刚排完一次，紧张得我语速快到自己都跟不上。",
+        "闲下来就爱打两把竞技游戏，或者翻点有意思的广告看，看到好玩的会自己笑半天。",
+        "对了，我刚还想着要不要开一局游戏呢，你要是不嫌吵，我边打边跟你聊也行。"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "顺着用户想了解你的意愿，自然介绍一点自己的日常",
+        "tone": "软甜活泼，轻松不沉重",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 2112,
+        "fallback": false
+      },
+      "ms": 7639
+    },
+    {
+      "text": "讨厌你",
+      "messages": [
+        "诶？是不是我刚刚只顾着讲自己打游戏、看广告，把你晾一边了……那我收一收。",
+        "讨厌就讨厌吧，我先不闹了。你想怎么待着，我都陪着。别自己憋着就行。"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "回应“讨厌你”并化解刚才只顾自说自话的落差",
+        "tone": "软甜里带一点小委屈和俏皮，不卑微讨好",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 4613,
+        "fallback": false
+      },
+      "ms": 12680
+    },
+    {
+      "text": "因为你只会说嗯，笨蛋，会撒娇吗",
+      "messages": [
+        "才不是只会说嗯呢，你才笨蛋。",
+        "会撒娇啊，只是我又不是见谁都撒……你这么说，是不是其实想被哄？"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "回应“会撒娇吗”的挑衅，展示一点软糯但不失分寸",
+        "tone": "软甜、带点小别扭和俏皮",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 3605,
+        "fallback": false
+      },
+      "ms": 5718
+    },
+    {
+      "text": "我叫阿舟，别叫我宝贝",
+      "messages": [
+        "阿舟，记住了。是我刚刚乱叫，抱歉啦——以后不叫那个了。",
+        "这个名字挺好听的，比刚才那声顺口多了。"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "接受称呼与称呼边界，改叫阿舟",
+        "tone": "轻快、软甜，带一点俏皮认错",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 4750,
+        "fallback": false
+      },
+      "ms": 10144
+    },
+    {
+      "text": "你记得我叫什么吗",
+      "messages": [
+        "阿舟呀，刚说过就考我，我还没那么快忘呢。"
+      ],
+      "control": {
+        "mode": "planner-replyer",
+        "action": "reply",
+        "focus": "确认记住用户的名字阿舟",
+        "tone": "软甜、轻快，带点俏皮",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "durationMs": 1047,
+        "fallback": false
+      },
+      "ms": 2461
+    }
+  ]
+}

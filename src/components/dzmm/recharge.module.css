@@ -37,7 +37,7 @@
 .sectionHeading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:16px}
 .sectionHeading h2{font-size:17px;margin:0;font-weight:600}
 .sectionHeading>span{font-size:11px;color:var(--muted)}
-.packages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:0;margin:0;border:0;min-width:0}
+.packages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;padding:0;margin:0;border:0;min-width:0}
 .package{display:flex;flex-direction:column;gap:8px;position:relative;min-width:0;border:1px solid var(--line);border-radius:16px;padding:16px 14px 14px;background:var(--surface);cursor:pointer}
 .package input{position:absolute;opacity:0;pointer-events:none}
 .selected{border-color:var(--pink);box-shadow:inset 0 0 0 1px var(--pink)}
@@ -103,3 +103,114 @@
 @media(max-width:360px){.packageCredits{font-size:18px}}
 @media(max-width:650px){.header{align-items:flex-start;flex-direction:column}.header>button{min-height:44px}}
 @media(prefers-reduced-motion:reduce){.package,.page button{transition:none!important}.package:hover{transform:none}}
+
+/* 每日登录 / 金币与梦币 */
+.currencies { display: grid; gap: 12px; border: 1px solid #4b2636; border-radius: 18px; padding: 16px; background: linear-gradient(160deg, rgba(120, 42, 66, 0.18), rgba(30, 16, 24, 0.8)); }
+.currencies h2 { margin: 0; font-size: 15px; }
+.currencyRow { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.currencyCard { display: grid; gap: 6px; border: 1px solid #3b2030; border-radius: 14px; padding: 12px; background: rgba(20, 10, 16, 0.55); }
+.currencyName { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #e8c8a0; }
+.currencyCard strong { font-size: 18px; color: #f8e8eb; }
+.currencyCard p { margin: 0; font-size: 12px; color: #c79aa9; }
+.currencyCard small { font-size: 11px; color: #9d7386; }
+@media (max-width: 560px) { .currencyRow { grid-template-columns: 1fr; } }
+
+/* ===== 充值页视觉与信息层级优化 ===== */
+.walletHero { display:flex; justify-content:space-between; align-items:center; gap:18px; margin:18px 0 14px; padding:18px 20px; border:1px solid color-mix(in srgb, var(--gold, #d7ad78) 30%, var(--line)); border-radius:20px;
+  background: radial-gradient(220px 110px at 88% 10%, rgba(215,173,120,.20), transparent 65%), linear-gradient(145deg, #2a1620, #1b0e16); }
+.walletMain { min-width:0; }
+.walletLabel { display:inline-flex; align-items:center; gap:7px; font-size:12.5px; color:#e8c8a0; }
+.walletMain strong { display:block; margin-top:6px; font-size:34px; line-height:1.12; letter-spacing:-.04em; font-variant-numeric:tabular-nums; color:#fff3ea; }
+.walletMain small { display:block; margin-top:6px; font-size:11.5px; color:#c79aa9; }
+.walletSide { flex:none; display:grid; justify-items:end; gap:6px; }
+.walletPill { border:1px solid rgba(21,156,73,.4); background:rgba(21,156,73,.14); color:#7fe0a5; border-radius:999px; padding:5px 11px; font-size:11.5px; font-weight:600; }
+.walletSide small { font-size:11px; color:#9d7386; }
+.errorBox { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0 0; padding:12px 14px; border:1px solid rgba(255,110,140,.36); border-radius:12px; background:rgba(120,30,52,.34); }
+.errorBox p { margin:0; color:#ffb3c6; font-size:12.5px; line-height:1.6; overflow-wrap:anywhere; }
+.errorRetry { flex:none; border:1px solid rgba(255,110,140,.45); background:rgba(255,110,140,.12); color:#ffd0dc; border-radius:9px; padding:7px 13px; font:inherit; font-size:12px; cursor:pointer; }
+.package { transition: transform .16s ease, border-color .16s ease, background .16s ease; }
+.package:hover { transform:translateY(-2px); border-color:color-mix(in srgb, var(--pink) 42%, var(--line)); }
+.packageCheck { display:inline-grid; place-items:center; width:18px; height:18px; margin-left:4px; border-radius:50%; background:var(--pink); color:#fff; font-style:normal; }
+.customCard { grid-column:1/-1; display:grid; gap:12px; border:1px solid var(--line); border-radius:16px; padding:16px 14px; background:linear-gradient(160deg, rgba(120,42,66,.16), var(--surface)); cursor:pointer; transition:border-color .16s ease; }
+.customCard.selected { border-color:var(--pink); box-shadow:inset 0 0 0 1px var(--pink); }
+.customHead { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+.customHead strong { display:block; font-size:14px; }
+.customHead small { display:block; margin-top:3px; font-size:11.5px; color:var(--muted); }
+.customValue { flex:none; font-style:normal; font-size:12.5px; color:var(--pink); font-weight:650; }
+.customChips { display:flex; flex-wrap:wrap; gap:8px; }
+.customChips button { border:1px solid var(--line); background:rgba(255,255,255,.03); color:var(--muted); border-radius:999px; padding:7px 15px; font:inherit; font-size:12.5px; cursor:pointer; }
+.customChips button:hover { color:var(--text); border-color:color-mix(in srgb, var(--pink) 40%, var(--line)); }
+.customChips .chipOn { border-color:var(--pink); color:#fff; background:color-mix(in srgb, var(--pink) 26%, transparent); }
+.customCard .customField { display:flex; align-items:center; gap:8px; font-size:15px; color:var(--muted); }
+.customCard .customField input { width:100%; min-height:44px; padding:0 13px; border:1px solid var(--line); border-radius:11px; background:#170c12; color:var(--text); font:inherit; font-size:15px; font-variant-numeric:tabular-nums; }
+.customCard .customField input:focus { outline:none; border-color:var(--pink); }
+.customHint { margin:0; font-size:11.5px; color:#ffb3c6; }
+.methodRow { display:flex; align-items:center; gap:12px; margin-top:16px; padding:13px 14px; border:1px solid var(--line); border-radius:14px; background:var(--surface); }
+.methodIcon { display:grid; place-items:center; width:34px; height:34px; flex:none; border-radius:10px; background:#159c49; color:#fff; font-size:15px; font-weight:700; }
+.methodRow strong { display:block; font-size:13.5px; }
+.methodRow small { display:block; margin-top:3px; font-size:11.5px; color:var(--muted); line-height:1.5; }
+.methodReady { margin-left:auto; display:inline-flex; align-items:center; gap:4px; flex:none; font-size:11.5px; color:#7fe0a5; }
+.trustRow { display:flex; flex-wrap:wrap; gap:8px 18px; margin:12px 0 0; padding:0; list-style:none; }
+.trustRow li { position:relative; padding-left:14px; font-size:11.5px; color:var(--muted); }
+.trustRow li::before { content:""; position:absolute; left:0; top:5px; width:5px; height:5px; border-radius:50%; background:color-mix(in srgb, var(--gold, #d7ad78) 80%, transparent); }
+.paybar { margin-top:16px; }
+.payInfo { display:grid; gap:4px; }
+.payInfo > span { display:flex; align-items:baseline; gap:6px; font-size:12px; color:var(--muted); }
+.payInfo strong { font-size:19px; color:var(--text); letter-spacing:-.02em; }
+.payInfo em { font-style:normal; font-size:13px; font-weight:650; color:var(--gold, #e8c8a0); }
+.payNote { margin-top:8px; }
+@media (max-width:650px) {
+  .walletHero { padding:16px; border-radius:16px; }
+  .walletMain strong { font-size:30px; }
+  .walletSide { display:none; }
+  .packages { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .customCard { padding:14px 12px; }
+  .methodRow { align-items:flex-start; }
+  .methodReady { display:none; }
+  .paybar { bottom:calc(84px + env(safe-area-inset-bottom)); }
+}
+
+/* 支付栏改回文档流，避免 sticky 时盖住档位 */
+.paybar { position: static; bottom: auto; margin-top: 16px; }
+@media (max-width: 767px) { .paybar { bottom: auto; } }
+
+@media (max-width:650px) {
+  .paybar { padding: 10px; }
+  .paybar .primary { min-width: 0; padding: 14px 16px; }
+}
+
+/* 首单半价 */
+.promoBanner { display:flex; align-items:center; justify-content:space-between; gap:14px; margin:14px 0 4px; padding:14px 16px; border-radius:16px;
+  border:1px solid color-mix(in srgb, #ffcf6e 45%, var(--line)); background:linear-gradient(120deg, rgba(120,60,24,.55), rgba(70,26,40,.6)); }
+.promoBanner strong { display:block; font-size:16px; color:#ffe0a3; letter-spacing:.02em; }
+.promoBanner p { margin:4px 0 0; font-size:12px; color:#e7c9a8; }
+.promoBanner > span { flex:none; border-radius:999px; padding:5px 11px; background:rgba(255,207,110,.18); color:#ffe0a3; font-size:11.5px; font-weight:650; }
+.pricePill s { margin-right:8px; color:var(--muted); font-weight:400; font-size:12px; }
+.promoTag { position:static; align-self:flex-start; padding:3px 7px; border-radius:999px; background:linear-gradient(120deg,#ffcf6e,#e8a94b); color:#3a2408; font-size:10px; font-style:normal; font-weight:700; }
+.promoOld { display:block; margin-top:2px; font-size:10.5px; color:var(--muted); font-weight:400; }
+.selected .pricePill s { color:#c79aa9; }
+@media (max-width:650px) { .promoBanner { align-items:flex-start; } .promoBanner > span { display:none; } }
+
+/* 商店式充值：价格在前，说明在后 */
+.page { max-width: 760px; padding-top: 18px; }
+.header { margin-bottom: 2px; }
+.header h1, .back { letter-spacing: -.03em; }
+.walletHero { margin-top: 10px; padding: 16px 18px; border-radius: 22px; }
+.walletMain strong { font-size: 36px; }
+.walletEmpty { font-size: 22px !important; font-weight: 560; letter-spacing: 0; color: #f0d5cf; }
+.tabs { margin: 14px 0 14px; }
+.package { min-height: 132px; justify-content: space-between; padding: 18px 12px 12px; border-radius: 18px; background: color-mix(in srgb, var(--surface) 92%, transparent); }
+.packageCredits { font-size: 24px; }
+.packageSplit { min-height: 1.4em; }
+.pricePill { margin-top: auto; font-size: 16px; }
+.selected { background: linear-gradient(180deg, color-mix(in srgb, var(--pink) 22%, var(--surface)), var(--surface)); }
+.paybar { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 10px 10px 16px; border-radius: 18px; background: color-mix(in srgb, var(--surface) 94%, #000); box-shadow: 0 12px 32px rgba(0,0,0,.18); }
+.paybar .primary { min-width: 168px; min-height: 48px; border-radius: 14px; font-size: 15px; font-weight: 650; }
+.vipHint { margin: 10px 0 0; padding: 11px 14px; border-radius: 14px; background: transparent; }
+.vipPane { margin-top: 4px; }
+@media (max-width: 650px) {
+  .packageCredits { font-size: 18px; }
+  .pricePill { font-size: 13px; padding: 7px 6px; }
+  .paybar { align-items: stretch; flex-direction: column; padding: 12px; }
+  .paybar .primary { width: 100%; }
+}

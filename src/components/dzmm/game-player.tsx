@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { buildXumengGamePreview, type XumengGame } from "../../lib/xumeng-games";
 import Icon from "./icons";
+import { ShareGame } from "./share-game";
 import s from "./game-player.module.css";
 
 export type GamePlayerProps = { game: XumengGame; onBack: () => void };
@@ -22,6 +23,7 @@ function HtmlGameShell({ game, onBack }: GamePlayerProps) {
   const [fullscreen, setFullscreen] = useState(false);
   const [fullscreenAvailable, setFullscreenAvailable] = useState(false);
   const [displayError, setDisplayError] = useState("");
+  const [shareOpen, setShareOpen] = useState(false);
   const shell = useRef<HTMLElement>(null), mounted = useRef(false);
   const preview = useMemo(() => {
     try { return { document: buildXumengGamePreview(game.source), error: "" }; }
@@ -52,6 +54,7 @@ function HtmlGameShell({ game, onBack }: GamePlayerProps) {
       <button className={s.iconButton} onClick={onBack} aria-label="返回游戏列表"><Icon name="back" size={19} /></button>
       <div className={s.heading}><p>游戏</p><h1>{game.title}</h1></div>
       <div className={s.actions}>
+        <button className={s.secondary} onClick={() => setShareOpen(true)}><Icon name="upload" size={15} />分享</button>
         {running && <button className={s.secondary} onClick={restart}><Icon name="refresh" size={15} />重新运行</button>}
         {fullscreenAvailable && <button className={s.secondary} onClick={() => void toggleFullscreen()} aria-pressed={fullscreen}><FullscreenIcon active={fullscreen} />{fullscreen ? "退出整屏" : "整屏查看"}</button>}
       </div>
@@ -66,5 +69,6 @@ function HtmlGameShell({ game, onBack }: GamePlayerProps) {
       </div></div>}
     </section>}
     <footer className={s.footer}><p>本窗口不提供自动存档，进度由游戏作品自行管理；离开或重新运行可能重置未保存的状态。</p></footer>
+    {shareOpen && <ShareGame title={game.title} synopsis={game.synopsis} sourceId={game.id} onClose={() => setShareOpen(false)} />}
   </main>;
 }

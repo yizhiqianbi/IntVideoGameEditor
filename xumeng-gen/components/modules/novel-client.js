@@ -49,6 +49,16 @@ export function buildNovelRequest(fields, options = {}) {
 
 export function parseNovelResponse(status, contentType, payload) {
   const type = contentType || "";
+  if (status === 200 && payload && typeof payload === "object" && !payload.error && Array.isArray(payload.sections)) {
+    return {
+      ok: true,
+      title: typeof payload.title === "string" ? payload.title : "",
+      sections: payload.sections,
+      plain: typeof payload.plain === "string" ? payload.plain : "",
+      text: typeof payload.text === "string" ? payload.text : (typeof payload.plain === "string" ? payload.plain : ""),
+      wordCount: Number(payload.wordCount) || 0,
+    };
+  }
   if (status === 200 && (type.startsWith("text/") || type.includes("json") || typeof payload === "string")) {
     const text = typeof payload === "string" ? payload : payload && payload.error ? "" : String(payload ?? "");
     if (type.includes("json") && payload && typeof payload === "object" && payload.error) {

@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>本地直播台</title><link rel="icon" href="data:,"><link rel="stylesheet" href="/style.css"></head>
+<body>
+<header><a class="brand" href="/">直播台<span>LIVE STUDIO</span></a><div class="topline"><i id="lamp"></i><span id="status">本地工作台</span><span class="separator">/</span><span id="timer">00:00</span></div><button id="settingsButton">连接设置 <span id="keyState">未配置</span></button></header>
+<main>
+<aside class="sources"><div class="section-title"><h2>参考素材</h2><span>01</span></div>
+<label class="upload avatar-upload" for="avatarInput"><img id="avatarPreview" hidden alt="主播形象参考"><span id="avatarHint"><b>＋</b>上传主播形象<small>单人照片 · PNG / JPG / WebP</small></span></label><input id="avatarInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+<p class="muted">表演指令模式：你定方向、情绪和动作，S2 自己组织语言。</p>
+<label class="field">主播设定<textarea id="persona" rows="3">你是一位自然、友善的中文美女主播，按导演指令回应观众，表达简短，动作自然。</textarea></label><label class="field">S2 音色<input id="voice" value="Tina"></label><p class="muted">直播手动结束 · S2 按时长计费</p>
+<div class="section-title sub"><h2>动态参考图</h2><label class="text-button" for="referenceInput">＋ 添加</label></div><input id="referenceInput" type="file" accept="image/png,image/jpeg,image/webp" multiple hidden>
+<p class="muted">最多 3 张，用于物品、换装或背景。</p><div id="references" class="references"><div class="empty-small">添加素材，让直播画面随你变化。</div></div>
+<div class="row"><button id="applyRefs" class="grow" disabled>应用到直播</button><button id="clearRefs" disabled>还原</button></div>
+<div class="source-foot">S2 Avatar <span>实时视频生成</span></div></aside>
+<section class="workspace"><div class="section-title"><h1>直播预览</h1><span id="modeBadge">STANDBY</span></div>
+<p id="sessionError" class="session-error" role="alert" hidden></p><div id="stage" class="stage"><div id="remote"></div><div id="placeholder"><div class="stage-symbol">S<span>2</span><i></i></div><h2>一张图，开启一场直播。</h2><p>上传主播形象，填写回应方向和动作，点击执行。</p></div><div id="overlays"></div><div class="stage-meta"><span id="mediaStatus">等待视频输入</span><span>S2</span></div></div>
+<div class="transport"><div><label class="mode-select"><select id="mode"><option value="rehearsal">本地演练 · 不调用模型</option><option value="real">S2 真实直播 · 按时长计费</option></select></label><p class="muted">无本地时长上限 · 持续计费，离开时请结束直播</p></div><div class="row"><button id="stop" disabled>结束</button><button id="start" class="primary">开始演练 <span>↗</span></button></div></div>
+<div class="stage-tools"><button id="fullscreen">⛶ 纯净画面</button><button id="audio">开启播放声音</button><button id="recording">获取直播录像</button><a id="recordingLink" hidden target="_blank" rel="noreferrer">下载录像 ↗</a></div>
+<div class="generation"><div class="section-title"><h2>生成素材</h2><span>Q2 IMAGE / Q3 VIDEO</span></div><p class="muted">使用动态参考图生成图片或 5 秒视频；未添加时使用主播形象。提交后按平台价格计费。</p><div class="generate-form"><textarea id="prompt" rows="2" placeholder="例如：生成一件简洁的蓝色夹克，白色背景，适合作为换装参考图"></textarea><div class="row"><button id="generateImage">生成参考图</button><button id="generateVideo">生成视频 ↗</button></div></div><div id="tasks"></div></div>
+</section>
+<aside class="chat"><div class="section-title"><h2>表演控制</h2><span id="messageCount">0</span></div><div class="chat-intro"><span class="tiny-dot"></span>你定表演意图，主播自然回应。</div><div id="messages" aria-live="polite"><div class="empty-chat"><span>↗</span><p>填写下一段表演。</p><small>例如：开心地欢迎观众，微笑挥手。</small></div></div>
+<div class="quick"><button data-motion="微笑并挥手">挥手</button><button data-motion="微笑着比心">比心</button><button data-motion="轻轻点头">点头</button></div>
+<form id="directorForm"><label class="field">回应方向<textarea id="intent" rows="3" maxlength="1000" placeholder="例如：欢迎刚进来的观众，邀请大家聊聊今天的心情"></textarea></label><label class="field">情绪<input id="emotion" maxlength="100" placeholder="例如：开心、温柔、俏皮"></label><label class="field">动作<textarea id="motion" rows="2" maxlength="500" placeholder="例如：看向镜头，微笑挥手"></textarea></label><div class="row"><button id="execute" class="primary grow" disabled>执行表演 ↗</button></div></form>
+<form id="chatForm"><input id="name" aria-label="观众昵称" placeholder="观众昵称" value="本地观众" maxlength="40"><textarea id="message" aria-label="弹幕内容" placeholder="发送弹幕，主播会自然回应…" rows="3" maxlength="500"></textarea><div class="row"><button type="button" id="interrupt" disabled>打断表演</button><button id="send" class="primary grow" disabled>发送弹幕</button></div></form>
+<details class="logs"><summary>连接日志 / 外部弹幕接口</summary><p>POST /api/danmaku<br>Header: X-Studio-Token<br>令牌从 /api/status 获取；仅本机可访问。</p><div id="log"></div></details></aside>
+</main><footer><span>LOCAL WORKSPACE <b>•</b> 127.0.0.1</span><span>你的表演指令 → S2 自然回应 → 实时画面</span><a href="https://platform.vidu.cn/vidu-stream/doc/s2-avatar/realtime/parameters" target="_blank" rel="noreferrer">接口文档 ↗</a></footer>
+<div id="toast" role="status" hidden></div>
+<dialog id="settings"><form id="configForm"><div class="section-title"><h2>连接设置</h2><button type="button" id="closeSettings" aria-label="关闭设置">×</button></div><p class="muted">注册开放平台，创建 API Key，并确认 S2 权限。</p><label class="field">账号站点<select id="region"><option value="cn">中国站</option><option value="global">国际站</option></select></label><label class="field">API Key<input id="apiKey" type="password" autocomplete="off" placeholder="vda_…（留空保留已配置 Key）"></label><p class="muted">Key 仅保存在本地服务内存；重启后重新填写，或写入 .env。</p><div class="row"><a href="https://platform.vidu.cn/" target="_blank" rel="noreferrer">注册开放平台 ↗</a><button class="primary">保存连接</button></div></form></dialog>
+<script src="/rtc.js"></script><script type="module" src="/app.js"></script></body></html>

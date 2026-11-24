@@ -1,0 +1,9 @@
+[
+  {
+    "hash": "13739341170fbf8951963a2ce50abb220ccf2fe6b770b605267e0495a7baa20b",
+    "content": "目标人物平时最喜欢喝桂花乌龙，不加糖",
+    "metadata": "{\"chat_id\": \"6b506294825dff986b8694c00dc10312\", \"chat_ids\": [\"6b506294825dff986b8694c00dc10312\"], \"evidence_message_ids\": [\"78a2b7e2-e11d-4046-ba27-db7ae5d883cb\"], \"evidence_source\": \"user_supported\", \"external_id\": \"person_fact:e08ebb3141dbf2a37946a65e62afb57f:4817a998508f30a854a82b6b2ea2e71a\", \"fact_claim\": {\"authority\": \"direct_user\", \"profile_section\": \"stable_facts\", \"stability\": \"stable\"}, \"fact_claim_ids\": [\"ecc90d8740b3c2b86327e9eb0d2a6931b8fef487e7b97ce6b84e4d03a475a43f\"], \"participants\": [\"你\"], \"person_id\": \"e08ebb3141dbf2a37946a65e62afb57f\", \"person_ids\": [\"e08ebb3141dbf2a37946a65e62afb57f\"], \"person_name\": \"你\", \"source_type\": \"person_fact\", \"tags\": [\"person_fact\"], \"writeback_source\": \"memory_flow_service\"}",
+    "source": "person_fact:e08ebb3141dbf2a37946a65e62afb57f",
+    "vector_index": null
+  }
+]

@@ -1,0 +1,52 @@
+{
+  "date": "2026-10-14",
+  "installed_version": "6.4.0",
+  "evidence_type": "local installed source read, not target runtime capture",
+  "files": [
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/contracts/browserScenarioToolContracts.js",
+      "bytes": 1894,
+      "sha256": "aeb2fee2d2bf668621387310d140704ae9650cf5f067411a265e1a50df2638d7"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/domain/browserScenario.js",
+      "bytes": 3777,
+      "sha256": "3a9058807797950ed3d5a7d95387690edf5d1fee01ed9f9722b1c2d31122179d"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/domain/browserScenarioValues.js",
+      "bytes": 8824,
+      "sha256": "c1fc376b6375dcac35d4ec76a905f72830186be679bfd2bbff31e34d79dd4fb0"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/domain/browserNetworkEvidence.js",
+      "bytes": 3172,
+      "sha256": "d82403a40e553583261c897bc51f99d57efe2f96a661852ace448c111629f7e4"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/browser/PlaywrightScenarioBrowser.js",
+      "bytes": 16389,
+      "sha256": "f08cc802b6de547394145d75c6c473778433dddb6d754be190ff7fa6f4389f2d"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/browser/PlaywrightScenarioSession.js",
+      "bytes": 11507,
+      "sha256": "be97f8d5b55b71415b7d69943b9dc686d7d98c0f3369ca4c2b570a2cf77768b9"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/browser/PlaywrightScenarioEvents.js",
+      "bytes": 9494,
+      "sha256": "433ed7cc3dd4888d85b34895a4e4166da33d737792571cc4ba3f99f185588fc5"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/browser/network/PlaywrightScenarioNetwork.js",
+      "bytes": 7644,
+      "sha256": "02555a2dc8049081cb9ea226f253d606257985606249cf6a5e5425886b6cf06e"
+    },
+    {
+      "path": "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/dist/browser/network/PlaywrightNetworkContent.js",
+      "bytes": 3006,
+      "sha256": "93afd1b35b557b4edced30c537c486126a4d7059f2470331eae919d09b9073ce"
+    }
+  ]
+}

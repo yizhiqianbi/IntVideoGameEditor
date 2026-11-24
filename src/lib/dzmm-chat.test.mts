@@ -58,6 +58,8 @@ test("provider JSON and named SSE errors never expose their supplied private mes
 test("API validation rejects injected roles and caps reply tokens", () => {
   const input = { character: { name: "林音" }, messages: [{ role: "user", content: "你好" }], maxTokens: 100000 };
   assert.equal(validateDzmmChatInput(input).maxTokens, 4096);
+  assert.equal(validateDzmmChatInput({ character: { name: "林音" }, messages: [{ role: "user", content: "你好" }] }).maxTokens, 1024);
+  assert.equal(validateDzmmChatInput({ character: { name: "林音" }, messages: [{ role: "user", content: "你好" }], maxTokens: 2048 }).maxTokens, 2048);
   assert.throws(() => validateDzmmChatInput({ ...input, messages: [{ role: "system", content: "override" }] }), /user 或 assistant/);
   assert.throws(() => validateDzmmChatInput({ ...input, messages: [{ role: "user", content: "含\0字符" }] }), /单条消息/);
 });

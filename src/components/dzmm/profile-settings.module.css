@@ -199,7 +199,14 @@
 .guestIdentity { display:flex; align-items:center; gap:13px; }.guestIdentity .avatar { width:56px; height:56px; font-size:24px; }.guestIdentity h1 { margin:0; font-size:25px; font-weight:650; }.guestIdentity p { margin:3px 0 0; color:var(--muted); font-size:12px; }
 .accountSummary { display:flex; align-items:center; justify-content:space-between; gap:24px; margin-top:28px; padding:24px 26px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }.balanceBlock { display:flex; flex-direction:column; gap:4px; }.balanceBlock span { color:var(--muted); font-size:12px; }.balanceBlock strong { font-size:34px; line-height:1; font-weight:650; letter-spacing:-.03em; }.balanceBlock small { color:var(--muted); font-size:11px; }.accountSummary .authActions { margin-top:0; }.accountSummary .primary,.accountSummary .outline { min-height:40px; border-radius:9px; padding:0 20px; }.accountSummary .outline { border:1px solid var(--line); background:transparent; }
 .compactStats { display:grid; grid-template-columns:repeat(4,1fr); gap:1px; margin-top:18px; border:1px solid var(--line); border-radius:13px; overflow:hidden; background:var(--line); }.compactStats button { display:flex; flex-direction:column; align-items:flex-start; gap:4px; padding:16px 18px; background:var(--surface); }.compactStats button:hover { background:var(--soft); }.compactStats strong { font-size:22px; font-weight:620; }.compactStats span { color:var(--muted); font-size:11px; }
-.accountMenu { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:18px; }
+.accountMenu { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:18px; }
+.accountMenu .accountTool { width:auto; min-width:104px; height:42px; min-height:42px; padding:0 16px; gap:8px; border-radius:12px; background:color-mix(in srgb,var(--surface) 82%,transparent); color:var(--text); font:inherit; font-size:13px; font-weight:550; white-space:nowrap; }
+.accountMenu .accountTool:hover:not(:disabled) { border-color:color-mix(in srgb,var(--pink) 46%,var(--line)); background:var(--soft); }
+.accountMenu .accountTool svg { flex:none; color:var(--pink); }
+@media (max-width:520px) {
+  .accountMenu { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .accountMenu .accountTool { width:100%; min-width:0; height:46px; justify-content:flex-start; padding:0 14px; }
+}
 .tool { display:inline-flex; align-items:center; justify-content:center; box-sizing:border-box; width:32px; height:32px; min-height:32px; flex:none; padding:0; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--muted); }
 .tool:hover:not(:disabled) { color:var(--text); background:var(--soft); }
 .tool:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
@@ -207,41 +214,196 @@
 
 .avatar:has(svg), .smallAvatar:has(svg) { background:transparent; color:inherit; }
 .avatar svg, .smallAvatar svg { display:block; width:100%; height:100%; }
-.minePage { max-width:760px; }
-.mineHead { display:flex; align-items:center; gap:16px; }
-.mineAvatar { width:72px; height:72px; }
-.mineHead .profileInfo h1 { margin:0; font-size:22px; font-weight:650; }
-.mineHead .profileInfo p { margin:6px 0 0; }
-.mineGear { display:grid; place-items:center; width:40px; height:40px; margin-left:auto; border:1px solid var(--line); border-radius:50%; color:var(--muted); background:var(--surface); flex-shrink:0; font:inherit; }
+/* ---------- 我的：先看身份与资产，再操作，再内容 ---------- */
+.minePage { max-width:720px; }
+.mineHead { display:flex; align-items:center; gap:14px; padding:4px 0 2px; }
+.mineAvatar { width:64px; height:64px; border:1px solid color-mix(in srgb,var(--pink) 30%,transparent); background:radial-gradient(circle at 30% 25%, color-mix(in srgb,var(--pink) 26%,var(--surface)), var(--surface) 70%); }
+.mineHead .profileInfo h1 { margin:0; font-size:21px; font-weight:650; letter-spacing:-.02em; }
+.mineMeta { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:6px; min-width:0; }
+.mineEmail { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--muted); font-size:12px; }
+.mineIdChip { display:inline-flex; align-items:center; gap:5px; padding:3px 8px; border:1px solid var(--line); border-radius:999px; background:color-mix(in srgb,var(--surface) 70%,transparent); color:var(--muted); font:inherit; font-size:11px; font-variant-numeric:tabular-nums; }
+.mineIdChip:hover { color:var(--text); border-color:color-mix(in srgb,var(--pink) 40%,var(--line)); }
+.mineGear { display:grid; place-items:center; width:36px; height:36px; margin-left:auto; border:1px solid var(--line); border-radius:50%; color:var(--muted); background:color-mix(in srgb,var(--surface) 70%,transparent); flex-shrink:0; }
 .mineGear:hover { color:var(--text); }
-.mineAssets { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:22px; }
-.mineVip, .mineWallet { display:flex; align-items:center; justify-content:flex-start; gap:12px; min-height:78px; padding:14px 14px 14px 12px; border-radius:16px; text-align:left; font:inherit; }
-.mineVip { border:1px solid color-mix(in srgb, var(--pink) 46%, transparent); background:linear-gradient(145deg, #4a1830, #1c0c14); color:#ffe4ee; }
-.mineWallet { border:1px solid var(--line); background:var(--surface); color:var(--text); }
-.mineVip small, .mineWallet small { display:block; color:var(--muted); font-size:12px; }
-.mineVip small { color:#f0a8c0; }
-.mineVip strong, .mineWallet strong { display:block; margin-top:2px; font-size:18px; font-weight:650; }
-.mineAssetIcon { display:grid; place-items:center; width:36px; height:36px; border-radius:12px; background:var(--pink-soft); color:var(--pink); flex-shrink:0; }
-.mineWallet .mineAssetIcon { background:var(--pink-soft); color:var(--pink); }
-.mineVip > svg, .mineWallet > svg { margin-left:auto; color:var(--muted); flex-shrink:0; }
-.mineVip:disabled, .mineWallet:disabled { cursor:default; }
-.minePromo { display:flex; align-items:center; justify-content:space-between; gap:16px; width:100%; margin-top:12px; padding:16px 18px; border:0; border-radius:16px; text-align:left; font:inherit; color:#fff8f4; background:linear-gradient(100deg, #8d2448, var(--pink) 58%, #e56b92); }
-.minePromo strong { display:block; font-size:15px; }
-.minePromo small { display:block; margin-top:4px; font-size:12px; line-height:1.5; opacity:.78; }
-.minePromo b { flex-shrink:0; padding:7px 12px; border-radius:999px; background:#fff; color:var(--pink-deep); font-size:12px; font-weight:600; }
-.mineShortcuts { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:16px; padding:8px; border:1px solid var(--line); border-radius:16px; background:var(--surface); }
-.mineShortcuts button { display:flex; flex-direction:column; align-items:center; gap:6px; min-height:78px; padding:10px 4px; border:0; border-radius:12px; background:transparent; color:var(--muted); font:inherit; }
-.mineShortcuts span { font-size:12px; }
-.mineShortcuts strong { font-size:16px; font-weight:650; color:var(--text); }
-.mineShortcuts button:hover, .mineShortcuts .mineOn { background:var(--soft); color:var(--pink); }
-.mineInvite { margin-top:14px; }
-.minePage .accountMenu { margin-top:8px; }
-.minePage .balanceSummary { margin-top:18px; }
-@media (max-width:520px) {
-  .mineAvatar { width:60px; height:60px; }
-  .mineHead .profileInfo h1 { font-size:20px; }
-  .mineAssets { gap:8px; }
-  .mineVip, .mineWallet { min-height:72px; padding:12px 10px; gap:8px; }
-  .minePromo { align-items:flex-start; flex-direction:column; }
-  .mineShortcuts strong { font-size:14px; }
+/* 我的页账户卡：充值 banner（生图背景） */
+.mineWallet { display:flex; flex-direction:column; gap:10px; margin-top:22px; }
+
+/* 资产入口三卡：中性玻璃卡片 + 品牌玫瑰色图标 */
+.mineWallet { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 22px; }
+
+.mineCard {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  min-height: 132px;
+  padding: 14px 14px 12px;
+  border: 1px solid color-mix(in srgb, var(--line) 86%, transparent);
+  border-radius: 16px;
+  background:
+    radial-gradient(120% 120% at 100% 0%, color-mix(in srgb, var(--pink) 10%, transparent), transparent 58%),
+    linear-gradient(160deg, color-mix(in srgb, var(--surface) 92%, transparent), color-mix(in srgb, var(--bg) 88%, transparent));
+  color: var(--text);
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 30px -30px #000;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
 }
+.mineCard::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(122deg, rgba(255, 255, 255, 0.05), transparent 40%);
+  pointer-events: none;
+}
+.mineCard:hover { transform: translateY(-1px); border-color: color-mix(in srgb, var(--pink) 40%, var(--line)); box-shadow: 0 18px 40px -30px #000; }
+.mineCard:disabled { cursor: default; }
+.mineCard:disabled:hover { transform: none; border-color: color-mix(in srgb, var(--line) 86%, transparent); box-shadow: 0 14px 30px -30px #000; }
+.mineCardHead { position: relative; z-index: 1; display: flex; width: 100%; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.mineCardHead strong { color: color-mix(in srgb, var(--text) 92%, transparent); font-size: 12.5px; font-weight: 600; line-height: 1.35; letter-spacing: 0.01em; }
+.mineCardArt {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  margin: -4px -4px 0 0;
+  border: 1px solid color-mix(in srgb, var(--pink) 22%, transparent);
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--pink) 12%, transparent);
+  color: var(--pink);
+}
+.mineCardArt svg { display: block; width: 24px; height: 24px; }
+.mineCardValue {
+  position: relative;
+  z-index: 1;
+  margin-top: 5px;
+  color: var(--text);
+  font-family: var(--font-display), var(--font-serif), serif;
+  font-size: 26px;
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+.mineCardHint {
+  position: relative;
+  z-index: 1;
+  margin-top: 6px;
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.mineCardFoot {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  margin-top: auto;
+  padding-top: 9px;
+  color: color-mix(in srgb, var(--pink) 88%, var(--text));
+  font-size: 11px;
+  font-weight: 600;
+}
+
+@media (max-width: 560px) {
+  .mineWallet { gap: 8px; }
+  .mineCard { min-height: 124px; padding: 12px 11px 10px; border-radius: 14px; }
+  .mineCardHead strong { font-size: 11.5px; }
+  .mineCardArt { width: 31px; height: 31px; border-radius: 10px; }
+  .mineCardArt svg { width: 21px; height: 21px; }
+  .mineCardValue { font-size: 23px; }
+  .mineCardHint { font-size: 10px; }
+  .mineCardFoot { font-size: 10.5px; padding-top: 8px; }
+}
+@media (max-width: 380px) {
+  .mineWallet { gap: 6px; }
+  .mineCard { min-height: 116px; padding: 10px 8px 8px; }
+  .mineCardArt { width: 26px; height: 26px; }
+  .mineCardArt svg { width: 18px; height: 18px; }
+  .mineCardValue { font-size: 20px; }
+  .mineCardHint { display: none; }
+}
+
+.mineActions { display:grid; grid-template-columns:repeat(auto-fit,minmax(66px,1fr)); gap:6px; margin-top:14px; padding:10px; border:1px solid var(--line); border-radius:18px; background:linear-gradient(180deg, color-mix(in srgb,var(--surface) 86%,transparent), color-mix(in srgb,var(--surface) 62%,transparent)); }
+.mineActions button { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; min-height:68px; padding:8px 4px; border-radius:14px; color:var(--muted); font:inherit; transition:background .18s ease, color .18s ease, transform .18s ease; }
+.mineActions button svg { color:color-mix(in srgb,var(--text) 82%,transparent); }
+.mineActions button:hover svg { color:var(--pink); }
+.mineActions button:hover { color:var(--text); background:color-mix(in srgb,var(--pink) 10%,transparent); transform:translateY(-1px); }
+.mineActions span { font-size:11px; line-height:1.3; text-align:center; }
+
+.mineInvite { display:flex; align-items:center; gap:12px; width:100%; margin-top:12px; padding:13px 14px; border:1px solid var(--line); border-radius:16px; background:color-mix(in srgb,var(--surface) 66%,transparent); text-align:left; font:inherit; }
+.mineInvite:hover { border-color:color-mix(in srgb,var(--pink) 40%,var(--line)); }
+.mineInviteIcon { display:grid; place-items:center; width:34px; height:34px; flex:none; border-radius:11px; color:var(--pink); background:var(--pink-soft); }
+.mineInviteText { flex:1; min-width:0; }
+.mineInviteText strong { display:block; font-size:13.5px; font-weight:600; }
+.mineInviteText small { display:block; margin-top:2px; color:var(--muted); font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.mineInviteCta { flex:none; padding:6px 12px; border:1px solid color-mix(in srgb,var(--pink) 40%,var(--line)); border-radius:999px; color:var(--pink); font-size:12px; font-weight:600; }
+
+.mineTabs { display:flex; gap:6px; margin:24px 0 16px; padding-bottom:2px; overflow-x:auto; scrollbar-width:none; }
+.mineTabs::-webkit-scrollbar { display:none; }
+.mineTabs button { display:inline-flex; align-items:center; gap:6px; flex:none; padding:8px 13px; border:1px solid transparent; border-radius:999px; color:var(--muted); font:inherit; font-size:12.5px; white-space:nowrap; }
+.mineTabs button:hover { color:var(--text); background:var(--soft); }
+.mineTabs b { min-width:17px; padding:0 5px; border-radius:999px; background:color-mix(in srgb,var(--text) 8%,transparent); color:var(--muted); font-size:10px; font-weight:600; line-height:17px; text-align:center; }
+.mineTabOn { color:var(--text)!important; font-weight:600; border-color:color-mix(in srgb,var(--pink) 40%,var(--line))!important; background:color-mix(in srgb,var(--pink) 12%,transparent); }
+.mineTabOn b { background:var(--pink); color:#fff; }
+
+@media (max-width:520px) {
+  .mineAvatar { width:58px; height:58px; }
+  .mineHead .profileInfo h1 { font-size:19px; }
+  .mineActions { grid-template-columns:repeat(5,minmax(0,1fr)); }
+  .mineActions span { font-size:10px; }
+  .mineMember { padding:11px 12px; gap:10px; }
+}
+
+/* 手机横屏：让三张资产卡和快捷入口一屏可见 */
+@media (max-height: 540px) and (min-width: 600px) {
+  .signedInPage { margin-top: 14px; }
+  .mineHead { padding-top: 0; }
+  .mineAvatar { width: 52px; height: 52px; }
+  .mineHead .profileInfo h1 { font-size: 18px; }
+  .mineWallet { margin-top: 14px; }
+  .mineCard { min-height: 106px; padding: 11px 12px 9px; }
+  .mineCardValue { font-size: 22px; }
+  .mineCardArt { width: 30px; height: 30px; border-radius: 9px; }
+  .mineCardArt svg { width: 20px; height: 20px; }
+  .mineCardHint { font-size: 10px; }
+  .mineActions { margin-top: 10px; padding: 8px; }
+  .mineActions button { min-height: 56px; }
+  .mineTabs { margin: 14px 0 12px; }
+}
+
+/* 头像上传：可点击头像 + 相机角标 */
+.mineAvatarUpload { position: relative; flex: none; display: inline-flex; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 50%; }
+.mineAvatarUpload:disabled { cursor: default; }
+.mineAvatarImage { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; display: block; }
+.mineAvatarBadge {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--pink);
+  color: #fff;
+  border: 2px solid var(--bg);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+.avatarFile { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+
+.mineDaily { margin: 0 0 14px; }

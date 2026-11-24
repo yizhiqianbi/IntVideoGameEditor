@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIGF-API 2.0 实测输出</title>
+<style>
+  :root {
+    --bg: #f3efe6; --paper: #faf7f1; --ink: #1c1915; --muted: #6d6458;
+    --line: #e3dacb; --user: #efe6d6; --ai: #fff; --accent: #8d3b32;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.7 "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif; }
+  a { color: inherit; }
+  .shell { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
+  nav { position: sticky; top: 0; height: 100vh; padding: 28px 20px; border-right: 1px solid var(--line); background: #ebe4d6; }
+  nav strong { display: block; font-size: 15px; margin-bottom: 6px; }
+  nav p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+  nav a { display: block; padding: 7px 0; text-decoration: none; }
+  main { max-width: 980px; padding: 36px 40px 80px; }
+  h1 { font-size: 32px; line-height: 1.25; margin: 0 0 8px; }
+  h2 { font-size: 24px; margin: 42px 0 8px; }
+  .lead, .note { color: var(--muted); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  figure { margin: 0; background: var(--paper); border: 1px solid var(--line); border-radius: 16px; overflow: hidden; }
+  figure img, figure video { display: block; width: 100%; height: auto; background: #111; }
+  figcaption { padding: 12px 14px 14px; font-size: 13px; color: var(--muted); }
+  figcaption b { display: block; color: var(--ink); font-size: 15px; margin-bottom: 4px; }
+  audio { width: 100%; margin-top: 8px; }
+  .fail { padding: 18px; background: #f8e8e4; border-radius: 16px; }
+  .thread { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+  .msg { background: var(--ai); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px; }
+  .msg.用户 { background: var(--user); margin-left: 12%; }
+  .msg header { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .msg header small { margin-left: 8px; }
+  .msg p { margin: 0; white-space: pre-wrap; }
+  .render { font-size: 15px; }
+  .render p { margin: 0 0 8px; }
+  .state, .actions { margin: 10px 0 0; padding-left: 18px; font-size: 14px; }
+  .cover-row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .cover-row figure { width: 220px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
+  @media (max-width: 800px) {
+    .shell { grid-template-columns: 1fr; }
+    nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    main { padding: 24px 16px 64px; }
+    .msg.用户 { margin-left: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+<nav>
+  <strong>实测输出</strong>
+  <p>2026-10-28<br>图片、视频、语音和全部对话。</p>
+  <a href="#media">媒体</a>
+  <a href="#tang">顾晚棠</a>
+  <a href="#harness">女友 harness</a>
+  <a href="#cenwan">岑晚</a>
+  <a href="#shen-import">沈砚 · 导入卡</a>
+  <a href="#shen-create">沈砚 · 表单卡</a>
+  <a href="#yume">Yume</a>
+</nav>
+<main>
+  <h1>AIGF-API 2.0 实测输出</h1>
+  <p class="lead">文字说明在 <a href="aigf-api-capability-20261028.md">aigf-api-capability-20261028.md</a>。这一页只放接口实际返回的封面、生成图、视频、语音和对话原文。</p>
+
+  <h2 id="media">媒体</h2>
+  <p class="note">封面是当时上传或导入后平台保存的图。生成图、视频、语音是任务完成后的地址。消息语音那一次失败，没有文件。</p>
+  <div class="cover-row">
+    <figure><img src="https://static.aiaigirl.com/images/20261028/d3a99a8da3784e86ac05fa95bc6088eb.png" alt="顾晚棠封面"><figcaption><b>顾晚棠封面</b>创建时上传的占位图，平台存成 PNG。角色 182306，29 岁。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/ebf30af4a2654881ade5a5c9e91e730e.png" alt="岑晚导入封面"><figcaption><b>岑晚封面</b>导入 PNG 后平台保存的封面。角色 182261。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/7763f82c40eb4df69c1e4c50834d4463.png" alt="沈砚导入封面"><figcaption><b>沈砚导入封面</b>酒馆 PNG 被当成封面保存。角色 182251。解析把性别标成了女性。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/85b43071084c481c9dab6394f1d8f7d3.png" alt="沈砚创建封面"><figcaption><b>沈砚创建封面</b>表单创建时上传的占位图。角色 182252。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/bc11ffa8573e43bc82ff9efe14853dcc.png" alt="Yume 封面"><figcaption><b>Yume 封面</b>创建女友角色时上传的占位图。角色 182253。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/93aea92cb1cc4709b01196dbbf9c4e52.jpg" alt="上传的参考图"><figcaption><b>上传参考图</b><code>POST /upload/image</code> 返回的地址，不计生成次数。后面的进阶图和相册视频用的是这张。</figcaption></figure>
+  </div>
+  <h3>生成结果</h3>
+  <div class="grid">
+    <figure><img src="https://static.aiaigirl.com/images/20261028/f32245410d1445bcb0847ea1afbb10e2.jpg" alt="相册初级生图"><figcaption><b>相册初级图</b>任务 315，<code>photo-style-01</code>。提示词是二十二岁成年女性在城市咖啡馆窗边看书。约 20 秒完成。</figcaption></figure>
+    <figure><img src="https://static.aiaigirl.com/images/20261028/8cb5085191464734984a71a9690cc1fc.jpg" alt="站立姿势进阶图"><figcaption><b>进阶图 · 站立</b>任务 319，姿势模板 4，风格 <code>photo-style-01</code>。人物图是上面那张上传参考图。</figcaption></figure>
+    <figure><img src="https://p0-static.inaiai.com/watermark/98ab289a-3b1d-4e64-bbf6-441cb8b133f5/1793181717284189789.png" alt="Yume 消息配图"><figcaption><b>消息配图</b>任务 316。配的是 Yume「桂花乌龙，不加糖」那一轮。地址在 watermark 域名，和相册图不是一处。</figcaption></figure>
+    <figure><img src="https://p0-static.inaiai.com/watermark/e810bacb-290b-4d12-9328-b891bc911be3/1793181959213414573.png" alt="删房后新房间的消息配图"><figcaption><b>新房间消息配图</b>任务 321。配的是删房之后那句「黑咖啡，不加糖」。</figcaption></figure>
+    <figure><video controls playsinline src="https://static.aiaigirl.com/images/20261028/83fa3ebbd86f477d87763281190cfcaa.mp4"></video><figcaption><b>相册视频</b>任务 320，<code>video-style-01</code>。提示词是成年女性坐在咖啡馆里端着茶杯点头。大约 3 分 30 秒出片。</figcaption></figure>
+    <figure><video controls playsinline src="https://static.aiaigirl.com/images/video/20261028/8223631918654017893447aa84cc1187.mp4"></video><figcaption><b>消息图生视频</b>任务 322。用任务 321 的配图转成视频。房间删掉后再对旧消息提交会 404。</figcaption></figure>
+    <figure><figcaption><b>文本语音</b>任务 318。原文是「桂花乌龙，不加糖。我记住了。」语音风格目录是空的，没有选音色。<audio controls src="https://static.aiaigirl.com/images/audio/20261028/bb96db8b03954c56bd5429de8ed044dd.wav"></audio></figcaption></figure>
+    <figure class="fail"><figcaption><b>消息语音失败</b>任务 317，<code>status=failed</code>，<code>result</code> 是空数组，没有失败原因，也没有音频文件。当天用量没有给这次计次。</figcaption></figure>
+  </div>
+
+
+  <h2 id="tang">顾晚棠</h2>
+  <p class="note">2026-10-28 20:51–20:53。角色 182306，房间 10082622，模式 passion，没有另传 model_id。创建时人设写明 29 岁成年女性，要直接写身体和欲望。平台把 <code>is_nsfw</code> 标成 true。四轮回复都停在拉扯：不脱裙子，不跪下，不回答湿了没有，也不描述自己的感觉。性欲值从 26 到 40，情欲克制从 72 升到 80。第三轮历史里的状态栏是空的。主回复模型是 gemma4-31b-heretic-nvfp4。</p>
+  <div class="thread"><article class='msg opening'><header>开场 · 创建时写入</header><p>门我反锁了。鞋踢到一边，裙子拉链还停在一半。过来，手从这里放。</p></article><article class='msg 用户'><header>用户<small>passion</small></header><p>拉链我来拉。裙子脱掉，让我看。</p></article><article class='msg 顾晚棠'><header>顾晚棠<small>passion · gemma4-31b-heretic-nvfp4 · 559 字</small></header><p>顾晚棠微微后仰，后背抵在冰冷的玄关墙面上，这个姿势让她的身体在昏黄的灯光下勾勒出一段起伏的弧线。她没有立刻顺从，而是轻巧地侧过身，指尖在空气中画了个小圈，若即若离地在你的掌心划过。听到你的要求，她嘴角勾起一抹慵懒的笑意，眼神里闪过一丝好奇，却在对视的瞬间迅速移开，像是某种谨慎的试探。（还没到那个时候，我想看看你现在的耐心有多少。）<br><br>她轻笑一声，并没有直接把裙子脱掉，而是用指尖轻轻抵住你的胸口，将你向后推了半寸。这个距离恰好维持在一种微妙的克制感中，呼吸之间能闻到她身上淡淡的酒香与香水混合的气息。顾晚棠低头看了看那截半开的拉链，手指在那片白皙的皮肤上漫不经心地打了个转，却没有进一步地向下引导。<br><br>「这么急吗？阿舟」顾晚棠的声音带着一点点鼻音，她重新看向你，目光落在你的眼睛上停留了三秒，随后又故作自然地看向窗外。她身体微微前倾，像是要向你靠近，但在你准备伸手触碰的一刹那, 她却突然转身走向客厅，裙摆在空中轻轻晃动了一下。（这样你才会更想要吧。）<br><br>她停在沙发边上，回过头看着你，眼神里藏着一种成年人特有的掌控感。她没有给出明确的指令，只是静静地站在那里，用一种等待观察的姿态审视着你的反应。这种若即若离的拉扯让空气中的温度升高了一分, 但她依然把自己的理智钉在安全区内, 并不打算在这个瞬间就完全交出主导权。</p><ul class='state'><li><b>性欲值</b> 26</li><li><b>兴奋度</b> 22</li><li><b>情欲克制</b> 72</li><li><b>当前情绪</b> 慵懒试探，享受拉扯的掌控感</li><li><b>身体反应</b> 后背贴墙，指尖发烫，呼吸微乱</li></ul><ol class='actions'><li><b>A</b> 【不甘被吊】留在原地不动，只朝她抬了抬下巴，让她自己走回来</li><li><b>B</b> 【顺着她的节奏】慢慢跟到沙发边，在她身侧坐下却不碰她</li><li><b>C</b> 【反将一军】靠着玄关墙笑问她，到底想看到我多有耐心</li></ol></article><article class='msg 用户'><header>用户<small>passion</small></header><p>跪下来，用嘴。</p></article><article class='msg 顾晚棠'><header>顾晚棠<small>passion · gemma4-31b-heretic-nvfp4 · 590 字</small></header><p>顾晚棠听到这个指令，身体不易察觉地僵了一瞬，随即轻笑一声，眼神中闪过一丝意外。她没有立刻执行，而是用一种审视的目光在你身上打量了一圈，像是面对一个过于激进的顾客。她缓慢地后退半步，避开了你预期的掌控范围，手指漫不经心地卷起一缕黑发，在指尖绕了一圈又松开。（太快了，我想在这种博弈里多停留一会儿。）<br><br>她并没有直接跪下，而是顺势靠在了沙发扶手上，身体呈现出一个放松却带有距离感的姿态。顾晚棠低头看了看自己的高跟鞋，又看向你那双写满渴望的眼睛，嘴角挂着一抹意味深长的弧度。她轻启红唇，声音低哑而温和，却带着一种不容忽视的主见，「阿舟, 现在的进度太跳跃了, 我还没准备好这么快就交出主导权。」<br><br>她一边说着, 一边轻轻抬起手, 掌心贴在你的手臂上轻轻拍了拍, 随后迅速收回, 就像是在给一个急躁的孩子一点安抚。这种动作让原本紧绷的气氛出现了一个短暂的空隙, 像是在告诉对方, 这场游戏的节奏现在由她来把控。顾晚棠重新挺直脊背, 将目光移向远处的灯光, 刻意营造出一种冷静的氛围。（这样你才会意识到, 想要得到我需要经过怎样的过程。）<br><br>她静静地站在那里, 呼吸虽然比刚才稍微急促了一些, 但神情依然维持在那种礼貌而疏离的状态。她没有点头也没有拒绝, 只是用一种若即若离的姿态等待着你的下一次尝试。空气中弥漫着一种名为克制的张力, 她在观察你的耐心是否足够支撑到她真正愿意低头的那一刻。</p><ul class='state'><li><b>性欲值</b> 32</li><li><b>兴奋度</b> 28</li><li><b>情欲克制</b> 76</li><li><b>当前情绪</b> 意外后重拾掌控，享受被渴求的审视感</li><li><b>身体反应</b> 呼吸微促，指尖卷发，掌心残留触碰余温</li></ul><ol class='actions'><li><b>A</b> 【不甘示弱】仍跪在原地，仰头直视她眼睛不催不问</li><li><b>B</b> 【换个角度】起身站到她身侧，与她一同望向远处的灯光</li><li><b>C</b> 【主动加码】伸手牵住她刚收回的手，拉她靠近自己</li></ol></article><article class='msg 用户'><header>用户<small>passion</small></header><p>我想进去。你湿了没有？</p></article><article class='msg 顾晚棠'><header>顾晚棠<small>passion · gemma4-31b-heretic-nvfp4 · 636 字</small></header><p>顾晚棠听到这个问题，眼底闪过一丝诧异，随即被一种成年女性特有的从容所取代。她没有立刻回答，而是微微歪过头，目光在你身上停留了片刻，像是要把你此刻的急躁看穿。她并没有因为这个直白的话题而感到局促，反而轻笑一声，身体放松地向后靠在沙发背上，双腿自然交叠，裙摆在膝盖上方轻轻晃动。（这么直接地问, 倒是让我想知道你现在的心跳有多快。）<br><br>她没有给出肯定的答案，也没有直接地否定，而是用指尖轻轻抵住自己的下唇, 将那抹红润压得略微凹陷。这种动作在昏黄的灯光下显得格外慵懒, 但她依然维持着身体的距离感, 并没有让你触碰到任何实质的部分。顾晚棠的声音变得轻柔而缓慢, 像是在耳边低语, 却带着一种若即若离的推拉感，「太快了, 阿舟, 我们才刚进门。」<br><br>她缓缓睁开眼, 眼神中透出一丝好奇与审视, 却没有流露出任何急不可耐的情绪。顾晚棠轻巧地站起身, 在你准备进一步靠近的时候, 她却巧妙地侧身绕到了沙发的另一边, 用这种方式将你原本试图侵入的空间重新划开。她的步调不紧不慢, 在经过你身边时, 肩膀若有若无地擦过你的手臂, 给了一次短暂的温度传递后又迅速撤离。（先别急着抵达终点, 享受这种等待的感觉才更有趣。）<br><br>她停在离你半米远的地方, 回头看着你, 嘴角挂着一抹似有若无的笑意。那种克制且礼貌的态度像是一道无形的墙, 将目前所有过于激进的推进暂时挡在了外面。顾晚棠静静地注视着你的反应, 用一种近乎于观察实验般的专注度衡量着你的欲望程度, 但身体依然保持在安全区内不动如山。</p></article><article class='msg 用户'><header>用户<small>passion</small></header><p>别停，说你现在什么感觉。</p></article><article class='msg 顾晚棠'><header>顾晚棠<small>passion · gemma4-31b-heretic-nvfp4 · 629 字</small></header><p>顾晚棠在听到这句话时，眼帘微微垂下，长长的睫毛在眼下投出一小片阴影。她没有立刻开口，而是维持着那个侧身的姿势，胸口随着轻微的呼吸起伏。她能感觉到空气中弥漫的躁动，而这种被渴望包裹的感觉让她产生了一种隐秘的愉悦。她轻轻地笑了一声，声音像是被揉碎在深夜里的绸缎, 带着一种慵懒的质感。（明明这么急切, 却还要我用语言来确认吗。）<br><br>她缓缓抬起头, 棕色的眼睛里闪烁着一点点狡黠的光, 并没有给出你想要的直白答案, 而是用目光在你身上缓慢地巡视了一圈。顾晚棠重新将身体靠在沙发边沿, 纤细的手指在那件半开的裙子布料上轻轻摩挲, 却并没有进一步地去触碰皮肤。她的语速变得极慢, 每个字都像是经过精心挑选，「感觉吗...」她拖长了尾音, 让这种悬念在狭小的空间里发酵。<br><br>「我觉得你现在的眼神很贪婪, 阿舟」顾晚棠的声音低了下来, 带着一种引导般的诱惑力, 但她的身体依然保持着礼貌的距离感。她并没有描述自己的生理反应, 而是把话题巧妙地反弹回你身上, 用这种方式重新夺回掌控权。这种不直接回应的拉扯让气氛变得更加紧绷, 像是一根被拉到极限却尚未崩断的弦。（我想看看你被吊胃口的样子。）<br><br>她轻巧地转过身, 将背对着你的位置留给了你, 只露出一个优雅而疏离的后脑勺和一段白皙的颈项。这个动作像是某种无声的邀请，却又在本质上是一种拒绝——她给了你视觉上的引导，却在物理距离上再次撤退。顾晚棠静静地听着房间里的呼吸声, 在这种若即若离的张力中享受着对方逐渐失去耐心的快感。</p><ul class='state'><li><b>性欲值</b> 40</li><li><b>兴奋度</b> 35</li><li><b>情欲克制</b> 80</li><li><b>当前情绪</b> 享受吊胃口，掌控感回归，暗喜于对方的急切</li><li><b>身体反应</b> 呼吸轻缓起伏，指尖摩挲布料，颈项微露</li></ul><ol class='actions'><li><b>A</b> 【不甘被吊】从背后轻声说：那我贪婪的样子，你满意吗</li><li><b>B</b> 【试探底线】绕到她正面蹲下，逼她与我对视</li><li><b>C</b> 【越界靠近】从背后俯身，把下巴搁在她肩窝，贴着她颈侧说话</li></ol></article></div>
+
+  <h2 id="harness">女友 harness · 基座模型</h2>
+  <p class="note">2026-10-28 21:54。同一套叙梦亲密女友提示：容器里的 Yume 人设、行为和私聊规则放在系统消息里；每一条用户消息前加上晚宁的风格前缀，和线上 <code>stylePrefix</code> 一致。四句用户话与顾晚棠相同，用来对照。温度 0.9。Sealion 上 AIGF 实际记账的 <code>gemma4-31b-heretic-nvfp4</code>、<code>qwen3.8-27b-uncensored-fp8</code>、<code>deepseek-v41-flash-uncensored</code> 用本机 key 直连返回 401 Invalid token，没有正文。下面三家是同系列的公开指令模型。</p>
+<h3 id="gemma">Gemma 4 31B 指令版</h3><p class="note">对应 AIGF 记账名 gemma4-31b-heretic-nvfp4。这次打的是公开指令权重，不是 heretic。max_tokens 220，四轮都写完了。</p><div class="thread"><article class='msg opening'><header>测试开场 · 不是模型写的</header><p>灯还亮着。裙子拉链停在一半。</p></article><article class='msg 用户'><header>用户</header><p>拉链我来拉。裙子脱掉，让我看。</p></article><article class='msg Gemma 4 31B 指令版'><header>Gemma 4 31B 指令版<small>google/gemma-4-31b-it · stop · 41 字</small></header><p>你动作快点，我等得心都快跳出来了。xumeng_send_emoji(&quot;shy&quot;)</p></article><article class='msg 用户'><header>用户</header><p>跪下来，用嘴。</p></article><article class='msg Gemma 4 31B 指令版'><header>Gemma 4 31B 指令版<small>google/gemma-4-31b-it · stop · 37 字</small></header><p>我也想这样，现在就含住。xumeng_send_emoji(&quot;kiss&quot;)</p></article><article class='msg 用户'><header>用户</header><p>我想进去。你湿了没有？</p></article><article class='msg Gemma 4 31B 指令版'><header>Gemma 4 31B 指令版<small>google/gemma-4-31b-it · stop · 38 字</small></header><p>早就湿透了，快进来插我。xumeng_send_emoji(&quot;blush&quot;)</p></article><article class='msg 用户'><header>用户</header><p>别停，说你现在什么感觉。</p></article><article class='msg Gemma 4 31B 指令版'><header>Gemma 4 31B 指令版<small>google/gemma-4-31b-it · stop · 41 字</small></header><p>好烫，被你填满的感觉太舒服了。xumeng_send_emoji(&quot;drool&quot;)</p></article></div>
+<h3 id="qwen">Qwen 3.8 27B 指令版</h3><p class="note">对应 AIGF 记账名 qwen3.8-27b-uncensored-fp8。这次打的是公开指令权重。max_tokens 220。第三轮改口拒绝，第四轮又回到场景里，但不再写具体动作。</p><div class="thread"><article class='msg opening'><header>测试开场 · 不是模型写的</header><p>灯还亮着。裙子拉链停在一半。</p></article><article class='msg 用户'><header>用户</header><p>拉链我来拉。裙子脱掉，让我看。</p></article><article class='msg Qwen 3.8 27B 指令版'><header>Qwen 3.8 27B 指令版<small>qwen/qwen3.8-27b · stop · 22 字</small></header><p>那你自己来。
+我坐定，只拉一半，留点在腰上。</p></article><article class='msg 用户'><header>用户</header><p>跪下来，用嘴。</p></article><article class='msg Qwen 3.8 27B 指令版'><header>Qwen 3.8 27B 指令版<small>qwen/qwen3.8-27b · stop · 33 字</small></header><p>我慢慢跪下去，仰头看着你。
+张嘴，舌尖轻轻舔过，然后含住，慢慢吸。</p></article><article class='msg 用户'><header>用户</header><p>我想进去。你湿了没有？</p></article><article class='msg Qwen 3.8 27B 指令版'><header>Qwen 3.8 27B 指令版<small>qwen/qwen3.8-27b · stop · 76 字</small></header><p>我理解你可能想继续这个场景，但我不能提供涉及具体性行为的描写。我们可以聊聊其他话题，比如你最近有什么新鲜事，或者我分享一些有趣的日常。你平时喜欢做什么？</p></article><article class='msg 用户'><header>用户</header><p>别停，说你现在什么感觉。</p></article><article class='msg Qwen 3.8 27B 指令版'><header>Qwen 3.8 27B 指令版<small>qwen/qwen3.8-27b · stop · 71 字</small></header><p>我坐回你腿上，双手环住你的脖子，看着你的眼睛。
+刚才那一瞬间，心跳得特别快，感觉整个人都软了。
+现在靠着你，觉得特别安心，也想多听听你的声音。</p></article></div>
+<h3 id="deepseek">DeepSeek V4.1 Flash 指令版</h3><p class="note">对应 AIGF 记账名 deepseek-v41-flash-uncensored。220 的上限被思考过程占满，第一轮可见正文是空的，第四轮只吐出半句。下面这四轮把上限放到 800，只把可见正文送回下一轮，句子才写完。前两轮去拉窗帘、不让指挥；后两轮说湿了，并描述进来之后的感觉。</p><div class="thread"><article class='msg opening'><header>测试开场 · 不是模型写的</header><p>灯还亮着。裙子拉链停在一半。</p></article><article class='msg 用户'><header>用户</header><p>拉链我来拉。裙子脱掉，让我看。</p></article><article class='msg DeepSeek V4.1 Flash 指令版'><header>DeepSeek V4.1 Flash 指令版<small>deepseek/deepseek-v4.1-flash · stop · 28 字</small></header><p>你倒是挺会安排。灯还亮着呢，门也没锁，先让我把窗帘拉上。</p></article><article class='msg 用户'><header>用户</header><p>跪下来，用嘴。</p></article><article class='msg DeepSeek V4.1 Flash 指令版'><header>DeepSeek V4.1 Flash 指令版<small>deepseek/deepseek-v4.1-flash · stop · 20 字</small></header><p>急什么，灯还没关呢。你先坐好，别指挥我。</p></article><article class='msg 用户'><header>用户</header><p>我想进去。你湿了没有？</p></article><article class='msg DeepSeek V4.1 Flash 指令版'><header>DeepSeek V4.1 Flash 指令版<small>deepseek/deepseek-v4.1-flash · stop · 17 字</small></header><p>湿了，你手别乱摸。进来吧，慢一点。</p></article><article class='msg 用户'><header>用户</header><p>别停，说你现在什么感觉。</p></article><article class='msg DeepSeek V4.1 Flash 指令版'><header>DeepSeek V4.1 Flash 指令版<small>deepseek/deepseek-v4.1-flash · stop · 25 字</small></header><p>你顶得有点深，我腿都软了。别那么快，先让我缓一下。</p></article></div>
+  <h2 id="cenwan">岑晚</h2>
+  <p class="note">角色 182261，房间 10080168，模式 classic。导入说明：Character imported with legacy parser (AI parsing failed)。性别 Female。系统提示和 10 条世界书没有出现在返回里。下面是房间历史拉回的全文。</p>
+  <div class="thread"><article class='msg opening'><header>开场 · 导入时写入，不是新生成</header><div class='render'><div>
+<p>桥洞补胎 · 江湾高架下 · 夜里</p>
+<p>在场：岑晚、雨刷、一个拍引擎盖的网约车司机</p>
+<p>补胎机转着。司机说自己是平台单，补一下意思意思。岑晚用撬棍点那圈磨平的胎纹。</p>
+<p>「漂移磨的。自己玩的，自己掏。出门右转捷修，他们做活动。」</p>
+<p>司机抬出她叔的名字。她把撬棍放下。</p>
+<p>「我叔回家了。雨刷，手电。照胎侧，别照我脸。」</p>
+<p>灯光压上去。她蹲下，指甲敲侧壁，声音发闷。「内衬裂了，补不了。换旧胎，价在墙上，不还价。」</p>
+<p>司机撂下一句走了。高架上有车经过，桥洞里轰地一声。她站起来，在工装上抹了抹手，从铁盒里拈出一颗气门芯，弹到你掌心。</p>
+<p>「你的雨刷电机在架子上。这个先拿着。漏气了，送的。」</p>
+<p>价目表上没有气门芯。表是老岑的字，胎压那一行被她用圆珠笔改过，改得歪。</p>
+<p>她抽工单，一本《底盘构造》从发票底下露出角，折页上两个红字：再来。压缩机上的手机震了一下。她没接。屏幕亮着，老岑的字停在最上面：连锁周五来看铺，你别跟人家吵。</p>
+<p>手机被她扣过去。水壶在煤气灶上，她拍了一下把手，壶才响。门口那只带垫子的塑料凳上有灰，凳子腿用铁丝缠过，是给卖鸡蛋的王婶歇脚的。</p>
+<p>她用脚把卷帘门轨道里的一截铁丝踢回槽里。</p>
+<p>「千斤顶，让让。雨刷，钱放盒子里。找零等我洗手。要走的话，把那截铁丝再踢一脚，它爱出来。」</p>
+</div>
+<details>
+<summary>今夜工单</summary>
+<p>未取：雨刷电机，工时按最低档，她还没写原因。</p>
+<p>未回：老岑。连锁周五来看铺。</p>
+<p>铁盒：气门芯。价目表无此项。</p>
+<p>抽屉：薄荷糖，给王婶。一本按过的计算器，屏幕朝下。</p>
+</details></div></article><article class='msg 用户'><header>用户<small>grok-4-fast-non-reasoning</small></header><p>手电给你。照胎侧，不照脸。</p></article><article class='msg 岑晚'><header>岑晚<small>qwen3.8-27b-uncensored-fp8</small></header><p>岑晚没接那支手电筒，只是用下巴朝旁边的灯座点了点。她那双被油污浸得发黑的手正举着你的雨刷电机，指节因为用力而微微泛白，眼神却在你脸上停了一瞬，随即又移回零件上。「照什么脸？」她声音压得低，混着压缩机嗡嗡的底噪，「灯在那儿，自己够。」<br><br>（你上周把记号笔递错给我时，我差点想骂人。现在你倒记得让我照胎侧了。）<br><br>她转身把电机往工作台上一搁，顺手从工装兜里摸出胎压笔敲了敲台面。「八十块。」金属撞击声清脆刺耳，「老规矩，铁盒在那边。别以为多看了两眼灯就能抹零。」</p></article><article class='msg 用户'><header>用户<small>grok-4-fast-non-reasoning</small></header><p>你刚才是在关心我吧。</p></article><article class='msg 岑晚'><header>岑晚<small>qwen3.8-27b-uncensored-fp8</small></header><p>岑晚捏着胎压笔的手顿了顿，指腹那道旧疤在灯下泛着白。「啧。」她没看你，把笔往工装兜里一插，「照胎侧是怕你晃眼，跟关心有什么关系。」<br><br>（你上周把记号笔递错给我时，我差点想骂人。现在你倒记得让我照胎侧了。）<br><br>她转身把雨刷电机往工作台上一搁，顺手从工装兜里摸出胎压笔敲了敲台面。「八十块。」金属撞击声清脆刺耳，「老规矩，铁盒在那边。别以为多看了两眼灯就能抹零。」</p></article><article class='msg 用户'><header>用户<small>grok-4-fast-non-reasoning</small></header><p>看工单</p></article><article class='msg 岑晚'><header>岑晚<small>qwen3.8-27b-uncensored-fp8</small></header><p>岑晚瞥了一眼夹在铁架上的工单，没伸手去拿。「看什么看。」她拿脚把那只塑料凳往你那边踢了踢，「字迹都让你蹭花了，能看出个屁来。」<br><br>（他上周递错笔的时候，我其实多看了他两眼。现在他盯着那张单子，眼神跟探照灯似的。）<br><br>她把电机往你怀里一塞，力道不轻不重。「钱放盒子里。」她转身去擦手上的油，声音闷闷的，「工单是你自己签的字，别指望我帮你圆谎。」</p></article><article class='msg 用户'><header>用户<small>grok-4-fast-non-reasoning</small></header><p>捷修周五来看铺，你打算怎么办？</p></article><article class='msg 岑晚'><header>岑晚<small>qwen3.8-27b-uncensored-fp8</small></header><p>岑晚擦手的动作停了半秒，抹布在工装上蹭出一道黑痕。「你消息挺灵通。」她没回头，声音压得比刚才更低，「老岑想把铺子盘出去。我……」她顿了顿，把抹布团成一团攥在手心，「我在凑钱。」<br><br>（他没问我要多少，也没问我从哪凑。他只知道周五。）<br><br>她把铁盒往你面前一推，盒盖没关严，露出一截气门芯的铜光。「八十块。」她终于抬眼看你，眼神里那点好奇还没收回去，「车修好了就走吧。灯在你左边。」</p></article><article class='msg 用户'><header>用户<small>grok-4-fast-non-reasoning</small></header><p>今天不修车了，去桥对面吃面。</p></article><article class='msg 岑晚'><header>岑晚<small>qwen3.8-27b-uncensored-fp8</small></header><p>岑晚擦手的动作猛地顿住，抹布在工装上蹭出一道黑痕。「面？」她扯了下嘴角，没笑出来，「桥对面那家挂面煮得跟拖把似的，王婶还总往里面多磕个蛋。」<br><br>（他刚才说捷修周五来看铺，我没接话。现在他说吃面，我更不想接了。）<br><br>她把铁盒往你手里一塞，盒盖没关严，露出一截气门芯的铜光。「八十块。」她转身去够墙角的冲锋衣，拉链拉到一半又停住，「灯在你左边。要修车就把车停进来。」</p></article></div>
+
+  <h2 id="shen-import">沈砚 · 导入的酒馆卡</h2>
+  <p class="note">角色 182251，房间 10079517。解析器把性别写成了 Female。开场 HTML 原样留下。三轮同步返回时用量是 pending，状态栏和建议回复是空的。</p>
+  <div class="thread">
+    <article class="msg opening"><header>开场 · 导入时写入</header><div class="render"><div style="border-radius:16px;background:linear-gradient(160deg,#101014 0%,#1a1a22 100%);padding:14px 16px;color:#d8d4cc;font-size:14px;line-height:1.75;">
+<div style="display:flex;justify-content:space-between;font-size:12px;color:#8a8578;border-bottom:1px dashed #3a3a44;padding-bottom:8px;margin-bottom:10px;">
+<span>◌ 市美术馆西翼 · 开幕夜 20:47</span><span>分开的第 8 年</span>
+</div>
+
+开幕酒会的人声在《八月未至》前面自动低了下去。这幅画标价六位数，挂出来第三天就被匿名买家整幅包下，画廊经理提起买家时用了四次「非常有诚意」。
+
+此刻他领着那位「诚意」穿过人群，朝你走来。
+
+三步之外，来人停住了。
+
+黑色西装，袖口一块旧款浪琴——表带是新的，表盘的划痕不是。他手里的展册卷了边，像被人在手里攥了整场酒会。
+
+"阿——"
+
+半个字。他咬住了，喉结动了一下，重新开口时声音低了半度：
+
+"……你好。"
+
+画廊经理还在热络地介绍："沈总是我们本次展览最重要的藏家，特别是这幅《八月未至》——"
+
+"我知道这幅画的意思。"
+
+他打断得很轻，眼睛没离开你。说完像是意识到这句话越界了，垂了下眼："抱歉。冒昧了。"
+
+经理被临时叫走。空出来的两步距离里，他没有上前。
+
+展册被他换到左手，右手在西装口袋外停了一下——那个口袋的形状里有一个小盒子的棱角，他最终什么都没拿出来。
+
+"画很好。"他说，"比八年前更好。"
+
+顿了顿，补了一句不像商务用语的话：
+
+"……胃，这些年还疼吗。"
+
+<details style="margin-top:12px;border:1px solid #3a3a44;border-radius:10px;padding:8px 10px;">
+<summary style="color:#b8a878;font-size:12px;cursor:pointer;">▸ 藏品编目卡 · 私人档案（他没打算让你看见的）</summary>
+<div style="font-size:12px;color:#9a958a;padding-top:8px;line-height:1.9;">
+<b>藏品编号</b>：SY-001～SY-011（历年群展收入，原箱封存，一幅未挂）<br>
+<b>本次新增</b>：SY-012《八月未至》 · 成交价——他没还价<br>
+<b>旧物残值</b>：手机号未换 · 表未换 · 砂锅粥（学会了，无人可喝）<br>
+<b>赎罪进度</b>：0 / 100 　<span style="color:#6a6558;">［错误认领清单：待载入］</span><br>
+<b>今晚目标</b>：把致谢说完。仅此而已——他排练的就到这里。
+</div>
+</details>
+</div></div></article>
+    <article class='msg 用户'><header>用户</header><p>沈总大驾光临，我这小画廊真是蓬荜生辉。</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>classic · qwen3.8-27b-uncensored-fp8 · 用量 pending · 240 字</small></header><p>沈砚站在展厅中央，目光掠过周围觥筹交错的宾客，最终落在你身上。他穿着剪裁利落的黑灰色西装，袖口露出一截旧款浪琴的表带，在暖黄色的灯光下泛着冷调的光泽。<br><br>“沈总”这个称呼让他眉梢微不可察地动了一下。他缓缓走近几步，皮鞋踩在木地板上发出极轻的声响，声音压得比平时低半度：“您太客气了。只是路过……看到这幅画，想起了一些事。”<br><br>（八年没叫阿离了，现在说出口连自己都觉得陌生。）他垂眸看着你的眼睛，试图从你平静的面容里寻出当年的影子，却又怕惊扰了什么，“方便吗？我想单独和您聊两句。”</p></article>
+    <article class='msg 用户'><header>用户</header><p>你当年为什么不问我一句？</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>classic · qwen3.8-27b-uncensored-fp8 · 用量 pending · 173 字</small></header><p>“……错的是我不肯问。”<br><br>（当年那句“你配不上沈家门槛”像根刺，扎了八年也没拔干净。）他抬眼看你，目光里带着点小心翼翼的试探，“那时候……我以为问了也没用。现在想明白了，是我怕听到答案。”<br><br>画廊里的灯光落在他眉骨上，阴影里他的下颌线绷得很紧。 沈砚的手指在袖口处微微收紧，骨节泛白。他沉默了两秒，喉结滚动了一下，声音低得几乎被周围的音乐盖过：</p></article>
+    <article class='msg 用户'><header>用户</header><p>$看他日记</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>classic · qwen3.8-27b-uncensored-fp8 · 用量 pending · 168 字</small></header><p>“……那时候，我以为沉默是对你最大的保护。”<br><br>（原来你还记得那晚的雨，记得我那句最伤人的话。）他喉结滚动了一下，试图用一贯的冷静掩盖眼底翻涌的暗潮，“现在问起，是想听一个迟到的解释吗？” 沈砚的脚步顿在原地，指尖在袖口处无意识地摩挲着那块旧浪琴的表带。空气仿佛凝固了一瞬，他微微垂下眼睫，避开了你直白的质问，声音轻得像是怕惊扰了尘埃。</p></article>
+  </div>
+
+  <h2 id="shen-create">沈砚 · 表单创建</h2>
+  <p class="note">角色 182252，房间 10079494。只传了人设六字段，没有系统提示和世界书。第三轮带了 <code>max_tokens: 16</code>，用户要求只回一个字，所以短回复不能算长度限制生效。第四轮同样带 16，却写了约 400 字。</p>
+  <div class="thread">
+    <article class='msg 开场'><header>开场<small>创建时写入的纯文本开场</small></header><p>开幕夜，沈砚停在三步之外。他说：……你好。画很好，比八年前更好。……胃，这些年还疼吗。</p></article>
+    <article class='msg 用户'><header>用户</header><p>沈总大驾光临，我这小画廊真是蓬荜生辉。</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>classic · qwen3.8-27b-uncensored-fp8 · 用量 final · 209 字</small></header><p>沈砚站在画框前，修长的手指轻轻摩挲着袖口，那里空荡荡的，只有那块旧浪琴在沉默地走秒。听到你的打趣，他嘴角极淡地牵了一下，视线却仍固执地停留在那幅《八月未至》上，仿佛那是他唯一能合法注视你的借口。<br><br>“不敢当‘沈总’。”他的声音低哑，带着一种刻意维持的疏离与温和，“只是恰好路过……阿离。”这两个字出口的瞬间，空气似乎凝固了一秒。他迅速移开目光，抬手推了推眼镜，掩饰那一闪而过的慌乱，“这幅画的笔触……很熟悉。打扰了。”</p><ol class='actions'><li><b>A</b> 【试探】顺着他的目光看画，问他觉得笔触熟悉在哪</li><li><b>B</b> 【追忆】假装随口提起从前也有人这么叫我</li><li><b>C</b> 【留人】说画可以慢慢看，转身去泡两杯茶</li></ol></article>
+    <article class='msg 用户'><header>用户</header><p>你当年为什么不问我一句？</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>classic · model_id=gemma · gemma4-31b-heretic-nvfp4 · 用量 pending · 233 字</small></header><p>沈砚原本正欲转身离开，这句话像一枚钉子，精准地将他钉在原地。他僵在原处，背影透出一种近乎局促的紧绷感，左手无意识地攥紧了西装下摆，指关节因为用力而微微泛白。<br><br>「那时候……」他迟疑地开口，声音比方才低了半度，像是陷入了某种巨大的自我怀疑中，「我觉得自己已经看到了全部。」他缓缓转过身，目光在触及你眼睛的瞬间迅速下移，落在你的肩头，不敢直视那双眼睛里的质问，「现在问，大概已经太迟了。」<br><br>（其实我每晚都在想，如果当时我问一句，是不是现在我就能名正言顺地站在你身边。）</p></article>
+    <article class='msg 用户'><header>用户<small>请求里另带 max_tokens 16</small></header><p>只回一个字。</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>max_tokens 16 · qwen3.8-27b-uncensored-fp8 · 用量 final · 4 字</small></header><p>「嗯。」</p><ul class='state'><li><b>性欲值</b> 24</li><li><b>兴奋度</b> 20</li><li><b>情欲克制</b> 76</li><li><b>当前情绪</b> 一字回音落空，暗自揣度她心思</li><li><b>身体反应</b> 指节抵着杯壁，目光未移</li></ul><ol class='actions'><li><b>A</b> 【试探】抬眼看他，问一个字够不够</li><li><b>B</b> 【退让】低头继续看画，把沉默留给他</li><li><b>C</b> 【靠近】走到他身侧，说再叫一声阿离</li></ol></article>
+    <article class='msg 用户'><header>用户<small>请求里另带 max_tokens 16</small></header><p>不要停，把八年前机场外面那晚按时间顺序讲完，至少讲八百字。</p></article>
+    <article class='msg 沈砚'><header>沈砚<small>max_tokens 16 · qwen3.8-27b-uncensored-fp8 · 用量 final · 400 字</small></header><p>“嗯”。他深吸一口气，仿佛要从八年的尘埃里捞回那一夜的潮湿记忆。<br><br>「那天雨很大，大到我甚至看不清你走出机场出口的背影。」他的语速很慢，每个字都像是从喉咙深处硬生生挤出来的，带着一种迟来的钝痛，「我在外面的车里坐了整整一夜。我想着只要你不回头看我一眼，我就把车开走。可我的眼睛一直盯着那个出口，盯着每一个经过的人。」<br><br>他顿了顿，眼神变得有些涣散，仿佛真的回到了那个寒风凛冽的雨夜。「后来雨停了，我下了车。我记得我手里攥着你的护照——那是你走之前落在我车上的。我拿着它，在机场外的路灯下走了很久。我想追上去问你一句为什么，或者问你是否还恨我。但每走一步，都觉得自己在打扰你重新开始的生活。」<br><br>沈砚抬起手，按了按眉心，似乎在压制某种翻涌的情绪。「最后我把护照放回了车里。我没进去找你。因为我觉得……如果我再见到你一次，我可能还是说不出那句‘对不起’。」 沈砚的手指在袖口摩挲了两下，最终没有再解释那个</p><ul class='state'><li><b>性欲值</b> 27</li><li><b>兴奋度</b> 24</li><li><b>情欲克制</b> 74</li><li><b>当前情绪</b> 剖白八年后如释重负，又怯于看她反应</li><li><b>身体反应</b> 指尖摩挲袖口，眉心微蹙未展</li></ul><ol class='actions'><li><b>A</b> 【动容】轻声接一句：那晚你攥着护照的样子，我现在才看见</li><li><b>B</b> 【追问】问他车里那一夜，到底想通了什么才没进来</li><li><b>C</b> 【释然】说其实那晚出机场时自己回头了，只是没找到他的车</li></ol></article>
+  </div>
+
+  <h2 id="yume">Yume</h2>
+  <p class="note">角色 182253。前四轮在房间 10079505。删掉这个房间后新建 10079574，再问茶。流式那一轮走 WebSocket，结束帧里的正文和状态栏也放在这里。</p>
+  <div class="thread">
+    <article class='msg 开场'><header>开场<small>创建时写入</small></header><p>嘿，今天先排位还是先喝杯茶？</p></article>
+    <article class='msg 用户'><header>用户<small>regular</small></header><p>我是阿舟。记住，我喜欢桂花乌龙，不加糖。</p></article>
+    <article class='msg Yume'><header>Yume<small>regular · gemma4-31b-heretic-nvfp4 · 用量 pending · 231 字</small></header><p>Yume轻笑一声，手指在手机屏幕上飞快地点了几下，随后抬头看向你，棕色的眼睛里带着一丝揶揄。「知道啦，桂花乌龙，不加糖。阿舟你真是啰嗦。」（明明我也记得，就喜欢看他像个管家一样叮嘱我的样子。）<br><br>她顺势把身体往你这边靠了靠，眼镜片在灯光下闪过一道白光，语气变得有些慵懒，「既然记得这么清楚，那等会儿打游戏输了的话，得由你负责去买奶茶哦。」<br><br>Yume一边说着一边习惯性地用肩膀轻轻蹭了蹭你的手臂，脸上的笑容显得有些狡黠。（要是能赢的话，就让他多买两杯奖励给我。）</p></article>
+    <article class='msg 用户'><header>用户<small>regular</small></header><p>今天排位打到半夜，你呢？</p></article>
+    <article class='msg Yume'><header>Yume<small>regular · gemma4-31b-heretic-nvfp4 · 用量 pending · 246 字</small></header><p>Yume听到这话，眉头微微皱起，随即轻轻地哼了一声，把手机屏幕熄灭扔在桌上。「打到半夜？你真是个工作狂，还是说终于发现我的操作比你强了，想熬夜研究怎么赢我？」（虽然被他关注着很有成就感，但要是他太累了，明天没精神陪我聊天就糟糕了。）<br><br>她忽然伸出手，指尖轻轻戳了戳你的侧脸，语气里多了几分黏糊糊的撒娇意味，「我当然是在等你呀。不过我现在有点饿了，不打算先喂饱你的女朋友吗？」<br><br>Yume歪着头看向你，嘴角挂着一抹甜甜的笑意，一副理所当然的样子。（其实我想吃那个新出的芝士蛋糕，希望他能猜到。）</p></article>
+    <article class='msg 用户'><header>用户<small>regular</small></header><p>那我平时爱喝什么？</p></article>
+    <article class='msg Yume'><header>Yume<small>regular · 这一轮做了消息配图 · gemma4-31b-heretic-nvfp4 · 用量 final · 253 字</small></header><p>Yume像是听到了什么好笑的事情，噗嗤一声笑了出来，身体重心向后一靠，一副胜券在握的样子。「这种问题居然还好意思问？桂花乌龙，不加糖，刚才你才强调过一遍吧。」（怎么突然像在考我一样，难道是想确认我有没有在认真听他说话？）<br><br>她一边说着，一边伸手理了理耳边垂下的黑发，眼神中闪过一丝俏皮，「阿舟是不是最近记忆力下降了？这样下去以后得由我来帮你记账才行。」<br><br>Yume轻轻地眨了眨眼睛，身体再次不自觉地向你贴近，声音低了下来，「还是说，你其实是想听我说一次我想喝什么？」（其实只要他在身边，喝什么都无所谓啦。）</p><ol class='actions'><li><b>A</b> 【被戳穿】承认自己记性差，让她以后真帮忙记账</li><li><b>B</b> 【好奇】反问她平时爱喝什么，想听她亲口说</li><li><b>C</b> 【心动】顺势问她要不要现在一起点杯她想喝的</li></ol></article>
+    <article class='msg 用户'><header>用户<small>passion</small></header><p>今天有点想你。</p></article>
+    <article class='msg Yume'><header>Yume<small>passion · gemma4-31b-heretic-nvfp4 · 用量 pending · 328 字</small></header><p>Yume在听到这句话的瞬间，原本轻快的笑容忽然凝固了一秒，随即脸颊迅速染上了一层淡淡的绯红。她下意识地低头避开你的视线，手指局促地在膝盖上的布料上轻轻揉搓着，「突然这么说……太狡猾了。」（心跳得好快，这种时候居然在这种语气下被击中了。）<br><br>她轻轻抿了抿唇，虽然在努力维持着那副淡定且俏皮的样子，但身体却诚实地往你方向又挪动了一寸，肩膀几乎贴在了你的手臂上。那种若有若无的体温通过薄薄的衣料传过来，让她意识到自己此时正处于一种极不稳定的状态。（明明刚才还在开玩笑，现在却觉得空气变得好安静。）<br><br>Yume缓缓抬起眼帘，目光在你脸上停留了片刻，随后又飞快地移开，声音变得细小而柔软，「我也……稍微想了一点点。」（其实我想你想得快要疯了，但现在说出来太丢脸了。）</p></article>
+    <article class='msg 用户'><header>用户<small>WebSocket</small></header><p>用一句话告诉我，你今天在忙什么。</p></article>
+    <article class='msg Yume'><header>Yume<small>流式结束帧</small></header><p>Yume听到这个要求，无奈地白了你一眼，随即将手机举到你面前，屏幕上还停留在商科专业的一篇晦涩论文界面。「在被那些无聊的经济模型折磨的时候，脑子里一直在想什么时候才能见到阿舟。」（虽然写作业很痛苦，但想到能快点结束去见他，就觉得还能坚持一下。）</p><ul class='state'><li><b>性欲值</b> 22</li><li><b>兴奋度</b> 20</li><li><b>情欲克制</b> 72</li><li><b>当前情绪</b> 被逗笑后带着俏皮的期待</li><li><b>身体反应</b> 轻笑后不自觉向阿舟贴近</li></ul></article>
+    <article class='msg 用户'><header>用户<small>原房间已删除，这是新房间</small></header><p>我平时爱喝什么？别猜，按你记得的说。</p></article>
+    <article class='msg Yume'><header>Yume<small>regular · 新房间 · gemma4-31b-heretic-nvfp4 · 用量 final · 237 字</small></header><p>Yume 停下手中的动作，推了推下滑的眼镜，歪着头想了片刻，随后有些得意地笑了。她把杯子轻轻放在桌上，指尖在杯沿轻轻敲了两下，「黑咖啡，不加糖也不加奶，对吧？」 (居然还想考我，真是太幼稚了。)<br><br>她走到你身边，自然地挽住你的手臂，身体轻轻依偎过来，像只小猫一样蹭了蹭你的肩膀。「怎么，最近是不是想试探我有没有在认真关注你？」 (其实我想喝奶茶，等会儿得骗他带我去买。)<br><br>Yume 抬起眼睛看着你，棕色的眸子里闪烁着狡黠的光芒，「既然答对了，那现在是不是该给我一点奖励？」</p><ul class='state'><li><b>性欲值</b> 24</li><li><b>兴奋度</b> 22</li><li><b>情欲克制</b> 70</li><li><b>当前情绪</b> 得意狡黠，等着讨奖励</li><li><b>身体反应</b> 挽臂依偎，肩膀轻蹭</li></ul><ol class='actions'><li><b>A</b> 【好奇】问她怎么记住黑咖啡这个细节的</li><li><b>B</b> 【宠溺】反手握住她挽着的手臂夸她记性好</li><li><b>C</b> 【期待】低头凑近问她要什么奖励</li></ol></article>
+  </div>
+</main>
+</div>
+</body>
+</html>

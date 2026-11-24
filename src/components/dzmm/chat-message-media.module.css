@@ -1,5 +1,8 @@
 .message { max-width: 100%; min-width: 0; outline-offset: 4px; }
 .tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-top: 4px; max-width: 100%; }
+.clip { margin: 8px 0 0; max-width: min(280px, 100%); }
+.clip video { display: block; width: 100%; border-radius: 12px; background: #12080e; }
+.clip figcaption { margin-top: 4px; color: var(--muted); font-size: 12px; }
 .userTools { justify-content: flex-end; }
 .action { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 3px; width: 32px; height: 32px; min-height: 32px; padding: 0; color: var(--muted); border-radius: 8px; transition: background 120ms ease, color 120ms ease; }
 .priced { width: auto; min-width: 32px; padding: 0 6px 0 7px; }
@@ -44,3 +47,23 @@
 @keyframes appear { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
 @media (max-width: 600px) { .action { width: 36px; height: 36px; min-height: 36px; } .priced { width: auto; } }
 @media (prefers-reduced-motion: reduce) { .loader { animation: none; } .picture img, .action { transition: none; } }
+
+/* SillyTavern-style swipe controls for one assistant turn. */
+.swipes { display: flex; align-items: center; gap: 2px; margin: 4px 0 2px; color: var(--muted, #85858d); font-size: 12px; }
+.swipeButton {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--line, #eee);
+  border-radius: 999px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.swipeButton:disabled { opacity: .4; cursor: default; }
+.swipes span { min-width: 30px; text-align: center; font-variant-numeric: tabular-nums; }

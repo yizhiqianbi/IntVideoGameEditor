@@ -1,0 +1,22 @@
+{
+  "name": "CCRent · 美国 Mac mini 租用",
+  "short_name": "CCRent",
+  "description": "美国 Mac mini 租用，预装 Claude Code，美国住宅 IP，远程连上就能用。",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#08090b",
+  "theme_color": "#08090b",
+  "lang": "zh-CN",
+  "icons": [
+    {
+      "src": "/assets/img/favicon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png"
+    },
+    {
+      "src": "/assets/img/web-app-manifest-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

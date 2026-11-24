@@ -1,0 +1,15 @@
+{
+  "manifest_version": 2,
+  "version": "1.0.0",
+  "name": "XUMENG 媒体动作",
+  "description": "由原生 MaiBot Planner 决策并发送表情包、语音消息和 OpenRouter 生成的照片。",
+  "author": {"name": "XUMENG", "url": "https://xumengchat.top"},
+  "license": "MIT",
+  "urls": {"repository": "https://xumengchat.top", "homepage": "https://xumengchat.top"},
+  "host_application": {"min_version": "1.3.0", "max_version": "1.3.99"},
+  "sdk": {"min_version": "2.0.0", "max_version": "2.99.99"},
+  "dependencies": [],
+  "capabilities": ["send.emoji", "send.image", "send.hybrid", "emoji.get_by_description", "emoji.get_random"],
+  "i18n": {"default_locale": "zh-CN", "locales_path": "_locales", "supported_locales": ["zh-CN"]},
+  "id": "xumeng.xumeng-media"
+}

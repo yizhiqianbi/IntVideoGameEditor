@@ -86,7 +86,7 @@ export function buildTextImage(input) {
   if ((style && !STYLES.has(style)) || !CLARITY.has(clarity)) return { ok: false, status: 400, error: "风格或清晰度无效。" };
   const listed = Array.isArray(body.images) ? body.images.filter(item => item != null && item !== "") : [];
   const images = listed.length ? listed : (body.image != null && body.image !== "" ? [body.image] : []);
-  if (images.length > 1) return { ok: false, status: 400, error: "参考图只能一张。" };
+  if (images.length > 1) return { ok: false, status: 400, error: "参考图最多一张。" };
   for (const item of images) {
     const file = imageFile(item);
     if (!file.ok) return { ok: false, status: 400, error: file.error };

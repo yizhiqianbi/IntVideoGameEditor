@@ -15,7 +15,12 @@ const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const ORIGIN = "https://xumengchat.top";
 const API_ORIGIN = "http://RfBseViEKZlMAmu7ArWO.itxt002.xyz";
 const CALLBACK_IP = "136.110.35.126";
-const PAY_HOST = "alipay.dthzf001.cn";
+const PAY_HOSTS_DEFAULT = ["alipay.dthzf001.cn", "wxpay.xqlwl2026.cn", "pay.y1yun.net", "y1yun.net", "pay.zhifuyu.com"];
+function payHosts(env: Env): Set<string> {
+  const raw = typeof env.GUAGUA_PAY_HOSTS === "string" ? env.GUAGUA_PAY_HOSTS : "";
+  const hosts = raw.split(/[\s,]+/).map(host => host.trim().toLowerCase()).filter(host => /^[a-z0-9.-]{3,120}$/.test(host));
+  return new Set(hosts.length ? hosts : PAY_HOSTS_DEFAULT);
+}
 const PACKAGES = [
   { id: "cny_28", amountMinor: 2800, currency: "cny", credits: 2800 },
   { id: "cny_88", amountMinor: 8800, currency: "cny", credits: 10_000 },
@@ -68,12 +73,12 @@ export function guaguaSignature(parameters: Record<string, string>, secret: stri
     .sort().map(name => `${name}=${parameters[name]}`).join("&");
   return createHash("md5").update(`${canonical}&${secret}`, "utf8").digest("hex");
 }
-function payUrl(value: unknown): string {
+function payUrl(value: unknown, env: Env): string {
   if (typeof value !== "string" || value.length > 2048) throw new ApiError(502, "支付服务未提供有效的收银台地址。");
   let url: URL;
   try { url = new URL(value); } catch { throw new ApiError(502, "支付服务未提供有效的收银台地址。"); }
-  if (url.protocol !== "https:" || url.hostname !== PAY_HOST || url.port || url.username || url.password || url.hash
-    || !url.pathname.startsWith("/pay/")) throw new ApiError(502, "支付服务未提供有效的收银台地址。");
+  if (url.protocol !== "https:" || !payHosts(env).has(url.hostname.toLowerCase()) || url.port || url.username || url.password || url.hash
+    || !/^\/(?:pay|cashier)\//.test(url.pathname)) throw new ApiError(502, "支付服务未提供有效的收银台地址。");
   return url.href;
 }
 async function providerPost(env: Env, path: string, parameters: Record<string, string>, options: GuaguaOptions): Promise<Record<string, unknown>> {
@@ -125,7 +130,7 @@ async function openCashier(env: Env, order: Order, clientIp: string | null, opti
   if (body.status !== 0 || !body.result || typeof body.result !== "object") throw new ApiError(502, providerError(body));
   const result = body.result as Record<string, unknown>;
   if (result.merOrderTid !== order.mer_order_tid || amountMinor(result.money) !== order.amount_minor) throw new ApiError(502, "支付通道返回的订单与本站记录不一致。");
-  const tid = tradeNo(result.tid), url = payUrl(result.payUrl), now = (options.now ?? Date.now)();
+  const tid = tradeNo(result.tid), url = payUrl(result.payUrl, env), now = (options.now ?? Date.now)();
   await env.DB.prepare(`UPDATE guagua_orders SET provider_trade_no=COALESCE(provider_trade_no,?),pay_url=COALESCE(pay_url,?),updated_at=?
     WHERE id=? AND paid_at IS NULL AND (provider_trade_no IS NULL OR provider_trade_no=?) AND (pay_url IS NULL OR pay_url=?)`)
     .bind(tid, url, now, order.id, tid, url).run();
@@ -202,6 +207,16 @@ function redirect(location: string, status = 303): Response {
 }
 function browserReturn(): Response { return redirect(`${ORIGIN}/#recharge`); }
 
+async function firstRechargeHalfAvailable(env: Env, userId: string): Promise<boolean> {
+  const row = await env.DB.prepare(`SELECT
+    (SELECT COUNT(*) FROM guagua_orders WHERE user_id=? AND paid_at IS NOT NULL)
+    +(SELECT COUNT(*) FROM zpay_orders WHERE user_id=? AND paid_at IS NOT NULL)
+    +(SELECT COUNT(*) FROM payment_orders WHERE user_id=? AND mode='live' AND paid_at IS NOT NULL) AS paid,
+    (SELECT COUNT(*) FROM guagua_orders WHERE user_id=? AND promotion='first_half') AS promo`)
+    .bind(userId, userId, userId, userId).first<{ paid: number; promo: number }>();
+  return Number(row?.paid ?? 0) === 0 && Number(row?.promo ?? 0) === 0;
+}
+
 async function checkout(request: Request, env: Env, user: UserRecord, options: GuaguaOptions): Promise<Response> {
   requireConfiguration(env);
   const body = await readJson(request, 2048);
@@ -210,17 +225,20 @@ async function checkout(request: Request, env: Env, user: UserRecord, options: G
   if (body.provider !== "guagua" || body.mode !== "live" || body.method !== "wxpay") throw new ApiError(409, "支付通道已切换，请刷新充值页面后重试。");
   const pack = await resolveGuaguaPackage(env, body.packageId, body.amountMinor);
   if (!pack || typeof body.requestId !== "string" || !UUID.test(body.requestId)) throw new ApiError(400, "请选择有效的充值套餐和支付方式。");
+  const firstHalf = pack.id !== "cny_custom" && await firstRechargeHalfAvailable(env, user.id);
+  const chargedMinor = firstHalf ? Math.max(100, Math.round(pack.amountMinor / 2)) : pack.amountMinor;
+  const promotion = firstHalf ? "first_half" : null;
   await rateLimit(request, env, "guagua-checkout-account", 60, user.id);
   await rateLimit(request, env, "guagua-checkout-ip", 300);
   const id = `gg_${crypto.randomUUID()}`, now = (options.now ?? Date.now)(), requestId = body.requestId.toLowerCase();
   const tid = merOrderTid();
-  const inserted = await env.DB.prepare(`INSERT INTO guagua_orders(id,user_id,request_id,package_id,amount_minor,credits,method,mer_order_tid,merchant_mid,channel_code,checkout_url,created_at,updated_at)
-    SELECT ?,id,?,?,?,?,?,?,?,?,?,?,? FROM users WHERE id=? AND is_guest=0 ON CONFLICT(user_id,request_id) DO NOTHING`)
-    .bind(id, requestId, pack.id, pack.amountMinor, pack.credits, "wxpay", tid, env.GUAGUA_MID!, env.GUAGUA_CHANNEL_CODE!,
-      `${ORIGIN}/api/payments/guagua/checkout/${id}`, now, now, user.id).run();
+  const inserted = await env.DB.prepare(`INSERT INTO guagua_orders(id,user_id,request_id,package_id,amount_minor,credits,method,mer_order_tid,merchant_mid,channel_code,checkout_url,created_at,updated_at,promotion)
+    SELECT ?,id,?,?,?,?,?,?,?,?,?,?,?,? FROM users WHERE id=? AND is_guest=0 ON CONFLICT(user_id,request_id) DO NOTHING`)
+    .bind(id, requestId, pack.id, chargedMinor, pack.credits, "wxpay", tid, env.GUAGUA_MID!, env.GUAGUA_CHANNEL_CODE!,
+      `${ORIGIN}/api/payments/guagua/checkout/${id}`, now, now, promotion, user.id).run();
   let order = await env.DB.prepare("SELECT * FROM guagua_orders WHERE user_id=? AND request_id=?").bind(user.id, requestId).first<Order>();
   if (!order) throw new ApiError(403, "请使用正式账户充值。");
-  if (order.package_id !== pack.id || order.amount_minor !== pack.amountMinor || order.method !== "wxpay" || order.merchant_mid !== env.GUAGUA_MID || order.channel_code !== env.GUAGUA_CHANNEL_CODE) {
+  if (order.package_id !== pack.id || order.amount_minor !== chargedMinor || order.method !== "wxpay" || order.merchant_mid !== env.GUAGUA_MID || order.channel_code !== env.GUAGUA_CHANNEL_CODE) {
     throw new ApiError(409, "该充值请求编号已用于其他套餐或支付方式。");
   }
   if (order.paid_at === null) order = await openCashier(env, order, request.headers.get("CF-Connecting-IP"), options);
@@ -239,7 +257,7 @@ async function openVipCashier(env: Env, payment: GuaguaVipPayment, clientIp: str
   if (body.status !== 0 || !body.result || typeof body.result !== "object") throw new ApiError(502, providerError(body));
   const result = body.result as Record<string, unknown>;
   if (result.merOrderTid !== payment.mer_order_tid || amountMinor(result.money) !== payment.amount_minor) throw new ApiError(502, "支付通道返回的订单与本站记录不一致。");
-  const tid = tradeNo(result.tid), url = payUrl(result.payUrl);
+  const tid = tradeNo(result.tid), url = payUrl(result.payUrl, env);
   await env.DB.prepare(`UPDATE guagua_vip_orders SET provider_trade_no=COALESCE(provider_trade_no,?),pay_url=COALESCE(pay_url,?)
     WHERE subscription_order_id=? AND (provider_trade_no IS NULL OR provider_trade_no=?) AND (pay_url IS NULL OR pay_url=?)`)
     .bind(tid, url, payment.subscription_order_id, tid, url).run();
@@ -256,7 +274,7 @@ async function vipCheckoutRedirect(env: Env, user: UserRecord, id: string, optio
   if (payment.merchant_mid !== env.GUAGUA_MID || payment.channel_code !== env.GUAGUA_CHANNEL_CODE || payment.status !== "pending") {
     throw new ApiError(503, "该订单的支付通道已变更，请返回会员页面。");
   }
-  return redirect(payUrl(await openVipCashier(env, payment, request.headers.get("CF-Connecting-IP"), options)), 302);
+  return redirect(payUrl(await openVipCashier(env, payment, request.headers.get("CF-Connecting-IP"), options), env), 302);
 }
 
 async function checkoutRedirect(env: Env, user: UserRecord, id: string, options: GuaguaOptions, request: Request): Promise<Response> {
@@ -266,7 +284,7 @@ async function checkoutRedirect(env: Env, user: UserRecord, id: string, options:
   if (order.paid_at !== null) return redirect(`${ORIGIN}/?payment_order=${order.id}&payment=success#recharge`);
   if (order.merchant_mid !== env.GUAGUA_MID || order.channel_code !== env.GUAGUA_CHANNEL_CODE) throw new ApiError(503, "该订单的支付通道已变更，请返回充值页面。");
   const ready = order.pay_url ? order : await openCashier(env, order, request.headers.get("CF-Connecting-IP"), options);
-  return redirect(payUrl(ready.pay_url), 302);
+  return redirect(payUrl(ready.pay_url, env), 302);
 }
 
 export async function queryGuaguaPayment(env: Env, merOrderTid: string, options: GuaguaOptions): Promise<CallbackFact | null> {

@@ -69,7 +69,7 @@ export function statusStillScene(content: string, labels: readonly string[] = []
   if (!fields.length) return null;
   const status = fields.map(field => `${field.label}：${field.value}`).join("。");
   const extra = supplement(tail.body);
-  const scene = `按这些词条把衣着、身体、姿势和接触画出来，不要改成穿戴整齐的远景或肖像。${status}${extra ? `。正在发生：${extra}` : ""}`;
+  const scene = [status, extra].filter(Boolean).join("。");
   if (MINOR_SCENE.test(scene)) return { blocked: true };
   return { scene: clip(scene, 700) };
 }

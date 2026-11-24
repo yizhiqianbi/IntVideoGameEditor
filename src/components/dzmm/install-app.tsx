@@ -160,6 +160,15 @@ export function InstallApp({ onBack, locale = "zh-Hans" }: { onBack?: () => void
       </div>
     </div>
 
+    <div className={styles.apkCard}>
+      <div className={styles.apkCopy}>
+        <span className={styles.apkKicker}>Android APK</span>
+        <h3>直接安装安卓客户端</h3>
+        <p>测试版 0.1.0 · 约 16 MB · 支持 Android 8.0 及以上</p>
+      </div>
+      <a className={styles.apkButton} href="/download/xumeng-android.apk" download>下载 APK</a>
+    </div>
+
     <div className={styles.installArea}>
       <div className={styles.availability}>
         <span className={styles.statusIcon}><Icon type={complete ? "check" : "install"} /></span>

@@ -1,0 +1,408 @@
+{
+  "asOf": "2026-10-13T23:27:19.559632+00:00",
+  "defaultModel": "x-apex-surge-0505",
+  "language": "zh-CN",
+  "modelCount": 44,
+  "categories": [
+    {
+      "key": "xl",
+      "name": "XL系列",
+      "groups": [
+        {
+          "seriesKey": "XL-0826",
+          "description": "稳定均衡，承接清楚，适合常规长聊",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "nalang-xl-0826-10k",
+              "displayName": "XL-0826 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "nalang-xl-0826-16k",
+              "displayName": "XL-0826 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "nalang-xl-0826",
+              "displayName": "XL-0826 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "apex",
+      "name": "Apex系列",
+      "groups": [
+        {
+          "seriesKey": "Surge-0505",
+          "description": "情绪反应快，互动感强，适合高代入角色扮演",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-surge-0505-16k",
+              "displayName": "Surge-0505 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-surge-0505",
+              "displayName": "Surge-0505 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Surge-0923-b",
+          "description": "情绪反应快，互动感强，适合高代入角色扮演",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-surge-0923-b-16k",
+              "displayName": "Surge-0923-b (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-surge-0923-b",
+              "displayName": "Surge-0923-b (32K)",
+              "maxContext": 32000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Surge-0923-a",
+          "description": "情绪反应快，互动感强，适合高代入角色扮演",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-surge-0923-a-16k",
+              "displayName": "Surge-0923-a (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-surge-0923-a",
+              "displayName": "Surge-0923-a (32K)",
+              "maxContext": 32000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Dash-0826",
+          "description": "响应更快、积分消耗更低，适合长对话高频互动",
+          "thinkingSupported": true,
+          "forceThinking": true,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-dash-0826-16k",
+              "displayName": "Dash-0826 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-dash-0826",
+              "displayName": "Dash-0826 (32K)",
+              "maxContext": 32000
+            },
+            {
+              "internalName": "x-apex-dash-0826-64k",
+              "displayName": "Dash-0826 (64K)",
+              "maxContext": 64000
+            },
+            {
+              "internalName": "x-apex-dash-0826-128k",
+              "displayName": "Dash-0826 (128K)",
+              "maxContext": 128000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Pulse-0731",
+          "description": "兼顾响应速度与细节表现，适合长对话和高频剧情互动",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-pulse-0731-16k",
+              "displayName": "Pulse-0731 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-pulse-0731",
+              "displayName": "Pulse-0731 (32K)",
+              "maxContext": 32000
+            },
+            {
+              "internalName": "x-apex-pulse-0731-64k",
+              "displayName": "Pulse-0731 (64K)",
+              "maxContext": 64000
+            },
+            {
+              "internalName": "x-apex-pulse-0731-128k",
+              "displayName": "Pulse-0731 (128K)",
+              "maxContext": 128000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Dash-0727",
+          "description": "响应更快、积分消耗更低，适合长对话高频互动",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-dash-0727-16k",
+              "displayName": "Dash-0727 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-dash-0727",
+              "displayName": "Dash-0727 (32K)",
+              "maxContext": 32000
+            },
+            {
+              "internalName": "x-apex-dash-0727-64k",
+              "displayName": "Dash-0727 (64K)",
+              "maxContext": 64000
+            },
+            {
+              "internalName": "x-apex-dash-0727-128k",
+              "displayName": "Dash-0727 (128K)",
+              "maxContext": 128000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Sigma-0829",
+          "description": "长线剧情旗舰，结构清楚，适合复杂设定和大篇幅展开",
+          "thinkingSupported": true,
+          "forceThinking": true,
+          "minMembershipLevel": 3,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-sigma-0829-16k",
+              "displayName": "Sigma-0829 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-sigma-0829",
+              "displayName": "Sigma-0829 (32K)",
+              "maxContext": 32000
+            },
+            {
+              "internalName": "x-apex-sigma-0829-64k",
+              "displayName": "Sigma-0829 (64K)",
+              "maxContext": 64000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Flux-0217",
+          "description": "画面感强，场景推进快，适合沉浸式剧情互动",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-flux-0217-10k",
+              "displayName": "Flux-0217 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "x-apex-flux-0217-16k",
+              "displayName": "Flux-0217 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-flux-0217",
+              "displayName": "Flux-0217 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Sigma-0621",
+          "description": "长线剧情旗舰，结构清楚，适合复杂设定和大篇幅展开",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 3,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-sigma-0621-16k",
+              "displayName": "Sigma-0621 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-sigma-0621",
+              "displayName": "Sigma-0621 (32K)",
+              "maxContext": 32000
+            },
+            {
+              "internalName": "x-apex-sigma-0621-64k",
+              "displayName": "Sigma-0621 (64K)",
+              "maxContext": 64000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Prism-0626",
+          "description": "高密度沉浸派，刺激直给，适合强场景",
+          "thinkingSupported": false,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "x-apex-prism-0408-16k",
+              "displayName": "Prism-0626 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "x-apex-prism-0408",
+              "displayName": "Prism-0626 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "max",
+      "name": "Max系列",
+      "groups": [
+        {
+          "seriesKey": "Max-0826",
+          "description": "旗舰稳定款，叙事顺滑，承接直接，适合高质量长聊",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "nalang-max-0826-10k",
+              "displayName": "Max-0826 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "nalang-max-0826-16k",
+              "displayName": "Max-0826 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "nalang-max-0826",
+              "displayName": "Max-0826 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "turbo",
+      "name": "Turbo系列",
+      "groups": [
+        {
+          "seriesKey": "Turbo-0101",
+          "description": "低消耗均衡款，适合轻量日常聊天",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "nalang-turbo-1115-10k",
+              "displayName": "Turbo-0101 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "nalang-turbo-1115-16k",
+              "displayName": "Turbo-0101 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "nalang-turbo-1115",
+              "displayName": "Turbo-0101 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        },
+        {
+          "seriesKey": "Turbo-0826",
+          "description": "旧版低消耗模型，适合基础聊天",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "nalang-turbo-0826-10k",
+              "displayName": "Turbo-0826 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "nalang-turbo-0826-16k",
+              "displayName": "Turbo-0826 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "nalang-turbo-0826",
+              "displayName": "Turbo-0826 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "medium",
+      "name": "Medium系列",
+      "groups": [
+        {
+          "seriesKey": "Medium-0826",
+          "description": "轻量耐用，互动自然，适合日常陪伴和中低消耗长聊",
+          "thinkingSupported": true,
+          "forceThinking": false,
+          "minMembershipLevel": 0,
+          "thinkingMinMembershipLevel": 1,
+          "advertisedContexts": [
+            {
+              "internalName": "nalang-medium-0826-10k",
+              "displayName": "Medium-0826 (10K)",
+              "maxContext": 10000
+            },
+            {
+              "internalName": "nalang-medium-0826-16k",
+              "displayName": "Medium-0826 (16K)",
+              "maxContext": 16000
+            },
+            {
+              "internalName": "nalang-medium-0826",
+              "displayName": "Medium-0826 (32K)",
+              "maxContext": 32000
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

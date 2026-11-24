@@ -1,0 +1,22 @@
+{
+  "success": true,
+  "total": 0,
+  "plugins": [],
+  "native_runtime_startup_evidence": [
+    "10-18 12:54:24 [核心插件] 已启动：pid=18748，RPC=/var/folders/20/n3282y95595g3fzknflnlzsc0000gn/T/maibot-plugin-18481-e690e3be.sock，已加载=1（builtin.plugin-management），失败=0，未激活=0",
+    "10-18 12:54:24 [扩展插件] 已启动：pid=18749，RPC=/var/folders/20/n3282y95595g3fzknflnlzsc0000gn/T/maibot-plugin-18481-c4521db4.sock，已加载=0，失败=0，未激活=0",
+    "10-18 12:54:24 [IPC插件系统] 已启动 2 个独立插件运行时：核心插件（内置插件与适配器）；扩展插件（第三方扩展）"
+  ],
+  "registered_commands": [
+    {
+      "id": "core.clear",
+      "plugin_name": "MaiBot 核心",
+      "enabled": true
+    },
+    {
+      "id": "builtin.plugin-management.management",
+      "plugin_name": "builtin.plugin-management",
+      "enabled": true
+    }
+  ]
+}

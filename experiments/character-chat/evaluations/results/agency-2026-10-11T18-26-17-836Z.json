@@ -1,0 +1,16 @@
+{
+  "status": "planned",
+  "startedAt": "2026-10-11T18:26:17.837Z",
+  "plannedCalls": 6,
+  "actualCalls": 0,
+  "design": "两位角色各一次自主事项、一次具体主动机会、一次告别。模拟时间及旧续聊预算耗尽；不证明真实离线送达。不自动打可爱分。",
+  "steps": [],
+  "files": {
+    "engine.mjs": "15bba808792ed15cc67227c9a7a15d16d6e20c6ada66f37b4995fd3e5a2c4f87",
+    "proactive-runtime.mjs": "8eb322578f06bcc642e3638ea399f3ddb0e3ef932240f60665c4e673ca25403a",
+    "provider.mjs": "d1b85a32293a08d2ffb5184a2e9e2e12bf04b02ebd8c8adaf2ee678f6f751281",
+    "characters.mjs": "434a3807f56896d4bda99b45ad2e2d5c0ff7672b423898bf27744633d8a2ec48"
+  },
+  "model": "x-ai/grok-4.6",
+  "reasoningEffort": "low"
+}

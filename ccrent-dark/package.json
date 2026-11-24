@@ -1,0 +1,16 @@
+{
+  "name": "ccrent-dark-replica",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dark-theme static replica of ccrent.org — 海外 Mac mini 租用落地页",
+  "type": "module",
+  "scripts": {
+    "start": "node tools/serve.mjs",
+    "build": "node tools/build.mjs",
+    "deploy": "npm run build && npx wrangler@4 pages deploy dist --project-name ccrent-dark --branch main",
+    "preview:prod": "open https://ccrent.cc",
+    "og": "node tools/og.mjs",
+    "seo:indexnow": "node tools/indexnow.mjs",
+    "analytics": "node tools/analytics.mjs"
+  }
+}

@@ -173,7 +173,14 @@ export function h3CanvasGraph(refs: { images: string[]; videos: string[]; audios
 }
 
 function canvasPrompt(value: string): string | null {
-  const cleaned = value.replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 1000);
+  const cleaned = value
+    .replace(/[\u0000-\u0009\u000b-\u001f]/g, " ")
+    .split("\n")
+    .map(line => line.replace(/[ \t]+/g, " ").trim())
+    .join("\n")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+    .slice(0, 1800);
   return cleaned || null;
 }
 

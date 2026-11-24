@@ -5,6 +5,7 @@ import { getDzmmCharacterMedia } from "@/lib/dzmm-character-media";
 import type { Character } from "@/lib/dzmm-characters";
 import { xumengCoverFrames } from "@/lib/xumeng-cover-frames";
 import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
+import { xumengHomeCover, xumengHomeMotion } from "@/lib/xumeng-home-covers";
 import { xumengCardCoverUrl, xumengCoverMissUrl, xumengImageUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import { CoverVisual } from "./cover-visual";
 import Icon from "./icons";
@@ -34,7 +35,18 @@ export function CoverReel({
   count?: "top" | "corner";
   children?: ReactNode;
 }) {
-  const frames = characterCoverFrames(character);
+  const shelfCover = xumengHomeCover(character.id);
+  const motionCover = xumengHomeMotion(character.id);
+  const [reduceMotion, setReduceMotion] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const apply = () => setReduceMotion(media.matches);
+    apply();
+    media.addEventListener("change", apply);
+    return () => media.removeEventListener("change", apply);
+  }, []);
+  const motion = reduceMotion ? undefined : motionCover;
+  const frames = shelfCover || motion ? [shelfCover || character.cover || XUMENG_FALLBACK_COVER] : characterCoverFrames(character);
   const frameKey = frames.join("\n");
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -43,19 +55,34 @@ export function CoverReel({
   const root = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; swiped: boolean } | null>(null);
   const safeIndex = frames.length ? ((index % frames.length) + frames.length) % frames.length : 0;
-  const original = xumengImageUrl(frames[safeIndex] || character.cover || XUMENG_FALLBACK_COVER);
-  const src = xumengCardCoverUrl(original);
+  const original = shelfCover || xumengImageUrl(frames[safeIndex] || character.cover || XUMENG_FALLBACK_COVER);
+  const poster = shelfCover || xumengCardCoverUrl(original);
+  const src = motion || poster;
 
   useEffect(() => { setIndex(0); }, [character.id, frameKey]);
 
   useEffect(() => {
     const node = root.current;
     if (!node || near) return;
+    const visible = () => {
+      const rect = node.getBoundingClientRect();
+      const viewHeight = window.innerHeight || document.documentElement.clientHeight;
+      return rect.width > 0 && rect.bottom > -200 && rect.top < viewHeight + 200;
+    };
+    if (visible()) {
+      setNear(true);
+      return;
+    }
+    const onScroll = () => { if (visible()) setNear(true); };
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
     const observer = new IntersectionObserver(([entry]) => {
       if (entry?.isIntersecting) setNear(true);
     }, { rootMargin: "200px 0px" });
     observer.observe(node);
-    return () => observer.disconnect();
+    return () => {
+      window.removeEventListener("scroll", onScroll, { capture: true });
+      observer.disconnect();
+    };
   }, [near]);
 
   useEffect(() => {
@@ -132,6 +159,7 @@ export function CoverReel({
         {near && (
           <CoverVisual
             src={src}
+            poster={motion ? poster : undefined}
             alt=""
             decoding="async"
             onImageError={(image) => {

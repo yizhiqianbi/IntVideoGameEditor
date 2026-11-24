@@ -1,0 +1,16 @@
+[
+  {
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1/resolve/c0781d039fb7a1ba2abc4add0bdc293e92d2b8db/tokenizer_config.json",
+    "revision": "c0781d039fb7a1ba2abc4add0bdc293e92d2b8db",
+    "file": "deepseek-v3.1-tokenizer_config.json",
+    "bytes": 3744,
+    "sha256": "f3d66f405ce0315c754a3cc041f13be863fefcd62c240068098efdbd1924f8b5"
+  },
+  {
+    "url": "https://huggingface.co/deepseek-ai/DeepSeek-V3.1/resolve/c0781d039fb7a1ba2abc4add0bdc293e92d2b8db/tokenizer.json",
+    "revision": "c0781d039fb7a1ba2abc4add0bdc293e92d2b8db",
+    "file": "deepseek-v3.1-tokenizer.json",
+    "bytes": 7847578,
+    "sha256": "32b34a41212e92f62e859cbbea121ae705a1fabbf157d9acf22d134ecd8dcf70"
+  }
+]

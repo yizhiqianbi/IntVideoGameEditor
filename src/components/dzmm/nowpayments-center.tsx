@@ -208,18 +208,18 @@ export function NowPaymentsCenter({ userId, isGuest, refreshKey = 0, onRequireAc
   return <section className={s.section} aria-labelledby="nowpayments-title">
     <div className={s.heading}><div><h3 id="nowpayments-title">USDT</h3><p>{duration} · 用钱包转账，确认后开通</p></div>
       <button type="button" className={s.outline} disabled={configLoading || working} onClick={() => void loadConfig()}><Icon name="refresh" size={14} />{configLoading ? "读取中…" : "刷新购买状态"}</button></div>
-    <div className={s.offer}><div><strong>{plan ? formatDzmmNowPaymentsAmount(plan.amountAtomic, plan.decimals) : "—"}<span> USDT / {duration}</span></strong><p>{plan ? `每天手动领取 ${plan.dailyCredits.toLocaleString("zh-CN")} Credit，每期最多 ${plan.maxClaims} 次；漏领不补。` : "正在核对会员方案。"}</p></div>
+    <div className={s.offer}><div><strong>{plan ? formatDzmmNowPaymentsAmount(plan.amountAtomic, plan.decimals) : "—"}<span> USDT / {duration}</span></strong><p>{plan ? `每天手动领取 ${plan.dailyCredits.toLocaleString("zh-CN")} 金币，每期最多 ${plan.maxClaims} 次；漏领不补。` : "正在核对会员方案。"}</p></div>
       <span className={ready ? s.open : s.closed}>{configLoading ? "读取中" : ready ? "可购买" : "暂未开放"}</span></div>
     {!ready && !configLoading && <p className={s.note}>USDT 购买暂未开放，已有会员权益与余额继续保留。</p>}
     {configError && <p className={s.error} role="status">{configError}</p>}
-    <p className={s.rules}>确认付款金额、币种和网络后，用自己的钱包手动转账。链上确认后由服务器开通会员；提前续订会接续当前有效期，不会自动扣款。</p>
+    <details className={s.fold}><summary>转账说明</summary><p className={s.rules}>确认付款金额、币种和网络后，用自己的钱包手动转账。链上确认后由服务器开通会员；提前续订会接续当前有效期，不会自动扣款。</p></details>
     <button type="button" className={s.primary} disabled={!ready || configLoading || working || !intentReady || !!storageError || hasUnresolved} onClick={() => void purchase()}>
       {working ? "正在核对…" : !ready ? "购买暂未开放" : isGuest ? "登录后购买 VIP" : hasUnresolved ? "先核对原购买记录" : `购买 / 续订 · ${plan ? formatDzmmNowPaymentsAmount(plan.amountAtomic, plan.decimals) : ""} USDT`}</button>
     {storageError && <div className={s.error} role="alert"><p>{storageError}</p><button type="button" className={s.outline} disabled={working} onClick={retryStorage}>恢复购买记录</button></div>}
     {(ownIntent || ownOrder || returnOrderId) && <div className={s.receipt} aria-label="USDT 购买记录" aria-live="polite" aria-busy={working}>
       <strong>{receipt?.title ?? "核对原购买记录"}</strong>
       <p>{receipt?.message ?? (notFound ? "已核对到原请求尚无订单。原方案和请求编号会保留；服务恢复后可重试这笔请求。" : "原购买请求已保留，正在核对服务器记录。")}</p>
-      {(ownOrder || ownIntent) && <p>原方案：{ownOrder?.label ?? ownIntent!.plan.label} · {formatDzmmNowPaymentsAmount(ownOrder?.amountAtomic ?? ownIntent!.plan.amountAtomic, 6)} USDT / {ownOrder?.durationDays ?? ownIntent!.plan.durationDays} 天，每日领取 {ownOrder?.dailyCredits ?? ownIntent!.plan.dailyCredits} Credit，最多 {ownOrder?.maxClaims ?? ownIntent!.plan.maxClaims} 次。</p>}
+      {(ownOrder || ownIntent) && <p>原方案：{ownOrder?.label ?? ownIntent!.plan.label} · {formatDzmmNowPaymentsAmount(ownOrder?.amountAtomic ?? ownIntent!.plan.amountAtomic, 6)} USDT / {ownOrder?.durationDays ?? ownIntent!.plan.durationDays} 天，每日领取 {ownOrder?.dailyCredits ?? ownIntent!.plan.dailyCredits} 金币，最多 {ownOrder?.maxClaims ?? ownIntent!.plan.maxClaims} 次。</p>}
       {!ready && !configLoading && ownOrder && !isDzmmNowPaymentsFinal(ownOrder) && <p>当前购买通道暂未开放，请勿继续转账；原订单仍可核对。</p>}
       {ready && !configLoading && ownOrder?.payAddress && ownOrder.payAmount && !isDzmmNowPaymentsFinal(ownOrder) && <div className={s.cashier} aria-label="USDT 付款资料">
         <dl><div><dt>准确付款金额</dt><dd>{ownOrder.payAmount} USDT</dd></div><div><dt>转账网络</dt><dd>TRON（TRC20）</dd></div></dl>

@@ -34,6 +34,9 @@ function withProviderNickname(state: DzmmSavedState, user: DzmmCloudUser): DzmmS
   return { ...state, preferences: { ...state.preferences, nickname: account } };
 }
 
+/** Local snapshots are skipped above this size because they duplicate the same state 2–3×. */
+const LOCAL_BACKUP_MAX_CHARS = 700_000;
+
 export class DzmmCloudError extends Error {
   constructor(public status: number, message: string, public data?: unknown) { super(message); this.name = "DzmmCloudError"; }
 }
@@ -172,28 +175,33 @@ export function useDzmmCloud({ busy, onNotice }: { busy: boolean; onNotice: (mes
 
   const persist = useCallback((snapshot: DzmmSavedState, id = userRef.current?.id ?? backupOwner.current,
     recovery = false, acknowledged?: DzmmSavedState) => {
-    const dirty = serialize(snapshot) !== savedRef.current;
+    const snapshotRaw = serialize(snapshot);
+    const dirty = snapshotRaw !== savedRef.current;
+    // Large accounts exceed the origin's localStorage quota quickly (the
+    // recovery journal and the acknowledged copy each duplicate the state).
+    // Cloud sync is authoritative, so skip local snapshots for these accounts.
+    const tooLargeForLocal = snapshotRaw.length > LOCAL_BACKUP_MAX_CHARS;
     const backup: DzmmCloudBackup = { accountId: id, state: snapshot, version: versionRef.current, updatedAt: Date.now(), dirty };
     let preserved = true;
     let failure: unknown;
     try {
-      if (dirty || recovery) ownJournal.current = writeDzmmCloudRecovery(backup, writerId.current!, localStorage, ownJournal.current);
-      else if (ownJournal.current?.accountId === id) {
+      if (!tooLargeForLocal && (dirty || recovery)) ownJournal.current = writeDzmmCloudRecovery(backup, writerId.current!, localStorage, ownJournal.current);
+      else if (!tooLargeForLocal && ownJournal.current?.accountId === id) {
         clearOwnDzmmCloudRecovery(ownJournal.current, writerId.current!, localStorage);
         ownJournal.current = null;
       }
-    } catch (error) { preserved = false; failure = error; }
+    } catch (error) { if (!tooLargeForLocal) { preserved = false; failure = error; } }
     // Even if persistent storage is full, keep this tab reloadable where the
     // independent session store remains available. Destructive operations abort.
     try { sessionStorage.setItem(dzmmCloudTabBackupKey(id), JSON.stringify(backup)); }
-    catch (error) { preserved = false; failure ??= error; }
+    catch (error) { if (!tooLargeForLocal) { preserved = false; failure ??= error; } }
     try {
-      if (acknowledged) localStorage.setItem(dzmmCloudBackupKey(id), JSON.stringify({ ...backup, state: acknowledged, dirty: false }));
-      localStorage.setItem(OWNER_KEY, id);
-    } catch (error) { if (acknowledged) { preserved = false; failure ??= error; } }
+      if (acknowledged && !tooLargeForLocal) localStorage.setItem(dzmmCloudBackupKey(id), JSON.stringify({ ...backup, state: acknowledged, dirty: false }));
+      if (!tooLargeForLocal) localStorage.setItem(OWNER_KEY, id);
+    } catch (error) { if (acknowledged && !tooLargeForLocal) { preserved = false; failure ??= error; } }
     if (!preserved) {
       if (!storageWarning.current) onNoticeRef.current(failure instanceof Error && failure.message.includes("容量已满")
-        ? failure.message : "浏览器备份无法完整保存，请先导出记录；加载云端或恢复操作已暂停。");
+        ? failure.message : "本地浏览器空间不足，本地快照已跳过；云端同步不受影响，可继续使用。");
       storageWarning.current = true;
     } else storageWarning.current = false;
     refreshBackups(id);

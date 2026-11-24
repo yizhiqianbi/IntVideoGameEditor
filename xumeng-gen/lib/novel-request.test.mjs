@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { withNovelFormatInstruction } from "./novel-format.mjs";
 import {
   GENERATE_DEFAULT_COUNT,
   CONTINUE_DEFAULT_COUNT,
@@ -35,7 +36,7 @@ test("new-write payload includes all fields and defaults count to 4000", () => {
     description: "一个三十岁的旅人走进港口旧书店。",
     character_setting: "旅人沉稳少言。",
     location_scene: "多雾的港口。",
-    details: "用纪实口吻写。",
+    details: withNovelFormatInstruction("用纪实口吻写。"),
     count: String(GENERATE_DEFAULT_COUNT),
   });
   assert.deepEqual(built.files, {});
@@ -59,8 +60,9 @@ test("character setting is required and other blanks are omitted", () => {
     count: "4000",
   });
   assert.equal(built.ok, true);
-  assert.deepEqual(Object.keys(built.values).sort(), ["character_setting", "count", "description"]);
+  assert.deepEqual(Object.keys(built.values).sort(), ["character_setting", "count", "description", "details"]);
   assert.equal(built.values.count, "4000");
+  assert.match(built.values.details, /标题：/);
 });
 
 test("missing plot is rejected", () => {

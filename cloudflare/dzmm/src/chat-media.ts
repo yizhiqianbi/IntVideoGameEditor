@@ -16,6 +16,10 @@ export { chatMediaSourceHash };
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { isDzmmCoverVideoUrl } from "../../../src/lib/dzmm-cover-media";
 import { rememberChatImage } from "./relationship-album";
+import { refineChatScenePrompt } from "../../../src/lib/xumeng-aigen-prompt";
+import { CHAT_STILL_MODEL } from "../../../src/lib/xumeng-chat-prompt-format";
+import { composeTavernImagePrompt, parseTavernImageGeneration, type TavernImageGeneration } from "../../../src/lib/tavern/image-generation";
+import { readTavernFlags } from "../../../src/lib/tavern/flags";
 
 type Kind = "audio" | "image";
 type AiRunner = { run(model: string, input: Record<string, unknown>): Promise<unknown> };
@@ -88,16 +92,18 @@ async function conversationSpeechVoice(env: Env, userId: string, conversationId:
     return fallback;
   }
 }
-type StatusContext = { labels: string[]; initial: string };
+type StatusContext = { labels: string[]; initial: string; appearance: string };
 async function statusContext(env: Env, userId: string, conversationId: string): Promise<StatusContext> {
-  const row = await env.DB.prepare(`SELECT c.context_json AS context_json FROM conversations v
+  const row = await env.DB.prepare(`SELECT c.context_json AS context_json, c.description AS description FROM conversations v
     JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
-    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string }>();
-  if (!row?.context_json) return { labels: [], initial: "" };
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ context_json: string; description: string | null }>();
+  if (!row) return { labels: [], initial: "", appearance: "" };
+  let appearance = "";
   try {
-    const parsed = JSON.parse(row.context_json) as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown } };
+    const parsed = JSON.parse(row.context_json || "{}") as { statusBar?: { template?: unknown; initialState?: unknown; updateRules?: unknown }; appearance?: unknown };
+    if (typeof parsed.appearance === "string" && parsed.appearance.trim()) appearance = parsed.appearance.replace(/\s+/g, " ").trim().slice(0, 160);
     const bar = parsed.statusBar;
-    if (!bar || typeof bar !== "object") return { labels: [], initial: "" };
+    if (!bar || typeof bar !== "object") return { labels: [], initial: "", appearance };
     const normalized = {
       template: typeof bar.template === "string" ? bar.template : "",
       initialState: typeof bar.initialState === "string" ? bar.initialState : "",
@@ -107,9 +113,9 @@ async function statusContext(env: Env, userId: string, conversationId: string): 
       .filter(field => field.value.trim() && field.value.trim() !== "未记录")
       .map(field => `${field.label}：${field.value}`)
       .join("\n");
-    return { labels: xumengStatusBarLabels(normalized), initial };
+    return { labels: xumengStatusBarLabels(normalized), initial, appearance };
   } catch {
-    return { labels: [], initial: "" };
+    return { labels: [], initial: "", appearance };
   }
 }
 async function mediaNarrative(env: Env, userId: string, conversationId: string, messageId: string, source: MessageRow): Promise<string> {
@@ -234,52 +240,35 @@ export function chatScenePrompt(content: string): string {
   return prefix + visual.slice(0, 2048 - prefix.length).replace(/[\ud800-\udbff]$/, "");
 }
 const MINOR_SCENE = /校服|小学生|中学生|高中生|初中生|幼女|幼男|萝莉|正太|未成年|儿童|underage|\bloli\b|\bshota\b/i;
-const STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。输入的参考图是唯一的角色身份、构图和连续性锚点；上一张已生成的剧情图片存在时，必须优先参考上一张做连续生图，保持同一张脸、发型、肤色、体型、服装轮廓、主要颜色、镜头关系和画风；如果这是第一张或上一张已不可用，则使用角色封面作为身份锚点。不要把参考图当成灵感图，也不要换成另一个人。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景；状态字段是当前画面的硬约束，低数值不要夸张，高数值不要省略。这一刻：";
-const TEXT_STILL_PREFIX = "第一人称主观视角，镜头就是你的眼睛。面前的角色看着你。不要画出你的脸。先理解状态字段的隐含语义，再逐项落实衣着、身体状态、姿势、接触、表情和场景。这一刻：";
-const STILL_SUFFIX = "。所有人物均为自愿成年人；无文字、无水印、无未成年人、无幼态面孔、无校服。";
-const STATUS_LABEL_CUES: [RegExp, string][] = [
-  [/性欲|兴奋|唤起/u, "唤起程度按数值和备注呈现，不自行升级"],
-  [/奶水|乳房|胸部|乳/u, "胸部状态只按数值和备注呈现，不用默认夸张体型替代"],
-  [/服装|衣着|穿着/u, "服装状态是当前穿着的硬约束，不要自动改成完整默认服装"],
-  [/表情|神态|目光|眼神/u, "表情、目光和面部动作按字段执行"],
-  [/疲劳|体力|负荷/u, "疲劳程度影响姿势、动作幅度和精神状态"],
-  [/私处|下体|身体状态/u, "身体状态按字段执行，不用无关的默认状态覆盖"],
-  [/地点|位置|场景|环境/u, "地点和环境决定背景、灯光与空间关系"],
-];
-function statusVisualCues(scene: string): string {
-  const cues = [...scene.matchAll(/([^：。]{1,16})：([^。]+)/gu)].flatMap((match) => {
-    const label = match[1]?.trim() ?? "";
-    const value = match[2]?.trim() ?? "";
-    if (!label || !value) return [];
-    const rule = STATUS_LABEL_CUES.find(([pattern]) => pattern.test(label))?.[1];
-    return [`${label}=${value}${rule ? `（${rule}）` : ""}`];
-  });
-  return cues.length ? `状态字段视觉映射：${cues.slice(0, 16).join("；")}。` : "";
+/** Status labels that actually describe what the camera should see. Anything
+ * else (abilities, prizes, inner monologue) is story state, not a picture. */
+const VISUAL_STATUS = /衣|服|裸|胸|乳|腿|腰|臀|唇|吻|湿|液|身|体|肌|私|性|姿|势|动|作|表|情|神|目|视|脸|发|手|抱|跪|躺|坐|站|靠|地点|位置|场景|环境|光|氛围/u;
+/** The reference image carries identity and medium. The text is only the scene already written in the chat. */
+export function stillPrompt(scene: string, _reference = true, _options: { appearance?: string; legacy?: boolean; statusScene?: boolean } = {}): string {
+  void _reference;
+  void _options;
+  return Array.from(scene.replace(/\s+/g, " ").trim()).slice(0, 1400).join("").replace(/[\ud800-\udbff]$/, "");
 }
-function stillPrompt(scene: string, reference: boolean): string {
-  const prefix = reference ? STILL_PREFIX : TEXT_STILL_PREFIX;
-  const semantic = statusVisualCues(scene);
-  const budget = 1400 - Array.from(prefix + semantic + STILL_SUFFIX).length;
-  return prefix + semantic + Array.from(scene).slice(0, Math.max(0, budget)).join("").replace(/[\ud800-\udbff]$/, "") + STILL_SUFFIX;
-}
-/** Scene text for Qwen Image. A cover keeps identity on the reference; otherwise the scene is text-to-image. */
-export function chatStillPrompt(content: string, reference = true): string | null {
+
+/** Scene text for the still. Identity stays on the reference image; this text is only the reply. */
+export function chatStillPrompt(content: string, reference = true, options: { appearance?: string; legacy?: boolean } = {}): string | null {
   const cleaned = cleanChatMediaText(content);
   if (!cleaned || MINOR_SCENE.test(cleaned)) return null;
   const scene = cleaned.split(/(?<=[。！？.!?])\s*|\n+/u).map(part => part.trim()).filter(part => part && !INSTRUCTION.test(part)).join("");
   if (!scene) return null;
-  return stillPrompt(scene, reference);
+  return stillPrompt(scene, reference, options);
 }
-/** The chosen shot is already capped at 800 characters. Keep the adult prefix without cutting the shot. */
-export function illustrationStillPrompt(scene: string, reference = true): string | null {
+/** The chosen shot is already capped at 800 characters. Pass that scene through unchanged. */
+export function illustrationStillPrompt(scene: string, reference = true, options: { appearance?: string; legacy?: boolean } = {}): string | null {
   const cleaned = cleanChatMediaText(scene);
   if (!cleaned || MINOR_SCENE.test(cleaned) || Array.from(cleaned).length > 800) return null;
   const kept = cleaned.split(/(?<=[。！？.!?])\s*|\n+/u).map(part => part.trim()).filter(part => part && !INSTRUCTION.test(part)).join("");
   if (!kept) return null;
-  return stillPrompt(kept, reference);
+  return stillPrompt(kept, reference, options);
 }
 const COVER_BYTES = 4_500_000;
-const OWNED_MEDIA = /^\/api\/dzmm\/backend\/v1\/media\/([A-Za-z0-9-]+)\/([a-f0-9-]+\.(?:png|jpg|webp|gif))$/;
+// Older uploads have no file extension at all, e.g. /media/<user>/<uuid>.
+const OWNED_MEDIA = /^\/api\/(?:dzmm\/)?backend\/v1\/media\/([A-Za-z0-9-]+)\/([A-Za-z0-9-]+(?:\.[A-Za-z0-9]{2,8})?)$/;
 function imageSignature(bytes: Uint8Array): boolean {
   const png = bytes.length >= 24 && [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => bytes[index] === value);
   const jpeg = bytes.length >= 4 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
@@ -341,25 +330,37 @@ async function readCover(response: Response): Promise<Uint8Array | null> {
   if (bytes.byteLength < 32 || bytes.byteLength > COVER_BYTES || !imageSignature(bytes)) return null;
   return bytes;
 }
-async function characterReference(env: Env, userId: string, conversationId: string, messageId: string, options: ChatMediaOptions): Promise<Uint8Array | null> {
-  // Continue from the latest generated still in this conversation. The
-  // current message is included so a regeneration also chains from its old
-  // result before falling back to the character cover.
-  if (env.MEDIA) {
-    const anchor = await env.DB.prepare(`SELECT a.object_key FROM chat_media_assets a
-      JOIN messages m ON m.user_id=a.user_id AND m.conversation_id=a.conversation_id AND m.id=a.message_id
-      WHERE a.user_id=? AND a.conversation_id=? AND a.kind='image' AND a.status='ready'
-        AND m.role='assistant' AND m.position <= (SELECT position FROM messages WHERE user_id=? AND conversation_id=? AND id=?)
-      ORDER BY m.position DESC, a.created_at DESC LIMIT 1`)
-      .bind(userId, conversationId, userId, conversationId, messageId).first<{ object_key: string }>();
-    if (anchor?.object_key) {
-      const object = await env.MEDIA.get(anchor.object_key);
-      if (object && object.customMetadata?.ownerId === userId) {
-        const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-        if (bytes) return bytes;
-      }
-    }
-  }
+/** Character fields injected into SillyTavern-style image prompt templates. */
+async function characterImageContext(env: Env, userId: string, conversationId: string): Promise<{
+  name: string; description: string; personality: string; scenario: string; appearance: string;
+}> {
+  const row = await env.DB.prepare(`SELECT c.name AS name, c.description AS description, c.personality AS personality,
+      c.scenario AS scenario, c.context_json AS context_json
+    FROM conversations v JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
+    WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{
+      name: string; description: string | null; personality: string | null; scenario: string | null; context_json: string | null;
+    }>();
+  if (!row) return { name: "", description: "", personality: "", scenario: "", appearance: "" };
+  let appearance = "";
+  try {
+    const parsed = JSON.parse(row.context_json || "{}") as { appearance?: unknown };
+    if (typeof parsed.appearance === "string") appearance = parsed.appearance;
+  } catch { /* appearance is optional */ }
+  const clip = (value: string | null | undefined) => (value ?? "").replace(/\s+/g, " ").trim().slice(0, 600);
+  return { name: clip(row.name), description: clip(row.description), personality: clip(row.personality),
+    scenario: clip(row.scenario), appearance: clip(appearance) };
+}
+
+type CharacterReference = { bytes: Uint8Array; source: "previous" | "cover" };
+/** Owned R2 objects may predate the ownerId metadata; the key prefix is proof. */
+function ownedObjectKey(objectKey: string, userId: string): boolean {
+  return objectKey.startsWith(`${userId}/`);
+}
+function ownedBy(object: R2Object, objectKey: string, userId: string): boolean {
+  const owner = object.customMetadata?.ownerId;
+  return owner ? owner === userId : ownedObjectKey(objectKey, userId);
+}
+async function characterReference(env: Env, userId: string, conversationId: string, _messageId: string, options: ChatMediaOptions): Promise<CharacterReference | null> {
   const row = await env.DB.prepare(`SELECT c.cover, c.context_json FROM conversations v
     JOIN characters c ON c.user_id=v.user_id AND c.id=v.character_id
     WHERE v.user_id=? AND v.id=?`).bind(userId, conversationId).first<{ cover: string | null; context_json: string | null }>();
@@ -376,35 +377,28 @@ async function characterReference(env: Env, userId: string, conversationId: stri
     const owned = OWNED_MEDIA.exec(candidate);
     if (owned) {
       if (owned[1] !== userId || !env.MEDIA) continue;
-      const object = await env.MEDIA.get(`${owned[1]}/${owned[2]}`);
-      if (!object || object.customMetadata?.ownerId !== userId) continue;
+      const objectKey = `${owned[1]}/${owned[2]}`;
+      const object = await env.MEDIA.get(objectKey);
+      if (!object || !ownedBy(object, objectKey, userId)) continue;
       const bytes = await readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-      if (bytes) return bytes;
+      if (bytes) return { bytes, source: "cover" };
       continue;
     }
     const url = coverUrl(env, candidate);
     if (!url) continue;
     try {
       const bytes = await readCover(await (options.fetch ?? fetch)(url, { redirect: "manual", signal: AbortSignal.timeout(20_000) }));
-      if (bytes) return bytes;
+      if (bytes) return { bytes, source: "cover" };
     } catch { /* try the next gallery image */ }
   }
   return null;
-}
-async function previousImageReference(env: Env, userId: string, asset: AssetRow | null | undefined): Promise<Uint8Array | null> {
-  if (!asset || asset.status !== "ready" || asset.kind !== "image" || !env.MEDIA) return null;
-  try {
-    const object = await env.MEDIA.get(asset.object_key);
-    if (!object || object.customMetadata?.ownerId !== userId) return null;
-    return readCover(new Response(await object.arrayBuffer(), { headers: { "Content-Type": object.httpMetadata?.contentType ?? "" } }));
-  } catch { return null; }
 }
 function bytesToBase64(bytes: Uint8Array): string {
   let binary = "";
   for (let offset = 0; offset < bytes.length; offset += 0x8000) binary += String.fromCharCode(...bytes.subarray(offset, offset + 0x8000));
   return btoa(binary);
 }
-async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null, signal: AbortSignal, options: ChatMediaOptions): Promise<Uint8Array> {
+async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null, signal: AbortSignal, options: ChatMediaOptions, ratio = "3:4"): Promise<Uint8Array> {
   const apiKey = env.WHATSTOKEN_API_KEY?.trim();
   if (!apiKey) throw new ApiError(503, "出图服务还没接上。");
   const png = reference && reference.length >= 8 && reference[0] === 0x89 && reference[1] === 0x50;
@@ -415,7 +409,7 @@ async function qwenStill(env: Env, prompt: string, reference: Uint8Array | null,
     ? `data:${png ? "image/png" : webp ? "image/webp" : "image/jpeg"};base64,${bytesToBase64(reference)}`
     : undefined;
   try {
-    const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio: "3:4", signal, fetchImpl: options.fetch });
+    const still = await generateSeedreamFlash({ apiKey, prompt, image, ratio, signal, fetchImpl: options.fetch });
     return still.bytes;
   } catch (error) {
     if (signal.aborted) throw new ApiError(504, "生成超时，请稍后重试。");
@@ -522,8 +516,11 @@ async function fail(env: Env, userId: string, assetId: string, token: string, no
 
 async function generate(request: Request, env: Env, user: UserRecord, now: number, options: ChatMediaOptions): Promise<Response> {
   const illustrated = new URL(request.url).pathname === "/v1/chat-media/illustrate";
-  const body = await readJson(request, illustrated ? 12_000 : 2048);
+  const body = await readJson(request, illustrated ? 12_000 : 4096);
   let conversationId: string, messageId: string, kind: Kind, stillOverride: string | null = null, rememberImage = true, regenerate = false;
+  const tavernFlags = readTavernFlags(env as unknown as Record<string, string | undefined>);
+  let imageTemplate: TavernImageGeneration | undefined;
+  let imageRatio = "3:4";
   if (illustrated) {
     let draft: ReturnType<typeof parseDzmmIllustrationDraft>;
     try { draft = parseDzmmIllustrationDraft(body); }
@@ -536,10 +533,15 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     stillOverride = composeDzmmIllustration(draft);
     rememberImage = draft.visibility === "public";
   } else {
-    if (Object.keys(body).length < 4 || Object.keys(body).length > 5 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate"].includes(key))
+    if (Object.keys(body).length < 4 || Object.keys(body).length > 6 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate","imagePreset","imageTemplate"].includes(key))
       || ![body.accountId,body.conversationId,body.messageId].every(value => typeof value === "string" && SAFE_ID.test(value))
       || (body.kind !== "audio" && body.kind !== "image") || (body.regenerate !== undefined && body.regenerate !== true)) throw new ApiError(400,"素材请求参数无效。");
     if (body.accountId !== user.id) throw new ApiError(409,"账户已切换，请刷新后重试。");
+    if (body.imageTemplate !== undefined) {
+      imageTemplate = parseTavernImageGeneration(body.imageTemplate);
+      if (!imageTemplate) throw new ApiError(400, "生图参数无效。");
+      if (body.kind !== "image") imageTemplate = undefined;
+    }
     conversationId = body.conversationId as string;
     messageId = body.messageId as string;
     kind = body.kind as Kind;
@@ -567,7 +569,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   }
   if (existing?.status === "pending") throw new ApiError(409,"这条消息的素材正在生成，请稍后查看。",{retryAfter:3});
   // Existing results and in-flight receipts remain recoverable while new images are paused.
-  let imagePrompt = "", reference: Uint8Array | null = null;
+  let imagePrompt = "", reference: Uint8Array | null = null, referenceSource: "previous" | "cover" | "none" = "none";
   if (kind === "image") {
     if (env.GENERATION_ENABLED === "false") throw new ApiError(503,"图片与视频生成已暂停开放。",{code:"media_generation_paused"});
     if (!env.WHATSTOKEN_API_KEY?.trim()) throw new ApiError(503,"出图服务还没接上。");
@@ -575,22 +577,42 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     // exists. If there is no previous scene yet (or its object has expired),
     // fall back to the character cover so the first reference generation still
     // has an identity anchor instead of failing with a recovery error.
-    const previous = regenerate ? await previousImageReference(env, user.id, existing) : null;
-    const cover = previous ?? await characterReference(env, user.id, conversationId, messageId, options);
-    const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "" };
-    let fromStatus = stillOverride === null ? statusStillScene(source.content, status.labels) : null;
+    const resolved = await characterReference(env, user.id, conversationId, messageId, options);
+    const cover = resolved?.bytes ?? null;
+    referenceSource = resolved?.source ?? "none";
+    const status = stillOverride === null ? await statusContext(env, user.id, conversationId) : { labels: [], initial: "", appearance: "" };
+    const visualLabels = status.labels.filter(label => VISUAL_STATUS.test(label));
+    let fromStatus = stillOverride === null ? statusStillScene(source.content, visualLabels) : null;
     if (!fromStatus && status.initial) {
-      fromStatus = statusStillScene(`${source.content}\n${status.initial}`, status.labels);
+      const visualInitial = status.initial.split("\n").filter(line => VISUAL_STATUS.test(line.split("：")[0] || "")).join("\n");
+      if (visualInitial) fromStatus = statusStillScene(`${source.content}\n${visualInitial}`, visualLabels);
     }
     const blocked = Boolean(fromStatus && "blocked" in fromStatus);
+    const promptOptions = { appearance: status.appearance, legacy: env.CHAT_STILL_PROMPT === "legacy", statusScene: Boolean(fromStatus && "scene" in fromStatus) };
     const built = blocked ? null
-      : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null)
-      : stillOverride === null ? chatStillPrompt(narrative, cover !== null) : illustrationStillPrompt(stillOverride, cover !== null);
+      : fromStatus && "scene" in fromStatus ? stillPrompt(fromStatus.scene, cover !== null, promptOptions)
+      : stillOverride === null ? chatStillPrompt(narrative, cover !== null, promptOptions) : illustrationStillPrompt(stillOverride, cover !== null, promptOptions);
     const minor = MINOR_SCENE.test(stillOverride ?? text);
     if (!built) throw new ApiError(400, stillOverride === null
       ? ((minor || blocked) ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
       : (minor ? "这条画面不能生成图片。" : "这条画面没有可生成的正文。"));
-    imagePrompt = built;
+    const refined = await refineChatScenePrompt(built, CHAT_STILL_MODEL, {
+      GENERATION_OPENROUTER_API_KEY: env.GENERATION_OPENROUTER_API_KEY,
+      SEALION_API_KEY: env.SEALION_API_KEY,
+      SEALION_BASE_URL: env.SEALION_BASE_URL,
+    }, options.fetch ?? fetch);
+    if (!refined.ok && refined.status !== 503) throw new ApiError(refined.status, refined.error);
+    const scenePrompt = refined.ok ? refined.prompt : built;
+    if (imageTemplate && tavernFlags.imagePresets !== false) {
+      const context = await characterImageContext(env, user.id, conversationId);
+      const templated = composeTavernImagePrompt({ base: scenePrompt, generation: imageTemplate,
+        context: { characterName: context.name || "角色", userName: user.nickname || "你",
+          description: context.description, personality: context.personality, scenario: context.scenario, appearance: context.appearance } });
+      imagePrompt = templated.prompt;
+      imageRatio = templated.size;
+    } else {
+      imagePrompt = scenePrompt;
+    }
     reference = cover;
   }
   await minuteLimit(env,user.id,now);
@@ -674,7 +696,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     }
     const asset = await lookup();
     if (!asset || asset.status !== "ready") throw new ApiError(409,"消息已更新，请重新保存后再生成。");
-    return json({accountId:user.id,asset:publicAsset(asset)},201);
+    return json({accountId:user.id,asset:publicAsset(asset)},201,{ "X-Xumeng-Reference-Image": referenceSource });
   } catch (error) {
     // No source text, account IDs, credentials or provider error messages.
     const provider = (env.AI ?? {}) as { lastRequestHttpStatusCode?: number; lastRequestInternalStatusCode?: number };

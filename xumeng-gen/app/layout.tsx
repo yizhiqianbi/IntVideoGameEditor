@@ -3,8 +3,8 @@ import "./globals.css";
 import "./modules.css";
 
 export const metadata: Metadata = {
-  title: "叙梦",
-  description: "虚构的成年角色。换脸、去外套、图生视频、文生图、小说。",
+  title: "叙梦 · AI 生成",
+  description: "叙梦 AI 生成工作台：角色封面生成视频、文生图、换脸、换造型与小说。",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

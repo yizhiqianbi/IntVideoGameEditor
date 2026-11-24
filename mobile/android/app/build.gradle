@@ -1,0 +1,69 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'org.jetbrains.kotlin.plugin.compose'
+}
+
+def productionOrigin = 'https://xumengchat.top'
+def debugInput = providers.gradleProperty('webOrigin').getOrElse(productionOrigin)
+def parsed = new URI(debugInput)
+def validDebugOrigin = debugInput == productionOrigin || (
+        parsed.scheme == 'http' && parsed.host in ['localhost', '127.0.0.1', '10.0.2.2'] &&
+        parsed.userInfo == null && !parsed.rawAuthority.endsWith(':') && parsed.rawQuery == null && parsed.rawFragment == null &&
+        parsed.path in ['', '/'] && (parsed.port == -1 || parsed.port in 1..65535))
+if (!validDebugOrigin) throw new GradleException('webOrigin only permits production or a local HTTP test origin.')
+def debugOrigin = debugInput == productionOrigin ? productionOrigin :
+        new URI('http', null, parsed.host.toLowerCase(), parsed.port == 80 ? -1 : parsed.port, null, null, null).toString()
+
+android {
+    namespace 'top.xumeng.app'
+    compileSdk 36
+    defaultConfig {
+        applicationId 'top.xumeng.app'
+        minSdk 26
+        targetSdk 36
+        versionCode 1
+        versionName '0.1.0'
+        testInstrumentationRunner 'top.xumeng.app.SmokeInstrumentation'
+    }
+    buildFeatures {
+        buildConfig true
+        compose true
+    }
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+    kotlinOptions { jvmTarget = '17' }
+    buildTypes {
+        debug {
+            applicationIdSuffix '.debug'
+            versionNameSuffix '-preview'
+            manifestPlaceholders = [appLabel: '叙梦 · 测试版']
+            buildConfigField 'String', 'WEB_ORIGIN', '"' + debugOrigin + '"'
+        }
+        release {
+            manifestPlaceholders = [appLabel: '叙梦']
+            buildConfigField 'String', 'WEB_ORIGIN', '"' + productionOrigin + '"'
+            minifyEnabled false
+            // A release signing key is intentionally configured outside the repository.
+        }
+    }
+    lint { abortOnError true; checkReleaseBuilds true }
+}
+
+dependencies {
+    def composeBom = platform('androidx.compose:compose-bom:2026.06.01')
+    implementation composeBom
+    implementation 'androidx.compose.ui:ui'
+    implementation 'androidx.compose.foundation:foundation'
+    implementation 'androidx.compose.material3:material3'
+    implementation 'androidx.activity:activity-compose:1.12.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-compose:2.10.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-compose:2.10.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.10.0'
+    implementation 'androidx.media3:media3-exoplayer:1.11.1'
+    implementation 'androidx.media3:media3-ui:1.11.1'
+    implementation 'androidx.media3:media3-datasource:1.11.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+}

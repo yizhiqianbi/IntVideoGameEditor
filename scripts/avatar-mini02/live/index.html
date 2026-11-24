@@ -1,0 +1,106 @@
+<!doctype html><html lang="zh"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>小玥 · 实时数字人</title>
+<style> *{box-sizing:border-box}body{margin:0;background:#150f12;color:#f7edef;font:16px system-ui,-apple-system,sans-serif}main{max-width:1100px;margin:auto;padding:28px}header{display:flex;justify-content:space-between;align-items:center}h1{font-size:26px}small,.hint{color:#bb9fa8;line-height:1.65}.grid{display:grid;grid-template-columns:1.15fr 1fr;gap:24px;margin-top:20px}.panel{background:#21171c;border:1px solid #493039;border-radius:20px;padding:20px}.avatar-stage{position:relative;width:100%;aspect-ratio:1;overflow:hidden;border-radius:14px;background:#100b0e}.avatar-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.avatar-stage #avatar{opacity:0;transition:opacity 120ms linear;pointer-events:none}.avatar-stage #avatar.visible{opacity:1}.resume-video{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);z-index:2}button{font:inherit;cursor:pointer;border:1px solid #694750;background:#302027;color:inherit;padding:12px 18px;border-radius:12px}button.primary{background:#e9afb8;color:#27131a;font-weight:650}select{font:inherit;background:#302027;color:inherit;border:1px solid #694750;border-radius:8px;padding:6px}button:disabled{opacity:.4;cursor:default}.controls{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}#state{color:#efb4c0;font-size:21px;margin:4px 0 14px}.indicators{display:flex;gap:10px;flex-wrap:wrap}.pill{background:#38242d;border-radius:20px;padding:7px 12px;font-size:13px}meter{width:100%;height:18px}#transcript{min-height:110px;max-height:240px;overflow:auto;line-height:1.65;white-space:pre-wrap}#logs{font:12px ui-monospace,monospace;white-space:pre-wrap;color:#bda6ae;height:180px;overflow:auto}.hint{font-size:13px}a{color:#e9afb8}#err{color:#ffbfad;white-space:pre-wrap}@media(max-width:760px){.grid{grid-template-columns:1fr}main{padding:16px}}.behavior-bar{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}.behavior-bar span{font-size:12px;padding:5px 10px;border:1px solid #493039;border-radius:20px;color:#bca4ad}.behavior-bar span.active{background:#57333f;color:#ffe0e6;border-color:#cf8798}.behavior-caption{font-size:13px;color:#d5b9c2;min-height:22px}.avatar-stage[data-behavior="listening"]{box-shadow:0 0 0 2px #8a5c6d}.avatar-stage[data-behavior="thinking"]{box-shadow:0 0 0 2px #b49a64}.avatar-stage[data-behavior="speaking"]{box-shadow:0 0 0 2px #e9afb8}.thinking-dots{display:none;position:absolute;right:14px;top:14px;background:#21171ce8;padding:8px 14px;border-radius:16px;color:#efb4c0}.avatar-stage[data-behavior="thinking"] .thinking-dots{display:block;animation:thought-pulse 1.4s ease-in-out infinite}@keyframes thought-pulse{50%{opacity:.5}}@media(prefers-reduced-motion:reduce){.avatar-stage[data-behavior="nodding"] #idle-avatar,.thinking-dots{animation:none!important}}.motion-video{opacity:0;transition:opacity 160ms linear;pointer-events:none}.motion-video.motion-visible{opacity:1}
+.state-map{margin:18px 0 24px;padding:16px;border:1px solid #61424d;border-radius:14px;background:#191216}.state-map h3{margin:0;font-size:17px}.state-map-head{display:flex;justify-content:space-between;gap:12px;align-items:center}.state-map svg{display:block;width:100%;height:auto;margin:10px 0}.state-map .edge{fill:none;stroke:#76535f;stroke-width:1.5;marker-end:url(#state-arrow)}.state-map .edge.active{stroke:#ffd49e;stroke-width:3}.state-map .node rect{fill:#291c23;stroke:#624550;stroke-width:1.5}.state-map .node.active rect{fill:#643a49;stroke:#f2b5c2;stroke-width:2.5}.state-map .node text{fill:#f6e9ed;font-size:16px;text-anchor:middle}.state-map .node .sub{fill:#bfa5af;font-size:11px}.state-map .edge-label{fill:#cdb3be;font-size:11px;text-anchor:middle}.state-map .status-line{font-size:13px;line-height:1.7;margin:4px 0;color:#d6bac4}.state-history{max-height:104px;overflow:auto;margin:10px 0 0;padding-left:18px;font:12px/1.8 ui-monospace,monospace;color:#bfa5af}.state-map .now{color:#ffd2dd;font-size:13px}.state-map .legend{font-size:12px;color:#bfa5af;line-height:1.6}
+</style>
+<main><header><div><small>MINI 03 / VOICE + AVATAR</small><h1>和小玥聊聊</h1></div><a href="/preview">素材预览 ↗</a></header>
+<div class="grid"><section class="panel"><div class="avatar-stage" id="avatar-stage" data-behavior="listening"><video id="idle-avatar" src="/behaviors/listening.mp4?v=2" autoplay loop muted playsinline preload="auto"></video><video id="avatar" playsinline preload="auto"></video><span class="thinking-dots" aria-hidden="true">•••</span><button id="resume-video" class="resume-video" hidden>播放回复</button></div><div class="behavior-bar" aria-label="数字人状态"><span data-behavior-chip="listening" class="active">倾听</span><span data-behavior-chip="thinking">思考</span><span data-behavior-chip="speaking">说话</span><span data-behavior-chip="smiling">微笑</span><span data-behavior-chip="nodding">点头</span></div><div id="behavior-caption" class="behavior-caption" role="status">自然倾听 · 循环播放</div><div id="motion-status" class="hint">正在加载倾听动作</div><details><summary>查看五种状态与动作</summary><p class="hint">倾听 → 用户说完 → 思考 → 实际出声 → 说话 → 播完 → 倾听。插话立即回倾听。微笑与点头是短暂反馈，目前由按钮预览，尚未接语义触发。</p><div class="controls"><button data-preview="listening">倾听</button><button data-preview="thinking">思考</button><button data-preview="smiling">微笑</button><button data-preview="nodding">点头</button></div></details><div class="controls"><button class="primary" id="start">开始对话</button><button id="mute" disabled>静音麦克风</button><button id="end" disabled>结束</button><button id="interrupt" disabled>打断回复</button></div><label class="hint">播放策略 <select id="playback-mode"><option value="3.84">连贯优先 · 预缓冲两片</option><option value="1.92">低延迟 · 首片即播</option></select></label><p class="hint">建议戴耳机。持续收音；生成回复视频时保持待机，播放完自动回到待机。语音与视频分段并行生成，首轮加载较慢；网络或推理速度不足时会缓冲。倾听与思考使用各自的生成动作循环。微笑、点头仅短暂反馈，不再每轮自动触发；出声后才进入说话。</p></section>
+<section class="panel"><div id="state">未连接 · 待机</div><div class="indicators"><span id="input" class="pill">麦克风未开启</span><span id="output" class="pill">AI 空闲</span></div><p class="hint">麦克风音量</p><meter id="level" min="0" max="0.2" value="0"></meter><p id="err" role="alert"></p><p id="pipeline-progress" class="hint" role="status">等待开始对话</p><section class="state-map" aria-label="实时状态机">
+<div class="state-map-head"><h3>实时状态机</h3><span id="fsm-current" class="now" aria-live="polite">当前：倾听</span></div>
+<svg viewBox="0 0 480 270" role="img" aria-labelledby="fsm-title fsm-desc"><title id="fsm-title">数字人五状态切换图</title><desc id="fsm-desc">当前倾听。倾听在用户说完后进入思考，实际播放声音后进入说话，播放结束或插话返回倾听。微笑和点头仅手动预览。</desc>
+<defs><marker id="state-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#ba8b9b"/></marker></defs>
+<path class="edge" data-from="listening" data-to="thinking" d="M124 69 H188"/><text class="edge-label" x="156" y="51">用户说完</text>
+<path class="edge" data-from="thinking" data-to="speaking" d="M292 69 H356"/><text class="edge-label" x="324" y="51">实际出声</text>
+<path class="edge" data-from="speaking" data-to="listening" d="M408 96 V128 H72 V96"/><text class="edge-label" x="254" y="121">播完 / 插话 → 返回倾听</text>
+<path class="edge" data-from="thinking" data-to="listening" d="M240 42 V16 H72 V42"/><text class="edge-label" x="156" y="12">继续说 → 倾听</text>
+<path class="edge" data-from="speaking" data-to="thinking" d="M408 42 V16 H240 V42"/><text class="edge-label" x="324" y="12">缓冲 → 思考</text>
+<path class="edge" data-from="listening" data-to="smiling" d="M48 96 V166 H146 V191"/>
+<path class="edge" data-from="listening" data-to="nodding" d="M72 128 V153 H334 V191"/>
+<text class="edge-label" x="238" y="179">短暂反馈 · 当前手动预览</text>
+<path class="edge" data-from="smiling" data-to="listening" d="M94 218 H18 V80 H20"/>
+<path class="edge" data-from="nodding" data-to="listening" d="M334 245 V261 H5 V59 H20"/>
+<g class="node active" data-fsm-node="listening"><rect x="20" y="42" width="104" height="54" rx="12"/><text x="72" y="66">倾听</text><text class="sub" x="72" y="85">动作循环</text></g>
+<g class="node" data-fsm-node="thinking"><rect x="188" y="42" width="104" height="54" rx="12"/><text x="240" y="66">思考</text><text class="sub" x="240" y="85">动作循环</text></g>
+<g class="node" data-fsm-node="speaking"><rect x="356" y="42" width="104" height="54" rx="12"/><text x="408" y="66">说话</text><text class="sub" x="408" y="85">有声回复</text></g>
+<g class="node" data-fsm-node="smiling"><rect x="94" y="191" width="104" height="54" rx="12"/><text x="146" y="215">微笑</text><text class="sub" x="146" y="234">单次 → 倾听</text></g>
+<g class="node" data-fsm-node="nodding"><rect x="282" y="191" width="104" height="54" rx="12"/><text x="334" y="215">点头</text><text class="sub" x="334" y="234">单次 → 倾听</text></g>
+</svg>
+<p id="fsm-reason" class="status-line" role="status">初始状态 · 等待对话</p><p id="fsm-rendered" class="status-line">画面：正在加载倾听动作</p>
+<div class="legend">粉色为当前状态，金色为最近切换路径。结束或出错回到倾听；反馈动作也可被插话打断。</div><ol id="fsm-history" class="state-history" aria-label="最近十次状态切换"></ol></section><h3>AI 回复</h3><div id="transcript">点击开始，然后直接讲话。</div><p id="timing" class="hint">MiniCPM-o 4.5 · SoulX-FlashHead Lite</p><details open><summary>事件记录</summary><pre id="logs"></pre></details><p class="hint">自动插话检测使用音量门限，“嗯”等短回应也可能触发。服务端通过强制监听停止旧回复，暂不支持按播放时间精确回滚历史。</p></section></div></main>
+<script src="/av-player.js?v=4"></script><script src="/stream-player.js?v=2"></script><script src="/motions.js?v=4"></script>
+<script>
+const $=id=>document.getElementById(id),v=$('avatar');let ws,ctx,stream,node,source,sink;let token=0,epoch=0,waitingAck=false,muted=false,ready=false,busy=false,speaking=false,hot=0,quiet=0,lastVoiceEnd=0,playRequested=0;const samples=[];
+function log(s){$('logs').textContent+=`${(performance.now()/1000).toFixed(2)}  ${s}\n`;$('logs').textContent=$('logs').textContent.split('\n').slice(-100).join('\n');$('logs').scrollTop=$('logs').scrollHeight;}
+const stateMap=(()=>{
+ const names={listening:'倾听',thinking:'思考',speaking:'说话',smiling:'微笑',nodding:'点头'};
+ const reasons={connected:'会话已连接',user_start:'检测到用户讲话',user_end:'检测到用户说完',generating:'模型正在准备回复',play:'播放器已检测到实际声音',finished:'回复播放结束',interrupt:'用户打断回复',buffering:'有声回复缓冲中',gesture_done:'反馈动作播放完成',timeout:'反馈超时复位',smile:'触发微笑反馈',nod:'触发点头反馈',preview:'手动预览动作',error:'错误后恢复待机',end:'结束会话',muted:'麦克风静音',unmuted:'麦克风恢复'};
+ function update(from,to,event){
+  const why=reasons[event]||event;
+  document.querySelectorAll('[data-fsm-node]').forEach(n=>n.classList.toggle('active',n.dataset.fsmNode===to));
+  document.querySelectorAll('.state-map .edge').forEach(n=>n.classList.toggle('active',n.dataset.from===from&&n.dataset.to===to));
+  $('fsm-current').textContent='当前：'+names[to];$('fsm-desc').textContent='当前'+names[to]+'。最近切换：'+names[from]+'到'+names[to]+'，'+why;
+  $('fsm-reason').textContent=names[from]+' → '+names[to]+' · '+why;
+  const li=document.createElement('li');li.textContent=new Date().toLocaleTimeString('zh-CN',{hour12:false})+' '+names[from]+' → '+names[to]+' · '+why;
+  $('fsm-history').prepend(li);while($('fsm-history').children.length>10)$('fsm-history').lastElementChild.remove();
+ }
+ function rendered(){const reply=$('avatar'),stage=$('avatar-stage');const visible=reply.classList.contains('visible');const name=visible?'speaking':stage.dataset.motion||'listening';const media=visible?reply:document.querySelector('.motion-visible')||$('idle-avatar');$('fsm-rendered').textContent='实际画面：'+names[name]+' · '+(media.paused?'暂停':media.loop?'循环播放':'单次播放');}
+ new MutationObserver(rendered).observe($('avatar-stage'),{attributes:true,subtree:true,attributeFilter:['class','data-motion']});
+ $('avatar-stage').addEventListener('play',rendered,true);$('avatar-stage').addEventListener('pause',rendered,true);
+ return {update};
+})();
+// Thin behavior adapter: replace dispatch events with model action messages later.
+const director=(()=>{
+  let state='listening',connected=false,userTalking=false,timer=null,generation=0,lastEvent='initial';
+  const captions={listening:'倾听 · 你可以继续说',thinking:'思考 · 正在准备回复',speaking:'说话 · 播放回复',smiling:'微笑 · 短暂反馈',nodding:'点头 · 短暂反馈'};
+  function clear(){clearTimeout(timer);timer=null;generation++;}
+  function show(next,reason=lastEvent){if(state===next)return;const previous=state;state=next;stateMap.update(previous,next,reason);motions.select(next);$('avatar-stage').dataset.behavior=next;$('behavior-caption').textContent=captions[next];document.querySelectorAll('[data-behavior-chip]').forEach(el=>el.classList.toggle('active',el.dataset.behaviorChip===next));}
+  function settle(next,ms){const g=generation;timer=setTimeout(()=>{if(g===generation)show(next,'timeout');},ms);}
+  function dispatch(event){
+    if(event==='generating'&&state==='speaking')return;
+    if(event==='generating'&&userTalking)return;
+    clear();lastEvent=event;
+    switch(event){
+      case 'connected':connected=true;userTalking=false;show('listening');break;
+      case 'user_start':userTalking=true;show('listening');break;
+      case 'user_end':userTalking=false;if(connected)show('thinking');break;
+      case 'smile':if(state!=='speaking'&&!userTalking){show('smiling');settle('listening',6000);}break;
+      case 'nod':if(state!=='speaking'&&!userTalking){show('nodding');settle('listening',6000);}break;
+      case 'gesture_done':if(state==='smiling'||state==='nodding')show('listening');break;
+      case 'buffering':show('thinking');break;
+      case 'generating':show('thinking');break;
+      case 'play':show('speaking');break;
+      case 'finished':show('listening');break;
+      case 'interrupt':show('listening');break;
+      case 'error':show('listening');break;
+      case 'muted':userTalking=false;show('listening');break;
+      case 'unmuted':if(connected)show('listening');break;
+      case 'end':connected=false;userTalking=false;show('listening');break;
+    }
+  }
+  return {dispatch,preview(name){if(ready||ws)return;clear();show(name,'preview');},get state(){return state;}};
+})();
+function send(x){if(ws?.readyState===1)ws.send(JSON.stringify(x));}
+const idleVideo=$('idle-avatar');let replyMeta=null;
+const player=new StreamingAvatarPlayer({bufferSeconds:()=>Number($('playback-mode').value),idle:idleVideo,reply:v,resume:$('resume-video'),
+ onSpeaking:({first,mediaTime})=>{director.dispatch('play');$('state').textContent='正在播放回复';$('output').textContent='播放中';if(first){const ms=lastVoiceEnd?Math.round(performance.now()-lastVoiceEnd):null;$('timing').textContent=`视频生成 ${replyMeta?.render_ms??0}ms${ms!==null?' · 说完至声音播放 '+ms+'ms':''}`;log(`检测到实际播放的声音，切换说话画面（媒体 ${mediaTime.toFixed(2)}s）`);}},
+ onWaiting:message=>{$('state').textContent=message;$('output').textContent='尚未出声 · 待机循环';if(director.state==='speaking')director.dispatch('buffering');},
+ onEnded:()=>{busy=false;director.dispatch('finished');$('state').textContent=ready?'已连接 · 正在听':'待机循环';$('output').textContent='AI 空闲';log('回复播放结束，返回循环待机');},
+ onError:message=>{busy=false;director.dispatch('error');$('err').textContent=message;}
+});
+function idle(){player.stop();}
+function playReply(e){replyMeta=e;if(e.streaming)player.accept(e);else player.play(e.url);}
+function interrupt(){if(!ready)return;const t=performance.now();idle();director.dispatch('interrupt');busy=false;waitingAck=true;$('output').textContent='旧回复已停止';$('state').textContent='正在听你说';send({type:'interrupt'});log(`本地停播 ${(performance.now()-t).toFixed(1)}ms；请求强制监听`);}
+function clean(){director.dispatch('end');token++;ready=false;busy=false;waitingAck=false;speaking=false;hot=quiet=0;node?.disconnect();source?.disconnect();sink?.disconnect();stream?.getTracks().forEach(t=>t.stop());if(ctx&&ctx.state!=='closed')ctx.close().catch(()=>{});ctx=stream=node=source=sink=null;if(ws){const old=ws;ws=null;old.close();}idle();$('start').disabled=false;$('end').disabled=$('mute').disabled=$('interrupt').disabled=true;$('input').textContent='麦克风已释放';$('output').textContent='AI 空闲';$('level').value=0;}
+function stop(){send({type:'end'});clean();$('state').textContent='已结束 · 待机';log('结束会话并释放麦克风');}
+async function start(){const run=++token;$('start').disabled=true;$('err').textContent='';$('state').textContent='连接中';$('end').disabled=false;muted=false;epoch=0;lastVoiceEnd=0;$('mute').textContent='静音麦克风';$('transcript').textContent='';
+try{await player.unlock();const localCtx=new AudioContext({sampleRate:16000});ctx=localCtx;await localCtx.resume();const acquired=await navigator.mediaDevices.getUserMedia({audio:{channelCount:1,echoCancellation:true,noiseSuppression:true,autoGainControl:true}});if(run!==token){acquired.getTracks().forEach(t=>t.stop());if(localCtx.state!=='closed')localCtx.close();return;}stream=acquired;await localCtx.audioWorklet.addModule('/mic.js');if(run!==token)return;
+source=ctx.createMediaStreamSource(stream);node=new AudioWorkletNode(ctx,'capture');sink=ctx.createGain();sink.gain.value=0;source.connect(node);node.connect(sink);sink.connect(ctx.destination);
+ws=new WebSocket(`${location.protocol==='https:'?'wss':'ws'}://${location.host}/session`);const socket=ws;
+node.port.onmessage=({data})=>{if(run!==token||!ready)return;if(data.audio){if(socket.bufferedAmount>256000){$('err').textContent='上传拥塞，请结束后重试。';stop();return;}const pcm=Int16Array.from(data.audio,x=>Math.round(Math.max(-1,Math.min(1,x))*32767));const b=new Uint8Array(pcm.buffer);let text='';for(let i=0;i<b.length;i+=8192)text+=String.fromCharCode(...b.subarray(i,i+8192));send({type:'audio',format:'pcm16',audio:btoa(text)});}else{const rms=data.rms;$('level').value=rms;const now=performance.now();if(rms>.022&&!muted){quiet=0;if(!hot)hot=now;if(!speaking&&now-hot>140){speaking=true;director.dispatch('user_start');send({type:'speech',active:true});$('input').textContent='你正在说话';log('检测到讲话');if(busy)interrupt();}}else{hot=0;if(!quiet)quiet=now;if(speaking&&now-quiet>600){speaking=false;director.dispatch('user_end');lastVoiceEnd=now;send({type:'speech',active:false});$('input').textContent=muted?'麦克风静音':'持续收音';log('检测到讲话结束');}}}};
+socket.onmessage=({data})=>{if(run!==token)return;const e=JSON.parse(data);if(e.type==='progress'){const labels={connecting:'连接语音模型',queue:'排队',listening:'持续收音',voice:'生成回复语音',rendering:'渲染数字人视频',video_ready:'视频已交付浏览器',error:'生成出错'};$('pipeline-progress').textContent=`${labels[e.phase]||e.phase} · 当前阶段 ${e.elapsed_s}s`;return;}if(e.type==='interrupted'){epoch=e.epoch;waitingAck=false;log('服务端已作废旧结果');return;}if(e.type==='error'){$('err').textContent=e.message;log(e.message);if(!ready)stop();else{busy=false;idle();director.dispatch('error');$('state').textContent='生成失败 · 可继续讲话';}return;}if(e.type==='ready'){ready=true;director.dispatch('connected');epoch=e.epoch;$('state').textContent='已连接 · 正在听';$('input').textContent='持续收音';$('mute').disabled=$('interrupt').disabled=false;log('会话已连接');return;}if(e.type==='queue'){$('state').textContent='模型排队中';return;}if(e.type==='closed'){stop();return;}if(waitingAck||e.epoch!==epoch)return;
+if(e.type==='cancel_ack'){log('模型已确认监听状态');}else if(e.type==='text'){if(director.state!=='speaking')director.dispatch('generating');busy=true;$('transcript').textContent=e.text;$('output').textContent='生成语音';if(director.state!=='speaking')$('state').textContent='正在准备回复 · 待机循环';}else if(e.type==='voice'){if(director.state!=='speaking')director.dispatch('generating');busy=true;$('output').textContent=`语音 ${e.audio_seconds}s`;}else if(e.type==='rendering'){if(director.state!=='speaking')director.dispatch('generating');busy=true;$('state').textContent='正在生成回复动画';$('output').textContent='生成视频';log(`送入数字人 ${e.audio_seconds}s 语音`);}else if(e.type==='video_done'){player.accept(e);log('本轮视频片段已全部交付');}else if(e.type==='video'){log(`收到数字人片段 ${(e.segment??0)+1} · 推理 ${e.infer_ms??0}ms / 编码 ${e.encode_ms??0}ms`);$('pipeline-progress').textContent='视频已生成 · 正在加载播放';if(speaking){interrupt();return;}busy=true;playReply(e);}}
+socket.onclose=event=>{if(run===token){clean();$('state').textContent='连接已断开 · 可重新开始';log(`连接关闭 code=${event.code} ${event.reason||''}`);if(event.code!==1000)$('err').textContent='实时连接中断，请重新开始。'+(event.reason||`关闭码 ${event.code}`);}};socket.onerror=()=>{$('err').textContent='实时连接失败，请检查服务或本机隧道。';};
+}catch(e){if(run===token){clean();$('state').textContent='连接失败';$('err').textContent=e.name==='NotAllowedError'?'麦克风权限被拒绝，请在浏览器地址栏允许后重试。':String(e);}}}
+motions.select('listening');
+document.querySelectorAll('[data-preview]').forEach(button=>button.onclick=()=>{if(ready||ws){log('请先结束会话再预览动作');return;}director.preview(button.dataset.preview);});
+$('start').onclick=start;$('end').onclick=stop;$('interrupt').onclick=interrupt;$('mute').onclick=()=>{muted=!muted;node?.port.postMessage({muted});if(!busy)director.dispatch(muted?'muted':'unmuted');if(muted){speaking=false;send({type:'speech',active:false});}$('mute').textContent=muted?'开启麦克风':'静音麦克风';$('input').textContent=muted?'麦克风静音':'持续收音';};window.addEventListener('pagehide',()=>{clean();player.destroy();});
+</script></html>

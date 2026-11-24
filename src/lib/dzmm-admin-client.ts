@@ -1,5 +1,5 @@
 export type DzmmAdminRole = "user" | "super";
-type DzmmAdminPaymentProvider = "stripe" | "zpay" | "subscription" | "nowpayments";
+type DzmmAdminPaymentProvider = "stripe" | "zpay" | "subscription" | "nowpayments" | "guagua" | "waffo";
 export type DzmmAdminUser = {
   id: string; email: string | null; nickname: string; isGuest: boolean; role: DzmmAdminRole;
   createdAt: number; emailVerified: boolean; creditUnlimited: boolean;
@@ -25,13 +25,13 @@ export type DzmmAdminOverview = {
     totalAvailableCredits: number; totalReservedCredits: number; totalSpentCredits: number;
     pendingUsage: number; activeSubscriptions: number; pendingSubmissions: number; forumPosts: number };
   traffic: DzmmAdminTraffic;
-  revenue: { provider: DzmmAdminPaymentProvider; currency: string; amountMinor: number; amountScale?: 2 | 6; paidOrders: number; mode: "live" | "test" }[];
+  revenue: { provider: DzmmAdminPaymentProvider; currency: string; amountMinor: number; amountScale?: 2 | 6; paidOrders: number; mode: "live" | "test" | "sandbox" }[];
   billing: { enabled: boolean; priceRevision: number | null };
   capabilities: { userRoles: boolean; creditAdjustments: boolean; paymentOrders: boolean; usageMetadata: boolean; privateConversations: false };
 };
 export type DzmmAdminOrder = {
   id: string; userId: string; nickname: string; provider: DzmmAdminPaymentProvider;
-  mode: "live" | "test"; kind: "recharge" | "subscription"; currency: string; amountMinor: number; amountScale?: 2 | 6;
+  mode: "live" | "test" | "sandbox"; kind: "recharge" | "subscription"; currency: string; amountMinor: number; amountScale?: 2 | 6;
   credits: number | null; status: string; createdAt: number; paidAt: number | null;
 };
 export type DzmmAdminSubscription = {
@@ -71,10 +71,15 @@ const nullableAmount = (v: unknown): v is number | null => v === null || amount(
 const role = (v: unknown): v is DzmmAdminRole => v === "user" || v === "super";
 const malformed = () => new DzmmAdminError(502, "管理服务返回的数据无效，请刷新后重试。");
 const uuid = (v: unknown): v is string => typeof v === "string" && UUID.test(v);
-const paymentUnit = (v: Record<string, unknown>) => v.currency === "usdt"
-  ? v.provider === "nowpayments" && v.amountScale === 6
-  : typeof v.currency === "string" && /^[a-z]{3}$/.test(v.currency) && v.provider !== "nowpayments"
-    && (v.amountScale === undefined || v.amountScale === 2);
+/** 后台账户除了 UUID 用户，还有目录/系统账户（如 aigf-catalog），ID 是普通字符串。 */
+const accountId = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/.test(v);
+const ADMIN_PROVIDERS = ["stripe", "zpay", "subscription", "nowpayments", "guagua", "waffo"] as const;
+const ADMIN_MODES = ["live", "test", "sandbox"] as const;
+const paymentUnit = (v: Record<string, unknown>) => {
+  if (typeof v.currency !== "string" || !/^[a-z]{3}$/.test(v.currency)) return false;
+  if (v.currency === "usdt") return v.provider === "nowpayments" && v.amountScale === 6;
+  return v.provider !== "nowpayments" && (v.amountScale === undefined || v.amountScale === 2);
+};
 
 async function request(path: string, accountId: string, body?: unknown, signal?: AbortSignal): Promise<Record<string, unknown>> {
   if (!uuid(accountId)) throw new DzmmAdminError(401, "管理账号无效，请重新登录。");
@@ -100,7 +105,7 @@ async function request(path: string, accountId: string, body?: unknown, signal?:
 }
 
 export function parseDzmmAdminUser(v: unknown): DzmmAdminUser {
-  if (!record(v) || !uuid(v.id) || (v.email !== null && !text(v.email, 254)) || !text(v.nickname, 100)
+  if (!record(v) || !accountId(v.id) || (v.email !== null && !text(v.email, 254)) || !text(v.nickname, 100)
     || typeof v.isGuest !== "boolean" || !role(v.role) || !timestamp(v.createdAt) || typeof v.emailVerified !== "boolean"
     || typeof v.creditUnlimited !== "boolean" || (v.creditUnlimited && (v.isGuest || v.role !== "super"))
     || ![v.availableCredits, v.reservedCredits, v.totalSpentCredits, v.debtCredits].every(amount)
@@ -130,8 +135,8 @@ export function parseDzmmAdminUser(v: unknown): DzmmAdminUser {
 }
 
 function parseOrder(v: unknown): DzmmAdminOrder {
-  if (!record(v) || !text(v.id) || !uuid(v.userId) || !text(v.nickname, 100) || !["stripe", "zpay", "subscription", "nowpayments"].includes(v.provider as string)
-    || !["live", "test"].includes(v.mode as string) || !["recharge", "subscription"].includes(v.kind as string) || typeof v.currency !== "string"
+  if (!record(v) || !text(v.id) || !uuid(v.userId) || !text(v.nickname, 100) || !ADMIN_PROVIDERS.includes(v.provider as typeof ADMIN_PROVIDERS[number])
+    || !ADMIN_MODES.includes(v.mode as typeof ADMIN_MODES[number]) || !["recharge", "subscription"].includes(v.kind as string) || typeof v.currency !== "string"
     || !paymentUnit(v) || !amount(v.amountMinor) || !nullableAmount(v.credits) || !text(v.status, 50)
     || !timestamp(v.createdAt) || !nullableTimestamp(v.paidAt)) throw malformed();
   return { id: v.id, userId: v.userId, nickname: v.nickname, provider: v.provider as DzmmAdminOrder["provider"], mode: v.mode as DzmmAdminOrder["mode"],
@@ -231,8 +236,8 @@ export async function fetchDzmmAdminOverview(accountId: string, signal?: AbortSi
     || v.capabilities.privateConversations !== false) throw malformed();
   const stats = Object.fromEntries(names.map(name => [name, (v.stats as Record<string, unknown>)[name]])) as DzmmAdminOverview["stats"];
   const revenue = v.revenue.map(item => {
-    if (!record(item) || !["stripe", "zpay", "subscription", "nowpayments"].includes(item.provider as string) || typeof item.currency !== "string"
-      || !paymentUnit(item) || !amount(item.amountMinor) || !amount(item.paidOrders) || !["live", "test"].includes(item.mode as string)) throw malformed();
+    if (!record(item) || !ADMIN_PROVIDERS.includes(item.provider as typeof ADMIN_PROVIDERS[number]) || typeof item.currency !== "string"
+      || !paymentUnit(item) || !amount(item.amountMinor) || !amount(item.paidOrders) || !ADMIN_MODES.includes(item.mode as typeof ADMIN_MODES[number])) throw malformed();
     return { provider: item.provider as DzmmAdminOrder["provider"], currency: item.currency, amountMinor: item.amountMinor,
       ...(item.amountScale === undefined ? {} : { amountScale: item.amountScale as 2 | 6 }), paidOrders: item.paidOrders, mode: item.mode as DzmmAdminOrder["mode"] };
   });
@@ -340,4 +345,32 @@ export async function updateDzmmAdminBanner(accountId: string, id: string, banne
 export async function deleteDzmmAdminBanner(accountId: string, id: string, signal?: AbortSignal): Promise<DzmmAdminBanner> {
   const value = await request(`/banners/${encodeURIComponent(id)}/delete`, accountId, { accountId }, signal);
   return parseBanner(value.banner);
+}
+
+export type StudioCoverRow = { slot: string; url: string; updatedAt: number };
+
+export async function fetchStudioCovers(accountId: string, signal?: AbortSignal): Promise<StudioCoverRow[]> {
+  const value = await request("/studio-covers", accountId, undefined, signal);
+  if (!Array.isArray(value.covers)) throw malformed();
+  return value.covers.map((item) => {
+    if (!record(item) || typeof item.slot !== "string" || typeof item.url !== "string" || !timestamp(item.updatedAt)) throw malformed();
+    return { slot: item.slot, url: item.url, updatedAt: item.updatedAt };
+  });
+}
+
+export async function uploadStudioCover(accountId: string, slot: string, file: Blob, signal?: AbortSignal): Promise<StudioCoverRow> {
+  if (!uuid(accountId)) throw new DzmmAdminError(401, "管理账号无效，请重新登录。");
+  const response = await fetch(`${API}/studio-covers/${encodeURIComponent(slot)}`, {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  const value: unknown = await response.json().catch(() => null);
+  if (!response.ok || !record(value)) throw new DzmmAdminError(response.status, record(value) && text(value.error, 500) ? value.error : "封面没有传上去。");
+  if (value.accountId !== accountId || typeof value.slot !== "string" || typeof value.url !== "string" || !timestamp(value.updatedAt)) throw malformed();
+  return { slot: value.slot, url: value.url, updatedAt: value.updatedAt };
+}
+
+export async function resetStudioCover(accountId: string, slot: string, signal?: AbortSignal): Promise<void> {
+  await request(`/studio-covers/${encodeURIComponent(slot)}/delete`, accountId, { accountId }, signal);
 }

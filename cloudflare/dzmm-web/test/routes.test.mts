@@ -341,3 +341,31 @@ test("valid assets keep their bytes while missing assets cannot inherit the HTML
   const config = await readFile(new NodeURL("../wrangler.jsonc", import.meta.url), "utf8");
   assert.equal(JSON.parse(config.replace(/^\s*\/\/.*$/gm, "")).assets.run_worker_first, true);
 });
+
+test("hashed js/css are cached for a year while other assets keep their own cache policy", async () => {
+  const env = environment({ ASSETS: { fetch: async (input: Request | string | NodeURL) => {
+    const upstream = input as Request;
+    const pathname = new URL(upstream.url).pathname;
+    return new Response(upstream.method === "HEAD" ? null : "bytes", {
+      headers: {
+        "Content-Type": pathname.endsWith(".css") ? "text/css" : "text/javascript",
+        "Cache-Control": "public, max-age=0, must-revalidate",
+      },
+    });
+  } } });
+  for (const path of ["/assets/main-JKKu7bh9.js", "/assets/xumeng-studio-copy-CC8m23Ox.js", "/assets/main-C0erguPA.css"]) {
+    const response = await fetchRequest(request(path), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Cache-Control"), "public, max-age=31536000, immutable");
+  }
+  const head = await fetchRequest(request("/assets/main-JKKu7bh9.js", { method: "HEAD" }), env);
+  assert.equal(head.status, 200);
+  assert.equal(head.headers.get("Cache-Control"), "public, max-age=31536000, immutable");
+  for (const path of ["/assets/main.js", "/assets/sw.js"]) {
+    const response = await fetchRequest(request(path), env);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Cache-Control"), "public, max-age=0, must-revalidate");
+  }
+  const icon = await fetchRequest(request("/favicon.ico"), env);
+  assert.equal(icon.headers.get("Cache-Control"), "public, max-age=300, must-revalidate");
+});

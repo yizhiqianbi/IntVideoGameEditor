@@ -91,7 +91,7 @@ function AccountGenerationHistory({ userId, isGuest, onRequireAccount }: Props) 
       <div className={s.layout}>
         <section aria-label="历史任务列表"><div className={s.sectionTitle}><h2>历史任务</h2><button type="button" className={s.secondary} disabled={busy} onClick={() => void refresh(true)}><Icon name="refresh" size={14} />{busy ? "正在核对…" : "刷新历史"}</button></div>
           {jobs.length ? <div className={s.history}>{jobs.map(job => <button key={job.id} type="button" aria-pressed={selected?.id === job.id} onClick={() => setSelectedId(job.id)}>
-            <Icon name={job.kind === "image" ? "image" : "video"} size={19} /><span><strong>{job.prompt}</strong><small>{date(job.createdAt)} · {job.kind === "image" ? "图片" : "视频"} · {names[job.status]}</small></span><b>{job.status === "ready" ? `${points(job.chargedCredits)} Credit` : running(job) ? `预留 ${points(job.reservedCredits)} Credit` : names[job.status]}</b>
+            <Icon name={job.kind === "image" ? "image" : "video"} size={19} /><span><strong>{job.prompt}</strong><small>{date(job.createdAt)} · {job.kind === "image" ? "图片" : "视频"} · {names[job.status]}</small></span><b>{job.status === "ready" ? `${points(job.chargedCredits)} 金币` : running(job) ? `预留 ${points(job.reservedCredits)} 金币` : names[job.status]}</b>
           </button>)}</div> : <p className={s.fine}>{loading ? "正在读取生成历史…" : "还没有生成历史。"}</p>}
           <p className={s.fine}>手动刷新每次最多核对 5 个未结算任务。不会创建新任务。</p>
         </section>
@@ -101,7 +101,7 @@ function AccountGenerationHistory({ userId, isGuest, onRequireAccount }: Props) 
             : <video key={selected.id} src={selected.assetUrl} controls playsInline preload="metadata" />
             : <div className={s.empty}><Icon name={selected?.kind === "video" ? "video" : "image"} size={38} /><h3>{selected ? names[selected.status] : "查看历史结果"}</h3><p>{selected ? selected.error || "可手动刷新，核对这个已提交任务的结果。" : "选择历史任务，查看图片、视频及结算状态。"}</p></div>}
         </div>{selected && <div className={s.resultInfo}>
-          <p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ? ` · ${selected.duration} 秒` : ""} · {names[selected.status]}</span><strong>{selected.status === "ready" ? `已扣 ${points(selected.chargedCredits)} Credit` : running(selected) ? `预留 ${points(selected.reservedCredits)} Credit` : "本次未扣费"}</strong></div>
+          <p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ? ` · ${selected.duration} 秒` : ""} · {names[selected.status]}</span><strong>{selected.status === "ready" ? `已扣 ${points(selected.chargedCredits)} 金币` : running(selected) ? `预留 ${points(selected.reservedCredits)} 金币` : "本次未扣费"}</strong></div>
           {selected.status === "ready" && <p className={s.fine}>{selected.costBasis === "frozen_sku" ? "供应商未返回独立费用，按任务创建时冻结的官方单价结算。" : "根据供应商返回的费用结算。"}{selected.exceedsReservation ? "本次费用超过预留，扣费已按预留上限封顶。" : ""}</p>}
           {selected.assetUrl && <a className={s.secondary} href={selected.assetUrl} download={`${selected.id}.${selected.mimeType === "image/jpeg" ? "jpg" : selected.mimeType === "image/webp" ? "webp" : selected.kind === "image" ? "png" : "mp4"}`}><Icon name="download" size={15} />下载结果</a>}
         </div>}</section>

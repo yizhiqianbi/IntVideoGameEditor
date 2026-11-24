@@ -7,7 +7,16 @@ export type DzmmOpeningMessage = { role: "user" | "assistant"; content: string }
 export type DzmmCharacterBookEntry = {
   id?: string; name?: string; keys: string[]; secondaryKeys?: string[]; content: string;
   enabled?: boolean; constant?: boolean; selective?: boolean; caseSensitive?: boolean; insertionOrder?: number;
-  position?: "before_char" | "after_char";
+  position?: "before_char" | "after_char" | "an_top" | "an_bottom" | "at_depth";
+  /** SillyTavern selective logic: 0 AND_ANY, 1 NOT_ALL, 2 NOT_ANY, 3 AND_ALL. */
+  selectiveLogic?: number;
+  matchWholeWords?: boolean; useRegex?: boolean;
+  probability?: number; useProbability?: boolean;
+  group?: string; groupWeight?: number;
+  preventRecursion?: boolean; excludeRecursion?: boolean; delayUntilRecursion?: boolean;
+  sticky?: number; cooldown?: number; delay?: number; useBudget?: boolean; scanDepth?: number;
+  /** Depth-based insertion (only meaningful with position "at_depth"). */
+  depth?: number; role?: "system" | "user" | "assistant";
 };
 export type DzmmCharacterBook = { name?: string; description?: string; scanDepth?: number; entries: DzmmCharacterBookEntry[] };
 export type XumengStatusBar = { template: string; initialState: string; updateRules: string };
@@ -95,9 +104,72 @@ function parseBook(value: unknown): DzmmCharacterBook {
       // the runtime sorter supports.
       result.insertionOrder = Math.min(100000, Math.max(0, Math.round(order)));
     }
-    if (entry.position !== undefined) {
-      if (entry.position !== "before_char" && entry.position !== "after_char") throw new Error("世界书位置仅支持 before_char 或 after_char。");
-      result.position = entry.position;
+    const extensions: Record<string, unknown> = entry.extensions === undefined ? {} : record(entry.extensions, "世界书条目扩展");
+    const positionName = (value: number) => value === 0 ? "before_char" as const : value === 1 ? "after_char" as const : value === 2 ? "an_top" as const : value === 3 ? "an_bottom" as const : "at_depth" as const;
+    // ST cards carry both a v2 string position (before/after character) and a
+    // numeric extensions.position (AN top/bottom, @depth). The numeric field is
+    // the authoritative insertion mode, matching SillyTavern.
+    if (typeof extensions.position === "number" && Number.isInteger(extensions.position) && extensions.position >= 0 && extensions.position <= 4) {
+      result.position = positionName(extensions.position);
+    } else {
+      const rawPosition = supplied(entry, "position", "position");
+      if (rawPosition !== undefined) {
+        if (rawPosition === "before_char" || rawPosition === "after_char" || rawPosition === "an_top" || rawPosition === "an_bottom" || rawPosition === "at_depth") {
+          result.position = rawPosition;
+        } else if (typeof rawPosition === "number" && Number.isInteger(rawPosition) && rawPosition >= 0 && rawPosition <= 4) {
+          result.position = positionName(rawPosition);
+        } else {
+          throw new Error("世界书位置仅支持 before_char、after_char、an_top、an_bottom 或 at_depth。");
+        }
+      }
+    }
+    // ST cards use snake_case; the app stores camelCase. Accept both so a raw
+    // card and an exported card parse identically.
+    const read = (camel: string, snake: string) => entry[camel] !== undefined ? entry[camel] : entry[snake];
+    const numeric = (camel: string, snake: string, min: number, max: number, label: string) => {
+      const candidate = read(camel, snake);
+      if (candidate === undefined) return undefined;
+      if (typeof candidate !== "number" || !Number.isFinite(candidate) || candidate < min || candidate > max) {
+        throw new Error(`世界书${label}必须是 ${min} 至 ${max} 的数值。`);
+      }
+      return Math.round(candidate);
+    };
+    const flag = (camel: string, snake: string) => {
+      const candidate = read(camel, snake);
+      if (candidate === undefined) return undefined;
+      if (typeof candidate !== "boolean") throw new Error(`世界书 ${camel} 必须是布尔值。`);
+      return candidate;
+    };
+    const selectiveLogic = numeric("selectiveLogic", "selective_logic", 0, 3, "选择逻辑");
+    if (selectiveLogic !== undefined) result.selectiveLogic = selectiveLogic;
+    for (const [camel, snake] of [["matchWholeWords", "match_whole_words"], ["useRegex", "use_regex"],
+      ["useProbability", "use_probability"], ["preventRecursion", "prevent_recursion"],
+      ["excludeRecursion", "exclude_recursion"], ["delayUntilRecursion", "delay_until_recursion"],
+      ["useBudget", "use_budget"]] as const) {
+      const value = flag(camel, snake);
+      if (value !== undefined) result[camel] = value;
+    }
+    const probability = numeric("probability", "probability", 0, 100, "触发概率"); if (probability !== undefined) result.probability = probability;
+    const group = read("group", "group");
+    if (group !== undefined) {
+      if (typeof group !== "string" || group.length > 120 || group.includes("\0")) throw new Error("世界书分组名必须是不超过 120 字的文本。");
+      result.group = group;
+    }
+    const groupWeight = numeric("groupWeight", "group_weight", 0, 10000, "分组权重"); if (groupWeight !== undefined) result.groupWeight = groupWeight;
+    const sticky = numeric("sticky", "sticky", 0, 1000, "粘性轮数"); if (sticky !== undefined) result.sticky = sticky;
+    const cooldown = numeric("cooldown", "cooldown", 0, 1000, "冷却轮数"); if (cooldown !== undefined) result.cooldown = cooldown;
+    const delay = numeric("delay", "delay", 0, 1000, "延迟轮数"); if (delay !== undefined) result.delay = delay;
+    const entryScanDepth = numeric("scanDepth", "scan_depth", 1, 100, "扫描深度"); if (entryScanDepth !== undefined) result.scanDepth = entryScanDepth;
+    const rawDepth = read("depth", "depth") ?? extensions.depth;
+    if (rawDepth !== undefined) {
+      if (typeof rawDepth !== "number" || !Number.isFinite(rawDepth) || rawDepth < 0 || rawDepth > 10000) throw new Error("世界书注入深度必须是 0 至 10000 的数值。");
+      result.depth = Math.round(rawDepth);
+    }
+    const rawRole = read("role", "role") ?? extensions.role;
+    if (rawRole !== undefined) {
+      const role = rawRole === 0 || rawRole === "system" ? "system" : rawRole === 1 || rawRole === "user" ? "user" : rawRole === 2 || rawRole === "assistant" ? "assistant" : undefined;
+      if (!role) throw new Error("世界书注入角色仅支持 system、user 或 assistant。");
+      result.role = role;
     }
     if (!result.constant && !result.keys.length) throw new Error("普通世界书条目需要至少一个关键词，或启用常驻。");
     return [result];

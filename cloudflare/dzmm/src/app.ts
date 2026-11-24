@@ -1,5 +1,6 @@
 import { handleAdmin } from "./admin";
 import { listPublicHomeBanners } from "./home-banners";
+import { listPublicStudioCovers, publicStudioCover } from "./studio-covers";
 import { handleProductEvent, publicCatalogFilters, publicScenePrices } from "./ops-console";
 import { handleTelegramFeedback } from "./telegram-feedback";
 import { handleAuth, requireUser } from "./auth";
@@ -13,6 +14,9 @@ import { handleCallBilling } from "./call-billing";
 import { handleChatMedia } from "./chat-media";
 import { handlePublicRelationshipAlbum, handleRelationshipAlbum } from "./relationship-album";
 import { handleCharacterVoice } from "./character-voice";
+import { handleAigen, publicAigenRef } from "./aigen";
+import { handleShares, publicShare } from "./shares";
+import { handleVideoCharacters, publicVideoCharacter } from "./video-characters";
 import { handleSpeechInput } from "./speech-input";
 import { handleForum } from "./forum";
 import { handleShelfTagWrite, listShelfTags } from "./shelf-tags";
@@ -81,14 +85,21 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         response = await listShelfTags(env);
       } else if (request.method === "GET" && path === "/v1/home/banners") {
         response = await listPublicHomeBanners(request, env);
+      } else if (request.method === "GET" && path === "/v1/studio/covers") {
+        response = await listPublicStudioCovers(env);
+      } else if (request.method === "GET" && /^\/v1\/studio\/covers\/[a-z]+$/.test(path)) {
+        response = await publicStudioCover(env, path.slice("/v1/studio/covers/".length)) ?? new Response("not found", { status: 404 });
       } else if (request.method === "GET" && path === "/v1/billing/scene-prices") {
         response = await publicScenePrices(env);
       } else if (request.method === "GET" && path === "/v1/catalog/filters") {
         response = await publicCatalogFilters(env);
+      } else if (request.method === "GET" && /^\/v1\/video-characters\/[A-Za-z0-9][A-Za-z0-9._:-]{0,119}$/.test(path)) {
+        response = await publicVideoCharacter(request, env, path.slice("/v1/video-characters/".length));
+      } else if (request.method === "GET" && /^\/v1\/shares\/[a-z0-9]{8,16}$/.test(path)) {
+        response = await publicShare(request, env, path.slice("/v1/shares/".length));
+      } else if (request.method === "GET" && /^\/v1\/aigen\/ref\//.test(path)) {
+        response = await publicAigenRef(env, path) ?? new Response("not found", { status: 404 });
       } else {
-        const publicAlbum = await handlePublicRelationshipAlbum(request, env);
-        if (publicAlbum) response = publicAlbum;
-        else {
         const billingResponse = await handleTelegramFeedback(request, env) ?? await handleAdmin(request, env) ?? await handleBillingApi(request, env);
         const subscriptionsResponse = billingResponse ?? await handleNowpayments(request, env) ?? await handleSubscriptions(request, env);
         const paymentsResponse = subscriptionsResponse ?? await handlePaymentsApi(request, env);
@@ -99,8 +110,9 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         else if (authResponse) response = authResponse;
         else {
           const user = await requireUser(request, env);
-          response = await handleVideoWatch(request, env, user) ?? await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleSpeechInput(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleRelationshipAlbum(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handleApi(request, env, user);
-        }
+          // The signed-in album must win over the public album; the public
+          // handler is only a fallback for viewers without their own images.
+          response = await handleRelationshipAlbum(request, env, user) ?? await handleVideoWatch(request, env, user) ?? await handleCallBilling(request, env, user) ?? await handleProductEvent(request, env, user) ?? await handleCanvasUserMedia(request, env, user) ?? await handleRecommendations(request, env, user) ?? await handleShelfTagWrite(request, env, user) ?? await handleVideoCharacters(request, env, user) ?? await handleShares(request, env, user) ?? await handleAigen(request, env, user) ?? await handleGeneration(request, env, user) ?? await handleNovels(request, env, user) ?? await handleGames(request, env, user) ?? await handleScenarios(request, env, user) ?? await handleTaskMarket(request, env, user) ?? await handleDreamCoin(request, env, user) ?? await handleAcquisition(request, env, user) ?? await handleReferral(request, env, user) ?? await handleTasks(request, env, user) ?? await handleSpeechInput(request, env, user) ?? await handleCharacterVoice(request, env, user) ?? await handleChatMedia(request, env, user) ?? await handleMedia(request, env, user) ?? await handleForum(request, env, user) ?? await handlePublicRelationshipAlbum(request, env) ?? await handleApi(request, env, user);
         }
       }
     }

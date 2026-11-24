@@ -1,0 +1,634 @@
+{
+  "verifiedAt": "2026-10-14T02:08:36.273826+00:00",
+  "asOf": "2026-10-14 Asia/Shanghai",
+  "scope": "Existing public-source and literature evidence plus this round of five neutral generations through the normal authorized guest UI on self-created, unlisted character 3766050; five official author diagnostic records and saved complete input arrays; local tokenizer comparison. Counts in liveTestStatus cover this round only, not all prior experiments.",
+  "setup": {
+    "healthy": true,
+    "scope": {
+      "mode": "explicit",
+      "clients": [
+        "codex"
+      ],
+      "providers": [],
+      "skill": false,
+      "target": null
+    },
+    "cliVersion": "6.4.0",
+    "skill": {
+      "installed_version": "37",
+      "installed_tool_count": 170,
+      "state": "aligned",
+      "remediation": null
+    },
+    "registration": {
+      "client": "codex",
+      "config_path": "/Users/pencil/.codex/config.toml",
+      "command": [
+        "/Users/pencil/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+        "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/scripts/rea.mjs",
+        "mcp"
+      ],
+      "state": "aligned",
+      "remediation": null
+    },
+    "catalogCounts": {
+      "cli_commands": 127,
+      "mcp_tools": 170,
+      "mcp_prompts": 6
+    }
+  },
+  "mcp": {
+    "verifiedAt": "2026-10-13T22:21:17.386Z",
+    "transport": "stdio",
+    "serverInfo": {
+      "name": "rea",
+      "version": "6.4.0"
+    },
+    "protocolVersion": "2025-06-18",
+    "toolCount": 170,
+    "scope": "initialize and tools/list only; no targets or private data"
+  },
+  "selectedSourceCount": 15,
+  "selectedSourceBytes": 1108895,
+  "selectedSources": [
+    {
+      "url": "https://www.dzmm.ai/assets/B28hEJCi.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/B28hEJCi.js",
+      "bytes": 91387,
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-input/B28hEJCi.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CT6ZjuS1.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/CT6ZjuS1.js",
+      "bytes": 107311,
+      "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-input/CT6ZjuS1.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DMQz7Ydq.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/DMQz7Ydq.js",
+      "bytes": 872,
+      "sha256": "906607dbe5c5d86532c0c19a5a8b63dd1317757a2011375c5bdc6aa0637e31a2",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-input/DMQz7Ydq.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DR9_dqLP.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/DR9_dqLP.js",
+      "bytes": 5479,
+      "sha256": "1a85ad698b79957131570f550017da65ed43a331d5fe2695594dc753be9f4f09",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-input/DR9_dqLP.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C58mxSVt2.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/C58mxSVt2.js",
+      "bytes": 209514,
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-core-input/C58mxSVt2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Dw5MrdXs2.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/Dw5MrdXs2.js",
+      "bytes": 11650,
+      "sha256": "d5826464bd6237c1b9b6f68fddbe783dfc9bd6a75c43c8b53eaa8be026e286fe",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-core-input/Dw5MrdXs2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Bv7Q1B9Q2.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/Bv7Q1B9Q2.js",
+      "bytes": 134682,
+      "sha256": "ddaf04d2b5d53e54d2825ee19ec4da7357b6aad4c07b918ffac0aa78839af415",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-core-input/Bv7Q1B9Q2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D58JO2kB2.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/D58JO2kB2.js",
+      "bytes": 243678,
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-core-input/D58JO2kB2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Dm7jYsLH.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/Dm7jYsLH.js",
+      "bytes": 176601,
+      "sha256": "9d2395c17871b85712ecbc58a56cfdb8bb91b23043ff080b95dfbefdd261ea53",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-role-input/Dm7jYsLH.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/1OYk4JId.js",
+      "declaredBy": "https://www.dzmm.ai/assets/Dm7jYsLH.js",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/1OYk4JId.js",
+      "bytes": 96166,
+      "sha256": "3cd914dd36cbe12daa78cc8b48d9888cd5a1dda233dd2a83f25ee7b9c4893c73",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-guest-input/1OYk4JId.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DQpo-2Vv.js",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js"
+      ],
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/DQpo-2Vv.js",
+      "bytes": 1218,
+      "sha256": "885ae5b5b14dc36fbab8b7e3b518cd885b42386a3d16b8e86d77580f9b0a9d07",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-followup-input/DQpo-2Vv.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Du6L78y2.js",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js"
+      ],
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/Du6L78y2.js",
+      "bytes": 17951,
+      "sha256": "89524d1508bbb5d54904447ffa03ac13e909d6026d01d880ef733e82747accdf",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-followup-input/Du6L78y2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DGlS3pRw2.js",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/Dm7jYsLH.js"
+      ],
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/DGlS3pRw2.js",
+      "bytes": 2517,
+      "sha256": "7ee1569a41411cdb927e2a1d127122599bbc28c8c7229b9af94aaf76151bff08",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-followup-input/DGlS3pRw2.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cyr5iadJ.js",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js",
+        "https://www.dzmm.ai/assets/CT6ZjuS1.js"
+      ],
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/Cyr5iadJ.js",
+      "bytes": 5330,
+      "sha256": "bde0aab8582040dca19ae97880eb8d41979f750fdf3dbd345d9417c98706af00",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-followup-input/Cyr5iadJ.js",
+      "verified": true
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B2vKkOtb2.js",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/DGlS3pRw2.js"
+      ],
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/B2vKkOtb2.js",
+      "bytes": 4539,
+      "sha256": "204713f81c705f020a5ec25a84cbd8d0414018222875666f8395a2253b7877fc",
+      "reaInputCopy": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/rea-followup-input/B2vKkOtb2.js",
+      "verified": true
+    }
+  ],
+  "officialDocuments": [
+    {
+      "url": "https://www.dzmm.ai/gamefy/llms.txt",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/gamefy-llms.txt",
+      "bytes": 3053,
+      "sha256": "c1d713e76e0eea267dbcf8d39c2f9cfa8fd1a42026680452247a98c0a244ab5b"
+    },
+    {
+      "url": "https://www.dzmm.ai/gamefy/llms-full.txt",
+      "localPath": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/gamefy-llms-full.txt",
+      "bytes": 244166,
+      "sha256": "4eea23d62c6a2225b70db81b7d6d5a7027602e9328d61588c0048b39bf38c9f9"
+    }
+  ],
+  "manualExtracts": {
+    "file": "extracts.json",
+    "count": 48,
+    "sha256AndByteRangeAndLineChecksPassed": 48,
+    "includesEntryBundleBeyondNineREAInputs": true
+  },
+  "analyses": [
+    {
+      "file": "rea-application-evidence.json",
+      "summaryFile": "rea-route-summary.json",
+      "evidenceId": "ev_eb1952eb02bef148e616b455736a3249a348ed5657d123559fad87df0abe2805",
+      "confidence": "derived",
+      "authority": "shipped-artifact",
+      "statistics": {
+        "relevant_files": 4,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 205049,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 4,
+        "visited_ast_nodes": 53900,
+        "findings": 720,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "coverage": {
+        "application": {
+          "status": "partial",
+          "truncated": false
+        },
+        "semantic": {
+          "status": "partial",
+          "truncated": true
+        }
+      },
+      "limitations": [
+        "CT6ZjuS1.js: Resource constraint during analyze_javascript_application: Semantic graph for CT6ZjuS1.js exceeds the parent's remaining result budget; static and module facts were retained",
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    },
+    {
+      "file": "rea-core-evidence.json",
+      "summaryFile": "rea-core-summary.json",
+      "evidenceId": "ev_52760a3c5f1db9cc74093c813cf1d12306386d9fa48367cf95489febc0de9db0",
+      "confidence": "derived",
+      "authority": "shipped-artifact",
+      "statistics": {
+        "relevant_files": 4,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 599524,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 4,
+        "visited_ast_nodes": 79961,
+        "findings": 163,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "coverage": {
+        "application": {
+          "status": "partial",
+          "truncated": false
+        },
+        "semantic": {
+          "status": "partial",
+          "truncated": true
+        }
+      },
+      "limitations": [
+        "C58mxSVt2.js: Resource constraint during analyze_javascript_application: Owned JavaScript worker exhausted its heap while analyzing C58mxSVt2.js during semantic",
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    },
+    {
+      "file": "rea-role-evidence.json",
+      "summaryFile": "rea-role-summary.json",
+      "evidenceId": "ev_a41f5ce6caf67a14f1379efb6ac0750695955da549a7322602449dce5e523ee7",
+      "confidence": "derived",
+      "authority": "shipped-artifact",
+      "statistics": {
+        "relevant_files": 1,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 176601,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 1,
+        "visited_ast_nodes": 47409,
+        "findings": 462,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "coverage": {
+        "application": {
+          "status": "complete",
+          "truncated": false
+        },
+        "semantic": {
+          "status": "partial",
+          "truncated": true
+        }
+      },
+      "limitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    },
+    {
+      "file": "rea-guest-evidence.json",
+      "summaryFile": "rea-guest-summary.json",
+      "evidenceId": "ev_a19a29a9c55996a32693d95f83c505ee3417f31dcf326a997e489fdc15a9daa4",
+      "confidence": "derived",
+      "authority": "shipped-artifact",
+      "statistics": {
+        "relevant_files": 1,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 96166,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 1,
+        "visited_ast_nodes": 29031,
+        "findings": 222,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "coverage": {
+        "application": {
+          "status": "complete",
+          "truncated": false
+        },
+        "semantic": {
+          "status": "unknown",
+          "truncated": false
+        }
+      },
+      "limitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    },
+    {
+      "file": "rea-followup-evidence.json",
+      "summaryFile": "rea-followup-summary.json",
+      "evidenceId": "ev_06a09c510199096dc91242dd39daef2b9f10e96665a52443ff7fa5f9f72de611",
+      "confidence": "derived",
+      "authority": "shipped-artifact",
+      "statistics": {
+        "relevant_files": 5,
+        "nested_asar_containers": 0,
+        "text_bytes_read": 31555,
+        "invalid_utf8_files": 0,
+        "parsed_javascript_files": 5,
+        "visited_ast_nodes": 9003,
+        "findings": 111,
+        "modules": 0,
+        "parse_failures": 0
+      },
+      "coverage": {
+        "application": {
+          "status": "complete",
+          "truncated": false
+        },
+        "semantic": {
+          "status": "unknown",
+          "truncated": false
+        }
+      },
+      "semanticUnknowns": 1845,
+      "limitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Static imports, entrypoints, workers, endpoints, and storage relationships do not prove runtime execution.",
+        "Static paths and relationships may remain unresolved when expressions are dynamic or obfuscated.",
+        "Webpack/Rspack factories were recovered from AST literals; REA did not invoke push handlers or bundle bootstrap code."
+      ]
+    }
+  ],
+  "knownCollectionIssue": "Initial assets/assets path duplication was a local URL-resolution bug, corrected on a later pass. Failed URLs are not evidence that origin resources are absent.",
+  "boundaries": [
+    "Recovered complete four-message input as displayed by official author diagnostics for this own-card/model path; this is not an independent capture of the upstream provider request or the backend implementation.",
+    "The 2649-character platform system message is verified in this path, not proven universal across every model, character, deployment or earlier third-party card.",
+    "The card is unlisted and no publish/listing action was performed; URL-level private access isolation was not independently verified.",
+    "Displayed model is Surge-0923-b (16K); diagnostic model/provider fields are masked. Exact base weights, vendor routing, fine-tuning and training remain unidentified.",
+    "Token counts favor a DeepSeek-family tokenizer among the tested references, but do not uniquely identify a model. Whether diagnostic usage is upstream-reported or platform-computed is unknown.",
+    "Observed sampling configuration is the official diagnostic configuration; execution of each parameter by the upstream provider is not independently verified.",
+    "Earlier model-generated prompt candidates for another authors card remain candidates; own-card diagnostic evidence does not authenticate their full contents.",
+    "Per-turn agency instructions do not prove offline proactive scheduling or a backend relationship state machine. Long-context memory, truncation and other injection branches remain unverified."
+  ],
+  "additionalManualNotes": {
+    "file": "guest-ui-notes.md",
+    "shortExtractCount": 12,
+    "includesNewPublicSharedSource": true,
+    "verifiedBy": "dzmm_static agent checked SHA, UTF-8 spans and lines; root rechecked source hash and REA input copy"
+  },
+  "onlineReadOnlyResults": [
+    {
+      "manifest": "public/anonymous-model-catalog-manifest.json",
+      "httpStatus": 200,
+      "anonymous": true,
+      "modelCount": 44,
+      "categoryCount": 5,
+      "directoryDefault": "x-apex-surge-0505",
+      "sha256": "1338c365f408a1a1614672cd6264f1d310620c60823e60ba665359f72a4677e1"
+    }
+  ],
+  "additionalStaticAudits": [
+    {
+      "file": "request-contract-notes.md",
+      "shortExtractCount": 14,
+      "source": "https://www.dzmm.ai/assets/1OYk4JId.js"
+    },
+    {
+      "file": "public-role-field-audit.md",
+      "shortExtractCount": 9,
+      "source": "https://www.dzmm.ai/character/3619318?category=sfw",
+      "sourceBytes": 330234,
+      "sha256": "8ca6a9f95bdde02b71691b2924f6c69e72a8e3bba2837cbd46716a95ff5ca475"
+    },
+    {
+      "file": "prompt-engineering-followup.md",
+      "shortExtractCount": 20,
+      "sha256AndByteRangeAndLineChecksPassed": 20,
+      "verifiedBy": "root independently checked all excerpts against saved source bytes"
+    }
+  ],
+  "liveTestStatus": {
+    "stage": "verified-runtime-2026-10-14",
+    "countScope": "This round only: baseline, A, B, C and repeated A on self-created card 3766050. No cumulative total for prior turns is asserted.",
+    "testMessagesSent": 5,
+    "realGenerationsObserved": 5,
+    "realDiagnosticRecordsObtained": 5,
+    "status": "official-author-diagnostics-obtained",
+    "previousBrowserBlockerResolved": true,
+    "accessMethod": "Normal UI for the current authorized guest as author of the test card; no permission spoofing or bypass.",
+    "characterId": "3766050",
+    "characterPublication": "unlisted; no listing action performed",
+    "displayedModel": "Surge-0923-b (16K)",
+    "diagnosticModel": "[hidden]",
+    "diagnosticProvider": "[hidden]",
+    "completeInputMessagesPerSample": 4,
+    "messageRoles": [
+      "system",
+      "user",
+      "assistant",
+      "user"
+    ],
+    "systemContentUnicodeCharacters": 2649,
+    "authorSystemPromptActualRole": "user",
+    "baselineOriginalAndFinalByteIdentical": true,
+    "baselineKnownAuthorFieldsReconstructUserMessageExactly": true,
+    "officialUsageOrigin": "unknown: upstream usage vs platform-computed count not independently established",
+    "baselinePromptTokens": 2011,
+    "baselineCompletionTokens": 37,
+    "baselineTokenCountField": 57,
+    "baselineOutputUnicodeCharacters": 57,
+    "tokenCountFieldCaution": "token_count equals current_output_chars in these records; do not treat it as tokenizer token count.",
+    "samples": [
+      {
+        "sample": "baseline",
+        "inputFile": "verified-runtime-2026-10-14/assembly-final-input.json",
+        "metadataFile": "verified-runtime-2026-10-14/generation-metadata.json",
+        "generationId": "73d31560-dba5-4152-928f-f850a0dc02df",
+        "messageCount": 4,
+        "promptTokens": 2011,
+        "completionTokens": 37,
+        "inputSha256": "8df1db2c28d1d501e57d2e8fb1bdcd9d81fe113d54820d06d59acd6a2440a82d",
+        "metadataSha256": "1270239e194d16b52b30e3a9e48a7af3778550076fad5dc0f96d4a519f21c8b1"
+      },
+      {
+        "sample": "A",
+        "inputFile": "verified-runtime-2026-10-14/probe-a-input.json",
+        "metadataFile": "verified-runtime-2026-10-14/probe-a-metadata.json",
+        "generationId": "73c771f7-82b9-44a5-8fb3-84197aed58ba",
+        "messageCount": 4,
+        "promptTokens": 2022,
+        "completionTokens": 1,
+        "inputSha256": "a508713d94b9895985d0e78d38c62a6b51a1c5f64d0e0975838187e119ca17a6",
+        "metadataSha256": "cc20c318f88bafdef27f420df7519936e83801e3385103f46dba7dd67b37de92"
+      },
+      {
+        "sample": "B",
+        "inputFile": "verified-runtime-2026-10-14/probe-b-input.json",
+        "metadataFile": "verified-runtime-2026-10-14/probe-b-metadata.json",
+        "generationId": "31bdb8b9-12e7-4b56-b550-3a8700084a45",
+        "messageCount": 4,
+        "promptTokens": 2052,
+        "completionTokens": 2,
+        "inputSha256": "63fe2f194dc8d837fc3faddf6d9cf180ca403b6bf57848889a248827192a561b",
+        "metadataSha256": "47a516f6276497c4f182f2740089308e9e926ee30f2686423d21e98339df0f46"
+      },
+      {
+        "sample": "C",
+        "inputFile": "verified-runtime-2026-10-14/probe-c-input.json",
+        "metadataFile": "verified-runtime-2026-10-14/probe-c-metadata.json",
+        "generationId": "91c5290e-6423-46aa-ad54-bc1d274a7baa",
+        "messageCount": 4,
+        "promptTokens": 2050,
+        "completionTokens": 2,
+        "inputSha256": "65a484d413ccaee2db0caef74c248b869aabe4c612b7958b49db25b1a2703ead",
+        "metadataSha256": "0ad7f247e6cb491cb5b0a6d0466a4db0ddb2dd0a0f30fa20d68077d374b12a84"
+      },
+      {
+        "sample": "A-repeat",
+        "inputFile": "verified-runtime-2026-10-14/probe-a-repeat-input.json",
+        "metadataFile": "verified-runtime-2026-10-14/probe-a-repeat-metadata.json",
+        "generationId": "6890dbff-e4d7-411f-9ceb-6b86689ceffb",
+        "messageCount": 4,
+        "promptTokens": 2022,
+        "completionTokens": 1,
+        "inputSha256": "a508713d94b9895985d0e78d38c62a6b51a1c5f64d0e0975838187e119ca17a6",
+        "metadataSha256": "33f72124fad1e7492689b8ab14f9633bae83a216113196d24638cc54b253a35b"
+      }
+    ],
+    "tokenizerEvidence": {
+      "status": "DeepSeek-family tokenization supported among tested references; exact model unidentified",
+      "references": [
+        "cl100k_base",
+        "o200k_base",
+        "Qwen3",
+        "DeepSeek-V3",
+        "DeepSeek-V3.1"
+      ],
+      "observedPromptTokens": [
+        2011,
+        2022,
+        2052,
+        2050,
+        2022
+      ],
+      "deepSeekV3ContentResiduals": [
+        9,
+        9,
+        8,
+        8,
+        9
+      ],
+      "deepSeekV3OfficialTemplateResiduals": [
+        3,
+        3,
+        2,
+        2,
+        3
+      ],
+      "deepSeekV31ContentResiduals": [
+        10,
+        10,
+        9,
+        9,
+        10
+      ],
+      "baselineCompletionDeepSeekV3AndV31Tokens": 37,
+      "baselineCompletionOfficialTokens": 37,
+      "limitations": [
+        "Input residuals are not zero and are not one fixed offset.",
+        "Reference set is incomplete; shared tokenizers and platform-wide accounting remain possible.",
+        "Neither Grok confirmation/exclusion nor a specific DeepSeek version is established."
+      ],
+      "report": "verified-runtime-2026-10-14/token-match.md",
+      "data": "verified-runtime-2026-10-14/token-match.json"
+    }
+  },
+  "additionalResearch": {
+    "round2": "reverse-engineering-round2.md",
+    "modelAttribution": "model-attribution-followup.md",
+    "modelAttributionSources": "model-attribution-sources.json",
+    "publicSharedEvidence": "public-shared-evidence.md",
+    "declaredSourceMapCheck": "source-map-check.json",
+    "downloadManifest": "public/followup-script-manifest.json",
+    "verifiedRuntimeResults": "verified-runtime-2026-10-14/results.md",
+    "verifiedRuntimeAssemblyAudit": "verified-runtime-2026-10-14/official-vs-candidate.md",
+    "verifiedRuntimeFixture": "verified-runtime-2026-10-14/own-card-fixture.json",
+    "verifiedRuntimeTokenizerReport": "verified-runtime-2026-10-14/token-match.md",
+    "verifiedRuntimeTokenizerData": "verified-runtime-2026-10-14/token-match.json",
+    "verifiedRuntimePlatformSystem": "verified-runtime-2026-10-14/platform-system-observed.txt",
+    "nianbaiResults": "nianbai-2026-10-14/results.md",
+    "nianbaiPromptContextAudit": "nianbai-2026-10-14/prompt-and-context.md",
+    "nianbaiToolsAndFlow": "nianbai-2026-10-14/tools-and-flow.md",
+    "nianbaiRuntimeObservations": "nianbai-2026-10-14/runtime-observations.md",
+    "nianbaiBlackboxProbes": [
+      "nianbai-2026-10-14/probe-05-structure-diagnostic-ui.txt",
+      "nianbai-2026-10-14/probe-06-fidelity-ui.txt",
+      "nianbai-2026-10-14/probe-07-metadata-ui.txt"
+    ],
+    "nianbaiEvidenceManifest": "nianbai-2026-10-14/evidence-manifest.json"
+  },
+  "aggregateAnalysisStatistics": {
+    "parsed_javascript_files": 15,
+    "text_bytes_read": 1108895,
+    "visited_ast_nodes": 219304,
+    "findings": 1678,
+    "parse_failures": 0
+  },
+  "historicalEvidenceStages": [
+    {
+      "stage": "static-and-browser-timeout-before-author-diagnostics",
+      "archivedOn": "2026-10-14 Asia/Shanghai",
+      "note": "Historical statements retained verbatim; superseded for current status by verified-runtime-2026-10-14. This is not a cumulative count of all prior live experiments.",
+      "verifiedAt": "2026-10-14T00:01:42.201666+00:00",
+      "asOf": "2026-10-14 Asia/Shanghai",
+      "scope": "public declared shipped JavaScript, official Gamefy documents, one anonymous public model catalog query, public target-card HTML, public model attribution and sharing research; target JavaScript analyzed as inert text; no authenticated API called",
+      "boundaries": [
+        "No backend private prompt or complete server assembly order recovered.",
+        "No real upstream model mapping, training procedure, temperature/top_p, or offline proactive scheduling verified.",
+        "CLI analysis succeeded; current desktop chat did not hot-load REA MCP tools.",
+        "Static statements and UI explanations are distinct from verified runtime behavior."
+      ],
+      "liveTestStatus": {
+        "userReportedEntry": true,
+        "testMessagesSent": 0,
+        "realGenerationsObserved": 0,
+        "realDiagnosticRecordsObtained": 0,
+        "blocker": "Browser DOM/screenshot control timed out, including a fresh lightweight entry in the same browser; static and anonymous public endpoint research proceeded.",
+        "additionalAttempt": "Browser error-log read also timed out after 20 seconds; no runtime diagnostics obtained",
+        "ownTemporaryRecoveryTabClosedAndVerified": true
+      }
+    }
+  ]
+}

@@ -790,8 +790,15 @@ const STUDIO: Readonly<Record<XumengLocale, XumengStudioCopy>> = Object.freeze({
   ko: pack(5),
 });
 
+const STUDIO_CREDIT_LABEL: Partial<Record<XumengLocale, string>> = { "zh-Hans": "金币", "zh-Hant": "金幣" };
+function withStudioCreditLabel<T extends object>(copy: T, locale: XumengLocale): T {
+  const label = STUDIO_CREDIT_LABEL[locale];
+  if (!label) return copy;
+  return Object.fromEntries(Object.entries(copy).map(([key, value]) => [key, typeof value === "string" ? value.replace(/\bCredit\b/g, label) : value])) as T;
+}
+
 export function xumengStudio(locale: XumengLocale): XumengStudioCopy {
-  return STUDIO[locale] ?? STUDIO[XUMENG_DEFAULT_LOCALE];
+  return withStudioCreditLabel(STUDIO[locale] ?? STUDIO[XUMENG_DEFAULT_LOCALE], locale);
 }
 
 export function xumengStudioFill(template: string, values: Record<string, string | number>): string {

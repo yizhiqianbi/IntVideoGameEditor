@@ -711,3 +711,75 @@ test("persona library, per-conversation personas and chat display settings round
   assert.equal(result.state.preferences.enterKey, undefined);
   assert.equal(result.warnings.length, 3);
 });
+
+test("preferences keep a valid SillyTavern sampler profile and reject bad values", () => {
+  const original = savedState();
+  const withSampler = { ...original, preferences: { ...original.preferences,
+    promptStyle: "tavern", sampler: { temperature: 0.9, top_p: 0.85, topK: 40, stop: ["END"] } } } as never;
+  const kept = hydrateDzmmState(JSON.stringify(withSampler));
+  assert.equal(kept.state.preferences.promptStyle, "tavern");
+  assert.equal(kept.state.preferences.sampler?.temperature, 0.9);
+  assert.equal(kept.state.preferences.sampler?.topK, 40);
+  assert.deepEqual(kept.state.preferences.sampler?.stop, ["END"]);
+
+  const invalid = { ...original, preferences: { ...original.preferences, sampler: { temperature: 9, topP: 5 } } } as never;
+  const cleaned = hydrateDzmmState(JSON.stringify(invalid));
+  assert.equal(cleaned.state.preferences.sampler, undefined);
+  assert.ok(cleaned.warnings.some(warning => warning.includes("sampler")));
+});
+
+test("swipe variants survive hydration only when they match the visible content", () => {
+  const original = savedState();
+  const base = JSON.parse(JSON.stringify(original));
+  base.conversations = [{
+    id: "swipe-conv", characterId: publicId, title: "版本", updatedAt: 1,
+    messages: [
+      { id: "u1", role: "user", content: "你好" },
+      { id: "a1", role: "assistant", content: "第二版", swipes: ["第一版", "第二版"], swipeIndex: 1 },
+    ],
+  }];
+  const kept = hydrateDzmmState(JSON.stringify(base));
+  const message = kept.state.conversations[0].messages[1];
+  assert.deepEqual(message.swipes, ["第一版", "第二版"]);
+  assert.equal(message.swipeIndex, 1);
+
+  const inconsistent = JSON.parse(JSON.stringify(base));
+  inconsistent.conversations[0].messages[1].content = "别的内容";
+  const dropped = hydrateDzmmState(JSON.stringify(inconsistent));
+  assert.equal(dropped.state.conversations[0].messages[1].swipes, undefined);
+});
+
+test("image preset preference keeps known ids and drops unknown ones", () => {
+  const original = savedState();
+  const kept = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences, imagePreset: "cinematic" } }));
+  assert.equal(kept.state.preferences.imagePreset, "cinematic");
+  const dropped = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences, imagePreset: "no-such" } }));
+  assert.equal(dropped.state.preferences.imagePreset, undefined);
+  assert.ok(dropped.warnings.some(warning => warning.includes("imagePreset")));
+});
+
+test("memory profile and injection depth persist with validation", () => {
+  const original = savedState();
+  const kept = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences, memoryProfile: "compact", memoryDepth: 3 } }));
+  assert.equal(kept.state.preferences.memoryProfile, "compact");
+  assert.equal(kept.state.preferences.memoryDepth, 3);
+  const dropped = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences, memoryProfile: "verbose", memoryDepth: 99 } }));
+  assert.equal(dropped.state.preferences.memoryProfile, undefined);
+  assert.equal(dropped.state.preferences.memoryDepth, undefined);
+});
+
+test("image generation templates survive hydration with safe defaults", () => {
+  const original = savedState();
+  const kept = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences,
+    imageGeneration: { enabled: true, autoMode: "interval", interval: 999, size: "16:9", promptPrefix: "{{char}}", mainPrompt: "main", negativePrompt: "bad", injectCharacter: false, injectScenario: true } } }));
+  const generation = kept.state.preferences.imageGeneration;
+  assert.equal(generation?.enabled, true);
+  assert.equal(generation?.autoMode, "interval");
+  assert.equal(generation?.interval, 20);
+  assert.equal(generation?.size, "16:9");
+  assert.equal(generation?.injectScenario, true);
+
+  const dropped = hydrateDzmmState(JSON.stringify({ ...original, preferences: { ...original.preferences, imageGeneration: "nope" } }));
+  assert.equal(dropped.state.preferences.imageGeneration, undefined);
+  assert.ok(dropped.warnings.some(warning => warning.includes("imageGeneration")));
+});

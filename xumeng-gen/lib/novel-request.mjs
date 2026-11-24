@@ -1,3 +1,5 @@
+import { withNovelFormatInstruction } from "./novel-format.mjs";
+
 /**
  * Allowlisted novel handler for the 3488 page.
  * Only generate-novel / continue-novel may be forwarded to the local
@@ -166,6 +168,9 @@ export function buildNovelPayload(input) {
       // description can be long; channel-form slices prompts to 4000. Keep a local cap for optional fields only.
     }
   }
+
+  const formattedDetails = withNovelFormatInstruction(values.details);
+  if (formattedDetails) values.details = formattedDetails;
 
   if (!ALLOWED_IDS.includes(id)) return { ok: false, status: 400, error: "没有这个渠道能力。", code: "id-forbidden" };
   for (const key of Object.keys(values)) {

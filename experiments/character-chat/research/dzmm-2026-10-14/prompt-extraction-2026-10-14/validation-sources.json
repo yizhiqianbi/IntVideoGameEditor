@@ -1,0 +1,100 @@
+{
+  "checked_on": "2026-10-14",
+  "timezone": "Asia/Shanghai",
+  "scope": "Primary literature and author artifacts only; no DZMM interaction or extraction experiment executed by this research agent.",
+  "core_works": [
+    {
+      "id": "effective-prompt-extraction",
+      "title": "Effective Prompt Extraction from Language Models",
+      "authors": ["Yiming Zhang", "Nicholas Carlini", "Daphne Ippolito"],
+      "year": 2024,
+      "venue": "COLM 2024",
+      "arxiv_id": "2307.06865",
+      "version_read": "v3, 2024-08-07",
+      "primary_urls": ["https://arxiv.org/html/2307.06865v3", "https://arxiv.org/abs/2307.06865", "https://github.com/y0mingzhang/prompt-extraction"],
+      "sections_checked": ["2 Threat Model", "3.2 Guessing the prompt", "5 Extraction Attack Results", "6 Prompt Extraction from Production Models"],
+      "supports": ["Text-only extraction candidates can be cross-checked for consistency.", "A learned DeBERTa confidence scorer is trained on 16000 known-truth extractions.", "Exact sentence containment and ROUGE-L recall metrics require the original prompt.", "The authors explicitly acknowledge that correctness generally cannot be verified for production systems with unknown prompts."],
+      "applicability": "Text-only interface compatible; confidence needs recalibration for Chinese roleplay and cannot prove completeness without true input.",
+      "access_note": "OpenReview page/PDF returned browser verification; read author arXiv HTML and GitHub instead. No challenge bypass attempted."
+    },
+    {
+      "id": "output2prompt",
+      "title": "Extracting Prompts by Inverting LLM Outputs",
+      "authors": ["Collin Zhang", "John Xavier Morris", "Vitaly Shmatikov"],
+      "year": 2024,
+      "venue": "EMNLP 2024",
+      "pages": "14753-14777",
+      "doi": "10.18653/v1/2024.emnlp-main.819",
+      "primary_urls": ["https://aclanthology.org/2024.emnlp-main.819/", "https://aclanthology.org/2024.emnlp-main.819.pdf", "https://github.com/collinzrj/output2prompt"],
+      "sections_checked": ["Official ACL metadata and abstract", "Author repository Requirements and Usage", "Paper introduction via indexed primary PDF"],
+      "supports": ["Learned text-only inversion without logits or adversarial queries.", "Sparse encoder handles multiple output samples.", "Official example asks four questions yielding sixteen items each, totaling sixty-four output items; this is not necessarily sixty-four API calls.", "Author repository offers model and dataset downloads."],
+      "applicability": "Potential offline surrogate-prompt generation; requires trained inverter artifacts and domain-transfer validation.",
+      "access_note": "ACL metadata and GitHub opened; full PDF open returned internal error after search supplied primary PDF excerpt."
+    },
+    {
+      "id": "adaptprint",
+      "title": "AdaptPrint: Response-Adaptive Fingerprinting of Black-Box LLM Services",
+      "authors": ["Yilin Li", "Yifei Zhang", "Guozhu Meng"],
+      "year": 2026,
+      "publication_status": "arXiv preprint; submitted 2026-08-23",
+      "arxiv_id": "2608.22213",
+      "version_read": "v1",
+      "primary_urls": ["https://arxiv.org/abs/2608.22213", "https://arxiv.org/html/2608.22213v1"],
+      "sections_checked": ["II Threat Model and Motivation", "III Approach", "IV Evaluation", "IV-B Open-Set Performance", "IV-C Ablations"],
+      "supports": ["Uses domain-relevant queries and direct, continuation, and follow-up response consistency.", "Reports Top-1 80.6%, Top-3 90.3%, Top-5 92.1% among 27 candidates over 18 prompt configurations.", "Supports none-of-all rejection based on Top-1 minus Top-2 score margin.", "Separately evaluates target-present and target-absent candidate pools."],
+      "applicability": "Candidate ranking after collecting real target outputs and obtaining reference-model access; abstention and local calibration essential.",
+      "limitations": ["Preprint findings are not independently replicated here.", "No guarantee target model is in reference pool.", "Does not recover prompt text.", "Model mixture, specialization, and post-processing may invalidate stable-model assumptions."]
+    },
+    {
+      "id": "pils",
+      "title": "Better Language Model Inversion by Compactly Representing Next-Token Distributions",
+      "authors": ["Murtaza Nazir", "Matthew Finlayson", "John X. Morris", "Xiang Ren", "Swabha Swayamdipta"],
+      "year": 2025,
+      "arxiv_id": "2506.17090",
+      "version_read": "v1, 2025-06-20",
+      "primary_urls": ["https://arxiv.org/html/2506.17090v1", "https://arxiv.org/abs/2506.17090", "https://papers.nips.cc/paper_files/paper/2025/file/0ccd06ff26fd6a7829293ce90e0e7f7d-Paper-Conference.pdf"],
+      "sections_checked": ["2.2 Threat model", "3 Language Model Inversion from Compressed logprobs", "4 Experimental setup"],
+      "supports": ["Compresses logprob vectors across multiple generation steps before trained inversion.", "Assumes access to a fixed set of token log probabilities per generation step.", "Evaluation includes exact match, BLEU, and token F1 against known prompt truth."],
+      "applicability": "Not currently applicable to DZMM because no target logprobs or equivalent controls have been observed."
+    }
+  ],
+  "supplementary_sources": [
+    {
+      "title": "LLMmap: Fingerprinting for Large Language Models",
+      "authors": ["Dario Pasquini", "Evgenios M. Kornaropoulos", "Giuseppe Ateniese"],
+      "year": 2025,
+      "venue": "USENIX Security 2025",
+      "primary_url": "https://www.usenix.org/conference/usenixsecurity25/presentation/pasquini",
+      "verified_claim": "Author conference abstract reports 42 models, as few as eight interactions, over 95% accuracy under its evaluated setup.",
+      "caveat": "Accuracy does not transfer as a guarantee to an unseen deployment and candidate pool."
+    },
+    {
+      "title": "Understanding and Mitigating Prompt Leaking Attacks in Real-World LLM-Based Applications / AREA / LeakBench",
+      "year": 2026,
+      "primary_url": "https://github.com/yangyZJU/AREA",
+      "verified_claim": "Author README describes 50 system prompts, model-specific adversarial queries, benign functionality-preserving queries, and AREA soft-prompt defense artifacts.",
+      "caveat": "README labels the paper ACM CCS 2026; publication proceedings not independently verified in this subtask."
+    },
+    {
+      "title": "Prompt Stealing Attacks Against Text-to-Image Generation Models",
+      "authors": ["Xinyue Shen", "Yiting Qu", "Michael Backes", "Yang Zhang"],
+      "arxiv_id": "2302.09923",
+      "primary_url": "https://arxiv.org/abs/2302.09923",
+      "decision": "Excluded as direct evidence for text-only system prompt recovery because PromptStealer targets generated images."
+    }
+  ],
+  "unverified_names": [
+    {
+      "name": "SPEX",
+      "result": "Exact-name searches did not locate a reliable primary paper on text-only system prompt extraction in this subtask; no claim of nonexistence."
+    }
+  ],
+  "experiment_status": {
+    "target_queries": 0,
+    "models_executed": 0,
+    "candidate_prompts_obtained": 0,
+    "verbatim_prompt_verified": false,
+    "proposed_target_query_cap": 16,
+    "budget_is_design_choice_not_paper_result": true
+  }
+}

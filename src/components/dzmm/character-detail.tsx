@@ -7,16 +7,20 @@ import { isXumengPinnedCard, loadXumengCardProvenance, readXumengCardProvenance,
 import { getDzmmCharacterCreatorNotes } from "@/lib/dzmm-character-presentation";
 import { getDzmmOpeningMessages } from "@/lib/dzmm-character-context";
 import { characterShareLocation } from "@/lib/xumeng-acquisition";
+import { shareHookLine } from "@/lib/xumeng-share-poster";
+import { xumengShortDramaForCharacter } from "@/lib/xumeng-short-drama-cards";
 import { XUMENG_CALLS_ENABLED, XUMENG_CHARACTER_VOICE_ENABLED } from "@/lib/xumeng-feature-availability";
 import { recommendationReasonText, type RecommendationReason } from "@/lib/xumeng-recommendations";
 import { coverShelfTags, visibleShelfTags } from "@/lib/xumeng-shelf-tags";
 import { isDzmmCoverVideoUrl } from "@/lib/dzmm-cover-media";
-import { xumengCardCoverUrl, xumengCoverMissUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
+import { xumengHomeCover, xumengHomeMotion } from "@/lib/xumeng-home-covers";
+import { xumengCardCoverUrl, xumengCoverMissUrl, xumengImageUrl, XUMENG_FALLBACK_COVER } from "@/lib/xumeng-routes";
 import { groupRelationshipAlbum, parseRelationshipAlbum, relationshipAlbumAssetUrl, type RelationshipAlbumItem } from "@/lib/relationship-album";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
-import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
+import { xumengPage } from "@/lib/xumeng-page-copy";
 import { CoverVisual } from "./cover-visual";
 import Icon from "./icons";
+import { SharePoster, type XumengSharePoster } from "./share-game";
 import CharacterIntroduction from "./character-introduction";
 import s from "./character-detail.module.css";
 
@@ -30,6 +34,7 @@ export type CharacterDetailProps = {
   inviteCode?: string | null;
   onBack: () => void;
   onStart: (openingIndex?: number, fresh?: boolean) => void;
+  onGroupChat?: () => void;
   onLive?: () => void;
   onVoice?: () => void;
   onFavorite: () => void;
@@ -56,17 +61,21 @@ function RoleImage({
   className,
   src,
   play = false,
+  poster,
 }: {
   character: Character;
   className: string;
   src?: string;
   play?: boolean;
+  poster?: string;
 }) {
   const original = src || character.cover || XUMENG_FALLBACK_COVER;
+  const visualSrc = isDzmmCoverVideoUrl(original) ? xumengImageUrl(original) : xumengCardCoverUrl(original);
   return (
     <CoverVisual
       className={className}
-      src={xumengCardCoverUrl(original)}
+      src={visualSrc}
+      poster={poster}
       alt={character.name}
       play={play}
       onImageError={(image) => {
@@ -114,6 +123,7 @@ export default function CharacterDetail({
   inviteCode = null,
   onBack,
   onStart,
+  onGroupChat,
   onLive,
   onVoice,
   onFavorite,
@@ -135,6 +145,7 @@ export default function CharacterDetail({
 }: CharacterDetailProps) {
   const copy = xumengPage(locale);
   const [menuFor, setMenuFor] = useState<string | null>(null);
+  const [poster, setPoster] = useState<XumengSharePoster | null>(null);
   const [album, setAlbum] = useState<{ characterId: string; items: RelationshipAlbumItem[] } | null>(null);
   const [picture, setPicture] = useState({ characterId: character.id, index: 0 });
   const [openingSelection, setOpeningSelection] = useState({ characterId: character.id, index: 0, touched: false });
@@ -158,12 +169,21 @@ export default function CharacterDetail({
   const menuButton = useRef<HTMLButtonElement>(null);
   const menuId = useId();
   const gallery = [...new Set((galleryPaths.length ? galleryPaths : character.gallery ?? []).filter((path): path is string => typeof path === "string" && Boolean(path) && !isDzmmCoverVideoUrl(path)))];
-  const cover = character.cover || XUMENG_FALLBACK_COVER;
-  const pictures = isDzmmCoverVideoUrl(character.cover)
+  const shelfCover = xumengHomeCover(character.id);
+  const motionCover = xumengHomeMotion(character.id);
+  const motionPoster = shelfCover || xumengImageUrl(character.cover || XUMENG_FALLBACK_COVER);
+  const cover = shelfCover || character.cover || XUMENG_FALLBACK_COVER;
+  const pictures = motionCover
+    ? [motionCover]
+    : shelfCover
+    ? [shelfCover]
+    : isDzmmCoverVideoUrl(character.cover)
     ? [character.cover, ...gallery.filter((path) => path !== character.cover)]
     : (gallery.length ? gallery : [cover]);
   const pictureIndex = picture.characterId === character.id ? Math.min(picture.index, pictures.length - 1) : 0;
   const isPublicSample = character.sourceKind === "public-summary";
+  const shortDrama = xumengShortDramaForCharacter(character.id);
+  const officialShortDrama = Boolean(shortDrama);
   const pinnedCard = isXumengPinnedCard(character);
   const [exportedCard, setExportedCard] = useState<XumengCardProvenance | null>(null);
   useEffect(() => {
@@ -230,22 +250,28 @@ export default function CharacterDetail({
     setPicture({ characterId: character.id, index: (index + pictures.length) % pictures.length });
   }
 
-  async function share() {
-    if (shareRequiresAccount) { onRequireAccount?.(); onNotice(copy.shareLogin); return; }
+  function share() {
     if (character.authoringDraft) { onNotice(copy.shareDraft); return; }
-    if (!isPublicSample && !character.publication) {
-      onExport();
-      onNotice(copy.shareExported);
+    const dramaCard = shortDrama ?? xumengShortDramaForCharacter(character.id);
+    const published = isPublicSample || Boolean(character.publication);
+    if (!dramaCard && !published && shareRequiresAccount) {
+      onRequireAccount?.();
+      onNotice(copy.shareLogin);
       return;
     }
-    const sharePath = characterShareLocation(character.id, inviteCode);
-    const url = `${location.origin}${sharePath}`;
-    try {
-      await navigator.clipboard.writeText(url);
-      onNotice(copy.linkCopiedRole);
-    } catch {
-      onNotice(xumengPageFill(copy.roleLink, { url }));
-    }
+    const still = character.cover && !isDzmmCoverVideoUrl(character.cover) ? character.cover : "";
+    const url = dramaCard
+      ? new URL(`${location.pathname}${location.search}#videos/${dramaCard.dramaId}`, location.origin).toString()
+      : published
+        ? new URL(characterShareLocation(character.id, inviteCode), location.origin).toString()
+        : "";
+    setPoster({
+      title: character.name,
+      hook: shareHookLine(character.introduction || character.description || character.scenario || ""),
+      coverUrl: still ? xumengCardCoverUrl(still) : "",
+      url,
+      kicker: dramaCard ? dramaCard.dramaTitle : published ? "叙梦角色" : "叙梦",
+    });
   }
 
   return (
@@ -263,7 +289,7 @@ export default function CharacterDetail({
       <div className={s.hero}>
         <div className={s.gallery}>
           <div className={s.coverFrame} role="group" aria-roledescription={pictures.length > 1 ? "轮播图" : undefined} aria-label={`${character.name} 封面`} tabIndex={pictures.length > 1 ? 0 : undefined} onKeyDown={(event) => { if (pictures.length < 2) return; if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); selectPicture(pictureIndex + (event.key === "ArrowLeft" ? -1 : 1)); } }}>
-            <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} play />
+            <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} poster={motionCover ? motionPoster : undefined} play />
             {paintedTags.length > 0 && <div className={s.coverTags}>{paintedTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
             <span className={s.heat}><Icon name="flame" size={16} />{character.heat}</span>
             {pictures.length > 1 && <><button className={`${s.galleryArrow} ${s.galleryPrevious}`} type="button" aria-label="上一张封面" onClick={() => selectPicture(pictureIndex - 1)}><Icon name="chevron" size={18} /></button><button className={`${s.galleryArrow} ${s.galleryNext}`} type="button" aria-label="下一张封面" onClick={() => selectPicture(pictureIndex + 1)}><Icon name="chevron" size={18} /></button><span className={s.pictureCount} aria-live="polite">{pictureIndex + 1} / {pictures.length}</span></>}
@@ -282,7 +308,7 @@ export default function CharacterDetail({
               <>
                 <span aria-hidden="true">·</span>
                 <span>
-                  {isPublicSample ? "收录" : "创建"}于 {date}
+                  {officialShortDrama ? "上线" : isPublicSample ? "收录" : "创建"}于 {date}
                 </span>
               </>
             )}
@@ -290,14 +316,14 @@ export default function CharacterDetail({
 
           <div className={s.authorRow}>
             {onAuthor ? <button className={`${s.author} ${s.authorButton}`} type="button" onClick={onAuthor} aria-label={`查看作者 ${character.author}`}>
-              <span className={s.avatar} aria-hidden="true">{Array.from(character.author)[0] ?? "创"}</span><span className={s.authorText}><span className={s.authorName}>{character.author}</span><small>{isPublicSample || character.publication ? "公开角色作者" : "我的角色"}</small></span>
+              <span className={s.avatar} aria-hidden="true">{Array.from(character.author)[0] ?? "创"}</span><span className={s.authorText}><span className={s.authorName}>{character.author}</span><small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "公开角色作者" : "我的角色"}</small></span>
             </button> : <div className={s.author}>
               <span className={s.avatar} aria-hidden="true">
                 {Array.from(character.author)[0] ?? "创"}
               </span>
               <div>
                 <span className={s.authorName}>{character.author}</span>
-                <small>{isPublicSample || character.publication ? "暂无作者主页" : "我的角色"}</small>
+                <small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "暂无作者主页" : "我的角色"}</small>
               </div>
             </div>}
             <div className={s.authorActions}>
@@ -350,26 +376,14 @@ export default function CharacterDetail({
               <Icon name="download" size={16} />
               {character.authoringDraft ? "导出私人草稿" : "导出"}
             </button>}
-          </div>
-
-          <div className={s.primaryActions}>
-            <button className={s.start} type="button" onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}>
-              <Icon name="chat" size={18} />
-              {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
-            </button>
-            <button
-              className={`${s.outline} ${s.customize}`}
-              type="button"
-              onClick={onEdit}
-            >
-              <Icon name="edit" size={17} />
+            {onGroupChat && <button type="button" onClick={onGroupChat}><Icon name="users" size={16} />一起聊</button>}
+            <button type="button" onClick={onEdit}>
+              <Icon name="edit" size={16} />
               {copy.customize}
             </button>
+            {!contextMissing && XUMENG_CALLS_ENABLED && onLive && <button type="button" onClick={onLive} title={copy.callHint}><Icon name="video" size={16} />{copy.callRole}</button>}
+            {!contextMissing && XUMENG_CHARACTER_VOICE_ENABLED && onVoice && <button type="button" onClick={onVoice}><Icon name="volume" size={16} />{copy.makeVoice}</button>}
           </div>
-          {!contextMissing && (XUMENG_CALLS_ENABLED || XUMENG_CHARACTER_VOICE_ENABLED) && <div className={s.performanceActions}>
-            {XUMENG_CALLS_ENABLED && onLive && <button className={s.outline} onClick={onLive} title="语音通话和视频通话"><Icon name="video" size={16} />给角色打电话</button>}
-            {XUMENG_CHARACTER_VOICE_ENABLED && onVoice && <button className={s.outline} onClick={onVoice}><Icon name="volume" size={16} />生成角色语音</button>}
-          </div>}
         </div>
       </div>
 
@@ -381,16 +395,6 @@ export default function CharacterDetail({
         >
           <Icon name="chat" size={17} />
           {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
-        </button>
-        <button
-          className={s.stickyFavorite}
-          type="button"
-          onClick={onFavorite}
-          aria-pressed={favorites}
-          aria-label={favorites ? "取消收藏角色" : "收藏角色"}
-        >
-          <Icon name={favorites ? "check" : "heart"} size={17} />
-          <span>{favorites ? "已收藏" : "收藏"}</span>
         </button>
       </div>
 
@@ -505,6 +509,7 @@ export default function CharacterDetail({
           </div>
         </section>
       )}
+      {poster && <SharePoster poster={poster} onClose={() => setPoster(null)} />}
     </section>
   );
 }

@@ -1,27 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Character } from "@/lib/dzmm-characters";
 import type { DzmmCloudUser } from "@/lib/dzmm-cloud";
-import { getDzmmCharacterCardBlurb } from "@/lib/dzmm-character-presentation";
-import { fetchDzmmNovels } from "@/lib/dzmm-novels-client";
-import { fetchXumengGames } from "@/lib/xumeng-games-client";
-import { fetchXumengScenarios } from "@/lib/xumeng-scenarios-client";
-import { loadCreatorSections } from "@/lib/xumeng-creator-load";
 import { XUMENG_GENERATION_WORKSPACE_ENABLED } from "@/lib/xumeng-feature-availability";
 import { useCharacterCreateCost } from "@/lib/dzmm-scene-prices";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
-import { xumengPage } from "@/lib/xumeng-page-copy";
+import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
+import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
+import { STUDIO_COVER_FALLBACKS, type StudioCoverSlot } from "@/lib/xumeng-studio-covers";
 import PublishingCenter from "./publishing-center";
-import Icon, { type IconName } from "./icons";
+import Icon from "./icons";
 import s from "./creator-center.module.css";
 
-type Kind = "character" | "novel" | "story" | "game" | "scenario";
-type Work = { id: string; kind: Kind; title: string; synopsis: string; updatedAt: number; detail: string };
-const KINDS: Record<Kind, { label: string; icon: IconName }> = {
-  character: { label: "角色", icon: "user" }, novel: { label: "小说", icon: "book" }, story: { label: "故事", icon: "book" },
-  game: { label: "游戏", icon: "play" }, scenario: { label: "团本", icon: "users" },
-};
 export type CreatorCenterProps = {
   user: DzmmCloudUser | null; drafts: Character[]; section?: "home" | "roles";
   onCreate: () => void; onEdit: (card: Character) => void; onCharacter: (card: Character) => void;
@@ -29,69 +20,174 @@ export type CreatorCenterProps = {
   onRoute: (route: string) => void;
   locale?: XumengLocale;
 };
+
+type CreateKind = "novel" | "girlfriend" | "scenario";
+
+type CreateBanner = {
+  key: string;
+  cover: string;
+  title: string;
+  hint: string;
+  cost?: number;
+  run: () => void;
+};
+
+function BannerCarousel({ banners, carouselLabel, prevLabel, nextLabel, slideLabel }: {
+  banners: CreateBanner[]; carouselLabel: string; prevLabel: string; nextLabel: string; slideLabel: (index: number) => string;
+}) {
+  const track = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
+  const [paused, setPaused] = useState(false);
+  activeRef.current = active;
+
+  const readActive = useCallback(() => {
+    const node = track.current;
+    if (!node) return;
+    const index = Math.round(node.scrollLeft / Math.max(1, node.clientWidth));
+    setActive(Math.max(0, Math.min(banners.length - 1, index)));
+  }, [banners.length]);
+
+  useEffect(() => {
+    const node = track.current;
+    if (!node) return;
+    const onScroll = () => readActive();
+    node.addEventListener("scroll", onScroll, { passive: true });
+    return () => node.removeEventListener("scroll", onScroll);
+  }, [readActive]);
+
+  useEffect(() => {
+    if (paused || typeof window === "undefined" || banners.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const timer = window.setInterval(() => {
+      const node = track.current;
+      if (!node || document.visibilityState === "hidden") return;
+      const next = (activeRef.current + 1) % banners.length;
+      node.scrollTo({ left: next * node.clientWidth, behavior: "smooth" });
+      setActive(next);
+    }, 6000);
+    return () => window.clearInterval(timer);
+  }, [paused, banners.length]);
+
+  function go(delta: number) {
+    const node = track.current;
+    if (!node) return;
+    const next = (activeRef.current + delta + banners.length) % banners.length;
+    node.scrollTo({ left: next * node.clientWidth, behavior: "smooth" });
+    setActive(next);
+  }
+
+  return <section className={s.banner} aria-roledescription="carousel" aria-label={carouselLabel}
+    onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}
+    onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
+    onTouchStart={() => setPaused(true)} onTouchEnd={() => setPaused(false)}>
+    <div className={s.bannerTrack} ref={track}>
+      {banners.map((banner, index) => (
+        <button key={banner.key} type="button" className={s.bannerSlide} onClick={banner.run}
+          aria-label={banner.cost ? `${banner.title} · ${banner.cost} 金币` : banner.title} title={banner.title}
+          aria-hidden={index !== active} tabIndex={index === active ? 0 : -1}>
+          <img className={s.bannerArt} src={banner.cover} alt="" loading={index === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={index === 0 ? "high" : "auto"} />
+          <span className={s.bannerShade} aria-hidden="true" />
+          <span className={s.bannerText}>
+            <strong>{banner.title}</strong>
+            <small>{banner.cost ? `${banner.cost} 金币 · ` : ""}{banner.hint}</small>
+          </span>
+        </button>
+      ))}
+    </div>
+    <div className={s.bannerDots} role="tablist" aria-label={carouselLabel} aria-live="polite">
+      {banners.map((banner, index) => (
+        <button key={banner.key} type="button" role="tab" aria-selected={index === active} aria-label={banner.title}
+          className={index === active ? `${s.bannerDot} ${s.bannerDotOn}` : s.bannerDot}
+          onClick={() => { const node = track.current; if (node) { node.scrollTo({ left: index * node.clientWidth, behavior: "smooth" }); setActive(index); } }} />
+      ))}
+    </div>
+    <button type="button" className={`${s.bannerArrow} ${s.bannerArrowPrev}`} aria-label={prevLabel} onClick={() => go(-1)}>‹</button>
+    <button type="button" className={`${s.bannerArrow} ${s.bannerArrowNext}`} aria-label={nextLabel} onClick={() => go(1)}>›</button>
+  </section>;
+}
+
 export default function CreatorCenter({ user, drafts, section = "home", locale = "zh-Hans", onCreate, onEdit, onCharacter, onRequireAccount, onCatalogChanged, onRoute }: CreatorCenterProps) {
   const copy = xumengPage(locale);
   const createCost = useCharacterCreateCost();
-  const [remote, setRemote] = useState<{ accountId: string; works: Work[] } | null>(null);
-  const [errors, setErrors] = useState<string[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [revision, setRevision] = useState(0);
-  const [query, setQuery] = useState("");
-  const [kind, setKind] = useState<Kind | "all">("all");
-  const scope = useRef(0);
-  const activeAccount = useRef(user?.id);
-  activeAccount.current = user?.isGuest ? undefined : user?.id;
-  const registered = Boolean(user && !user.isGuest);
+  const [covers, setCovers] = useState(STUDIO_COVER_FALLBACKS);
   useEffect(() => {
-    setRemote(null); setErrors([]);
-    if (!user || user.isGuest) { setLoading(false); return; }
-    const accountId = user.id, abort = new AbortController(), generation = ++scope.current;
-    const current = () => !abort.signal.aborted && scope.current === generation && activeAccount.current === accountId;
-    const sections: Work[][] = [[], [], []], failures = new Map<number, string>();
-    const labels = ["小说和故事", "游戏", "团本"];
-    setLoading(true);
-    void loadCreatorSections<Work[]>([
-      async signal => (await fetchDzmmNovels(accountId, signal)).works.map(work => ({ id: work.id, kind: work.type, title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: `${work.chapterCount} 章 · ${work.wordCount.toLocaleString()} 字` })),
-      async signal => (await fetchXumengGames(accountId, signal)).games.map(work => ({ id: work.id, kind: "game", title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: "私人 HTML 项目" })),
-      async signal => (await fetchXumengScenarios(accountId, signal)).scenarios.map(work => ({ id: work.id, kind: "scenario", title: work.title, synopsis: work.synopsis, updatedAt: work.updatedAt, detail: "私人团本剧本" })),
-    ], abort.signal, ({ index, result, pending }) => {
-      if (!current()) return;
-      if (result.status === "fulfilled") sections[index] = result.value;
-      else failures.set(index, labels[index]);
-      setRemote({ accountId, works: sections.flat() });
-      setErrors([...failures.entries()].sort(([a], [b]) => a - b).map(([, label]) => label));
-      setLoading(pending > 0);
-    });
-    return () => { abort.abort(); };
-  }, [user?.id, user?.isGuest, revision]);
-  const works = useMemo(() => {
-    const list: Work[] = drafts.map(card => ({ id: card.id, kind: "character", title: card.name, synopsis: getDzmmCharacterCardBlurb(card), updatedAt: Date.parse(card.createdAt) || 0, detail: "私人角色草稿" }));
-    if (remote && remote.accountId === user?.id && registered) list.push(...remote.works);
-    return list.sort((a, b) => b.updatedAt - a.updatedAt);
-  }, [drafts, remote, user?.id, registered]);
-  const filtered = works.filter(work => (kind === "all" || work.kind === kind) && `${work.title}\n${work.synopsis}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  function open(work: Work) {
-    if (work.kind === "character") { const card = drafts.find(card => card.id === work.id); if (card) onEdit(card); }
-    else onRoute(work.kind === "game" ? `studio/games/${encodeURIComponent(work.id)}` : work.kind === "scenario" ? `studio/scenarios/${encodeURIComponent(work.id)}` : `novels/${encodeURIComponent(work.id)}`);
-  }
+    let live = true;
+    void fetch("/api/backend/v1/studio/covers", { credentials: "same-origin", cache: "no-store" })
+      .then((response) => response.ok ? response.json() : null)
+      .then((value: { covers?: Partial<Record<StudioCoverSlot, string>> } | null) => {
+        if (!live || !value?.covers) return;
+        setCovers((current) => ({ ...current, ...Object.fromEntries(Object.entries(value.covers ?? {}).filter((entry) => typeof entry[1] === "string")) }));
+      })
+      .catch(() => undefined);
+    return () => { live = false; };
+  }, []);
+  const registered = Boolean(user && !user.isGuest);
   const start = (route: string) => registered ? onRoute(route) : onRequireAccount();
+  /** The top strip is an ad slot, not a duplicate of the entry grid. */
+  const banners: CreateBanner[] = [
+    { key: "member", cover: covers.member, title: copy.promoMemberTitle, hint: copy.promoMemberHint, run: () => onRoute("vip") },
+    { key: "recharge", cover: covers.recharge, title: copy.promoRechargeTitle, hint: copy.promoRechargeHint, run: () => onRoute("recharge") },
+    { key: "invite", cover: covers.invite, title: copy.promoInviteTitle, hint: copy.promoInviteHint, run: () => onRoute("invite") },
+  ];
   return <main className={s.workspace}>
     <section className={s.content}>
-      <header className={s.header}><div><p>{copy.creatorEyebrow}</p><h1>{section === "roles" ? copy.rolesAndPosts : copy.startCreating}</h1><span>{section === "roles" ? copy.rolesLead : copy.createLead}</span></div><div className={s.headerActions}>{section === "roles" && <button onClick={() => onRoute("studio")}><Icon name="back" size={16}/>{copy.workbench}</button>}<button onClick={() => onRoute("characters")}><Icon name="back" size={16}/>{copy.backToSite}</button></div></header>
+      {section === "roles" && <header className={s.header}><div><p>{copy.creatorEyebrow}</p><h1>{copy.rolesAndPosts}</h1><span>{copy.rolesLead}</span></div><div className={s.headerActions}><button onClick={() => onRoute("studio")}><Icon name="back" size={16}/>{copy.workbench}</button></div></header>}
       {section === "roles" ? <PublishingCenter locale={locale} embedded user={user} drafts={drafts} onCreate={onCreate} onEdit={onEdit} onCharacter={onCharacter} onRequireAccount={onRequireAccount} onCatalogChanged={onCatalogChanged} onNovels={() => onRoute("novels")}/> : <>
-        <section className={s.starts} aria-label={copy.beginCreate}>
-          <button className={s.primaryStart} onClick={onCreate} title={copy.personaOpeningBook}><span className={s.mark}><Icon name="user" size={16}/></span><strong>{copy.createRole}</strong>{createCost ? <small className={s.price}>· {createCost} Credit</small> : null}<span className={s.hint}>{copy.personaOpeningBook}</span></button>
-          <button onClick={() => start("novels/new/novel")} title={copy.peopleOutlineChapters}><span className={s.mark}><Icon name="book" size={16}/></span><strong>{copy.novelsStories}</strong><span className={s.hint}>{copy.peopleOutlineChapters}</span></button>
-          <button onClick={() => onRoute("studio/girlfriends/new")} title={copy.coverAlbumPersona}><span className={s.mark}><Icon name="upload" size={16}/></span><strong>{copy.uploadGirlfriend}</strong><span className={s.hint}>{copy.coverAlbumPersona}</span></button>
-          <button onClick={() => onRoute("studio/games")} title={copy.importGameHint}><span className={s.mark}><Icon name="play" size={16}/></span><strong>{copy.uploadGame}</strong><span className={s.hint}>{copy.importGameHint}</span></button>
-          <button onClick={() => start("studio/scenarios/new")} title={copy.scenarioHint}><span className={s.mark}><Icon name="users" size={16}/></span><strong>{copy.createScenario}</strong><span className={s.hint}>{copy.scenarioHint}</span></button>
-          {XUMENG_GENERATION_WORKSPACE_ENABLED && <button onClick={() => onRoute("generation")} title={copy.generateHint}><span className={s.mark}><Icon name="image" size={16}/></span><strong>{copy.generate}</strong><span className={s.hint}>{copy.generateHint}</span></button>}
-        </section>
-        <section className={s.library} aria-label={copy.myWorks}><header className={s.libraryHead}><h2>{copy.myWorks}</h2><button className={s.toolIcon} onClick={() => setRevision(value => value + 1)} disabled={loading} title={loading ? copy.loadingFrame : copy.refreshWorks} aria-label={loading ? copy.loadingFrame : copy.refreshWorks}><Icon name="refresh" size={16}/></button></header>
-          <div className={s.toolbar}><div className={s.filters} aria-label={copy.workKinds}><button aria-pressed={kind === "all"} onClick={() => setKind("all")}>{copy.all}</button>{(["character", "novel", "story", "game", "scenario"] as const).map((key) => <button key={key} aria-pressed={kind === key} onClick={() => setKind(key)}>{{ character: copy.roles, novel: copy.novel, story: copy.story, game: copy.gamesTab, scenario: copy.scenario }[key]}</button>)}</div><label className={s.search}><Icon name="search" size={15}/><input aria-label={copy.searchMyWorks} placeholder={copy.findWorks} value={query} onChange={event => setQuery(event.target.value)} maxLength={120}/></label></div>
-          {errors.length > 0 && <p className={s.error} role="alert">{errors.join("、")}暂时加载失败。其他作品仍可使用，请点击刷新重试。</p>}
-          {!registered && <p className={s.guest}>登录后可查看云端作品并保存游戏、小说和团本。<button onClick={onRequireAccount}>登录 / 注册</button></p>}
-          {filtered.length ? <div className={s.works}>{filtered.map(work => <button key={`${work.kind}:${work.id}`} className={s.work} onClick={() => open(work)}><span className={s.workIcon}><Icon name={KINDS[work.kind].icon}/></span><div><strong>{work.title || "未命名作品"}</strong><p>{work.synopsis || "还没有填写简介"}</p><small>{KINDS[work.kind].label} · {work.detail}{work.updatedAt > 0 ? ` · ${new Date(work.updatedAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}` : ""}</small></div><span className={s.continue} title={copy.continueWork}><Icon name="edit" size={15}/><span className={s.hint}>{copy.continueWork}</span></span></button>)}</div> : <div className={s.empty}><Icon name={query || kind !== "all" ? "search" : "edit"} size={32}/><h3>{loading ? "正在加载作品" : query || kind !== "all" ? "没有匹配的已加载作品" : errors.length ? "暂时未能载入作品" : "你的第一部作品，从这里开始"}</h3><p>{query || kind !== "all" ? "换个词或选择其他类型。" : "从上方选择一种创作方式。保存后可在这里继续。"}</p></div>}
+        <section className={s.createHome} aria-label={copy.beginCreate}>
+          <div className={s.createTop}>
+            <button type="button" className={s.primaryCreate} onClick={onCreate} title={copy.createRole}
+              aria-label={createCost ? `${copy.createRole} · ${createCost} 金币` : copy.createRole}>
+              <img className={s.primaryArt} src={covers.role} alt="" loading="lazy" decoding="async" />
+              <span className={s.primaryShade} aria-hidden="true" />
+              <span className={s.primaryText}>
+                <strong>{copy.createRole}</strong>
+                <small>{createCost ? `${createCost} 金币 · ` : ""}{copy.createRoleHint}</small>
+              </span>
+              <span className={s.primaryArrow} aria-hidden="true"><Icon name="chevron" size={16} /></span>
+            </button>
+            {XUMENG_GENERATION_WORKSPACE_ENABLED && <button type="button" className={`${s.primaryCreate} ${s.generateCreate}`} onClick={() => start("aigen")} title={copy.generate} aria-label={copy.generate}>
+              <img className={s.primaryArt} src={covers.generate} alt="" loading="lazy" decoding="async" />
+              <span className={s.primaryShade} aria-hidden="true" />
+              <span className={s.primaryText}>
+                <strong>{copy.generate}</strong>
+                <small>{copy.createGenerateHint}</small>
+              </span>
+              <span className={s.primaryArrow} aria-hidden="true"><Icon name="image" size={16} /></span>
+            </button>}
+          </div>
+          <div className={s.startGrid}>
+            {([
+              { key: "novel", label: copy.novelsStories, hint: copy.createNovelHint, icon: "book" as const, run: () => start("novels/new/novel") },
+              { key: "girlfriend", label: copy.uploadGirlfriend, hint: copy.createGirlfriendHint, icon: "upload" as const, run: () => onRoute("studio/girlfriends/new") },
+              { key: "scenario", label: copy.createScenario, hint: copy.createScenarioHint, icon: "users" as const, run: () => start("studio/scenarios/new") },
+            ] as Array<{ key: CreateKind; label: string; hint: string; icon: "book" | "upload" | "play" | "users" | "image"; run: () => void }>).map(tile => (
+              <button key={tile.key} type="button" className={s.startTile} data-kind={tile.key} onClick={tile.run} title={tile.label}>
+                <img className={s.startTileArt} src={covers[tile.key]} alt="" loading="lazy" decoding="async" />
+                <span className={s.startTileShade} aria-hidden="true" />
+                <span className={s.startTileIcon}><Icon name={tile.icon} size={15} /></span>
+                <span className={s.startTileLabel}>{tile.label}</span>
+              </button>
+            ))}
+          </div>
+          <BannerCarousel banners={banners} carouselLabel={copy.adSlotLabel}
+            prevLabel={copy.carouselPrev} nextLabel={copy.carouselNext}
+            slideLabel={(index) => xumengPageFill(copy.carouselSlide, { n: index })} />
+          <section className={s.works} aria-label={copy.myWorks}>
+            <div className={s.worksHead}>
+              <div><h2>{copy.myWorks}</h2><p>{drafts.length ? copy.studioWorksHint : copy.studioWorksEmpty}</p></div>
+              {drafts.length > 0 && <button type="button" className={s.worksAll} onClick={() => onRoute("studio/roles")}>{copy.viewAll}<Icon name="chevron" size={14} /></button>}
+            </div>
+            {drafts.length > 0
+              ? <div className={s.worksGrid}>{drafts.slice(0, 10).map(card => (
+                  <button key={card.id} type="button" className={s.workCard} onClick={() => onCharacter(card)} title={card.name}>
+                    <img className={s.workCover} src={xumengCardCoverUrl(card.cover)} alt="" loading="lazy" decoding="async" />
+                    <span className={s.workShade} aria-hidden="true" />
+                    <span className={s.workName}>{card.name}</span>
+                  </button>
+                ))}</div>
+              : <button type="button" className={s.worksEmpty} onClick={onCreate}><Icon name="plus" size={18} />{copy.createRole}</button>}
+          </section>
         </section>
       </>}
     </section>

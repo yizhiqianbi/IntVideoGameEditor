@@ -1,0 +1,30 @@
+{
+  "retrievedAt": "2026-10-13T22:25:18.262Z",
+  "scope": "Declared shared components: agent/nianbai chat, preset editor, zh-CN studio/app locale; ordinary role chat is separately recorded.",
+  "records": [
+    {
+      "url": "https://www.dzmm.ai/assets/C58mxSVt2.js",
+      "file": "scripts/C58mxSVt2.js",
+      "bytes": 209514,
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Dw5MrdXs2.js",
+      "file": "scripts/Dw5MrdXs2.js",
+      "bytes": 11650,
+      "sha256": "d5826464bd6237c1b9b6f68fddbe783dfc9bd6a75c43c8b53eaa8be026e286fe"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Bv7Q1B9Q2.js",
+      "file": "scripts/Bv7Q1B9Q2.js",
+      "bytes": 134682,
+      "sha256": "ddaf04d2b5d53e54d2825ee19ec4da7357b6aad4c07b918ffac0aa78839af415"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D58JO2kB2.js",
+      "file": "scripts/D58JO2kB2.js",
+      "bytes": 243678,
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1"
+    }
+  ]
+}

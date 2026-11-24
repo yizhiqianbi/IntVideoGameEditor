@@ -1,0 +1,69 @@
+{
+  "upstream_commit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "instance": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance",
+  "agreements": {
+    "eula": {
+      "confirmation_file_exists": false,
+      "matches_current_document": false
+    },
+    "privacy": {
+      "confirmation_file_exists": false,
+      "matches_current_document": false
+    }
+  },
+  "config": {
+    "bot_config_exists": true,
+    "model_config_exists": true,
+    "enabled": true,
+    "data_dir": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance/data/a-memorix",
+    "integration": {
+      "enable_memory_query_tool": true,
+      "enable_person_profile_query_tool": true,
+      "enable_person_profile_injection": true,
+      "person_fact_writeback_enabled": true,
+      "chat_summary_writeback_enabled": true,
+      "heuristic_memory_recall_enabled": true,
+      "heuristic_memory_cross_chat_enabled": false
+    },
+    "global_memory_sharing_enabled": false,
+    "shared_memory_group_count": 0,
+    "embedding": {
+      "task_models": [
+        {
+          "name": "xumeng-embedding",
+          "model_identifier": "qwen/qwen3-embedding-8b",
+          "model_type": "embedding",
+          "api_provider": "OpenRouter"
+        }
+      ],
+      "model_name": "auto",
+      "dimension": 4096,
+      "dimension_request_mode": "never"
+    },
+    "image_embedding_configured": false,
+    "relation_vectorization_enabled": false
+  },
+  "storage": {
+    "directory_exists": false,
+    "database_exists": false,
+    "vectors": {
+      "file_count": 0,
+      "total_bytes": 0
+    },
+    "graph": {
+      "file_count": 0,
+      "total_bytes": 0
+    }
+  },
+  "dependencies": {
+    "faiss-cpu": "1.13.2",
+    "numpy": "2.4.4",
+    "scipy": "1.17.1",
+    "maibot-plugin-sdk": "2.12.0"
+  },
+  "limits": [
+    "Does not start MaiBot, import its runtime, or accept agreements.",
+    "Storage/config checks do not prove Planner selected memory or Replyer used it.",
+    "Verify native chat tool calls and answer against a known synthetic fact separately."
+  ]
+}

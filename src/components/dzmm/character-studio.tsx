@@ -458,7 +458,7 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
       if (!mounted.current) return;
       setDraft((previous) => ({ ...previous, cover: path }));
       dirtyRef.current = true; setDirty(true); setSubmissionDone(false);
-      setNotice(`封面已生成，出图扣除 ${still.chargedCredits} Credit。保存草稿后保留。`);
+      setNotice(`封面已生成，出图扣除 ${still.chargedCredits} 金币。保存草稿后保留。`);
     } catch (failure) {
       if (!controller.signal.aborted && mounted.current) setCoverError(errorMessage(failure));
     } finally { if (mounted.current) setCoverPhase(""); }
@@ -632,7 +632,7 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
   const coverPreview = previewUrl(draft.cover);
   const coverReady = coverCaptionReady(coverCaptionRequest(draft, coverNote));
   const coverMaker = <section className={styles.coverMaker} aria-label={page.makeCover}>
-    <div className={styles.inspectorHeading}>{page.makeCover}<span>{STUDIO_STILL_CREDITS} Credit</span></div>
+    <div className={styles.inspectorHeading}>{page.makeCover}<span>{STUDIO_STILL_CREDITS} 金币</span></div>
     <textarea rows={3} maxLength={300} disabled={busy} value={coverNote} placeholder={page.coverNotePh} onChange={(event) => { setCoverNote(event.target.value); setCoverError(""); }} />
     {coverCaption && <p className={styles.coverCaption}>{coverCaption}</p>}
     <button type="button" className={styles.primary} disabled={busy || !coverReady} onClick={() => void generateCover()}><Icon name="sparkles" size={14} />{coverPhase === "caption" ? page.thinkingPicture : coverPhase === "image" ? page.makingPicture : registered ? page.thinkAndMake : page.loginToMake}</button>

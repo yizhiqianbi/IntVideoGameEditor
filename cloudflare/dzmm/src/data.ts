@@ -9,7 +9,7 @@ import { pickDzmmCharacterContext } from "../../../src/lib/dzmm-character-contex
 import { externalizeCharacterRow, resolveCharacterContext } from "../../../src/lib/dzmm-character-payload";
 import { parseDzmmCharacterAuthoringDraft } from "../../../src/lib/dzmm-character-draft";
 import { captureDzmmConversationOpening, parseDzmmConversationOpening, reconcileDzmmConversationOpening, type DzmmConversationOpeningSnapshot } from "../../../src/lib/dzmm-conversation-context";
-import { DZMM_INITIAL_STATE, hydrateDzmmState, type DzmmSavedState, type DzmmSavedConversation } from "../../../src/lib/dzmm-storage";
+import { DZMM_INITIAL_STATE, hydrateDzmmState, parseDzmmConversationMembers, type DzmmSavedState, type DzmmSavedConversation } from "../../../src/lib/dzmm-storage";
 import { matchesDzmmStoryMemory, parseStoryMemory, type DzmmStoryMemory } from "../../../src/lib/dzmm-story-memory";
 import { DZMM_WORLD_JOURNAL_LIMIT_CHARS, parseDzmmWorldJournal, pruneDzmmWorldJournal, type DzmmWorldJournal } from "../../../src/lib/dzmm-world-state";
 import { ApiError, json, readJson, readOptionalJson } from "./http";
@@ -39,10 +39,11 @@ const reservedPublicId = (characterId: string) => PUBLIC_IDS.has(characterId) ||
 const JSON_CHUNK_BYTES = 256 * 1024;
 const PREFERENCE_EXTRA_FIELDS = ["bio", "gender", "theme", "homeLayout", "showFloatingChat", "floatingSize",
   "floatingOpacity", "blockedTags", "followedAuthors", "presets", "maxTokens", "worldClockMode", "locale",
-  "personas", "conversationPersonas", "enterKey", "chatFontSize", "chatFont", "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground"] as const;
+  "personas", "conversationPersonas", "enterKey", "chatFontSize", "chatFont", "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground",
+  "promptStyle", "sampler", "imagePreset", "imageGeneration", "memoryProfile", "memoryDepth", "avatar"] as const;
 /** Pages loaded before these settings existed omit them on save; keep the stored values. */
 const RETAINED_PREFERENCE_FIELDS = ["worldClockMode", "personas", "conversationPersonas", "enterKey", "chatFontSize", "chatFont",
-  "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground"] as const;
+  "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground", "promptStyle", "sampler", "imagePreset", "imageGeneration", "memoryProfile", "memoryDepth", "avatar"] as const;
 type Row = Record<string, unknown>;
 type Delta = { table: "characters" | "conversations" | "messages" | "favorites"; remove: Row[]; upsert: Row[] };
 
@@ -217,7 +218,16 @@ function stateEnvelope(results: D1Result<Row>[]): StateEnvelope {
   for (const row of results[3].results) {
     const key = row.conversation_id as string;
     const messages = messageGroups.get(key) ?? [];
-    messages.push({ id: row.id as string, role: row.role as "user" | "assistant", content: row.content as string });
+    const rowSwipes = (() => {
+      if (typeof row.swipes_json !== "string") return undefined;
+      try {
+        const parsed = JSON.parse(row.swipes_json) as unknown;
+        return Array.isArray(parsed) && parsed.length >= 2 && parsed.every(item => typeof item === "string") ? parsed as string[] : undefined;
+      } catch { return undefined; }
+    })();
+    messages.push({ id: row.id as string, role: row.role as "user" | "assistant", content: row.content as string,
+      ...(typeof row.speaker === "string" && row.speaker.trim() ? { speaker: row.speaker as string } : {}),
+      ...(rowSwipes ? { swipes: rowSwipes, swipeIndex: typeof row.swipe_index === "number" ? row.swipe_index : 0 } : {}) });
     messageGroups.set(key, messages);
   }
   const conversations: DzmmSavedConversation[] = results[2].results.map((row) => {
@@ -232,6 +242,13 @@ function stateEnvelope(results: D1Result<Row>[]): StateEnvelope {
       ...(storyMemory ? { storyMemory } : {}),
       ...(worldState ? { worldState } : {}),
       ...(row.world_clock_mode === "story" || row.world_clock_mode === "realtime" ? { worldClockMode: row.world_clock_mode } : {}),
+      ...(() => {
+        if (typeof row.members_json !== "string") return {};
+        try {
+          const members = parseDzmmConversationMembers(JSON.parse(row.members_json));
+          return members && members[0].characterId === row.character_id ? { members } : {};
+        } catch { return {}; }
+      })(),
     };
   });
   const preference = results[5].results[0];
@@ -267,7 +284,8 @@ function conversationRow(conversation: DzmmSavedConversation, position: number):
     story_memory_json: conversation.storyMemory === undefined ? null : JSON.stringify(conversation.storyMemory),
     world_state_json: conversation.worldState === undefined ? null : JSON.stringify(conversation.worldState),
     world_clock_mode: conversation.worldClockMode ?? null,
-    opening_json: conversation.opening === undefined ? null : JSON.stringify(conversation.opening) };
+    opening_json: conversation.opening === undefined ? null : JSON.stringify(conversation.opening),
+    members_json: conversation.members === undefined ? null : JSON.stringify(conversation.members) };
 }
 
 function entityDelta(table: Delta["table"], previous: Row[], next: Row[], key: (row: Row) => string): Delta {
@@ -283,6 +301,9 @@ function entityDelta(table: Delta["table"], previous: Row[], next: Row[], key: (
 export function stateDelta(previous: DzmmSavedState, next: DzmmSavedState): Delta[] {
   const messageRows = (state: DzmmSavedState) => state.conversations.flatMap((conversation) => conversation.messages.map((message, position) => ({
     conversation_id: conversation.id, id: message.id, role: message.role, content: message.content, position,
+    speaker: message.speaker ?? null,
+    swipes_json: message.swipes ? JSON.stringify(message.swipes) : null,
+    swipe_index: message.swipeIndex ?? null,
   })));
   const deletedConversations = new Set(previous.conversations.filter((conversation) => !next.conversations.some((item) => item.id === conversation.id)).map((conversation) => conversation.id));
   const messages = entityDelta("messages", messageRows(previous).filter((row) => !deletedConversations.has(row.conversation_id as string)), messageRows(next), (row) => JSON.stringify([row.conversation_id, row.id]));
@@ -310,8 +331,8 @@ function jsonChunks(rows: Row[]): string[] {
 
 const TABLE_COLUMNS = {
   characters: ["id", "name", "author", "cover", "tags_json", "description", "personality", "scenario", "first_message", "created_at", "position", "context_json"],
-  conversations: ["id", "character_id", "title", "updated_at", "position", "story_memory_json", "world_state_json", "world_clock_mode", "opening_json"],
-  messages: ["conversation_id", "id", "role", "content", "position"],
+  conversations: ["id", "character_id", "title", "updated_at", "position", "story_memory_json", "world_state_json", "world_clock_mode", "opening_json", "members_json"],
+  messages: ["conversation_id", "id", "role", "content", "position", "speaker", "swipes_json", "swipe_index"],
   favorites: ["character_id", "position"],
 } as const;
 

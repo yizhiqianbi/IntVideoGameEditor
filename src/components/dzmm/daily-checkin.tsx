@@ -7,6 +7,7 @@ import type { XumengLocale } from "../../lib/xumeng-i18n";
 import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
 import Icon from "./icons";
 import { SubscriptionCenter } from "./subscription-center";
+import { DailyLogin } from "./daily-login";
 import s from "./recharge.module.css";
 
 type Props = { userId: string; isGuest: boolean; locale?: XumengLocale; onRequireAccount: () => void; onBack?: () => void; onTasks: () => void };
@@ -67,22 +68,17 @@ export function DailyCheckin({ userId, isGuest, locale = "zh-Hans", onRequireAcc
 
     <section className={s.balance} aria-label={copy.availableCredit}>
       <span>{copy.availableCredit}</span>
-      <strong>{data && !isGuest ? points(data.points.balance) : "—"}<small>Credit</small></strong>
+      <strong>{data && !isGuest ? points(data.points.balance) : "—"}<small>金币</small></strong>
       <p>{copy.sameBalance}</p>
     </section>
 
     {error && <p className={s.error} role="alert">{error}</p>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
 
-    <section className={s.guest} aria-label={copy.dailyCheckin} id="daily-checkin">
-      <div>
-        <strong>{task?.claimed ? copy.checkedToday : copy.checkinToday}{task ? ` · +${points(task.rewardPoints)} Credit` : ""}</strong>
-        <p>{isGuest ? copy.checkinGuest : task?.claimed ? copy.comeTomorrow : copy.onceADay}</p>
-      </div>
-      {isGuest ? <button type="button" className={s.primary} onClick={onRequireAccount}>{copy.loginCheckin}</button>
-        : task?.claimed ? <span className={s.paid}><Icon name="check" size={14} /> {copy.claimed}</span>
-        : <button type="button" className={s.primary} disabled={loading || claiming || !task?.claimable} onClick={() => void claim()}>{claiming ? copy.checkingIn : copy.claimCheckin}</button>}
-    </section>
+    <div id="daily-checkin">
+      <DailyLogin userId={userId} isGuest={isGuest} locale={locale} onRequireAccount={onRequireAccount}
+        onCreditChanged={() => { void reload(); }} />
+    </div>
 
     {!isGuest && <SubscriptionCenter checkinOnly userId={userId} isGuest={isGuest} paymentConfig={paymentConfig} refreshKey={refreshKey}
       onRequireAccount={onRequireAccount} onCreditChanged={() => { void reload(); }} />}

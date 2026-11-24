@@ -1,0 +1,2930 @@
+[
+  {
+    "url": "https://nariyume.com/app/manifest.webmanifest",
+    "source": "https://nariyume.com/app/",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/manifest.webmanifest",
+    "bytes": 376,
+    "sha256": "99f22eef3898fadcd92547c684794a9e969b018299a3495c56d97e7797962281"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/browser-entry-507477f023b27913.js",
+    "source": "https://nariyume.com/app/",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/browser-entry-507477f023b27913.js",
+    "bytes": 19850,
+    "sha256": "507477f023b279134cd837ec67089a4f000d97de1e6ab7c9743f61db0a97152f"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/ad-pixels-04458d7ee532faf3.js",
+    "source": "https://nariyume.com/app/",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/ad-pixels-04458d7ee532faf3.js",
+    "bytes": 14476,
+    "sha256": "04458d7ee532faf354f0dbd395c8cec46107fb130dddf41358f3192f13a0016c"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/measurement-1d3125216825023e.js",
+    "source": "https://nariyume.com/app/",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/measurement-1d3125216825023e.js",
+    "bytes": 82782,
+    "sha256": "1d3125216825023e78aa1b6ba058864c12d597245176f3606b23558624655bdb"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "source": "https://nariyume.com/app/",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index-DK0MxpT_.js",
+    "bytes": 18555,
+    "sha256": "1cb7db7bf538efd392a716a6d062572d46d5186adb1ad8f43226b6705df98201"
+  },
+  {
+    "url": "https://www.nariyume.com/styles.css",
+    "source": "https://www.nariyume.com/studio",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/styles.css",
+    "bytes": 4915,
+    "sha256": "a9dae1a83e8db34abeda8b0bbbf7552d45ba48608d64c25284a88b23f4f5d9c3"
+  },
+  {
+    "url": "https://www.nariyume.com/studio.css",
+    "source": "https://www.nariyume.com/studio",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/studio.css",
+    "bytes": 3308,
+    "sha256": "64697f8b896aa621c9dd6a424cad9c039b1642edd0bf96eb716bb8ebb7b8d004"
+  },
+  {
+    "url": "https://www.nariyume.com/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js",
+    "source": "https://www.nariyume.com/studio",
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/email-decode.min.js",
+    "bytes": 1239,
+    "sha256": "2595496fe48df6fcf9b1bc57c29a744c121eb4dd11566466bc13d2e52e6bbcc8"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "source": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "declared_character_offset": 57,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/scripted-87fnqvAW.js",
+    "bytes": 1690,
+    "sha256": "e181a805cf6331c50ead0b7862f5fccaf5b14699fb789ada18545fcd142e5837"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "source": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "declared_character_offset": 87,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/t-BP_Uh6vV.js",
+    "bytes": 103019,
+    "sha256": "c5a223c6c537f594ec3461fc8d59d608164976c3b18d9d789fc6c03ade1685b5"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "source": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "declared_character_offset": 110,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/main-BHN5IlOI.js",
+    "bytes": 772079,
+    "sha256": "32a8543b66faa82925f1baf9b7236bdb870397d4068742d58b2d27e48b1ff9c1"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/react-vendor-rLr1xqN2.js",
+    "source": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "declared_character_offset": 136,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/react-vendor-rLr1xqN2.js",
+    "bytes": 142919,
+    "sha256": "e0ddc3a8bc9cbc9f2362d3aac3c7c6d95c96fe1e1f74aa9dac5cd8ed90a80d47"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/main-CrYcREVC.css",
+    "source": "https://nariyume.com/app/assets/index-DK0MxpT_.js",
+    "declared_character_offset": 170,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/main-CrYcREVC.css",
+    "bytes": 172095,
+    "sha256": "f66604585c9f12d47daac258afef6762bba111c4e10bb1034882eee7004e11d5"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/ja-DBEBiyzu.js",
+    "source": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "declared_character_offset": 145,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/ja-DBEBiyzu.js",
+    "bytes": 115316,
+    "sha256": "8e694b51c57a882e0bb41d772ebccb4c60d5612612d92c8bff7d7f719460777b"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/es-DwTgcOpv.js",
+    "source": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "declared_character_offset": 189,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/es-DwTgcOpv.js",
+    "bytes": 109645,
+    "sha256": "fccff3bb0eb8c0c80daf2e76064c84c220a626474137d14a198d30bdc1d97d22"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/fr-COALR7ey.js",
+    "source": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "declared_character_offset": 233,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/fr-COALR7ey.js",
+    "bytes": 111182,
+    "sha256": "cab69d8670c8c24d298292ff011e3ad6f2813b08f2260901d821bd835cc61250"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/it-CMiviu5u.js",
+    "source": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "declared_character_offset": 277,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/it-CMiviu5u.js",
+    "bytes": 109173,
+    "sha256": "24498d6b8eefc3a998ac8e8e073565f8a80785f853835a43965b23fb09b4e59f"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/zh-Hans-BGIrOvch.js",
+    "source": "https://nariyume.com/app/assets/scripted-87fnqvAW.js",
+    "declared_character_offset": 328,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/zh-Hans-BGIrOvch.js",
+    "bytes": 107981,
+    "sha256": "0bf0c232a8535c3b94d7c40b02e91846b2bfb27d74065763a5733992386e547d"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/ja-PQttGGzT.js",
+    "source": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "declared_character_offset": 101278,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/ja-PQttGGzT.js",
+    "bytes": 118300,
+    "sha256": "39b52f77dd5ae2a264176942b3d9c32631ad79b815483ea01142080d798d189d"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/es-DpV9vpdj.js",
+    "source": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "declared_character_offset": 101322,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/es-DpV9vpdj.js",
+    "bytes": 106938,
+    "sha256": "99b70193d3695a510f9be52d9165f7aa2cdabd6987d54a8b48fe4f9c5adea4ac"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/fr-Csb1kQZB.js",
+    "source": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "declared_character_offset": 101366,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/fr-Csb1kQZB.js",
+    "bytes": 109801,
+    "sha256": "e4d853b14b2f15a39276235a760fbf64a0c3b895d1f602314650051db519f192"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/it-CgtGmR7p.js",
+    "source": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "declared_character_offset": 101410,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/it-CgtGmR7p.js",
+    "bytes": 107517,
+    "sha256": "f761f1c189de3547a89784459e766410d7c455d7880d61fea88fa489f56cb1f5"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/zh-Hans-D8jcZxD8.js",
+    "source": "https://nariyume.com/app/assets/t-BP_Uh6vV.js",
+    "declared_character_offset": 101461,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/zh-Hans-D8jcZxD8.js",
+    "bytes": 100396,
+    "sha256": "3078c16e267a1934cfcc23a737c35521609c0b31e3330bbfed743f6a6b20a50f"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/index.esm-BELzMuy8.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 57,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index.esm-BELzMuy8.js",
+    "bytes": 1335,
+    "sha256": "4d8142f2e3f89eaece1f860f7dcb8341dea1494c03d882a7bccc3cf65338c495"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/index.esm-DGcbnDoL.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 88,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index.esm-DGcbnDoL.js",
+    "bytes": 46313,
+    "sha256": "dae296deae656cbfccee5a9aa51dd3f4a44160579d108c1a663ec470cbfec440"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/index.esm-DnVhQ4-l.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 119,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index.esm-DnVhQ4-l.js",
+    "bytes": 195485,
+    "sha256": "4a4fba4d9433e6622a97de4d0c9f30d1517e5a287b6287eeafe8fcb100f2629d"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/LettersScreen--aSE0-WC.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 150,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/LettersScreen--aSE0-WC.js",
+    "bytes": 11881,
+    "sha256": "950496edcca5aa9d2fe3bb2b722fef2f940024114fb44c967b147eee2759881a"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/nariGamesLLM-CL9Fg148.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 219,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/nariGamesLLM-CL9Fg148.js",
+    "bytes": 5097,
+    "sha256": "c2cf88043d49b8c1d0b748d8099cdb39122f13d8e53b478d711360cf799e4908"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/index-Btd8q4_K.css",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 303,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index-Btd8q4_K.css",
+    "bytes": 58795,
+    "sha256": "5731393cef9c26d042266452f8482303269ce964714f369684c0c2039d47cfc6"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/StatsScreen-DSCvqG_u.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 361,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/StatsScreen-DSCvqG_u.js",
+    "bytes": 3133,
+    "sha256": "00b64aed15971cb12ce6b1ebd04498bd6da73e73543f095189f4ef3298c9a71b"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/achievementEngine-Di5jBi--.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 394,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/achievementEngine-Di5jBi--.js",
+    "bytes": 20603,
+    "sha256": "fae2399e63be479963ce09929af5c481a971110f6b852feaa5fb274762803395"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/StatsScreen-ClSX_i1g.css",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 433,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/StatsScreen-ClSX_i1g.css",
+    "bytes": 4470,
+    "sha256": "44243b87777e7f125fa1a50c3a72c16cbac1953dcfb74632e483611589f7ee4f"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/backgroundPass-U60U02V0.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 467,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/backgroundPass-U60U02V0.js",
+    "bytes": 825,
+    "sha256": "58c514eee01fa703f3c09bf2f47f5ecf67783552b90a282fffdaf59cba885127"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 503,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/GamesMenu-DNSZw59u.js",
+    "bytes": 37042,
+    "sha256": "2505504b55506218f934ac5d45877b4ecc795fd0acacda8953c7258d547691de"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/GamesMenu-D7roVjRb.css",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 534,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/GamesMenu-D7roVjRb.css",
+    "bytes": 71717,
+    "sha256": "d2c723d37da6eafceb0dbfc278cbee0a69614811379e06a4226d4b607e2de0a3"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/streakFlower-Dab8XXnj.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 566,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/streakFlower-Dab8XXnj.js",
+    "bytes": 14177,
+    "sha256": "7ae93041edf504e3c905e5fa318a5a28fe2e3b0b8d5a8da903c54b2a7d3efd33"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/content-7ymBIcOO.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 600,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/content-7ymBIcOO.js",
+    "bytes": 22253,
+    "sha256": "944cb9420b5f57d47f44da368ae0c2d7455a662a7d7fd57b3b97d268f0754ad9"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/CallOverlay-BeQL8TTH.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 629,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/CallOverlay-BeQL8TTH.js",
+    "bytes": 18691,
+    "sha256": "f635e68039599e08262886fcac6590916099514a9e5417d69162a493d8fe1bc0"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Paywall-BaVC-TV0.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 662,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Paywall-BaVC-TV0.js",
+    "bytes": 27412,
+    "sha256": "7a38b4e39b88a1645ee15dc4ea236623d124699bfba1e168dfd8d7b12587bbd7"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Paywall-DPYzkO0R.css",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 691,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Paywall-DPYzkO0R.css",
+    "bytes": 5194,
+    "sha256": "9eb4a4e567881190d3984ef8acf6c3074d30e21bd10cbdc40b7cfda50dfd30de"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/BillingPage-5wcZ0ItY.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 721,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/BillingPage-5wcZ0ItY.js",
+    "bytes": 10529,
+    "sha256": "d26a93347fb91696f6be0c49a0af2f55087264ff7b0cc8b528c9357fe69bccb5"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/BillingPage--Hy48Io0.css",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 754,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/BillingPage--Hy48Io0.css",
+    "bytes": 6725,
+    "sha256": "5a2f0239b3497024c9b3b4e07b67aafede7f939e6e70c9f6c7b6ddda16aef832"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/StreakScrapbookSheet-CaNJpRQo.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 788,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/StreakScrapbookSheet-CaNJpRQo.js",
+    "bytes": 2644,
+    "sha256": "8f4c6e7b9b587852965998e713dd100a2c20820c2df3b30261bd9a3917396718"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 166993,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "bytes": 38879,
+    "sha256": "f4473c9041a8b2edd64790a7adb972bb8a7c8c22750a65e777aef6b6020a25f9"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/free.generated-4oRWj1ab.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 170444,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/free.generated-4oRWj1ab.js",
+    "bytes": 76425,
+    "sha256": "ba6f5f0957c1de5f7dd39850ce54211a1178071d57f729db75846b962b546294"
+  },
+  {
+    "url": "https://nariyume.com/app/music/index.json",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 454048,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index.json",
+    "bytes": 2257,
+    "sha256": "4fb4901110ab06305817e2d3f701bc3f9589ade7b232225477e4a981978694eb"
+  },
+  {
+    "url": "https://nariyume.com/app/music/dance/index.json",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 454251,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/index.json",
+    "bytes": 2257,
+    "sha256": "4fb4901110ab06305817e2d3f701bc3f9589ade7b232225477e4a981978694eb"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/capture.worklet-DlgSLYB2.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 513511,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/capture.worklet-DlgSLYB2.js",
+    "bytes": 1195,
+    "sha256": "c5508657197af83b9509541c1f53a6c0efcc740d4103cafa3805ff7ec696f72e"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/livingBubbles-U0filAPK.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 571276,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/livingBubbles-U0filAPK.js",
+    "bytes": 68708,
+    "sha256": "04089dbad8c8dbb76d984fb26f61d2054443635684a95f41e91058744b681b82"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/disposableEmail-B4I8SovS.js",
+    "source": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "declared_character_offset": 716051,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/disposableEmail-B4I8SovS.js",
+    "bytes": 130653,
+    "sha256": "fbf6fc04e36d26bc2a4a3815471a340ec8bab38e76bbe98c2a1cf33d15eb9e03"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/ConnectFour-C6fuaVAZ.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 57,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/ConnectFour-C6fuaVAZ.js",
+    "bytes": 14968,
+    "sha256": "b4fa27cdb3512de47c135b3756547129035bb8112a5401f264a1c4444ccb131c"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/useGameCommentary-1uLGD9Hs.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 285,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/useGameCommentary-1uLGD9Hs.js",
+    "bytes": 571,
+    "sha256": "69013f0ce395c441736fbd6eb6e9530cf40ab3eccd828cf76db7deb4a2a4edf7"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/adaptive-BOtVaFk8.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 324,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/adaptive-BOtVaFk8.js",
+    "bytes": 502,
+    "sha256": "1b098cc3ec36995cd5247ef72b8b82378f476ab392bed7b05606ad3d267bdaa7"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Reversi-BDn7fPiA.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 388,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Reversi-BDn7fPiA.js",
+    "bytes": 16743,
+    "sha256": "5c3ce5e9fc993a124a10979e5e5f8d6592536088ca18783a4e8f0ab88a83781c"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Checkers-XwuLn1-J.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 417,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Checkers-XwuLn1-J.js",
+    "bytes": 15687,
+    "sha256": "c259e20d770883be31c32dd0323be2bfcdbe70760c40538e660524c84ac513cd"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Chess-CSBxjEqf.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 447,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Chess-CSBxjEqf.js",
+    "bytes": 77071,
+    "sha256": "50980f9336045989cee6fcbb277113807f6d150b9d1012f8d97abd83cae42f33"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/useGameReading-DA04BAQ_.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 474,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/useGameReading-DA04BAQ_.js",
+    "bytes": 1039,
+    "sha256": "25c9f69d73464e81e9d219843d5739494add2b3261a4f614901eb17fafafcf80"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Chess-DhCt-Qp2.css",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 510,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Chess-DhCt-Qp2.css",
+    "bytes": 15962,
+    "sha256": "98e6822c860165d9bc462f1dadcf2572b318835aa26fe172e5e3f97b06b9745d"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/PongMini-Dedpuwft.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 538,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/PongMini-Dedpuwft.js",
+    "bytes": 14638,
+    "sha256": "cc523ef23cd9fe071adf251b56d77d5a8308d30ea89fdb1400a0953907292a03"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/TwoTruths-CMEicdQJ.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 568,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/TwoTruths-CMEicdQJ.js",
+    "bytes": 13073,
+    "sha256": "3833b65dd5cc507a5f9b311b79886fa1a3355614b6bcd71d39c5e8d4b6138af2"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/gameDetail-hSa8N5MB.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 599,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/gameDetail-hSa8N5MB.js",
+    "bytes": 131,
+    "sha256": "5ca768c93cb37c13b807b30a1de3a8680535072de959e8a139d0644fd42980a3"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/useNativeEnding-YtTwGRK5.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 631,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/useNativeEnding-YtTwGRK5.js",
+    "bytes": 469,
+    "sha256": "5ad968f5a08fdd84eafeafddd4d7fde38941a6a046eddede66bba53d6ef6ac40"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/questionValidation-CvQr0mS2.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 697,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/questionValidation-CvQr0mS2.js",
+    "bytes": 1671,
+    "sha256": "4130a0ba58fab273a18e66b6e47e4a888e8a2ca0b1c1222a35fa2d0d57c62dc4"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/gameSeedBank-CuKBLOqc.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 737,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/gameSeedBank-CuKBLOqc.js",
+    "bytes": 12153,
+    "sha256": "2ca7519b62f8ab203b37cff37d4978e3fa01f96d7d8f8de4548205a4c0137304"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/TriviaDuel-BuzEc2nr.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 771,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/TriviaDuel-BuzEc2nr.js",
+    "bytes": 12986,
+    "sha256": "203a80bb59ca6f7d57b6b5a6f7d2ebab1d418ab9c4e36efc2e6f69911fa04f8f"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/WhatIf-COp_TbXe.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 803,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/WhatIf-COp_TbXe.js",
+    "bytes": 21593,
+    "sha256": "3b85010baaea6f9b23e7fcd419fd97c3274b51adfb2a0df4f623a43301b2c3e2"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/BuildTogether-nVavFQ13.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 831,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/BuildTogether-nVavFQ13.js",
+    "bytes": 19714,
+    "sha256": "2b42bb0e01fa4152fa96821ddcbca1fc6bd632f9d746520c08808550826b38d4"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/WouldYouRather-CrhVsd_H.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 866,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/WouldYouRather-CrhVsd_H.js",
+    "bytes": 16286,
+    "sha256": "ed93245d9b493cb13c6859038a06867a98881a34a115cb49c434b032a665f350"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/WouldYouRather-BLXo7-or.css",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 902,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/WouldYouRather-BLXo7-or.css",
+    "bytes": 6719,
+    "sha256": "c3c410518ec9a0de583b1a8db2b47218a16bb80ac240ba9b529a2c50c8937b79"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/Song-Du6oGcGg.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 939,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/Song-Du6oGcGg.js",
+    "bytes": 9751,
+    "sha256": "e00e56882f6598e23ce5a202227e33cf4543223d99073ecfc03ecf7741222221"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/StudyWithMe-Cwd1QChN.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 965,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/StudyWithMe-Cwd1QChN.js",
+    "bytes": 7775,
+    "sha256": "c2f876ea5db429b6f7c97d19ed876f7e5b65ba060bcf902d56e2fe1918406127"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/useStudyEncouragement-BXIKPo43.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 998,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/useStudyEncouragement-BXIKPo43.js",
+    "bytes": 2309,
+    "sha256": "cf47e99371d71d9d4fcb6111c93c28dbc510fe3d74e949617258871736752e65"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/FocusTimer-CzPRx8cb.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 1041,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/FocusTimer-CzPRx8cb.js",
+    "bytes": 9667,
+    "sha256": "2691bf30842798e2ba0881a646d8075f55206a4c02823a532c4d7888f43d105c"
+  },
+  {
+    "url": "https://nariyume.com/app/assets/BedtimeStories-CmxYFSTm.js",
+    "source": "https://nariyume.com/app/assets/GamesMenu-DNSZw59u.js",
+    "declared_character_offset": 1073,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/BedtimeStories-CmxYFSTm.js",
+    "bytes": 11031,
+    "sha256": "0c918bc5a7b71cc08267da898a1e388ed3f391af59a97276a7857d83a2c18fd0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-619974c63cf726be1525.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 24,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-619974c63cf726be1525.json",
+    "bytes": 22780,
+    "sha256": "619974c63cf726be1525dbfdf89ae88224721eee3df38cbeffb3e780dbc0bd1d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3ad3e775fa5ecdb3f822.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 91,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3ad3e775fa5ecdb3f822.json",
+    "bytes": 22847,
+    "sha256": "3ad3e775fa5ecdb3f8222917c6e506b1b5d4ffb0693c3987dc93901d379d6960"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-af8f9299545fba3bca0c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 154,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-af8f9299545fba3bca0c.json",
+    "bytes": 16515,
+    "sha256": "af8f9299545fba3bca0c2cfa9ff88c3148d16f801b94b284d9ea7f25e0bda66f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-53b5eb510b930836b82c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 225,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-53b5eb510b930836b82c.json",
+    "bytes": 382105,
+    "sha256": "53b5eb510b930836b82c0fe6b85354bfd7a60cad5b31deff11d051b1997f2988"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-87c324ff22d20ece0362.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 296,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-87c324ff22d20ece0362.json",
+    "bytes": 9209,
+    "sha256": "87c324ff22d20ece0362128560b77eebc457d196021ee88992e8afcdaee45791"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5e2ddc2c8751684b680b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 368,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5e2ddc2c8751684b680b.json",
+    "bytes": 6638,
+    "sha256": "5e2ddc2c8751684b680b3a2d9a0f1ffcdd6118e63859fc44cce0b50de0983191"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-93a274e9f8bc1bbb6922.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 436,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-93a274e9f8bc1bbb6922.json",
+    "bytes": 83633,
+    "sha256": "93a274e9f8bc1bbb69220e29be1a70b5728ef3741094c4ed0e81fca98ff0a558"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1f0656d1210deba049d4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 506,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1f0656d1210deba049d4.json",
+    "bytes": 16390,
+    "sha256": "1f0656d1210deba049d4594fcb134c695d54bf6a6bfff64607bab04b8e1796c9"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e05cf3f1708ac0ee5c00.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 573,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e05cf3f1708ac0ee5c00.json",
+    "bytes": 14937,
+    "sha256": "e05cf3f1708ac0ee5c006291ed16473a4862a4c685b28fa76dce24fe03eef44e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a2e8238923752f422f07.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 640,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a2e8238923752f422f07.json",
+    "bytes": 11584,
+    "sha256": "a2e8238923752f422f0799a72d9396b585c0131e6698d627209c7b525539d056"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-97aa1e1e405840438c4e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 706,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-97aa1e1e405840438c4e.json",
+    "bytes": 25779,
+    "sha256": "97aa1e1e405840438c4eb141666a8a6354505826a813e491609f0ed5b99951dd"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-45ec497bf7e6c94e7cd0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 773,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-45ec497bf7e6c94e7cd0.json",
+    "bytes": 23706,
+    "sha256": "45ec497bf7e6c94e7cd0e17eed47f722907ea48c2958c2709e03a0b9d01253e6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-819e0766b41d91a33e85.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 844,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-819e0766b41d91a33e85.json",
+    "bytes": 21435,
+    "sha256": "819e0766b41d91a33e85ab7407da208953ee443234a7e4eb66c050e44ace28ba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c67409e078dc806ca567.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 914,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c67409e078dc806ca567.json",
+    "bytes": 20886,
+    "sha256": "c67409e078dc806ca567a85d12b596905ee95e689c8b629a153b535816cce98c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0c4d3e9a23b0c591736c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 984,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0c4d3e9a23b0c591736c.json",
+    "bytes": 19329,
+    "sha256": "0c4d3e9a23b0c591736c2ea02db5380c6485dd92914cc9ab645cccb4eaad53bb"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-19eadf1b25feb13049d9.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1054,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-19eadf1b25feb13049d9.json",
+    "bytes": 19301,
+    "sha256": "19eadf1b25feb13049d9e629b4891e53b26172f196620b103632d7675c4fc2c8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b1e97d7ef1f7bd2c54b5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1125,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b1e97d7ef1f7bd2c54b5.json",
+    "bytes": 18988,
+    "sha256": "b1e97d7ef1f7bd2c54b5bc7a0df8b6dbfec54fe2400f70516abd605f86f93657"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a29f3661def6766118e6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1189,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a29f3661def6766118e6.json",
+    "bytes": 134749,
+    "sha256": "a29f3661def6766118e6e3399af644e068a3ad29f80cd4fcd8257fe43ae223a1"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d62585285e4eb3832a9e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1258,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d62585285e4eb3832a9e.json",
+    "bytes": 16574,
+    "sha256": "d62585285e4eb3832a9e5f382bd483afa0f88bc3e8e2a18567f0d442d1c06b74"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-50f2955be6452e92a299.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1326,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-50f2955be6452e92a299.json",
+    "bytes": 17493,
+    "sha256": "50f2955be6452e92a29912051742529d4ca7b440f09b41d17947a58a934b1f26"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6efc03419dd386121d4f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1398,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6efc03419dd386121d4f.json",
+    "bytes": 17766,
+    "sha256": "6efc03419dd386121d4f03554884bb95e37cb3a884d95477a7539a668bad1acf"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-df284455e67f2ed7979b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1467,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-df284455e67f2ed7979b.json",
+    "bytes": 25181,
+    "sha256": "df284455e67f2ed7979b5d8c62bde0f451b153768b9fb9c3c1d4b2f807897f9b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f3ca7647ef8fd84f05ef.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1539,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f3ca7647ef8fd84f05ef.json",
+    "bytes": 20439,
+    "sha256": "f3ca7647ef8fd84f05efe25618fde91f7f9f514a700029190bfc89d3ac8ce014"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b3895d2b93e35fffb08d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1609,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b3895d2b93e35fffb08d.json",
+    "bytes": 100196,
+    "sha256": "b3895d2b93e35fffb08ddb8be3bf302cc3d6ff478c76399d3ff2482bc990ae6d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f7240c1e8f64b311d203.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1679,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f7240c1e8f64b311d203.json",
+    "bytes": 88604,
+    "sha256": "f7240c1e8f64b311d2036d15dae8d402271d28c8a08bd5469550f2fede15c378"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0c4314d17da041596f1c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1749,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0c4314d17da041596f1c.json",
+    "bytes": 24768,
+    "sha256": "0c4314d17da041596f1c0a8747490a5f9f3f21a10bd75b3216fa9e6009a8f767"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e534430736310414f3c6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1825,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e534430736310414f3c6.json",
+    "bytes": 17674,
+    "sha256": "e534430736310414f3c6a5e8d7eebd00a102c75083fa9ace3972111693763ec7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-64d9deeb12af5100e1a5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1894,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-64d9deeb12af5100e1a5.json",
+    "bytes": 21321,
+    "sha256": "64d9deeb12af5100e1a5b89b9f63738922ffc08820f60c5a750166ad995201f9"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-674a30c38e5af3bdd657.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 1964,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-674a30c38e5af3bdd657.json",
+    "bytes": 21184,
+    "sha256": "674a30c38e5af3bdd65780614651769b6dc10d21988aba1db368126bbcba5348"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6d9ab0debca2530377da.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2037,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6d9ab0debca2530377da.json",
+    "bytes": 21541,
+    "sha256": "6d9ab0debca2530377da3e951c34be94d80447bf6118d5e29a6557212679b86f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4ac7f5baa6be0283bc29.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2113,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4ac7f5baa6be0283bc29.json",
+    "bytes": 18620,
+    "sha256": "4ac7f5baa6be0283bc2986f255d10b077d0c0a591bd68fe1e04a5365db6e1af3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d7bd275ca5c14c2b91c2.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2187,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d7bd275ca5c14c2b91c2.json",
+    "bytes": 155512,
+    "sha256": "d7bd275ca5c14c2b91c267870214ee20834fc0bbd11b41261a7f7e286d9ddf4b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-df7a7c4d9b71cd876215.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2261,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-df7a7c4d9b71cd876215.json",
+    "bytes": 24707,
+    "sha256": "df7a7c4d9b71cd876215ae06844e17faa103e7b45aaf9aa7476437f4e19b5b9a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9cd8d8eb846ebfc486ca.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2329,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9cd8d8eb846ebfc486ca.json",
+    "bytes": 13523,
+    "sha256": "9cd8d8eb846ebfc486ca7b7ce2bbdc4f781d6999162a6146769b34d834d7fe3e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c472109081b381dbd01d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2396,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c472109081b381dbd01d.json",
+    "bytes": 18066,
+    "sha256": "c472109081b381dbd01d1ae7dc1bb20ce4c25a6a4a39cc0ac4e77305e0a3a37f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-569a60ce6eb6314ef1d4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2463,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-569a60ce6eb6314ef1d4.json",
+    "bytes": 16180,
+    "sha256": "569a60ce6eb6314ef1d4f347ef4e0da7739bd1ddd9e0f15c916c5dc8457c4c27"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c8f3c330e37f7b781da8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2536,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c8f3c330e37f7b781da8.json",
+    "bytes": 12158,
+    "sha256": "c8f3c330e37f7b781da8eab8bf8eae7ee55bedc8273ea505700ef56c9ba1e4e1"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a783143a6352237100f6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2608,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a783143a6352237100f6.json",
+    "bytes": 12500,
+    "sha256": "a783143a6352237100f6282f01d33fed64c49eed3e361e9edbab8149afe614d2"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-67f04bd1f7b8e92d6b79.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2680,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-67f04bd1f7b8e92d6b79.json",
+    "bytes": 11592,
+    "sha256": "67f04bd1f7b8e92d6b798e2b9da95c710fe35075a5089dea35c36e041572a368"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-986b95d190ec8d58f5c9.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2753,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-986b95d190ec8d58f5c9.json",
+    "bytes": 12719,
+    "sha256": "986b95d190ec8d58f5c91af580b749619116eae70d81617b0abb50d42ba7c459"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-95f92976111846711153.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2825,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-95f92976111846711153.json",
+    "bytes": 12260,
+    "sha256": "95f929761118467111535c64a695201edce3cfcc824500a858a31272b1e249b3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6431b632ea04fb8340b1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2897,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6431b632ea04fb8340b1.json",
+    "bytes": 12004,
+    "sha256": "6431b632ea04fb8340b1e69214be0d8595b74b5fe450f12f64bd8d074eb7915e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-28f2248006c1bbd57f3f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 2967,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-28f2248006c1bbd57f3f.json",
+    "bytes": 12180,
+    "sha256": "28f2248006c1bbd57f3f68adc2d6636f050c95eb0acb0f5b6b720c4842e2f441"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1a4426477649d38fca56.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3036,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1a4426477649d38fca56.json",
+    "bytes": 12735,
+    "sha256": "1a4426477649d38fca56481296a120f612e06c8ea4fe4613b8cc632ef082ebdf"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-77adf5651fda9607a65b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3105,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-77adf5651fda9607a65b.json",
+    "bytes": 11531,
+    "sha256": "77adf5651fda9607a65b76ee544ae5914c8fbec2c3cadb88401adc53182479a8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-eebcbcd5cab98c41cdcd.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3175,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-eebcbcd5cab98c41cdcd.json",
+    "bytes": 12558,
+    "sha256": "eebcbcd5cab98c41cdcd6fe32f4ea288e85be639a9ccc22b202a59f0b75c21e3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b3fedfd05a18fc2ee9c0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3244,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b3fedfd05a18fc2ee9c0.json",
+    "bytes": 12765,
+    "sha256": "b3fedfd05a18fc2ee9c064daecc5789b597ac04468581531be4efd7d3cdd80f2"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6795f53d723de52a5a97.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3313,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6795f53d723de52a5a97.json",
+    "bytes": 12465,
+    "sha256": "6795f53d723de52a5a971d1bf8533aa9396f35dad38412cf6ffd5ef254ccc5da"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a3ec3c07724271f64c53.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3381,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a3ec3c07724271f64c53.json",
+    "bytes": 2077,
+    "sha256": "a3ec3c07724271f64c53b2c7e639cde04c3c2811281e375faf722d640ecb8e54"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d5bfd077f97f50573fe6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3449,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d5bfd077f97f50573fe6.json",
+    "bytes": 2138,
+    "sha256": "d5bfd077f97f50573fe60861af79fa13827a5dc80fb590653bd4fd549a4d12ac"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-15c2a870978349e7becc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3518,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-15c2a870978349e7becc.json",
+    "bytes": 2002,
+    "sha256": "15c2a870978349e7becc70d1845f2b198df532c87543c662e22a52869c0a5db1"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3ed21c73cc6250a13eb8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3587,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3ed21c73cc6250a13eb8.json",
+    "bytes": 2102,
+    "sha256": "3ed21c73cc6250a13eb8857bc404252594bfa32ca83c7ff7d7136ec15efc784a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8aa6a5115fa5de1037c3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3653,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8aa6a5115fa5de1037c3.json",
+    "bytes": 24981,
+    "sha256": "8aa6a5115fa5de1037c3733d565bb3e93b5c15d12e66628791c96256ccff7022"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4348bb05eb2259438575.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3720,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4348bb05eb2259438575.json",
+    "bytes": 24983,
+    "sha256": "4348bb05eb2259438575c019124b9460f76ea20b10d43e812cd15ac30dc2ad77"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-98f4eff56e4549e918db.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3783,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-98f4eff56e4549e918db.json",
+    "bytes": 17349,
+    "sha256": "98f4eff56e4549e918db5a3be1c3d985c538a708e53b59ef3cbbec10ce3dc549"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-85a6dd44112b4bbfc31e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3854,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-85a6dd44112b4bbfc31e.json",
+    "bytes": 957223,
+    "sha256": "85a6dd44112b4bbfc31ec59a890ff7c899ca5cce0fb2f1bf44978da9f6088aa3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c676b90041e7b378dd88.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3925,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c676b90041e7b378dd88.json",
+    "bytes": 9218,
+    "sha256": "c676b90041e7b378dd8894c9a35629a5d1b95516ef2a24e63bad45f4edae1653"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-535bcb5cd12df3c87d50.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 3997,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-535bcb5cd12df3c87d50.json",
+    "bytes": 6261,
+    "sha256": "535bcb5cd12df3c87d50e4924d243400f21eff8d1aa9d8b58901bac9effff2ae"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-772309a7fcaec9ef8384.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4065,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-772309a7fcaec9ef8384.json",
+    "bytes": 79939,
+    "sha256": "772309a7fcaec9ef8384349fb47871d278059a2fe1f82fe7c86130de8fcb893c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a75e9dc805ae74ddc846.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4135,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a75e9dc805ae74ddc846.json",
+    "bytes": 18010,
+    "sha256": "a75e9dc805ae74ddc846e7f6a8cedb7630f406ec4384c01015b3d4c230767005"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6df0a7b792df1c918be8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4202,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6df0a7b792df1c918be8.json",
+    "bytes": 16810,
+    "sha256": "6df0a7b792df1c918be8668cadd984e33add70d84ff4076dc5c223f6c365817d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b65db6a60746dffcaace.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4269,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b65db6a60746dffcaace.json",
+    "bytes": 11746,
+    "sha256": "b65db6a60746dffcaace4321b3f843ad652a8745104065407f7b6d16db08c643"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-148ee86feada02f39842.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4335,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-148ee86feada02f39842.json",
+    "bytes": 28056,
+    "sha256": "148ee86feada02f39842cf269c041d44af5767991ec95d90ea258a76287c2da8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-34e364b9e0544a1083fc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4402,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-34e364b9e0544a1083fc.json",
+    "bytes": 21745,
+    "sha256": "34e364b9e0544a1083fc4c7db75ad342aa69c9ff9f79bf5796b0f0c4c098d912"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5ae152a5340e16c630a1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4473,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5ae152a5340e16c630a1.json",
+    "bytes": 22812,
+    "sha256": "5ae152a5340e16c630a1d39c47bbb02c9bcdf26c4ffcccd304b4f190ae0c1632"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0f595807f1a70bc9a5c8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4543,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0f595807f1a70bc9a5c8.json",
+    "bytes": 23123,
+    "sha256": "0f595807f1a70bc9a5c8bada2c42fb4542045bfb239cb2dc8b053b4cdf69cacf"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-df663cc3cb0b8e3c3086.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4613,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-df663cc3cb0b8e3c3086.json",
+    "bytes": 22944,
+    "sha256": "df663cc3cb0b8e3c308612e11f5bca5c7fc88ebd6d9a07fa71af584603047eac"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-156e4a1f44b13da14bb1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4683,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-156e4a1f44b13da14bb1.json",
+    "bytes": 22934,
+    "sha256": "156e4a1f44b13da14bb1cee5f75abbb29657abcda083e1593d87ec50b82dc7ba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c0c2088c5fcdf31450c4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4754,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c0c2088c5fcdf31450c4.json",
+    "bytes": 22176,
+    "sha256": "c0c2088c5fcdf31450c4649b9aa1336329acffc671366d1d3de60816c7187f60"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1f49c3f6c60b450d0b3f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4818,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1f49c3f6c60b450d0b3f.json",
+    "bytes": 164048,
+    "sha256": "1f49c3f6c60b450d0b3f0386e31f9ddf7deb6f46585f5b24d1b973e2e59a593d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a495013c9433ac93e388.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4887,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a495013c9433ac93e388.json",
+    "bytes": 17048,
+    "sha256": "a495013c9433ac93e388ca57136488e7c21298a97ef05f6bb3c049ba41bdf0f9"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fbf89ec7a241a418d921.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 4955,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fbf89ec7a241a418d921.json",
+    "bytes": 23070,
+    "sha256": "fbf89ec7a241a418d921b9a49bc7c925578b39577ef07cf48270e67b39b0ddee"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e9fd5e3f79f4febc318f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5027,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e9fd5e3f79f4febc318f.json",
+    "bytes": 23406,
+    "sha256": "e9fd5e3f79f4febc318fb19eb38af2dc34699bd7065dbd033be4a78eb12bad2d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e55ebdfe3ddbdf865188.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5096,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e55ebdfe3ddbdf865188.json",
+    "bytes": 22649,
+    "sha256": "e55ebdfe3ddbdf8651882509317c3a3f13f482b57e2701271d7e89276bb875e4"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2f614c1a9cebde75acd5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5168,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2f614c1a9cebde75acd5.json",
+    "bytes": 18784,
+    "sha256": "2f614c1a9cebde75acd5ca5abe067d62b0a89304987e61be03601a1acabd2804"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0003f3753ba84cddddd3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5238,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0003f3753ba84cddddd3.json",
+    "bytes": 154499,
+    "sha256": "0003f3753ba84cddddd34041e8d2ec38a667388a816d6d61b3c2a9b4a86ba141"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7d066b67d3c93c0dceb3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5308,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7d066b67d3c93c0dceb3.json",
+    "bytes": 209042,
+    "sha256": "7d066b67d3c93c0dceb309143b19f25aff78caddcd701601de95dbf6efb8afa6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a6b978a80732123430ae.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5378,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a6b978a80732123430ae.json",
+    "bytes": 18577,
+    "sha256": "a6b978a80732123430aef79a07109fcd6f817b270c8ca97e38a615748bb90a0d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6f55cb38f3b8ddb1be74.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5454,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6f55cb38f3b8ddb1be74.json",
+    "bytes": 19236,
+    "sha256": "6f55cb38f3b8ddb1be747d1b59fe3304ca40b16b8e6f5673ea883260115fcf67"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6c9a83f07d3d844c0a60.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5523,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6c9a83f07d3d844c0a60.json",
+    "bytes": 22774,
+    "sha256": "6c9a83f07d3d844c0a609b4f0ae681ff3150d0b04650bad5356cc3f1fe5b0f73"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-199b6a31e35d1a17c834.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5593,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-199b6a31e35d1a17c834.json",
+    "bytes": 23218,
+    "sha256": "199b6a31e35d1a17c834f583ef7b00b71a844a1989ba817f012239510608bb7a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-463abd07b4c2c7a998a7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5666,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-463abd07b4c2c7a998a7.json",
+    "bytes": 22788,
+    "sha256": "463abd07b4c2c7a998a75a99e6a0a6dee8e7f42dd67a5f7094c5c759cb298e8f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8db933a23cbd7931fe87.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5742,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8db933a23cbd7931fe87.json",
+    "bytes": 19144,
+    "sha256": "8db933a23cbd7931fe879286a33698f232d2e9d2603a4ce582679a68b12ca29b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-efdc4c8a7a0b4cb98823.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5816,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-efdc4c8a7a0b4cb98823.json",
+    "bytes": 277653,
+    "sha256": "efdc4c8a7a0b4cb9882372758c7f638e00658bceb52f826b0e96937137b0bf80"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d29797be576f28aeb0ad.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5890,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d29797be576f28aeb0ad.json",
+    "bytes": 18866,
+    "sha256": "d29797be576f28aeb0ad9d3bcd367693399dceb55e9cfdf272322f5fa8f44039"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4d8b918d704d68ddcf5f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 5958,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4d8b918d704d68ddcf5f.json",
+    "bytes": 13844,
+    "sha256": "4d8b918d704d68ddcf5fa35a2b0b1b18e8215ca71e7878f15768fd856d6c51f7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-95d99caa6ce00a81ddda.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6025,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-95d99caa6ce00a81ddda.json",
+    "bytes": 18481,
+    "sha256": "95d99caa6ce00a81dddaea7eeb35bcb7c291fd2ec85a32be9fbafe7c2ce54d1f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6167cdc71f5433e41072.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6092,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6167cdc71f5433e41072.json",
+    "bytes": 18689,
+    "sha256": "6167cdc71f5433e41072d3010a1b0a90a0765576146c5336b5baf71ce9a4a5a4"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9c5618faa53085dd5785.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6154,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9c5618faa53085dd5785.json",
+    "bytes": 16285,
+    "sha256": "9c5618faa53085dd57858249541debe5c162b5774197c74d028cb323cddb778b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-35c46d02ac74d0b94e4c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6217,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-35c46d02ac74d0b94e4c.json",
+    "bytes": 11651,
+    "sha256": "35c46d02ac74d0b94e4cb8ef717a6b28dae61d91719804640ee9b3e2f3725232"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-14e2351b8d5638209ca0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6279,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-14e2351b8d5638209ca0.json",
+    "bytes": 23292,
+    "sha256": "14e2351b8d5638209ca0d322e22603e01cbd6e07e5ac9b797c2c722d7707588b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-cb548a7e0f532a5d3f7c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6342,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-cb548a7e0f532a5d3f7c.json",
+    "bytes": 24108,
+    "sha256": "cb548a7e0f532a5d3f7c75ad5d72931a39cc4145733c7ddd1d8b8f2b4aa7632e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0ef529ea9aacd5440e21.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6421,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0ef529ea9aacd5440e21.json",
+    "bytes": 1388,
+    "sha256": "0ef529ea9aacd5440e219ae3d538684d21ad20421b18031489ef68efd3651e9d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2db52da955dba3efabec.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6500,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2db52da955dba3efabec.json",
+    "bytes": 1362,
+    "sha256": "2db52da955dba3efabecf43201644979adeb696c2b64629785b9305e040433ec"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9e9ae77b5f82bae5f6cc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6583,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9e9ae77b5f82bae5f6cc.json",
+    "bytes": 5585,
+    "sha256": "9e9ae77b5f82bae5f6ccac7fbe96a0898e8ddeb73ce85b607c1f66684bd04b2d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3f47add7ec80b8387211.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6666,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3f47add7ec80b8387211.json",
+    "bytes": 5618,
+    "sha256": "3f47add7ec80b83872113a1c92aecdffb6e596a2241792fbc4e23f71745482df"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1fbcd98921fd8b8058b0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6746,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1fbcd98921fd8b8058b0.json",
+    "bytes": 1427,
+    "sha256": "1fbcd98921fd8b8058b04e9fe64b1bc65200f40af3601c5017a47bcebea062ae"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-da50b103bc5dd54086e3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6826,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-da50b103bc5dd54086e3.json",
+    "bytes": 1392,
+    "sha256": "da50b103bc5dd54086e3aa23246a438943a3c15d86fb3f76331d781301fe9a01"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-02e2f06b28ede73ad5f9.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6896,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-02e2f06b28ede73ad5f9.json",
+    "bytes": 10129,
+    "sha256": "02e2f06b28ede73ad5f9a1f63744ee39e90bf848a8aa897d578b89abf39a324e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-431d5d941e843c1e46aa.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 6966,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-431d5d941e843c1e46aa.json",
+    "bytes": 10065,
+    "sha256": "431d5d941e843c1e46aabf625fbb3347e2ef15e855fc7efa966753379ffdbdc6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5e3f5bc66366314c6d2c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7037,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5e3f5bc66366314c6d2c.json",
+    "bytes": 3270,
+    "sha256": "5e3f5bc66366314c6d2ce4a12d9c613c4dd2442657cfdf488a408552c64aa044"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b596403a18d534157d61.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7108,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b596403a18d534157d61.json",
+    "bytes": 3182,
+    "sha256": "b596403a18d534157d61c78ce1e80f64860c62f126e3c1b1771c6d86939ff3b0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-56ad7bbb49859799eab6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7182,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-56ad7bbb49859799eab6.json",
+    "bytes": 43192,
+    "sha256": "56ad7bbb49859799eab6c3b50cf83dc6c81fb0ececd910b0a63cc444da33a32d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-22d56cd0ec324d81448a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7256,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-22d56cd0ec324d81448a.json",
+    "bytes": 43197,
+    "sha256": "22d56cd0ec324d81448a05041aac40f96a0a300e0aeb72428496c350aefb08ba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-233cb82b38e83d0797aa.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7333,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-233cb82b38e83d0797aa.json",
+    "bytes": 482,
+    "sha256": "233cb82b38e83d0797aa09b12ca165f1bc49f0e19560dba1c5b64a3a2da0eb41"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c8792a7bb37f53b4370a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7410,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c8792a7bb37f53b4370a.json",
+    "bytes": 481,
+    "sha256": "c8792a7bb37f53b4370a6a91cd9f8c504d5ce5243c342def0ad5969525be7680"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-08cfcb60c276a999a309.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7486,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-08cfcb60c276a999a309.json",
+    "bytes": 488,
+    "sha256": "08cfcb60c276a999a309fa998b57a3c98e9911b4c2d0b0e0496c991facb7262f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7bf1d2c0650cf2dee4e8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7562,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7bf1d2c0650cf2dee4e8.json",
+    "bytes": 488,
+    "sha256": "7bf1d2c0650cf2dee4e81fe8f9706d94607aea80d9ac0ef853d2492d499a193c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3d97e12dd5323aeeb190.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7642,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3d97e12dd5323aeeb190.json",
+    "bytes": 442,
+    "sha256": "3d97e12dd5323aeeb190db004cbd38ebe44b76d7cdb1533fb20a5cf2541dde0c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f111dd4fe6e66f5c7265.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7722,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f111dd4fe6e66f5c7265.json",
+    "bytes": 442,
+    "sha256": "f111dd4fe6e66f5c72658049233d1998bc773c68c717f1c9dfec62e9983a4901"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c56adab4177fd5905939.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7810,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c56adab4177fd5905939.json",
+    "bytes": 503,
+    "sha256": "c56adab4177fd59059398a9a76a8f2c8cb49122de0c614afd49d916d817ae7c5"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b3006b654a7f52371987.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7898,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b3006b654a7f52371987.json",
+    "bytes": 503,
+    "sha256": "b3006b654a7f523719870e40f5a2857b5a8b7937e40b9fa176f7976d8dc9d83e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-528695367fad9d592b61.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 7987,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-528695367fad9d592b61.json",
+    "bytes": 476,
+    "sha256": "528695367fad9d592b61de9c8a6b67e419f7c87c4d3463a677515e99ebe4599a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f32b2a22dc35762c7b1e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8076,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f32b2a22dc35762c7b1e.json",
+    "bytes": 476,
+    "sha256": "f32b2a22dc35762c7b1e25d88458e778d71e387ec132db1ae884199549168ba4"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b38646b822be28bd5466.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8161,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b38646b822be28bd5466.json",
+    "bytes": 453,
+    "sha256": "b38646b822be28bd54665b853f12f2ef44a22ffa10e2e253a0f0b83af716a9ce"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-cde0cda52161e3e736a8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8247,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-cde0cda52161e3e736a8.json",
+    "bytes": 473,
+    "sha256": "cde0cda52161e3e736a81312c4d04941a5ac83aea213095efe252e89f38a755f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-bda301ac01157698149a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8333,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-bda301ac01157698149a.json",
+    "bytes": 479,
+    "sha256": "bda301ac01157698149a5f17abd3d745169dcdb8e8d62c2d0e844bf944dcbea8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-31555a606fe786340323.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8419,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-31555a606fe786340323.json",
+    "bytes": 478,
+    "sha256": "31555a606fe786340323e26c534022c0147e4e1041d312062dc2eb1d19750f4b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-35870cc381e09713c27a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8509,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-35870cc381e09713c27a.json",
+    "bytes": 471,
+    "sha256": "35870cc381e09713c27a737a70c1e2afff84da63b926dd0ffbf7b7a58b7c38c4"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-93b3fea3c98fd0717838.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8599,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-93b3fea3c98fd0717838.json",
+    "bytes": 472,
+    "sha256": "93b3fea3c98fd07178381201c1b8eb4ed743739c063141696801113d528300ba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-527c4274cb190c22c825.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8692,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-527c4274cb190c22c825.json",
+    "bytes": 477,
+    "sha256": "527c4274cb190c22c82540419871ce2bd8b113e515b2053a12ee10aac1d16c2a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7f3c7f3c84d854a6da41.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8785,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7f3c7f3c84d854a6da41.json",
+    "bytes": 476,
+    "sha256": "7f3c7f3c84d854a6da411c52f450a01a43d23e10aba7fd7ac01272689766ce6a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-bf65bab725ca75feb39b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8878,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-bf65bab725ca75feb39b.json",
+    "bytes": 471,
+    "sha256": "bf65bab725ca75feb39b228e10c4884c23a218b3f5a3a74442afa8d3ca882516"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3c61cc93eb5b81b1afbc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 8971,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3c61cc93eb5b81b1afbc.json",
+    "bytes": 471,
+    "sha256": "3c61cc93eb5b81b1afbc1869cb74a1e8037ed3805c227719b0225f26cb1a4baa"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-519eb47d95aa0d4a538a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9066,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-519eb47d95aa0d4a538a.json",
+    "bytes": 480,
+    "sha256": "519eb47d95aa0d4a538a49ee02ec0750113fc33fd5dbeaec33d6f17880294bfc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fbfb659e685851f86f2e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9161,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fbfb659e685851f86f2e.json",
+    "bytes": 481,
+    "sha256": "fbfb659e685851f86f2e3c0544e96b7ea9fa3fd4baea3ff1ce6d2c4c8c4b52b6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-737c5ac5aca7138c9b7f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9256,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-737c5ac5aca7138c9b7f.json",
+    "bytes": 483,
+    "sha256": "737c5ac5aca7138c9b7f3ac559595df2fac0c79d5b169a27d9415e45013ef46e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-453ab730755b8a31b7cf.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9351,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-453ab730755b8a31b7cf.json",
+    "bytes": 483,
+    "sha256": "453ab730755b8a31b7cfb1b54b756f3d3003434753eb82764a8fb2e6837f3ca4"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7e380d0e0824f153d067.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9445,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7e380d0e0824f153d067.json",
+    "bytes": 474,
+    "sha256": "7e380d0e0824f153d067a01a5bd94a5a61c115117d9ca611f86e7cba3100c7fc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c35d2c5d90ce92470f8d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9539,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c35d2c5d90ce92470f8d.json",
+    "bytes": 474,
+    "sha256": "c35d2c5d90ce92470f8d612d9b85b70bd95db800b167b3307fed6472d8bad3db"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2cfb6bdf99758aac0627.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9631,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2cfb6bdf99758aac0627.json",
+    "bytes": 470,
+    "sha256": "2cfb6bdf99758aac062703a206476878d7dd6784067e9daaf8eb795ab7dd6db0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f81286d6a064e8f5b8ce.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9723,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f81286d6a064e8f5b8ce.json",
+    "bytes": 469,
+    "sha256": "f81286d6a064e8f5b8cee572cbe6c119907edc28f900f0d9096d3d42b1b614be"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-ee89cfec4833ed32a02b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9814,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-ee89cfec4833ed32a02b.json",
+    "bytes": 477,
+    "sha256": "ee89cfec4833ed32a02b6ea78f8caf3ee3c0e1f548ee33c9d7dff35981e5d27f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f539c9dc0e9158f5970e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9905,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f539c9dc0e9158f5970e.json",
+    "bytes": 477,
+    "sha256": "f539c9dc0e9158f5970e7f89653d1ccedfae97c24b0a17d649d3183669fc35ba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3d26d81220ed3114cbb3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 9998,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3d26d81220ed3114cbb3.json",
+    "bytes": 483,
+    "sha256": "3d26d81220ed3114cbb369e1593ab88cffcaaed05355d5002c559728528a3b9e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3e4323cc6632d9418a55.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10091,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3e4323cc6632d9418a55.json",
+    "bytes": 482,
+    "sha256": "3e4323cc6632d9418a55a6223f3fc8f8fd22f68b3615282b3081e67491f60256"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0f176278b9628cb1c341.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10183,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0f176278b9628cb1c341.json",
+    "bytes": 472,
+    "sha256": "0f176278b9628cb1c3410399932ac89c12728e19dd5a25230ccf870118a9a7ae"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0b074aadee80003d6b90.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10275,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0b074aadee80003d6b90.json",
+    "bytes": 472,
+    "sha256": "0b074aadee80003d6b90c377973892f41486c722e02bb6373e1e997f5c73f1ce"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-dc00d9895479554051ea.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10370,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-dc00d9895479554051ea.json",
+    "bytes": 474,
+    "sha256": "dc00d9895479554051eaf13374d23fd7037cd36296df38f6c3c7284c9606ed82"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9870dddef633f7c38a1a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10465,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9870dddef633f7c38a1a.json",
+    "bytes": 475,
+    "sha256": "9870dddef633f7c38a1a3095e5fb6799de8a03e7b9e5c20d2e414575739cbe0d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1721be720291cf0bc3dc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10559,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1721be720291cf0bc3dc.json",
+    "bytes": 475,
+    "sha256": "1721be720291cf0bc3dce31a002fcea12febc967f009bce1939dff486eecb9b2"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1309d0c031b779836a90.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10653,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1309d0c031b779836a90.json",
+    "bytes": 475,
+    "sha256": "1309d0c031b779836a90823749fea6d516b13031f9996a9f44b1785f3aa86841"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-dc130abd3f352f4cdea4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10748,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-dc130abd3f352f4cdea4.json",
+    "bytes": 474,
+    "sha256": "dc130abd3f352f4cdea4fc4872f80fdd43aaf81323faacdcbcba2c566bf9488a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-636a2738c4950bd8d544.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10843,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-636a2738c4950bd8d544.json",
+    "bytes": 474,
+    "sha256": "636a2738c4950bd8d544d431cdf439a0b90409d4b1bd369d1c6b04d86dd29df7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2e7f7b66270de799afc6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 10933,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2e7f7b66270de799afc6.json",
+    "bytes": 464,
+    "sha256": "2e7f7b66270de799afc6a4b907c74b567be610c341a672833b2c1a9f1021afb5"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-95437384a9d1ff3701ba.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11023,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-95437384a9d1ff3701ba.json",
+    "bytes": 463,
+    "sha256": "95437384a9d1ff3701baf6c85b8383ab3092db62ff2b4d4811a9dbdae6f1d1f7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e8495ee6d4010b57527f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11114,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e8495ee6d4010b57527f.json",
+    "bytes": 472,
+    "sha256": "e8495ee6d4010b57527fadfb0be65c172ef65393e00bccacd7aad27ebee805e6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-89cb60876f9fa927877c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11205,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-89cb60876f9fa927877c.json",
+    "bytes": 473,
+    "sha256": "89cb60876f9fa927877cab11d501e1f16c1fe51707085a51050ba8302b120c62"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-94c54e81b62bb8284f0d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11298,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-94c54e81b62bb8284f0d.json",
+    "bytes": 477,
+    "sha256": "94c54e81b62bb8284f0d6cdcaa0ed650a4b493738ff4837831a1c4c8cdbe05c8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0d1146dbb4ea25408485.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11391,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0d1146dbb4ea25408485.json",
+    "bytes": 477,
+    "sha256": "0d1146dbb4ea25408485f12d9e94c7979fea5b627eebf33cc221503263fb9e2c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-17c19903fd7cf86c0eef.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11483,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-17c19903fd7cf86c0eef.json",
+    "bytes": 476,
+    "sha256": "17c19903fd7cf86c0eef01be6164ae0d3c401e930dce8af111bf2cf9e9192e46"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-65e201775a81eb0639d9.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11575,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-65e201775a81eb0639d9.json",
+    "bytes": 476,
+    "sha256": "65e201775a81eb0639d9ec777582e1f7306cc14ad7b8cd46be1d8ab1c81c3f45"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-162a5206acf9f2207004.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11668,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-162a5206acf9f2207004.json",
+    "bytes": 473,
+    "sha256": "162a5206acf9f22070043271f6945c1be2867ee2d49efe49cfd45909470287ed"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-cf6c8a11947eb6c42f15.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11761,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-cf6c8a11947eb6c42f15.json",
+    "bytes": 473,
+    "sha256": "cf6c8a11947eb6c42f15bf3917fedb4d216eb740e3d8ac8fbba4ed979431955e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-407a2d6563304cab0709.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11853,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-407a2d6563304cab0709.json",
+    "bytes": 479,
+    "sha256": "407a2d6563304cab0709febccab80ae84f36b76ab1f72d6e9e6fb309dcd07d6e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d0b871b4d514cc083fc1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 11945,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d0b871b4d514cc083fc1.json",
+    "bytes": 480,
+    "sha256": "d0b871b4d514cc083fc14e57bffa720f91320ac786c16842b07f15f9e67b7fe7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e01da1ba5aa5e7756026.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12038,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e01da1ba5aa5e7756026.json",
+    "bytes": 479,
+    "sha256": "e01da1ba5aa5e77560264e772a544b9e01953b951449fdb12e1230127861135e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4c4dc6f16fbb2c4bde35.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12131,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4c4dc6f16fbb2c4bde35.json",
+    "bytes": 478,
+    "sha256": "4c4dc6f16fbb2c4bde35201cbefab51bb2053bfb354fe87789b878ae9dd8fcdc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5b68a5178dda0774393b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12210,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5b68a5178dda0774393b.json",
+    "bytes": 465,
+    "sha256": "5b68a5178dda0774393b9f3f3620e3396b78d8c0b77a3f77407ef109b636d092"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3b1a8211ce5517dd7524.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12289,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3b1a8211ce5517dd7524.json",
+    "bytes": 464,
+    "sha256": "3b1a8211ce5517dd7524242205538a314dc9f036a044a35218082628eab22050"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8b6b5f12196e8e2901cb.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12372,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8b6b5f12196e8e2901cb.json",
+    "bytes": 464,
+    "sha256": "8b6b5f12196e8e2901cb970e1a866862e948bae779f80f83174f776320737f7d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6a39fdef7f59734468f5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12455,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6a39fdef7f59734468f5.json",
+    "bytes": 464,
+    "sha256": "6a39fdef7f59734468f58378cec609d39b66192f854b3b9456cf00a412df4cb3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e3c10bcca2f6217eeb45.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12541,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e3c10bcca2f6217eeb45.json",
+    "bytes": 454,
+    "sha256": "e3c10bcca2f6217eeb45f260cd3b9eeac66b04b576251d6525bc1684b60b048e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-ce0a3f64a971f4e67fc1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12627,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-ce0a3f64a971f4e67fc1.json",
+    "bytes": 455,
+    "sha256": "ce0a3f64a971f4e67fc162be863594dbfeec1ed8147fa0c3a573f53b1658dba1"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3ebf218543b4281234a5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12715,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3ebf218543b4281234a5.json",
+    "bytes": 456,
+    "sha256": "3ebf218543b4281234a5d5daf8d9e057fb88859c59bcbfe13144fa37399ae99f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-60375e67eb928f079220.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12803,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-60375e67eb928f079220.json",
+    "bytes": 456,
+    "sha256": "60375e67eb928f0792205dd8bae5d27d2be08a360e8d64fc4fe1e956924b36dd"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-03663151203d477dc091.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12893,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-03663151203d477dc091.json",
+    "bytes": 459,
+    "sha256": "03663151203d477dc09193b97cb931796f5f5b9097d30b1917d9f571ef3ec72c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-d7ce852ada2a0168df7d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 12983,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-d7ce852ada2a0168df7d.json",
+    "bytes": 458,
+    "sha256": "d7ce852ada2a0168df7d61dea6e7560a4544493254879e78e382f1f7ccef969f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-19decc814d692669e436.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13075,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-19decc814d692669e436.json",
+    "bytes": 460,
+    "sha256": "19decc814d692669e436221865176d4d7dd0d0403edf7d820133f8bb51fb5f59"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b9d42b86b559cede1f72.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13167,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b9d42b86b559cede1f72.json",
+    "bytes": 461,
+    "sha256": "b9d42b86b559cede1f72c28184cc7f3bbc72c8782896c697e52213e270880929"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-66504251bfe2a16d0a7b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13257,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-66504251bfe2a16d0a7b.json",
+    "bytes": 472,
+    "sha256": "66504251bfe2a16d0a7b98f4fbad50d81cdb55da273b44f4a3be9330079a7aa0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0ab951b49966f4fe19b6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13347,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0ab951b49966f4fe19b6.json",
+    "bytes": 473,
+    "sha256": "0ab951b49966f4fe19b6c1016e172742426e7f508f61decbdd5d41c0d2e05039"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a90495a2cc3fe1e92a5a.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13432,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a90495a2cc3fe1e92a5a.json",
+    "bytes": 456,
+    "sha256": "a90495a2cc3fe1e92a5ac127346c1559486ee9b05070c536d449d36c9cd36e20"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-84437b2c79c29de3b112.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13517,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-84437b2c79c29de3b112.json",
+    "bytes": 455,
+    "sha256": "84437b2c79c29de3b1124b7b952992a361d98b96c1a8c7e330c42796f291a507"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-81473b8b9f1b64db1f7b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13604,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-81473b8b9f1b64db1f7b.json",
+    "bytes": 460,
+    "sha256": "81473b8b9f1b64db1f7b9689f2e68cdd1156724977c01f13898418a154c23305"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4b6a48e89939fe29fde3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13691,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4b6a48e89939fe29fde3.json",
+    "bytes": 460,
+    "sha256": "4b6a48e89939fe29fde39a0c5cb0615625e3a7f1a2357f201696d4aa86be10df"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7503c6c33d6e842d67bd.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13775,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7503c6c33d6e842d67bd.json",
+    "bytes": 463,
+    "sha256": "7503c6c33d6e842d67bd344bb99fcbb4acf724c7f5168aa0aa88fac3739f7ced"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a0d848d8ee96468c8cab.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13859,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a0d848d8ee96468c8cab.json",
+    "bytes": 463,
+    "sha256": "a0d848d8ee96468c8caba88b741375cf5a22fdae7030f5576995903102d22cce"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7c941273d56f5849bf7e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 13945,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7c941273d56f5849bf7e.json",
+    "bytes": 469,
+    "sha256": "7c941273d56f5849bf7e74a4d642e459e3f2aa20972085a1979db694eb2ba924"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b06134256713574d449d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14031,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b06134256713574d449d.json",
+    "bytes": 468,
+    "sha256": "b06134256713574d449d8727ab634bda4c2bba3a31cfdd542fcd939eaeb29040"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e3017f4ff84ffdaee4d3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14117,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e3017f4ff84ffdaee4d3.json",
+    "bytes": 459,
+    "sha256": "e3017f4ff84ffdaee4d327719e560ce8ee8f54789d7d09c96f80138aba9fb44a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-64837213eb1d4f421b14.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14203,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-64837213eb1d4f421b14.json",
+    "bytes": 459,
+    "sha256": "64837213eb1d4f421b141830090e7d5352109e70da42ba8b12adde4a7c63b3dc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6b282badbd6af531e5df.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14288,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6b282badbd6af531e5df.json",
+    "bytes": 458,
+    "sha256": "6b282badbd6af531e5dfc6b7e6ffb8d523b3ed3451431234735dfd2c1f308d9a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0aa208cdd0d59f9ec3a1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14373,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0aa208cdd0d59f9ec3a1.json",
+    "bytes": 458,
+    "sha256": "0aa208cdd0d59f9ec3a150d955a6573a1ab41b699421645b537e6993c4e55495"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-4e3c8cb66c7b073180d6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14461,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-4e3c8cb66c7b073180d6.json",
+    "bytes": 460,
+    "sha256": "4e3c8cb66c7b073180d68838a9b86778c20fd75c74ba96df0ae6b40863bb8be3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-72e4f230dcf6b1798392.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14549,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-72e4f230dcf6b1798392.json",
+    "bytes": 461,
+    "sha256": "72e4f230dcf6b17983929ca2a0b30d014058513fa0df23120c3069a2c27f92c6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-df359a1b52bbc1872e18.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14636,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-df359a1b52bbc1872e18.json",
+    "bytes": 461,
+    "sha256": "df359a1b52bbc1872e181d067211d1b38b7b7c5388c65696c33d78334c7d85b5"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-626944d530c9f22b75c5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14723,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-626944d530c9f22b75c5.json",
+    "bytes": 461,
+    "sha256": "626944d530c9f22b75c5cae26d02a822705fa89b68b095ad15aa4310fa9dac4c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9be22de13f347fb5e008.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14811,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9be22de13f347fb5e008.json",
+    "bytes": 460,
+    "sha256": "9be22de13f347fb5e008594ed5e47776bcee5fa2e78ff3582aff07632a8fe588"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-08458f6c0dab0e436eac.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14899,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-08458f6c0dab0e436eac.json",
+    "bytes": 460,
+    "sha256": "08458f6c0dab0e436eac8af17ff189f89676bafe38377de3ad9b2df6f0866f12"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fb4e2a7edb6e286b9e48.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 14982,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fb4e2a7edb6e286b9e48.json",
+    "bytes": 450,
+    "sha256": "fb4e2a7edb6e286b9e485cd9d34834b59b4e9c60687e2e575530318a4df18806"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-736333ea5c8ccd6f94ed.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15065,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-736333ea5c8ccd6f94ed.json",
+    "bytes": 449,
+    "sha256": "736333ea5c8ccd6f94ed4824ae6b751a9ce2edd3fff79e1fb2d93466fb118c88"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b59a90b029c86f70d506.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15149,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b59a90b029c86f70d506.json",
+    "bytes": 458,
+    "sha256": "b59a90b029c86f70d506455f0c3c0b44d9c9436e7b1602e947814ea64f68fa31"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-28bc173d928b130f3930.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15233,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-28bc173d928b130f3930.json",
+    "bytes": 459,
+    "sha256": "28bc173d928b130f3930c7fdc4c4bd0265012d18b94dff8655be4f348ac16590"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-255d68151a2570fac870.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15319,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-255d68151a2570fac870.json",
+    "bytes": 463,
+    "sha256": "255d68151a2570fac87092a81303801ac8e5d996eac2b20d792d3d8387295b86"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f45a0d9c859303e640df.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15405,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f45a0d9c859303e640df.json",
+    "bytes": 463,
+    "sha256": "f45a0d9c859303e640dfbac84a88b8886f33e2569ce44b952758f50e465931fc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-dd54697f9cf1815525c0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15490,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-dd54697f9cf1815525c0.json",
+    "bytes": 462,
+    "sha256": "dd54697f9cf1815525c07540582af52ff6548138f3059306322d536db4ac8149"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e986cd8cdf4546892662.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15575,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e986cd8cdf4546892662.json",
+    "bytes": 462,
+    "sha256": "e986cd8cdf454689266209e5d39479d109ef9ca7a486f2c3e48350f69e556fba"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-baba4e1dbf5ba17080ff.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15661,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-baba4e1dbf5ba17080ff.json",
+    "bytes": 459,
+    "sha256": "baba4e1dbf5ba17080ff5486926d88dc88f655ba5ba18726b6947473549e2118"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-790c85aa91a0575db541.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15747,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-790c85aa91a0575db541.json",
+    "bytes": 459,
+    "sha256": "790c85aa91a0575db5419d1eb402969f4783d2ce9d63c81a657eb61315b60bd7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-96801038c7bd35fb0f87.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15829,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-96801038c7bd35fb0f87.json",
+    "bytes": 1296,
+    "sha256": "96801038c7bd35fb0f8767b896e53ec1b85fd7a729de3cced190768204a3d400"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-471ee39471c83e876504.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15911,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-471ee39471c83e876504.json",
+    "bytes": 1685,
+    "sha256": "471ee39471c83e87650436c338435c6d620b2d0fa8c85af7ded10d06a162078d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1e4c3c8e26eff215f064.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 15993,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1e4c3c8e26eff215f064.json",
+    "bytes": 1198,
+    "sha256": "1e4c3c8e26eff215f064d8a4779306ecd0fee1de135dea09c3a9f2df41628de0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-23d09e72ed92c2369e00.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16072,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-23d09e72ed92c2369e00.json",
+    "bytes": 1390,
+    "sha256": "23d09e72ed92c2369e0032a4fe903739d8980f8dd469bcf8d329099c31401a97"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6977042344fc0d42929c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16151,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6977042344fc0d42929c.json",
+    "bytes": 1307,
+    "sha256": "6977042344fc0d42929c643d4a35eb5a050726583cf936fd4cda5e89c2f9b8b6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8ab70d48f3f9202dd6f8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16230,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8ab70d48f3f9202dd6f8.json",
+    "bytes": 1146,
+    "sha256": "8ab70d48f3f9202dd6f8f356078019375e4667255c17bf0fa0d6a7b9ef67cc45"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6137b935948f72490e16.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16314,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6137b935948f72490e16.json",
+    "bytes": 1784,
+    "sha256": "6137b935948f72490e1605b5fbe8b8aa438e9ec78a3a911d88269e939f3e10bd"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-0e7e37753fe5eda243e4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16398,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-0e7e37753fe5eda243e4.json",
+    "bytes": 1272,
+    "sha256": "0e7e37753fe5eda243e4f7a97242f928f0775b39948d50d06514fc151e9c3c14"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-6489bd44eecf56a2bc70.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16482,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-6489bd44eecf56a2bc70.json",
+    "bytes": 1064,
+    "sha256": "6489bd44eecf56a2bc70ccb3e5a71a1be8c004181d2070820619ddb9a277845d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e09a35e3dea773047015.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16565,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e09a35e3dea773047015.json",
+    "bytes": 1775,
+    "sha256": "e09a35e3dea77304701536f3be6b08d6b563dd5cc97defd9702f49b6d3211471"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-912551943f6247337a5f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16648,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-912551943f6247337a5f.json",
+    "bytes": 1524,
+    "sha256": "912551943f6247337a5f602088b0406551c48b378a4d4459921b9e3da9e516d3"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-514984f204458a083eb4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16731,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-514984f204458a083eb4.json",
+    "bytes": 1062,
+    "sha256": "514984f204458a083eb4e282ca672f38867ded12d7cdb004761e9c93653c5cb2"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2e522975ea568727f255.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16810,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2e522975ea568727f255.json",
+    "bytes": 1325,
+    "sha256": "2e522975ea568727f2559ea597cf35be1ac9fecd5307ca1fa2522712415d9b6b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-1deae31c0a280777ec9d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16889,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-1deae31c0a280777ec9d.json",
+    "bytes": 1270,
+    "sha256": "1deae31c0a280777ec9d517944b1e48749d5565193fad7fe67ea9d20751119f8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-08b2eb59729b54b332b5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 16976,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-08b2eb59729b54b332b5.json",
+    "bytes": 1744,
+    "sha256": "08b2eb59729b54b332b55d9f06bc858e17b18d6b0f4e3e63b097354cde2f287d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-f6c533a27f3f0e62dad3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17150,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-f6c533a27f3f0e62dad3.json",
+    "bytes": 1738,
+    "sha256": "f6c533a27f3f0e62dad3b33d27808d75fc0b7cb7b5425e98bfcab84b26cff24e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b0ef62f83fac5f2fdc19.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17236,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b0ef62f83fac5f2fdc19.json",
+    "bytes": 1264,
+    "sha256": "b0ef62f83fac5f2fdc19ef0a443fc7d1109b27d75182481f3a31dcf435b2a04e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a7cb4ff7a137fe11be62.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17322,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a7cb4ff7a137fe11be62.json",
+    "bytes": 1219,
+    "sha256": "a7cb4ff7a137fe11be622d089dd3b8db84ed40d3ea01cb62584f18c69b6c8109"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5b42639f698cff84f44c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17408,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5b42639f698cff84f44c.json",
+    "bytes": 1102,
+    "sha256": "5b42639f698cff84f44c6b823c6403139f93fc9e81c2bcb3080efc15e17cb293"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5f323b08b5e2260388cc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17491,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5f323b08b5e2260388cc.json",
+    "bytes": 1218,
+    "sha256": "5f323b08b5e2260388cc7f94435728f2bac2e1271d6e8f5e1e235a447fb6a40a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-05b6927304f43c0e3205.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17574,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-05b6927304f43c0e3205.json",
+    "bytes": 1163,
+    "sha256": "05b6927304f43c0e32051b1201758351f65b914ff0bbd63a9f01e2bcca633483"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-64f6e3deee5de265b2b1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17657,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-64f6e3deee5de265b2b1.json",
+    "bytes": 1694,
+    "sha256": "64f6e3deee5de265b2b138caf99fba02bed617c257603825e4f9e59d4217e672"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2324e4a06455d95bc046.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17738,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2324e4a06455d95bc046.json",
+    "bytes": 1257,
+    "sha256": "2324e4a06455d95bc0462ee360a424c43c490048c7f5828ac9583579793dcbea"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-ee0f61011720d0870bbe.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17819,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-ee0f61011720d0870bbe.json",
+    "bytes": 1485,
+    "sha256": "ee0f61011720d0870bbec7c2cd4edfca286b79bb58844a15b3a19b65395b1338"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-35c8704b7fe528a23cbe.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17900,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-35c8704b7fe528a23cbe.json",
+    "bytes": 1170,
+    "sha256": "35c8704b7fe528a23cbe73b7458938b1ae6ab3005af790d141b356e74baad7d8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-236a642505c2f698d9e3.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 17983,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-236a642505c2f698d9e3.json",
+    "bytes": 1264,
+    "sha256": "236a642505c2f698d9e321ef82f71331d8d3ac82ba2a568da8438b192ce8f350"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-223ef363dfe6929dce53.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18066,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-223ef363dfe6929dce53.json",
+    "bytes": 1752,
+    "sha256": "223ef363dfe6929dce539cee4973684f8d62e7e1bd3628d29ee9fba4d7988296"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5ef509df4a9389f1f4bc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18152,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5ef509df4a9389f1f4bc.json",
+    "bytes": 1454,
+    "sha256": "5ef509df4a9389f1f4bc4f3472f69be65845b76630f29bbae1f5c22f7bace030"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c03a23785747cf148c8c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18238,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c03a23785747cf148c8c.json",
+    "bytes": 1800,
+    "sha256": "c03a23785747cf148c8c79a034fcae2eac41595644b87e8cde6a0db6748cc4a0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5b103f91b8aca7c8975e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18324,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5b103f91b8aca7c8975e.json",
+    "bytes": 1297,
+    "sha256": "5b103f91b8aca7c8975e5d29134479c222dcd7da056070420cca6e5a9ab23868"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-439ba0c5a6c10126b91f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18410,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-439ba0c5a6c10126b91f.json",
+    "bytes": 1322,
+    "sha256": "439ba0c5a6c10126b91f9d7d9db3f5c7ca22f6c49e20b7d640ef950788b4ee66"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-01406599c5b83820346e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18489,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-01406599c5b83820346e.json",
+    "bytes": 1361,
+    "sha256": "01406599c5b83820346e9688ac9498145c4482ad83db133982d5a364ab384580"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-ab8ca95fd29fee306fec.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18568,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-ab8ca95fd29fee306fec.json",
+    "bytes": 1331,
+    "sha256": "ab8ca95fd29fee306fec867306f5ceab5ca88f42c37536246a8ac0347dd5f20d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a86a76c6f9a649672c3b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18647,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a86a76c6f9a649672c3b.json",
+    "bytes": 1390,
+    "sha256": "a86a76c6f9a649672c3b3ceb8ae4de44422648563980512d7efe9e3a3ec240f7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-57fbb3568379267dd9b7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18726,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-57fbb3568379267dd9b7.json",
+    "bytes": 1786,
+    "sha256": "57fbb3568379267dd9b74634dde73260fa5ccd99756a92ad3527cd87b32f86db"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-04e28478b1e23e5684c6.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18810,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-04e28478b1e23e5684c6.json",
+    "bytes": 1358,
+    "sha256": "04e28478b1e23e5684c61bb596dbc236f30fa1cdc0ab5d895bbcee6d3b0d5188"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-295c5467849a5843cc64.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18894,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-295c5467849a5843cc64.json",
+    "bytes": 1257,
+    "sha256": "295c5467849a5843cc641af36c41426bc1bceb2b5783f5d61a3c7bf83acf2a39"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-bf255bbe9f5932ed2deb.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 18978,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-bf255bbe9f5932ed2deb.json",
+    "bytes": 2223,
+    "sha256": "bf255bbe9f5932ed2deb31ab92427206626bc29aea62e0ab4a58be99c890c419"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9f6f57ab5ad99995b6ed.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19062,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9f6f57ab5ad99995b6ed.json",
+    "bytes": 1793,
+    "sha256": "9f6f57ab5ad99995b6edba19aa35ce55f4f28813daed02043ba732f322f19178"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8afc8c6f3f8f8109c2c8.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19146,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8afc8c6f3f8f8109c2c8.json",
+    "bytes": 1311,
+    "sha256": "8afc8c6f3f8f8109c2c8bdf44bfffc3269d046e878d0394abcbd90770f606a14"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2cdb7839171effe76974.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19230,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2cdb7839171effe76974.json",
+    "bytes": 1279,
+    "sha256": "2cdb7839171effe76974cad4a7501287df1eb66c966fcd599539938a6edc0ae8"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2609af25d15e09167288.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19314,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2609af25d15e09167288.json",
+    "bytes": 1874,
+    "sha256": "2609af25d15e091672885f1dbdfc13ac4778538e69496e3caa03e9320db5303d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2d0f519073055a21d190.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19400,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2d0f519073055a21d190.json",
+    "bytes": 1320,
+    "sha256": "2d0f519073055a21d190f53c3bed7dfbd3b65a31c592578a3812a02f1c44a162"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fb74727784f5dabfade7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19486,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fb74727784f5dabfade7.json",
+    "bytes": 1734,
+    "sha256": "fb74727784f5dabfade7289b1b09c837667e1b5c49034de24de4d3f6dc636964"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-244f7f2558e1ccae0d6c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19572,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-244f7f2558e1ccae0d6c.json",
+    "bytes": 1340,
+    "sha256": "244f7f2558e1ccae0d6cd29011a91056f7309b600f077cd6da5fe6e1cd7c6948"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-74ef1151d396858131b1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19658,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-74ef1151d396858131b1.json",
+    "bytes": 1272,
+    "sha256": "74ef1151d396858131b107e7ba45cb350e43a060d05aa9746153090c4b074b28"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-a6e40cc918c1de0d5f0f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19741,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-a6e40cc918c1de0d5f0f.json",
+    "bytes": 2028,
+    "sha256": "a6e40cc918c1de0d5f0f5026edda2fab3bea23535694ec16c58bd68d035b2855"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9e6c01f7076ebaf50d48.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19824,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9e6c01f7076ebaf50d48.json",
+    "bytes": 2190,
+    "sha256": "9e6c01f7076ebaf50d481a7892e9bd7821a696535b83388ddc33391e8d5d4f00"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3a73f624a0e156280899.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19907,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3a73f624a0e156280899.json",
+    "bytes": 2441,
+    "sha256": "3a73f624a0e156280899d9222888cb9eeaea91dd9fc004b22e810a5fd8d0f23e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-efbb6be2ee9a73c812ba.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 19988,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-efbb6be2ee9a73c812ba.json",
+    "bytes": 815,
+    "sha256": "efbb6be2ee9a73c812ba0817a73956eda5743676bfc298481e291daa6e1dd573"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-cf42592fc41e043f8918.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20069,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-cf42592fc41e043f8918.json",
+    "bytes": 1449,
+    "sha256": "cf42592fc41e043f8918f252bb24d0d8c951c148190e6942d932aa9837df226a"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-64790f4bc2d89e35d869.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20150,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-64790f4bc2d89e35d869.json",
+    "bytes": 1801,
+    "sha256": "64790f4bc2d89e35d869b3ed47b5e1825537cf649e70970ca17a5ce590cdbff6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-20da7c67b06c503e1334.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20231,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-20da7c67b06c503e1334.json",
+    "bytes": 994,
+    "sha256": "20da7c67b06c503e13343cabda4aab448c8a62168c2920155c0e466fa61e43fa"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-bcb409e83c4fac78daf0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20313,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-bcb409e83c4fac78daf0.json",
+    "bytes": 1353,
+    "sha256": "bcb409e83c4fac78daf05471549c3693e732491f69e2d0547d484ee38138976b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-7008b00a123d7ab9dacc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20395,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-7008b00a123d7ab9dacc.json",
+    "bytes": 846,
+    "sha256": "7008b00a123d7ab9dacc05edf9fa6850b42f9fa46161b5907b3965724788fb83"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-39cb857a3dd280c00821.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20477,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-39cb857a3dd280c00821.json",
+    "bytes": 1369,
+    "sha256": "39cb857a3dd280c00821129c1f8a1150af20aa5019b13117c9bbf44198f2423c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fd9f79dbf38bd14f7356.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20559,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fd9f79dbf38bd14f7356.json",
+    "bytes": 1754,
+    "sha256": "fd9f79dbf38bd14f73561cee92a3231ba5ccdce1438414b5d455f3e578bd5a15"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-659afb0e5cc3fc77f3cc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20638,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-659afb0e5cc3fc77f3cc.json",
+    "bytes": 1385,
+    "sha256": "659afb0e5cc3fc77f3ccc1a4795fa7f967886d60133dbfa0e44a1a6c64007815"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5870e4fa080f3827f6d5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20717,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5870e4fa080f3827f6d5.json",
+    "bytes": 1380,
+    "sha256": "5870e4fa080f3827f6d5eaf7f8f5b3fcd26a2628c3769a6cbca046fed8ae69ae"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-57d9d3228a72b4d5aef5.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20796,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-57d9d3228a72b4d5aef5.json",
+    "bytes": 1365,
+    "sha256": "57d9d3228a72b4d5aef5fe7b07b8d29621bcbb047cf8969efaaf209ba7dce158"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-87bde610493eda42ca9c.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20875,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-87bde610493eda42ca9c.json",
+    "bytes": 1319,
+    "sha256": "87bde610493eda42ca9c2e3a24fdb42a10475675dca0e4110d710425efb7bd10"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fa9970c5cbc18a1255c7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 20964,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fa9970c5cbc18a1255c7.json",
+    "bytes": 1340,
+    "sha256": "fa9970c5cbc18a1255c71e1ae401d3bf839266a6d7443ae96485c13c981e19f7"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-db01531f87e5470bf361.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21053,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-db01531f87e5470bf361.json",
+    "bytes": 938,
+    "sha256": "db01531f87e5470bf361e2143bec11da3766e9f9d4f2a778c87e178e5f9e73a0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-16c5a3b75a8247311262.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21142,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-16c5a3b75a8247311262.json",
+    "bytes": 1416,
+    "sha256": "16c5a3b75a8247311262f4b08630bc7d272dbc5e6bbb248ceebd0eed7775b46e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-fef9a7aa02edac4fbd11.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21231,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-fef9a7aa02edac4fbd11.json",
+    "bytes": 1794,
+    "sha256": "fef9a7aa02edac4fbd111d05adfdb78b532e28df634cf01507c9e5753f26a333"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5b2b595e497b6a74fbb1.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21313,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5b2b595e497b6a74fbb1.json",
+    "bytes": 1424,
+    "sha256": "5b2b595e497b6a74fbb1c35e1bb2abd63763c518738fe572973ca937e00ddaaa"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-77934a6c234607a7bd4b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21395,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-77934a6c234607a7bd4b.json",
+    "bytes": 1285,
+    "sha256": "77934a6c234607a7bd4be1f76ecd4456834c8cff8b64d77f406377387e21ee5e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-faf4d6f7e0a7d0bf87e4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21477,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-faf4d6f7e0a7d0bf87e4.json",
+    "bytes": 1523,
+    "sha256": "faf4d6f7e0a7d0bf87e46aed55f41f78ecd3d4bc30a6134451df52228b9eaff6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-c54410acbe3087e9a776.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21559,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-c54410acbe3087e9a776.json",
+    "bytes": 1846,
+    "sha256": "c54410acbe3087e9a776849fab6cd36d25f29efa4d92d8bd37cbf7fb3ee6cf80"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-024629caec8092105a0d.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21644,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-024629caec8092105a0d.json",
+    "bytes": 1761,
+    "sha256": "024629caec8092105a0d3f91bd9b1caeacbf0bb5ebd79f995f4df96f7e9806a0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e5125877c5b0164385a7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21729,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e5125877c5b0164385a7.json",
+    "bytes": 1247,
+    "sha256": "e5125877c5b0164385a7dc07911354dbb8c5220becd4454ebd77a90b76b77a8d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-38782d74b0386a32bef7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21814,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-38782d74b0386a32bef7.json",
+    "bytes": 1388,
+    "sha256": "38782d74b0386a32bef719bfeb457dfba53631d4262b2e5e9084a50f10ddc2d0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2f74870b0d8a595c07d7.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21899,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2f74870b0d8a595c07d7.json",
+    "bytes": 1328,
+    "sha256": "2f74870b0d8a595c07d799d3a21279c43ef6045af72d3df0a23cb5aa2af5c9e9"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-ebfd5d6f44ff7d123920.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 21976,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-ebfd5d6f44ff7d123920.json",
+    "bytes": 1024,
+    "sha256": "ebfd5d6f44ff7d123920c3106c8fc1f7a51603a5040f8d5223114d5aa8eb2bc6"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-2bafa18ba8edf5d5d073.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22053,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-2bafa18ba8edf5d5d073.json",
+    "bytes": 1392,
+    "sha256": "2bafa18ba8edf5d5d0739ab258f09ffd812511935b1c1956a25f010e4004306d"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-af81afee3976bd890ecc.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22130,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-af81afee3976bd890ecc.json",
+    "bytes": 821,
+    "sha256": "af81afee3976bd890ecc1fea51aba214d786051bb91a2f45817e754ad2111c5b"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-89507daf7212f56972ce.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22207,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-89507daf7212f56972ce.json",
+    "bytes": 1374,
+    "sha256": "89507daf7212f56972cec0021a823fbcc510247e56ec7e098143be204798de6e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b15a66a47ca418eca11e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22289,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b15a66a47ca418eca11e.json",
+    "bytes": 1013,
+    "sha256": "b15a66a47ca418eca11eaf58bdc0f4ee39e5b1a297d4a0f55a551f25c88c9f5e"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-cc813e719b593bb197f0.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22371,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-cc813e719b593bb197f0.json",
+    "bytes": 1036,
+    "sha256": "cc813e719b593bb197f0a561517a0672d252fba61b894ada511dec4ad88d6056"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3a545e719d0505bf2bef.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22453,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3a545e719d0505bf2bef.json",
+    "bytes": 1036,
+    "sha256": "3a545e719d0505bf2befcdf0f7c7d65d44a5fd8293b58b6f046a0d19dc81706f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-330b2ae01942fa6b35eb.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22533,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-330b2ae01942fa6b35eb.json",
+    "bytes": 1014,
+    "sha256": "330b2ae01942fa6b35ebddb9cd08c57fe16ef5ff1c1ed1e356279c057706806c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e92aae64ab37d8780308.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22613,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e92aae64ab37d8780308.json",
+    "bytes": 1022,
+    "sha256": "e92aae64ab37d87803088162b22e22424ed5daa948a0f3719df1768718388d2c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-9c5528501c8a89e75e80.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22693,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-9c5528501c8a89e75e80.json",
+    "bytes": 1052,
+    "sha256": "9c5528501c8a89e75e808ec539edb199f8de9ab2fb83f7582ed28cc930db6dd5"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-3f1cb155308f8e712a60.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22773,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-3f1cb155308f8e712a60.json",
+    "bytes": 1011,
+    "sha256": "3f1cb155308f8e712a601ee955afd9c431d042cb7908945f51e30f9b79ec0c12"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-5cd3ed81a9206c2e8d06.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22858,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-5cd3ed81a9206c2e8d06.json",
+    "bytes": 1021,
+    "sha256": "5cd3ed81a9206c2e8d061b8e63c8bdf2fa7ef39176b2db8731eb002e5d74dc18"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-394b9f6640d45bb3461b.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 22943,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-394b9f6640d45bb3461b.json",
+    "bytes": 1024,
+    "sha256": "394b9f6640d45bb3461b353204810bda9cae840d843fa662ae645455cfd21f28"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-24c9d842729f4a16622e.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23028,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-24c9d842729f4a16622e.json",
+    "bytes": 1019,
+    "sha256": "24c9d842729f4a16622e404c0fe7cfd1fc05b7f66bd0f4e1c06ae962c4c5373f"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-e252e88f872218316a1f.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23113,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-e252e88f872218316a1f.json",
+    "bytes": 1025,
+    "sha256": "e252e88f872218316a1f88c9010d208373c335ab0dca97437b577ff8ae7f56ee"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-b86906edc3cc6e890b24.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23199,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-b86906edc3cc6e890b24.json",
+    "bytes": 2278,
+    "sha256": "b86906edc3cc6e890b24b92088932c0c9b1cc2329d185a3d55f17031f2acf43c"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-942350d98f2241f8d694.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23285,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-942350d98f2241f8d694.json",
+    "bytes": 2259,
+    "sha256": "942350d98f2241f8d6943e6d5652d8e3f021a3c57ee8762dd8846d4e0f3089bc"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-8a1b8cfc6756ed8707e4.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23369,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-8a1b8cfc6756ed8707e4.json",
+    "bytes": 997,
+    "sha256": "8a1b8cfc6756ed8707e4b92ecb2f5fd17f599dfcc891c4e36b461548f84101a0"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-77574433e5d0e16501fd.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23453,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-77574433e5d0e16501fd.json",
+    "bytes": 1020,
+    "sha256": "77574433e5d0e16501fdd4373c80616020c2d3bd6efcc6c29d3e9546c35e01ef"
+  },
+  {
+    "url": "https://nariyume.com/app/voice/native/bank-97aab58365566b6c0834.json",
+    "source": "https://nariyume.com/app/assets/nativeVoiceIndex.generated-B9Kep8LJ.js",
+    "declared_character_offset": 23537,
+    "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/bank-97aab58365566b6c0834.json",
+    "bytes": 502,
+    "sha256": "97aab58365566b6c083412b6d5f3c9de8aed733a9d95113eb625937b3f679e43"
+  }
+]

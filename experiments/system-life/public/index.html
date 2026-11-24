@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, interactive-widget=resizes-content">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#101312">
+  <title>生来有系统 · 交互故事</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/></symbol>
+    <symbol id="i-book" viewBox="0 0 24 24"><path d="M4 4h7a3 3 0 0 1 3 3v14a5 5 0 0 0-4-2H4Zm16 0h-3a3 3 0 0 0-3 3m6-3v15h-2"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M6 9h8a6 6 0 0 1 0 12M6 9l5-5M6 9l5 5"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5"/></symbol>
+  </defs></svg>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="生来有系统，首页"><span class="brand-mark">S<span>_</span></span><span>生来有系统<small>SYSTEM / LIFE</small></span></a>
+    <div class="experiment-label">交互故事实验 <span>02</span></div>
+    <nav class="header-actions" aria-label="故事管理">
+      <button id="health-button" class="connection-pill" type="button" aria-label="查看故事模型状态"><span class="status-dot"></span><span id="health-label">连接中</span></button>
+      <button id="library-button" class="text-button" type="button"><svg class="icon"><use href="#i-book"/></svg><span>我的故事</span></button>
+      <button id="new-button" class="outline-button" type="button"><svg class="icon"><use href="#i-plus"/></svg><span>新的起点</span></button>
+    </nav>
+  </header>
+  <main>
+    <section id="welcome" class="welcome" hidden>
+      <div class="welcome-copy">
+        <p class="eyebrow"><span class="small-dash"></span> EVERY LIFE BEGINS WITH A CHOICE</p>
+        <h1>你带着系统，<br>来到这个世界<span>。</span></h1>
+        <p class="welcome-description">系统给你目标。你决定怎么行动。<br>完成任务，获得奖励，让故事走向你的下一次选择。</p>
+        <div class="welcome-actions"><button id="quick-start" class="primary-button" type="button"><span>开启都市异能故事</span><svg class="icon"><use href="#i-arrow"/></svg></button><button id="customize-start" class="text-button" type="button">设定你的世界 <span>↗</span></button></div>
+        <p id="welcome-mode" class="welcome-mode" role="status">正在检查故事模型…</p>
+        <div class="welcome-chapters"><span><b>01</b> 系统觉醒</span><i></i><span><b>02</b> 做出行动</span><i></i><span><b>∞</b> 剧情演进</span></div>
+      </div>
+      <div class="welcome-art" aria-hidden="true"><div class="welcome-orbit"></div><div class="welcome-system-word">SYSTEM<br><span>AWAKENING</span></div><div class="welcome-figure"></div><div class="welcome-art-caption"><span>雾港 · 都市异能</span><span>故事尚未开始</span></div></div>
+    </section>
+    <div id="loading" class="loading-state"><span class="loading-orbit"></span><p>正在找回你的世界</p></div>
+    <section id="player" class="player" hidden>
+      <div class="chapter-heading"><div><p class="eyebrow" id="chapter-eyebrow">CHAPTER 01</p><h1 id="story-name">你的故事</h1></div><div class="chapter-context"><span id="location-label"></span><span class="context-divider"></span><span id="day-label"></span><span id="source-label" class="source-label"></span></div></div>
+      <details class="story-history"><summary><span>剧情轨迹 <span id="history-count"></span></span><span class="details-mark">＋</span></summary><div id="history-list" class="history-list" aria-label="剧情历史"></div></details>
+      <div id="history-banner" class="history-banner" hidden><svg class="icon"><use href="#i-back"/></svg><span>你正在回看过去的剧情与当时的状态。</span><button id="return-current" class="text-button" type="button">回到当前</button><button id="rewind-button" class="text-button" type="button">从这里重新选择</button></div>
+      <div class="story-workspace">
+        <section class="narrative-column" aria-label="剧情与行动" aria-busy="false">
+          <div id="player-action" class="player-action" hidden><p class="eyebrow">你的行动</p><p id="player-action-text"></p></div>
+          <article id="story-article" class="story-article">
+            <div class="narrative-heading"><p class="eyebrow" id="node-kicker"></p><h2 id="node-title"></h2></div>
+            <div id="narrative" class="narrative"></div>
+            <div id="outcome" class="outcome" hidden><span id="outcome-label" class="outcome-label"></span><p id="outcome-reason"></p></div>
+            <div id="system-message" class="system-message"><span class="system-bracket">[</span><div><span id="system-name" class="system-message-label">系统提示</span><p id="system-text"></p></div><span class="system-bracket">]</span></div>
+            <div id="changes" class="changes" aria-label="本轮状态变化"></div>
+            <details id="events-section" class="turn-events" hidden><summary><span>这一轮发生的事</span><span class="details-mark">＋</span></summary><ul id="events-list"></ul></details>
+          </article>
+          <div id="thinking" class="thinking" role="status" aria-live="polite" hidden><span class="loading-orbit"></span><div><strong id="thinking-title">正在推演你的行动</strong><p id="thinking-detail">正在考虑事件后果与下一个抉择…</p></div><span id="thinking-time">0 秒</span></div>
+          <div id="turn-error" class="turn-error" role="alert" hidden><p id="turn-error-text"></p><div><button id="retry-turn" class="outline-button" type="button">重试这次行动 ↗</button><button id="change-action" class="text-button" type="button">换一个行动</button></div><small>重试会核对同一次行动，避免重复推进剧情。</small></div>
+          <div id="decision-area" class="decision-area"><div class="section-line"><p class="eyebrow">YOUR NEXT MOVE</p><span>接下来，你怎么做？</span></div><div id="choices" class="choices"></div><div class="input-divider"><span>也可以写下自己的行动</span></div><form id="action-form" class="action-form"><label class="sr-only" for="action-input">你的行动</label><textarea id="action-input" name="action" rows="3" maxlength="1200" placeholder="我先去找苏槐，问清楚那枚罗盘的来历…"></textarea><div class="action-input-bottom"><span>⌘ / Ctrl + Enter 发送</span><button id="send-action" type="submit" class="send-button"><span>行动</span><svg class="icon"><use href="#i-arrow"/></svg></button></div></form><p class="action-hint">选择会带来后果。系统会依据实际发生的事判断任务进展。</p></div>
+        </section>
+        <aside class="system-inspector" aria-label="系统目标与主角状态">
+          <div class="inspector-header"><svg class="icon"><use href="#i-spark"/></svg><span id="inspector-system">系统已绑定</span><span class="status-dot active"></span></div>
+          <div class="identity"><span id="character-initial" class="character-initial">林</span><div><h3 id="character-name"></h3><p id="character-context">都市异能 · 系统持有者</p></div></div>
+          <div class="resource-row"><div><span class="stat-label">系统点数</span><strong id="credits-label">0</strong></div><div class="energy-stat"><div><span class="stat-label">精力</span><span id="energy-label">100 / 100</span></div><div class="meter"><span id="energy-meter"></span></div></div></div>
+          <div class="inspector-section active-quests"><h4>当前目标 <span id="active-goal-count"></span></h4><div id="quests" class="quests"></div></div>
+          <div class="inspector-section"><details><summary><span>能力 <span id="ability-count"></span></span><span class="details-mark">＋</span></summary><ul id="abilities-list" class="state-list"></ul></details></div>
+          <div class="inspector-section"><details><summary><span>人物关系 <span id="relationship-count"></span></span><span class="details-mark">＋</span></summary><ul id="relationships-list" class="state-list"></ul></details></div>
+          <div class="inspector-section"><details><summary><span>随身物品 <span id="inventory-count"></span></span><span class="details-mark">＋</span></summary><ul id="inventory-list" class="state-list"></ul></details></div>
+          <div class="inspector-section"><details><summary><span>已知事实与后果 <span id="fact-count"></span></span><span class="details-mark">＋</span></summary><h5 class="detail-label">世界设定</h5><ul id="canon-facts" class="state-list"></ul><h5 class="detail-label">已经发生</h5><ul id="facts-list" class="state-list"></ul><h5 class="detail-label">持续后果</h5><ul id="consequences-list" class="state-list"></ul><h5 class="detail-label">未解线索</h5><ul id="threads-list" class="state-list"></ul></details></div>
+          <div class="inspector-section"><details><summary><span>已结算目标 <span id="resolved-goal-count"></span></span><span class="details-mark">＋</span></summary><div id="resolved-quests" class="quests resolved-quests"></div></details></div>
+          <div class="inspector-footer"><span class="tiny-dash"></span><p>目标与奖励已经约定。<br>怎么完成，由你决定。</p></div>
+        </aside>
+      </div>
+      <footer class="player-footer"><span>故事自动保存在本地 · 可随时回看与导出</span><button id="export-session" class="text-button" type="button"><svg class="icon"><use href="#i-download"/></svg>导出故事</button></footer>
+    </section>
+  </main>
+  <div id="toast" class="toast" role="alert" hidden><span id="toast-text"></span><button id="toast-close" type="button" aria-label="关闭提示">×</button></div>
+  <dialog id="setup-dialog" class="modal setup-modal"><form id="setup-form"><div class="modal-heading"><div><p class="eyebrow">CREATE YOUR ORIGIN</p><h2>从哪里，开始这一生？</h2></div><button class="icon-button close-dialog" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button></div><p class="modal-intro">设定世界与系统。之后，你可以选路线，也可以通过对话自由行动。</p><fieldset class="genre-picker"><legend>故事背景</legend><label><input type="radio" name="genre" value="urban" checked><span>都市异能</span></label><label><input type="radio" name="genre" value="cultivation"><span>修仙</span></label><label><input type="radio" name="genre" value="business"><span>逆向经营</span></label></fieldset><div class="form-row"><label>主角名字<input id="preset-name" name="name" maxlength="40" required value="林渡"></label><label>系统名字<input id="preset-system" name="systemName" maxlength="60" required value="演进系统"></label></div><label>背景预设<textarea id="preset-background" name="background" rows="4" maxlength="1600" required>你出生在雾港，出生时便与一个只有你能感知的演进系统绑定。系统伴随你长大，却从不替你做决定。十八岁生日的清晨，港口潮汐出现异常，守夜人苏槐留下了一枚旧罗盘。你必须通过实际行动找出异常来源，并决定自己与这座城市的关系。</textarea></label><div class="form-row setting-row"><label>开局地点<input id="preset-location" name="location" maxlength="80" value="雾港 · 旧街屋顶"></label><label>关键人物<input id="preset-ally" name="ally" maxlength="40" value="苏槐"></label></div><fieldset class="mode-picker"><legend>剧情推进方式</legend><label><input type="radio" name="mode" value="ai"><span><b>AI Agent 推演</b><small>根据你的行动判断结果，生成下一次抉择</small></span><span id="ai-mode-status" class="mode-status">检查中</span></label><label><input type="radio" name="mode" value="demo" checked><span><b>内置分支演示</b><small>立即体验目标、选择与奖励，剧情路线有限</small></span><span class="mode-status">立即可玩</span></label></fieldset><p id="setup-error" class="inline-error" role="alert" hidden></p><p id="setup-status" class="setup-status" role="status" hidden></p><div class="modal-footer"><span>每次行动之后，再由你决定下一步</span><button id="create-session" class="primary-button" type="submit"><span>开启第一章</span><svg class="icon"><use href="#i-arrow"/></svg></button></div></form></dialog>
+  <dialog id="library-dialog" class="modal library-modal"><div class="modal-heading"><div><p class="eyebrow">YOUR WORLDS</p><h2>我的故事</h2></div><button class="icon-button close-dialog" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button></div><div id="sessions-list" class="sessions-list"></div><div class="modal-footer"><label class="text-button import-story-label"><svg class="icon"><use href="#i-upload"/></svg>导入故事存档<input id="import-session-file" type="file" accept="application/json,.json" hidden></label><button id="library-new" class="outline-button" type="button">新的起点 <span>＋</span></button></div></dialog>
+  <dialog id="health-dialog" class="modal health-modal"><div class="modal-heading"><div><p class="eyebrow">STORY AGENT</p><h2>故事推演</h2></div><button class="icon-button close-dialog" type="button" aria-label="关闭"><svg class="icon"><use href="#i-close"/></svg></button></div><div class="engine-status"><span class="stat-label">当前模型</span><strong id="story-engine-label">检查中</strong><p id="story-engine-detail"></p></div><p class="modal-intro">AI Agent 会结合你的设定、已经发生的事与当前目标继续剧情。AI 请求失败时会保留原状态，供你重试。</p><div class="modal-footer"><span>内置分支演示可独立试玩</span><button id="refresh-health" class="outline-button" type="button">重新检查 ↻</button></div></dialog>
+</body>
+</html>

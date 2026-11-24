@@ -153,6 +153,14 @@ export function resolveDzmmChatMediaResult(overview: DzmmChatMediaOverview, targ
   return { state: overview.pending === undefined ? "unknown" : "absent" };
 }
 
+function readImagePreset(): string | undefined {
+  try {
+    if (typeof localStorage === "undefined") return undefined;
+    const value = localStorage.getItem("xumeng-image-preset");
+    return value && value.length <= 40 ? value : undefined;
+  } catch { return undefined; }
+}
+
 async function request(path: string, signal?: AbortSignal, body?: unknown, directoryBytes?: { total: number }): Promise<unknown> {
   const abort = new AbortController();
   const stop = () => abort.abort();
@@ -237,8 +245,12 @@ export async function fetchDzmmChatMedia(accountId: string, conversationId: stri
 }
 
 export async function generateDzmmChatMedia(accountId: string, conversationId: string, messageId: string,
-  kind: DzmmChatMediaKind, signal?: AbortSignal, regenerate = false): Promise<DzmmChatMediaAsset> {
-  const value = await request("/generate", signal, { accountId, conversationId, messageId, kind, ...(regenerate ? { regenerate: true } : {}) });
+  kind: DzmmChatMediaKind, signal?: AbortSignal, regenerate = false,
+  imageTemplate?: unknown): Promise<DzmmChatMediaAsset> {
+  const preset = readImagePreset();
+  const value = await request("/generate", signal, { accountId, conversationId, messageId, kind,
+    ...(regenerate ? { regenerate: true } : {}), ...(preset ? { imagePreset: preset } : {}),
+    ...(imageTemplate && kind === "image" ? { imageTemplate } : {}) });
   if (!record(value) || value.accountId !== accountId) throw invalid();
   const asset = parseDzmmChatMediaAsset(value.asset, conversationId);
   if (asset.messageId !== messageId || asset.kind !== kind) throw invalid();
@@ -247,7 +259,9 @@ export async function generateDzmmChatMedia(accountId: string, conversationId: s
 
 export async function generateDzmmChatIllustration(accountId: string, conversationId: string, messageId: string,
   draft: DzmmIllustrationDraft, signal?: AbortSignal): Promise<DzmmChatMediaAsset> {
-  const value = await request("/illustrate", signal, { accountId, conversationId, messageId, ...draft });
+  const preset = readImagePreset();
+  const value = await request("/illustrate", signal, { accountId, conversationId, messageId, ...draft,
+    ...(preset && !draft.imagePreset ? { imagePreset: preset } : {}) });
   if (!record(value) || value.accountId !== accountId) throw invalid();
   const asset = parseDzmmChatMediaAsset(value.asset, conversationId);
   if (asset.messageId !== messageId || asset.kind !== "image") throw invalid();

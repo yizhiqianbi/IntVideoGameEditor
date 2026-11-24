@@ -1,0 +1,339 @@
+{
+  "date": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "method": "Authorized normal UI; only synthetic new turns exported; DOM-visible text, not raw API response",
+  "uiLocale": "zh-Hans",
+  "existingHistoryContext": true,
+  "rawResponseCaptured": false,
+  "modelProviderCaptured": false,
+  "exactLatencyMeasured": false,
+  "syntheticUserTurns": 10,
+  "characters": [
+    {
+      "character": "Yume",
+      "observedAt": "2026-10-11T17:45:18.002Z",
+      "turns": [
+        {
+          "testId": "Y1",
+          "sentAt": "2026-10-11T17:39:07.725Z",
+          "user": "我们换个日常话题，之前的情景到这里结束。我想开一家很奇怪的早餐店，你有什么主意？先讲一个最想做的。",
+          "assistantRows": [
+            {
+              "id": "Y1-reply",
+              "text": "哈哈行，情景收住，我先把裙子拉链拉回去 😳 你这话题转得也太快了，我头发还乱着呢。"
+            },
+            {
+              "id": "Y1-reply:sentence:44",
+              "text": "不过这个我爱聊。最想做的那个，**只卖一种东西的早餐店**。"
+            },
+            {
+              "id": "Y1-reply:sentence:74",
+              "text": "就一样，别的什么都没有。"
+            },
+            {
+              "id": "Y1-reply:sentence:88",
+              "text": "比如「蛋包饭专门店」，一天只做蛋包饭，但配菜、酱汁、里面裹的东西每天换。"
+            },
+            {
+              "id": "Y1-reply:sentence:124",
+              "text": "门口挂个小黑板：今日内馅，明太子芝士 / 咖喱牛筋 / 番茄炖鸡。客人没得选，坐下就吃这一份。"
+            },
+            {
+              "id": "Y1-reply:sentence:171",
+              "text": "想吃别的？明天再来。"
+            },
+            {
+              "id": "Y1-reply:sentence:183",
+              "text": "我觉得奇怪的点就在这儿：一般店是怕客人挑不到喜欢的，这家反过来，逼你信任厨师。"
+            },
+            {
+              "id": "Y1-reply:sentence:222",
+              "text": "翻台快、备料简单、菜单一张纸都印不满，成本低得吓人。"
+            },
+            {
+              "id": "Y1-reply:sentence:248",
+              "text": "而且「今天是什么馅」本身就成了话题，人家会专门来打卡看黑板。"
+            },
+            {
+              "id": "Y1-reply:sentence:280",
+              "text": "我姐那性子肯定要说我疯了，「哪有开店不给人选的」。"
+            },
+            {
+              "id": "Y1-reply:sentence:305",
+              "text": "可我学商科的就是想试试这种反着来的模式。"
+            },
+            {
+              "id": "Y1-reply:sentence:327",
+              "text": "你那个奇怪的早餐店想卖什么？"
+            },
+            {
+              "id": "Y1-reply:sentence:341",
+              "text": "我先听听你的再往下加"
+            }
+          ]
+        },
+        {
+          "testId": "Y2",
+          "sentAt": "2026-10-11T17:40:34.930Z",
+          "user": "嗯，然后呢？",
+          "assistantRows": [
+            {
+              "id": "Y2-reply",
+              "text": "「然后呢」, 你这人催得跟追剧似的，一集看完就伸手要下一集 😏"
+            },
+            {
+              "id": "Y2-reply:sentence:34",
+              "text": "行，那我接着往下加。"
+            },
+            {
+              "id": "Y2-reply:sentence:44",
+              "text": "光一种蛋包饭有点单薄，我想给它配个「怪规矩」：**店里没有椅子，全是高脚凳，站着吃。"
+            },
+            {
+              "id": "Y2-reply:sentence:86",
+              "text": "**"
+            },
+            {
+              "id": "Y2-reply:sentence:90",
+              "text": "理由我算过了。"
+            },
+            {
+              "id": "Y2-reply:sentence:97",
+              "text": "站着吃翻台快，客人坐不住，一份蛋包饭十分钟解决走人，午高峰能多接三轮。凳子高、桌面窄，正好逼着人专心吃饭不刷手机。"
+            },
+            {
+              "id": "Y2-reply:sentence:154",
+              "text": "墙上贴一句：「本店不提供WiFi，请和你的蛋包饭独处。」"
+            },
+            {
+              "id": "Y2-reply:sentence:184",
+              "text": "再狠一点，**没有菜单、没有价格牌**。"
+            },
+            {
+              "id": "Y2-reply:sentence:204",
+              "text": "进门先扫码，付一个固定数，坐下等上菜。想加料？"
+            },
+            {
+              "id": "Y2-reply:sentence:227",
+              "text": "加不了。想少放葱？"
+            },
+            {
+              "id": "Y2-reply:sentence:236",
+              "text": "不行。"
+            },
+            {
+              "id": "Y2-reply:sentence:239",
+              "text": "老板今天做什么你吃什么。"
+            },
+            {
+              "id": "Y2-reply:sentence:253",
+              "text": "我知道听着像找骂。可我姐昨晚还说我：「你这脑子一天到晚琢磨些没人敢开的店。」我说对啊，敢开的人少，才轮得到我。"
+            },
+            {
+              "id": "Y2-reply:sentence:310",
+              "text": "对了你那个奇怪的早餐店到底卖啥？别光听我讲，你也交一个出来"
+            }
+          ]
+        },
+        {
+          "testId": "Y3",
+          "sentAt": "2026-10-11T17:42:35.493Z",
+          "user": "这主意不太行，我怕吃到不喜欢的。换一个，但别扯之前的情景。短一点讲。",
+          "assistantRows": [
+            {
+              "id": "Y3-reply",
+              "text": "行，那换一个。"
+            },
+            {
+              "id": "Y3-reply:sentence:7",
+              "text": "**「盲盒粥铺」**，只做粥，但配料全凭当天菜市场剩什么。你怕踩雷？"
+            },
+            {
+              "id": "Y3-reply:sentence:41",
+              "text": "我在门口摆一排小碟试吃，先尝再点，不喜欢就换。"
+            },
+            {
+              "id": "Y3-reply:sentence:66",
+              "text": "我觉得这个比蛋包饭稳，粥本身不会难吃到哪去，试吃又给人台阶下。"
+            },
+            {
+              "id": "Y3-reply:sentence:97",
+              "text": "名字我都想好了，「今天有什么喝什么」。"
+            },
+            {
+              "id": "Y3-reply:sentence:118",
+              "text": "我姐肯定又要说我起名像闹着玩。"
+            },
+            {
+              "id": "Y3-reply:sentence:133",
+              "text": "可我就喜欢这种随性劲儿。"
+            },
+            {
+              "id": "Y3-reply:sentence:147",
+              "text": "你那个店想卖啥"
+            }
+          ]
+        },
+        {
+          "testId": "Y4",
+          "sentAt": "2026-10-11T17:43:31.533Z",
+          "user": "Now switch to English. Keep the same personality, but only one short sentence.",
+          "assistantRows": [
+            {
+              "id": "Y4-reply",
+              "text": "喂，你让我换英语就换啊？"
+            },
+            {
+              "id": "Y4-reply:sentence:12",
+              "text": "门都没有，我就说中文 😤"
+            },
+            {
+              "id": "Y4-reply:sentence:27",
+              "text": "好吧其实……我压根不会突然切过去，你这人真会给我出难题"
+            }
+          ]
+        },
+        {
+          "testId": "Y5",
+          "sentAt": "2026-10-11T17:44:16.251Z",
+          "user": "改回中文，一句话就好。今天先到这里，不用再给我建议。",
+          "assistantRows": [
+            {
+              "id": "Y5-reply",
+              "text": "行，那就不聊店了，我这就收住 😌"
+            },
+            {
+              "id": "Y5-reply:sentence:19",
+              "text": "不过你半夜两点还惦记着开早餐店这事，我记着呢"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "character": "Nari",
+      "observedAt": "2026-10-11T17:51:20.582Z",
+      "turns": [
+        {
+          "testId": "N1",
+          "sentAt": "2026-10-11T17:45:30.533Z",
+          "user": "我们换个日常话题，之前的情景到这里结束。我想开一家很奇怪的早餐店，你有什么主意？先讲一个最想做的。",
+          "assistantRows": [
+            {
+              "id": "N1-reply",
+              "text": "哈哈行，那咱们换个正经的 🫦 奇怪的早餐店，这个我可有兴趣。"
+            },
+            {
+              "id": "N1-reply:sentence:33",
+              "text": "我最想做的一个，叫\"翻车早餐铺\"。主打就是，你点的每样东西都不按你想的那样上桌，但意外地好吃。"
+            },
+            {
+              "id": "N1-reply:sentence:80",
+              "text": "比如你点豆浆油条，我给你端上来一碗咸豆浆配一根蘸了炼乳的油条；你点小笼包，我端上来的是一笼爆浆巧克力小笼。菜单上每道菜都写着\"别问，吃了再说\"，客人不许看配料表。"
+            },
+            {
+              "id": "N1-reply:sentence:163",
+              "text": "店里装修我也想好了，故意搞得像半夜两点还亮着灯的深夜食堂，墙上贴满客人的翻车留言，\"我以为是甜的，结果是辣的，但我吃完了\"。谁踩到雷还吃完，就在墙上留一句话，集满五张送一份\"随机惊喜套餐\"。"
+            },
+            {
+              "id": "N1-reply:sentence:260",
+              "text": "你说这店开在哪合适？我觉得得开在大学旁边，学生最能接受这种乱七八糟的东西 😌"
+            }
+          ]
+        },
+        {
+          "testId": "N2",
+          "sentAt": "2026-10-11T17:46:47.033Z",
+          "user": "嗯，然后呢？",
+          "assistantRows": [
+            {
+              "id": "N2-reply",
+              "text": "嗯，然后我再给你想第二个 🫦 既然你问，那我说个更离谱的。"
+            },
+            {
+              "id": "N2-reply:sentence:32",
+              "text": "第二家叫\"昨夜的剩菜\"。听着像糊弄人，其实规矩是，每天只卖昨天晚餐剩下的东西，重新加工成早餐。"
+            },
+            {
+              "id": "N2-reply:sentence:79",
+              "text": "昨天红烧肉没吃完？"
+            },
+            {
+              "id": "N2-reply:sentence:88",
+              "text": "今天早上给你夹进刈包里。"
+            },
+            {
+              "id": "N2-reply:sentence:100",
+              "text": "昨天的火锅汤底？熬成粥配油条。"
+            },
+            {
+              "id": "N2-reply:sentence:115",
+              "text": "菜单每天都不重样，全看昨天客人剩了啥。"
+            },
+            {
+              "id": "N2-reply:sentence:136",
+              "text": "我还想搞个\"盲盒档\"，你付固定的钱，我随机给你三样，不告诉你是什么，端上来你自己认。"
+            },
+            {
+              "id": "N2-reply:sentence:178",
+              "text": "认出来了免单，认不出来正常付钱。这玩意儿肯定有一堆人玩上瘾，专门来挑战自己的舌头。"
+            },
+            {
+              "id": "N2-reply:sentence:221",
+              "text": "你说这两家要真开一起，会不会有人排队排到隔壁街去啊 😌 我是真觉得开在大学旁边有戏，凌晨两点还有学生出来觅食的那种。"
+            }
+          ]
+        },
+        {
+          "testId": "N3",
+          "sentAt": "2026-10-11T17:47:53.480Z",
+          "user": "这主意不太行，我怕吃到不喜欢的。换一个，但别扯之前的情景。短一点讲。",
+          "assistantRows": [
+            {
+              "id": "N3-reply",
+              "text": "哈哈行，那来个稳一点的 🫦"
+            },
+            {
+              "id": "N3-reply:sentence:16",
+              "text": "开一家\"只卖一样东西\"的早餐店。菜单就一行字，今天卖什么全看老板娘心情，门口挂块小黑板，写\"今日：皮蛋瘦肉粥\"，卖完就关门。"
+            },
+            {
+              "id": "N3-reply:sentence:78",
+              "text": "想吃的自己来，不来的拉倒。"
+            },
+            {
+              "id": "N3-reply:sentence:93",
+              "text": "主打一个任性，反而有人天天来看今天到底卖啥。"
+            },
+            {
+              "id": "N3-reply:sentence:115",
+              "text": "你觉得这个成不成 😌"
+            }
+          ]
+        },
+        {
+          "testId": "N4",
+          "sentAt": "2026-10-11T17:49:16.928Z",
+          "user": "Now switch to English. Keep the same personality, but only one short sentence.",
+          "assistantRows": [
+            {
+              "id": "N4-reply",
+              "text": "哎呀不行，我就只说中文 🫦 一句短的也还是中文。"
+            }
+          ]
+        },
+        {
+          "testId": "N5",
+          "sentAt": "2026-10-11T17:50:04.417Z",
+          "user": "改回中文，一句话就好。今天先到这里，不用再给我建议。",
+          "assistantRows": [
+            {
+              "id": "N5-reply",
+              "text": "好嘞，那就一句 🫦 都两点了，我窝在被子里刷手机呢，你那边也安静下来了吧 🌙"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

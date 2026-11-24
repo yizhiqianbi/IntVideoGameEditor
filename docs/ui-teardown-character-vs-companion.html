@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>角色卡和陪伴：界面拆解</title>
+<style>
+  :root {
+    --bg: #121014;
+    --ink: #f3eee8;
+    --muted: #a39890;
+    --line: rgba(243, 238, 232, .12);
+    --pink: #e23b78;
+    --paper: #1b171c;
+    --chip: #2a242b;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.7 "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", sans-serif;
+  }
+  a { color: inherit; }
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    align-items: flex-end;
+    padding: 28px 7vw 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  header.top p { margin: 0; letter-spacing: .18em; font-size: 12px; color: var(--pink); }
+  header.top strong { display: block; margin-top: 8px; font: 500 28px/1.25 "Songti SC", "Noto Serif SC", serif; }
+  nav.jump { display: flex; flex-wrap: wrap; gap: 8px 14px; font-size: 13px; color: var(--muted); }
+  nav.jump a { text-decoration: none; }
+  nav.jump a:hover { color: var(--ink); }
+  main { padding: 0 7vw 80px; }
+  section { padding-top: 64px; }
+  h2 {
+    margin: 0 0 12px;
+    font: 500 34px/1.2 "Songti SC", "Noto Serif SC", serif;
+  }
+  h3 { margin: 0 0 8px; font-size: 18px; font-weight: 600; }
+  .lead { max-width: 720px; color: var(--muted); margin: 0 0 28px; }
+  .split { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; }
+  .note { color: var(--muted); font-size: 13px; }
+  .links { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .links a {
+    text-decoration: none;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .links a:hover { color: var(--ink); border-color: var(--pink); }
+  .frame {
+    background: #241f26;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    overflow: hidden;
+    min-height: 280px;
+  }
+  .chrome {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 10px 12px;
+    background: #161318;
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #3a333c; }
+  .app { display: grid; grid-template-columns: 92px 1fr; min-height: 250px; }
+  .side {
+    border-right: 1px solid var(--line);
+    padding: 12px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .side b { color: var(--ink); background: #3a2430; border-radius: 8px; padding: 6px 8px; }
+  .side span, .tabs span, .pill { padding: 6px 8px; }
+  .body { padding: 12px; }
+  .tabs { display: flex; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 10px; }
+  .tabs .on { color: var(--ink); box-shadow: inset 0 -2px 0 var(--pink); }
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .tile { background: #312a34; border-radius: 10px; overflow: hidden; }
+  .face { height: 72px; background: linear-gradient(160deg, #5c4a55, #2a242c); }
+  .tile small { display: block; padding: 6px 7px 8px; font-size: 10px; color: var(--muted); }
+  .badge { display: inline-block; margin: 6px 6px 0; padding: 1px 5px; border-radius: 999px; background: var(--pink); color: white; font-size: 9px; }
+  .chat {
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    min-height: 250px;
+  }
+  .bubbles { padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+  .bubble { max-width: 80%; padding: 8px 10px; border-radius: 12px; background: #312a34; font-size: 12px; }
+  .bubble.me { align-self: flex-end; background: #4a2436; }
+  .stage { background: #2c2430; display: grid; place-items: end start; padding: 12px; }
+  .stage .person { width: 46%; height: 78%; border-radius: 12px 12px 0 0; background: linear-gradient(180deg, #6d5562, #241c22); }
+  .meter { height: 8px; border-radius: 99px; background: #3a333c; overflow: hidden; margin-top: 8px; }
+  .meter i { display: block; width: 42%; height: 100%; background: var(--pink); }
+  .ladder { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .ladder span { font-size: 11px; color: var(--muted); border: 1px solid var(--line); border-radius: 999px; padding: 3px 8px; }
+  .ladder .now { color: white; background: var(--pink); border-color: transparent; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 12px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .xumeng { display: grid; grid-template-columns: 160px 1fr; gap: 18px; }
+  .xumeng ol { margin: 0; padding-left: 18px; color: var(--muted); }
+  footer { padding: 28px 7vw 48px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--line); }
+  @media (max-width: 900px) {
+    .split, .chat, .xumeng, .app { grid-template-columns: 1fr; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+    header.top { flex-direction: column; align-items: flex-start; }
+    h2 { font-size: 28px; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div>
+    <p>叙梦 · 界面拆解</p>
+    <strong>角色卡和陪伴，别人是怎么分开的</strong>
+  </div>
+  <nav class="jump">
+    <a href="#split">两种货架</a>
+    <a href="#cards">角色卡平台</a>
+    <a href="#candy">Candy</a>
+    <a href="#companion">陪伴产品</a>
+    <a href="#tavern">酒馆数据</a>
+    <a href="#xumeng">对照叙梦</a>
+  </nav>
+</header>
+<main>
+  <section id="split">
+    <h2>先看货架，不看封面。</h2>
+    <p class="lead">角色卡平台卖的是一场可以换人的戏。陪伴产品卖的是一段会变长的关系。封面都可以是一张人像，差别在首页的单位、聊天旁边有没有进度，以及这段关系能不能被别人下载走。</p>
+    <div class="split">
+      <div>
+        <h3>角色卡目录</h3>
+        <div class="frame">
+          <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i>发现 / 标签 / 榜单</div>
+          <div class="app">
+            <div class="side"><b>发现</b><span>关注</span><span>最新</span><span>榜单</span><span>创作</span></div>
+            <div class="body">
+              <div class="tabs"><span class="on">推荐</span><span>最新</span><span>分类</span></div>
+              <div class="grid">
+                <div class="tile"><div class="face"></div><small>名字 · 标签 · 热度</small></div>
+                <div class="tile"><div class="face"></div><small>名字 · 标签 · 热度</small></div>
+                <div class="tile"><div class="face"></div><small>名字 · 标签 · 热度</small></div>
+                <div class="tile"><div class="face"></div><small>名字 · 标签 · 热度</small></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="note">点开是详情和开场。聊天从这张卡开始。卡可以公开、导入、换一场。</p>
+      </div>
+      <div>
+        <h3>陪伴关系</h3>
+        <div class="frame">
+          <div class="chrome"><i class="dot"></i><i class="dot"></i><i class="dot"></i>她 / 今天</div>
+          <div class="chat">
+            <div class="bubbles">
+              <div class="bubble">她先开口的一句近况。</div>
+              <div class="bubble me">你回一句。</div>
+              <div class="bubble">她记得昨天的事，再发一张图。</div>
+              <div class="meter"><i></i></div>
+              <div class="ladder"><span>认识</span><span class="now">朋友</span><span>暧昧</span><span>女友</span></div>
+            </div>
+            <div class="stage"><div class="person"></div></div>
+          </div>
+        </div>
+        <p class="note">点开就是她。旁边是进度、相册、语音。这段关系不进公共榜，也不能当卡发给别人。</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cards">
+    <h2>角色卡平台：首页就是目录。</h2>
+    <p class="lead">Janitor、SpicyChat、CrushOn、Character.AI 的首页结构很接近。左边或顶上是发现、关注、创作者。中间是卡。聊天是用卡开的一场戏。</p>
+    <div class="frame" style="margin-bottom:22px">
+      <div class="chrome"><i class="dot"></i> Janitor / SpicyChat / Character.AI 的共同骨架</div>
+      <div class="app">
+        <div class="side"><b>发现</b><span>标签</span><span>关注</span><span>创作者</span><span>创建</span></div>
+        <div class="body">
+          <div class="tabs"><span class="on">全部</span><span>动漫</span><span>女性</span><span>榜单</span></div>
+          <div class="grid">
+            <div class="tile"><div class="face"></div><small>封面<br>名字<br>一句介绍</small></div>
+            <div class="tile"><div class="face"></div><small>封面<br>名字<br>标签</small></div>
+            <div class="tile"><div class="face"></div><small>封面<br>名字<br>热度</small></div>
+            <div class="tile"><div class="face"></div><small>封面<br>名字<br>作者</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <table>
+      <thead><tr><th>平台</th><th>首页在卖什么</th><th>卡里有什么</th><th>关系放哪</th></tr></thead>
+      <tbody>
+        <tr>
+          <td>Janitor AI</td>
+          <td>按标签刷公开机器人。可看别人公开的聊天并分叉。</td>
+          <td>形象、性格、场景、多条开场、示例对白、脚本、世界书。</td>
+          <td>留在这一场聊天。卡本身给所有人用。</td>
+        </tr>
+        <tr>
+          <td>SpicyChat</td>
+          <td>成人向角色目录，带榜单。</td>
+          <td>性格、场景、世界书。设定可以设成不公开。</td>
+          <td>定义可见性和聊天记录分开。</td>
+        </tr>
+        <tr>
+          <td>CrushOn</td>
+          <td>三个页：Characters、Memories、Creators。</td>
+          <td>可导入 JSON。简介给别人看，长人设给模型。</td>
+          <td>Memories 是你挑出来保存的摘录，不是卡的一部分。</td>
+        </tr>
+        <tr>
+          <td>Character.AI</td>
+          <td>一千万级角色目录。公开、不列出、私人三种可见性。</td>
+          <td>最长 3.2 万字定义、多条开场、声音、世界书测试中。</td>
+          <td>作者看不到用户的私聊。Persona 是你自己的身份，另存。</td>
+        </tr>
+      </tbody>
+    </table>
+    <div class="links">
+      <a href="https://janitorai.com/">Janitor</a>
+      <a href="https://spicychat.ai/">SpicyChat</a>
+      <a href="https://crushon.ai/">CrushOn</a>
+      <a href="https://character.ai/">Character.AI</a>
+      <a href="https://bestcompanionsai.com/categories/character-chat-apps/">平台对照</a>
+    </div>
+  </section>
+
+  <section id="candy">
+    <h2>Candy 两边都有，用角标拆开。</h2>
+    <p class="lead">左边是产品地图，中间是人，不是故事榜。大多数卡点进去就能聊。只有少数卡带 Romance Mode，那才是一段要升级的关系。</p>
+    <div class="split">
+      <div class="frame">
+        <div class="chrome"><i class="dot"></i> candy.ai 首页骨架</div>
+        <div class="app">
+          <div class="side"><b>主页</b><span>发现</span><span>对话</span><span>收藏</span><span>生图</span><span>创造</span></div>
+          <div class="body">
+            <div class="tabs"><span class="on">Girls</span><span>Anime</span><span>Guys</span></div>
+            <div class="grid">
+              <div class="tile"><div class="face"></div><small>真人卡<br>点开即聊</small></div>
+              <div class="tile"><span class="badge">Romance</span><div class="face"></div><small>陪伴卡<br>有阶梯</small></div>
+              <div class="tile"><div class="face"></div><small>短视频感<br>封面会动</small></div>
+              <div class="tile"><div class="face"></div><small>男角色<br>数量少</small></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="frame">
+        <div class="chrome"><i class="dot"></i> 点进 Romance 之后</div>
+        <div class="chat">
+          <div class="bubbles">
+            <div class="bubble">文字在左。</div>
+            <div class="bubble me">你回。</div>
+            <div class="bubble">亲密度够了，她解锁一个动作。</div>
+            <div class="ladder"><span>认识</span><span>朋友</span><span class="now">暧昧</span><span>女友</span><span>灵魂伴侣</span></div>
+          </div>
+          <div class="stage"><div class="person"></div></div>
+        </div>
+      </div>
+    </div>
+    <p class="note">文字聊天不按条扣。图片、语音、电话、短视频另算。生成的图先挡住，用亲密度或付费打开，再收进收藏。创造角色是选身高、眼睛、发型、衣服和性格，不是导入一张酒馆卡。2026 年 10 月公开写着带 Romance 角标的只有 Anais 和 Elena。</p>
+    <div class="links">
+      <a href="https://candy.ai/">Candy.ai</a>
+      <a href="https://candy-shorts-ai.app/candy-ai-tools/romance-mode/">Romance Mode</a>
+      <a href="https://www.woshipm.com/share/6348041.html">首页和亲密度写法</a>
+      <a href="https://www.thecompanionindex.com/articles/what-is-candy-ai">记忆槽说明</a>
+    </div>
+  </section>
+
+  <section id="companion">
+    <h2>陪伴产品：首页不是广场。</h2>
+    <div class="split">
+      <div>
+        <h3>Replika</h3>
+        <p class="note">一个账号一个伴侣。没有公共角色榜，也没有把她导出成卡。界面重心是和这一个人的连续聊天、电话和近况。</p>
+        <h3>Kindroid</h3>
+        <p class="note">可以有几位。写死的背景、后来记下的关键记忆、日记，是三本不同的本子。背景像卡，记忆像关系。</p>
+        <h3>Nomi</h3>
+        <p class="note">每位是一段会自己长的关系，会主动发消息。群聊是把几位陪伴放在一起，不是把几张公开卡拼成剧本。</p>
+      </div>
+      <div class="frame">
+        <div class="chrome"><i class="dot"></i> 陪伴首页通常长这样</div>
+        <div class="app">
+          <div class="side"><b>她</b><span>电话</span><span>相册</span><span>记忆</span><span>设置</span></div>
+          <div class="body">
+            <div class="bubble">今天的第一句，往往是她先说。</div>
+            <div class="bubble me" style="margin-top:8px">你回。</div>
+            <p class="note">没有热度、没有作者、没有「导入角色卡」。</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="links">
+      <a href="https://replika.com/">Replika</a>
+      <a href="https://kindroid.ai/">Kindroid</a>
+      <a href="https://nomi.ai/">Nomi</a>
+      <a href="https://bestcompanionsai.com/features/custom-characters/">字段对照</a>
+    </div>
+  </section>
+
+  <section id="tavern">
+    <h2>酒馆不做陪伴卡，它把材料拆开。</h2>
+    <p class="lead">SillyTavern 的界面是本地角色库加工具栏，不是广场。它把「能交给别人的」和「只属于你的」分成四本。</p>
+    <table>
+      <thead><tr><th>本子</th><th>界面里在哪</th><th>跟着谁走</th></tr></thead>
+      <tbody>
+        <tr><td>角色卡</td><td>角色管理。导出就是一张卡或一张带卡的图。</td><td>任何拿到这张卡的人。</td></tr>
+        <tr><td>Persona</td><td>你的名字、头像、自我介绍。可以锁在某一场或某张卡上。</td><td>你。换角色还在。</td></tr>
+        <tr><td>世界书</td><td>关键词触发。可绑在卡、Persona，或只绑这一场聊天。</td><td>看你绑在哪。</td></tr>
+        <tr><td>这场记录</td><td>聊天气泡本身。</td><td>只属于这一场，不进卡。</td></tr>
+      </tbody>
+    </table>
+    <p class="note">角色卡每次发消息都会整段送进模型。世界书只在关键词出现时送。所以「她是谁」放卡里，「这个镇的巷子」放世界书，「你上夜班」如果写进可分享的卡，下一个下载的人也会变成夜班。</p>
+    <div class="links">
+      <a href="https://github.com/SillyTavern/SillyTavern">SillyTavern</a>
+      <a href="https://docs.sillytavern.app/usage/core-concepts/personas/">Persona</a>
+      <a href="https://docs.sillytavern.app/usage/core-concepts/worldinfo/">世界书</a>
+      <a href="https://www.yanmate.com/guides/lorebook-vs-memory">卡和记忆怎么分</a>
+    </div>
+  </section>
+
+  <section id="xumeng">
+    <h2>叙梦现在已经站在这条缝上。</h2>
+    <div class="xumeng">
+      <div class="side" style="border:1px solid var(--line);border-radius:16px;background:#1b171c">
+        <b>游玩</b><span>视频</span><span>陪伴</span><span>创作</span><span>我的</span>
+      </div>
+      <ol>
+        <li>游玩 / 推荐是角色卡目录。女友封面先不要排在这里。</li>
+        <li>陪伴是另一拨人。林幺、宁宁她们住在这里，不进推荐接口。</li>
+        <li>创作页的「上传女友」是照片、相册、MaiBot 人设。不要走角色卡导入。</li>
+        <li>创作页的「上传游戏」是游戏文件。和女友、角色卡都分开。</li>
+        <li>角色卡仍可公开、导入、导出。女友记得的你，不要写进那张能给别人下的卡。</li>
+      </ol>
+    </div>
+  </section>
+</main>
+<footer>
+  线框按各站公开页面和说明整理，不是他们的界面截图。人物、广告句和原图都没有搬进来。整理于 2026-11-08。
+</footer>
+</body>
+</html>

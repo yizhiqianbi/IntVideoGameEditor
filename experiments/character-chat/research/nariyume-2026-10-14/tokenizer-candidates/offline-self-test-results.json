@@ -1,0 +1,43 @@
+{
+  "kind": "SYNTHETIC_OFFLINE_TESTS_NOT_NARIYUME_OR_DZMM_DATA",
+  "all_passed": true,
+  "cases": [
+    {
+      "kind": "SYNTHETIC_NOT_TARGET_DATA",
+      "family": "cl100k_base",
+      "matches": [
+        "cl100k_base"
+      ],
+      "passed": true
+    },
+    {
+      "kind": "SYNTHETIC_NOT_TARGET_DATA",
+      "family": "o200k_base",
+      "matches": [
+        "o200k_base"
+      ],
+      "passed": true
+    },
+    {
+      "kind": "SYNTHETIC_NOT_TARGET_DATA",
+      "family": "qwen3",
+      "matches": [
+        "qwen3"
+      ],
+      "passed": true
+    },
+    {
+      "kind": "SYNTHETIC_NOT_TARGET_DATA",
+      "family": "deepseek_v3",
+      "matches": [
+        "deepseek_v3"
+      ],
+      "passed": true
+    },
+    {
+      "kind": "SYNTHETIC_NOT_TARGET_DATA",
+      "shared_tokenizer_tie": true,
+      "passed": true
+    }
+  ]
+}

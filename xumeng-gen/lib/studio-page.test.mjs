@@ -27,7 +27,8 @@ test("text image with a reference keeps the sentence and the image", () => {
   assert.match(built.prompt, /动漫/);
   assert.equal(built.image, PNG);
   assert.equal(buildTextImage({ prompt: "换成夜景，人不要动。", ratio: "landscape" }).ratio, "landscape");
-  assert.equal(buildTextImage({ prompt: "换成夜景。", images: [PNG, PNG] }).error, "参考图只能一张。");
+  assert.equal(buildTextImage({ prompt: "换成夜景。", images: [PNG] }).ok, true);
+  assert.equal(buildTextImage({ prompt: "换成夜景。", images: [PNG, PNG] }).error, "参考图最多一张。");
 });
 
 test("text image rejects an empty sentence and extra fields", () => {

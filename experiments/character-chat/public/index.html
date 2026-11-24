@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f6f3ef">
+  <title>叙梦 · 心动陪伴</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <svg class="icon-library" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M12 19V5m-6 6 6-6 6 6"/></symbol>
+    <symbol id="i-panel" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M14 4v16"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12m-4-4 4 4 4-4M5 16v4h14v-4"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24"><path d="m15 4 5 5M4 20l5-1L20 8a2 2 0 0 0-4-4L5 15l-1 5Z"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5m4-5v5"/></symbol>
+    <symbol id="i-chevron" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7"/></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 1-8 8H5l-3 3V11a9 9 0 0 1 18 0Z"/><path d="M7 11h10M7 15h6"/></symbol>
+  </svg>
+
+  <div class="app-shell">
+    <button class="drawer-backdrop" id="drawer-backdrop" aria-label="关闭侧栏" hidden></button>
+    <aside class="sidebar" id="sidebar" aria-label="角色与对话">
+      <div class="brand-row">
+        <a class="brand" href="/" aria-label="叙梦心动陪伴首页"><span class="brand-mark">叙</span><span>叙梦<small>心动陪伴 · AI 角色</small></span></a>
+        <button class="icon-button drawer-close" id="close-sidebar" aria-label="关闭对话侧栏"><svg><use href="#i-close"/></svg></button>
+      </div>
+      <button class="new-chat-button" id="new-chat"><svg><use href="#i-plus"/></svg><span>新的对话</span><span class="key-hint">N</span></button>
+      <section class="character-section" aria-labelledby="characters-label">
+        <h2 class="section-label" id="characters-label">聊天对象</h2>
+        <div id="character-list" class="character-list"></div>
+      </section>
+      <section class="history-section" aria-labelledby="history-label">
+        <div class="section-title-row"><h2 class="section-label" id="history-label">最近的对话</h2><span id="history-count" class="count-label"></span></div>
+        <nav id="session-list" class="session-list" aria-label="历史对话"></nav>
+        <p class="history-empty" id="history-empty" hidden>从一句「你好」开始。</p>
+      </section>
+      <div class="sidebar-footer"><span class="connection-dot" id="connection-dot"></span><div><span id="provider-status">连接中</span><small id="provider-model">正在读取本地配置</small></div></div>
+    </aside>
+
+    <main class="workspace" id="workspace">
+      <header class="chat-header">
+        <button class="icon-button navigation-toggle" id="open-sidebar" aria-label="打开角色与历史对话"><svg><use href="#i-menu"/></svg></button>
+        <div class="header-avatar" id="header-avatar" aria-hidden="true">Y</div>
+        <div class="header-identity"><div class="header-title"><h1 id="character-name">叙梦</h1><span class="mode-label" id="mode-label" hidden></span></div><p id="character-subtitle">心动陪伴 · AI 角色</p></div>
+        <div class="header-actions"><a class="icon-button" id="export-session" aria-label="导出这段对话" title="导出对话"><svg><use href="#i-download"/></svg></a><button class="icon-button inspector-toggle" id="toggle-inspector" aria-label="打开记忆与状态" aria-expanded="true" title="记忆与状态"><svg><use href="#i-panel"/></svg></button></div>
+      </header>
+
+      <div class="timeline" id="timeline" role="log" aria-label="聊天消息" aria-live="polite" aria-relevant="additions">
+        <div class="conversation-date" id="conversation-date"></div>
+        <div id="messages" class="messages"></div>
+        <div class="thinking-row" id="thinking" hidden><span class="message-avatar" id="thinking-avatar">Y</span><div><span id="thinking-label">正在想怎么回答</span><div class="thinking-dots" aria-hidden="true"><i></i><i></i><i></i></div></div></div>
+      </div>
+
+      <div class="composer-area">
+        <div class="feedback" id="feedback" role="status" hidden><span id="feedback-text"></span><span class="feedback-actions"><button id="check-send" class="text-button" hidden>检查结果</button><button id="retry-send" class="text-button" hidden>重试发送</button></span></div>
+        <form class="composer" id="composer-form">
+          <label class="sr-only" for="message-input">消息</label>
+          <textarea id="message-input" placeholder="说点什么吧…" rows="1" maxlength="4000" disabled></textarea>
+          <button class="send-button" id="send-message" type="submit" aria-label="发送消息" disabled><svg><use href="#i-arrow"/></svg></button>
+        </form>
+        <div class="composer-meta"><span id="composer-hint">Enter 发送 · 可以连续发几句</span><span id="character-count">0 / 4000</span></div>
+      </div>
+    </main>
+
+    <aside class="inspector" id="inspector" aria-label="记忆与状态">
+      <div class="inspector-header"><h2>记忆与状态</h2><button class="icon-button" id="close-inspector" aria-label="关闭记忆与状态"><svg><use href="#i-close"/></svg></button></div>
+      <div class="inspector-scroll">
+        <section class="about-character"><p class="eyebrow">ABOUT</p><h3 id="about-name">聊天对象</h3><p id="about-description">正在连接。</p></section>
+        <section class="state-section"><h3 class="section-label">这一刻</h3><dl class="state-list"><div><dt>情绪</dt><dd id="mood-value">—</dd></div><div id="relationship-row"><dt>关系</dt><dd id="relationship-value">初次见面</dd></div></dl><p class="mood-reason" id="mood-reason"></p><div class="character-beat" id="character-beat" hidden><p>她刚在想</p><span id="character-beat-value"></span></div></section>
+        <section class="life-section" id="life-section" hidden><h3 class="section-label">她的小日常</h3><div id="life-list" class="life-list"></div><p class="field-hint">她说过的事，会有后续。这里是角色的虚构日常。</p></section>
+        <section class="language-section"><label class="section-label" for="language-select">回复语言</label><select id="language-select"><option value="auto">跟随对话</option><option value="zh">中文</option><option value="en">English</option><option value="ja">日本語</option></select><p class="field-hint" id="language-hint">也可以直接说「说英文」。</p></section>
+        <section class="initiative-section"><label class="initiative-setting" for="initiative-toggle"><span>主动找我聊</span><input id="initiative-toggle" type="checkbox" role="switch" checked><span class="switch-track" aria-hidden="true"></span></label><p class="field-hint" id="initiative-hint">有新进展或新念头时，她会来告诉你。你在打字时，她会先收住。</p></section>
+        <section class="memory-section"><div class="section-title-row"><h3 class="section-label">记住的事</h3><span class="count-label" id="memory-count">0</span></div><p class="memory-intro">这段对话里，你告诉过的事。</p><div id="memory-list" class="memory-list"></div><div class="memory-empty" id="memory-empty"><span class="memory-empty-mark">“</span><p>还没有记忆</p><small>聊到你的偏好或计划时，<br>可以在这里查看与修改。</small></div></section>
+      </div>
+      <div class="inspector-footer">对话保存在这台电脑上</div>
+    </aside>
+  </div>
+
+  <dialog id="new-chat-dialog" class="modal">
+    <form id="new-chat-form"><div class="dialog-top"><span class="eyebrow">NEW CONVERSATION</span><button type="button" class="icon-button" id="close-new-dialog" aria-label="关闭新对话窗口"><svg><use href="#i-close"/></svg></button></div><h2>想和谁聊聊？</h2><p class="dialog-description">选一个 AI 角色，慢慢认识彼此。</p><fieldset id="new-character-options" class="new-character-options"><legend class="sr-only">选择角色</legend></fieldset><div class="mode-choice"><label for="new-chat-mode">对话模式</label><select id="new-chat-mode"><option value="ai">AI 对话</option><option value="demo">演示模式</option></select></div><p class="dialog-hint" id="mode-hint">由服务端配置的模型回复。</p><button class="primary-button" id="create-conversation" type="submit">开始对话 <svg><use href="#i-chevron"/></svg></button></form>
+  </dialog>
+
+  <dialog id="edit-memory-dialog" class="modal memory-modal">
+    <form id="edit-memory-form"><div class="dialog-top"><span class="eyebrow">MEMORY</span><button type="button" class="icon-button" id="close-memory-dialog" aria-label="关闭记忆编辑窗口"><svg><use href="#i-close"/></svg></button></div><h2>修改记忆</h2><label class="sr-only" for="memory-input">记忆内容</label><textarea id="memory-input" maxlength="220" rows="4"></textarea><p class="dialog-hint">保存后，这条记忆以你的修改为准。</p><button class="primary-button" id="save-memory" type="submit">保存修改</button></form>
+  </dialog>
+</body>
+</html>

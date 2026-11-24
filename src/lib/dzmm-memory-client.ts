@@ -1,5 +1,5 @@
 import { prepareDzmmRequest, type DzmmPreparedRequest } from "./dzmm-context";
-import type { DzmmCharacter, DzmmModelPreset, DzmmPromptStyle, DzmmWorldContext } from "./dzmm-chat";
+import type { DzmmCharacter, DzmmChatInput, DzmmGroupRequest, DzmmModelPreset, DzmmPromptStyle, DzmmSamplerRequest, DzmmWorldContext } from "./dzmm-chat";
 import type { XumengLocale } from "./xumeng-i18n";
 import { projectDzmmSourceOpeningHistoryEntries } from "./dzmm-character-presentation";
 import { stripXumengPanelTails } from "./xumeng-interaction-panels";
@@ -17,6 +17,10 @@ export type DzmmRememberedRequestOptions = {
   userName?: string;
   locale?: XumengLocale;
   promptStyle?: DzmmPromptStyle;
+  sampler?: DzmmSamplerRequest;
+  group?: DzmmGroupRequest;
+  memoryConfig?: DzmmChatInput["memoryConfig"];
+  memoryProfile?: string;
   model: DzmmModelPreset;
   maxTokens?: number;
   signal?: AbortSignal;
@@ -38,7 +42,7 @@ export async function prepareDzmmRememberedRequest(options: DzmmRememberedReques
   for (;;) {
     options.signal?.throwIfAborted();
     const request = prepareDzmmRequest(options.character, options.messages, options.preset, options.userPersona,
-      options.model, options.maxTokens, { storyMemory: memory, userName: options.userName, world: options.world, locale: options.locale, promptStyle: options.promptStyle });
+      options.model, options.maxTokens, { storyMemory: memory, userName: options.userName, world: options.world, locale: options.locale, promptStyle: options.promptStyle, sampler: options.sampler, group: options.group, memoryConfig: options.memoryConfig });
     const projected = projectDzmmSourceOpeningHistoryEntries(options.character, options.messages);
     // Omitted display-only opening turns are not a lost story prefix requiring an AI summary.
     const retained = projected.length - request.messages.length;
@@ -60,7 +64,8 @@ export async function prepareDzmmRememberedRequest(options: DzmmRememberedReques
         "Content-Type": "application/json", "X-Xumeng-Request-Id": crypto.randomUUID(),
       },
       body: JSON.stringify({ messages: summaryMessages,
-        ...(update.previousState ? { previousState: update.previousState } : {}), model: options.model }), signal: options.signal,
+        ...(update.previousState ? { previousState: update.previousState } : {}), model: options.model,
+        ...(options.memoryProfile ? { profile: options.memoryProfile } : {}) }), signal: options.signal,
     });
     summaryCalls++;
     const payload: unknown = await response.json().catch(() => null);

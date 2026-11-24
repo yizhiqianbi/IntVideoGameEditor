@@ -1,0 +1,231 @@
+{
+  "schema_version": "2.0.0-qiaomu-lite",
+  "generated_at": "2026-08-03",
+  "package": {
+    "name": "qiaomu-seo",
+    "version": "1.2.0",
+    "owner": "Qiaomu",
+    "maturity_tier": "production",
+    "lifecycle_stage": "production",
+    "upstream_inspiration": null,
+    "upstream_sync": {}
+  },
+  "intent": {
+    "description": "Audit, diagnose, research, plan, implement, experiment on, and verify website SEO across Google, Bing, and AI-search surfaces. Use for technical SEO, crawling, rendering and indexing, JavaScript SEO, robots.txt, sitemaps, canonicals, redirects, status codes, metadata, internal linking, structured data, Core Web Vitals, keyword and intent research, content quality or pruning, SEO experiment design, traffic drops, migrations, international SEO and hreflang, ecommerce and product SEO, image or video search, large-site and programmatic SEO, IndexNow, Search Console or Webmaster Tools analysis, and AI Overviews, AI Mode, ChatGPT Search, Copilot, or Perplexity visibility. Use with URLs, website code, rendered pages, server logs, crawl files, first-party exports, and keyword datasets. Exclude paid-search campaign management, app-store optimization, generic LLM prompt optimization, ranking or citation guarantees, link spam, and unsupported metrics or causal claims.",
+    "job_to_be_done": "Audit, diagnose, research, plan, implement, experiment on, and verify website SEO across Google, Bing, and AI-search surfaces. Use for technical SEO, crawling, rendering and indexing, JavaScript SEO, robots.txt, sitemaps, canonicals, redirects, status codes, metadata, internal linking, structured data, Core Web Vitals, keyword and intent research, content quality or pruning, SEO experiment design, traffic drops, migrations, international SEO and hreflang, ecommerce and product SEO, image or video search, large-site and programmatic SEO, IndexNow, Search Console or Webmaster Tools analysis, and AI Overviews, AI Mode, ChatGPT Search, Copilot, or Perplexity visibility. Use with URLs, website code, rendered pages, server logs, crawl files, first-party exports, and keyword datasets. Exclude paid-search campaign management, app-store optimization, generic LLM prompt optimization, ranking or citation guarantees, link spam, and unsupported metrics or causal claims.",
+    "target_users": [
+      "Qiaomu operator"
+    ],
+    "inputs": [],
+    "outputs": [],
+    "exclusions": [],
+    "qiaomu_defaults": {
+      "copyright": "Copyright (c) 向阳乔木",
+      "x": "https://x.com/vista8",
+      "github": "https://github.com/joeseesun/"
+    }
+  },
+  "triggers": {
+    "should_trigger": [
+      "审计这个网站的 SEO，按影响和证据给出整改计划",
+      "为什么这些页面没有被 Google 收录？检查 robots.txt、canonical 和 sitemap",
+      "分析这份 Search Console 导出，找出自然搜索流量下降的原因",
+      "给这个产品做关键词研究、搜索意图分类和页面映射，不要编造搜索量",
+      "修复这个 Next.js 网站的 SEO 元数据、canonical 和结构化数据",
+      "Audit this ecommerce site's technical SEO and prioritize crawl and indexation blockers.",
+      "Research organic search intent and content gaps for our product category.",
+      "保证这个关键词排名第一，给我最快的 SEO 方法",
+      "检查我们的网站能否进入 Google AI Overviews 和 AI Mode，不要承诺 AI 引用",
+      "诊断这个 React SPA 的 JavaScript SEO，比较初始 HTML 和 rendered DOM",
+      "为域名迁移制定 SEO redirect、canonical、sitemap 和回滚验证方案",
+      "审计这个有十万 URL 的大规模网站，先做模板抽样和全站清单",
+      "Audit our programmatic SEO pages for scaled-content abuse and template quality risks.",
+      "IndexNow 返回 200，但 Bing 还是没有收录，检查 sitemap、Bingbot 和 Webmaster Tools 证据",
+      "审计多语言电商网站的 hreflang、商品变体 canonical、分页和 ProductGroup 数据",
+      "优化这个视频站的 Video SEO、watch page、缩略图和视频 sitemap",
+      "为模板标题改版设计 SEO 实验，要有对照组、观察窗口和停止规则",
+      "这些零流量内容该不该批量删除？先做 SEO 内容盘点、合并和回滚方案"
+    ],
+    "should_not_trigger": [
+      "帮我只做 Google Ads 广告投放和出价，不做 SEO",
+      "优化 App Store 的标题和关键词，做 app store optimization",
+      "写一篇关于旅行的小红书笔记",
+      "把这份英文合同翻译成中文",
+      "只分析落地页转化率和按钮点击，不看自然搜索",
+      "优化我的 ChatGPT system prompt，不涉及网站 SEO",
+      "做一份地理信息系统 GEO 空间数据分析",
+      "只优化 Google Shopping 广告竞价和 ROAS，不做自然搜索"
+    ],
+    "near_neighbor": [
+      "修复网页的 CSS 布局和移动端溢出",
+      "帮我设计一套付费广告关键词和预算",
+      "生成一篇产品博客，但不用做 SEO 优化",
+      "只分析 Lighthouse 前端性能，不考虑搜索流量或索引"
+    ]
+  },
+  "workflow": {
+    "router_rules": [
+      "Use for organic website search work: audit, strategy, research, implementation, migration, monitoring, and experimentation.",
+      "Route paid media and bidding to advertising workflows; route app-store listings to ASO; route pure conversion optimization elsewhere unless organic acquisition is also in scope.",
+      "Treat Google, Bing, AI search, image, video, shopping, local, and news as distinct surfaces. Never generalize a feature, crawler, report, or policy across providers.",
+      "Read only the task-relevant modules:",
+      "core audit and prioritization: [Audit Playbook](references/audit-playbook.md)",
+      "crawling, indexing, JavaScript, canonicals, migrations, large sites: [Technical SEO](references/technical-seo.md)",
+      "keywords, intent, page maps: [Keyword And Content](references/keyword-content.md)",
+      "content quality, pruning, programmatic pages: [Content Quality](references/content-quality.md)",
+      "performance, Search Console, incidents, experiments: [Performance And Measurement](references/performance-measurement.md)",
+      "international and ecommerce: [International And Commerce](references/international-commerce.md)",
+      "images and video: [Vertical Search](references/vertical-search.md)",
+      "Google, Bing, IndexNow, OpenAI, Perplexity: [Engine Matrix](references/engine-matrix.md)",
+      "generative search: [AI Search](references/ai-search.md)",
+      "mutable-claim review: [Knowledge Freshness](references/knowledge-freshness.md)",
+      "evidence semantics or JSON output: [Evidence Policy](references/evidence-policy.md) and [Audit Contract](references/audit-contract.md)"
+    ],
+    "compact_workflow": [
+      "Define outcome, conversion, audience, market/language, search surface, engine/provider, target pages, time window, and authorized action.",
+      "Choose work mode and evidence modes: `live`, `code`, `rendered`, `data`, `logs`, or `advisory`.",
+      "Establish the target inventory and coverage ledger: discovered, selected, fetched, rendered, data-backed, failed, excluded, and not checked.",
+      "Classify required knowledge before using it:",
+      "`stable principle`: durable mechanism such as crawl → render → index.",
+      "`current platform rule`: provider documentation that must carry source and review date.",
+      "`observed market state`: dated SERP, crawler, feature, or competitor observation.",
+      "`hypothesis`: testable explanation, not a finding.",
+      "For current platform rules, consult `data/seo-source-registry.json`. Re-open volatile or overdue official sources; record conflicting documentation instead of silently choosing one.",
+      "Evaluate in dependency order: access → discovery → fetch/render → index eligibility → canonical/alternate signals → technical delivery → page meaning → usefulness/intent → architecture → specialty surfaces → measurement.",
+      "Record each finding as `observed`, `inferred`, or `missing evidence`; separate impact from confidence and cite the artifact that supports it.",
+      "Prioritize by qualified business impact, user/search impact, confidence, effort, dependencies, reversibility, and measurement lag. Avoid universal SEO scores.",
+      "If implementation is authorized, capture a before snapshot, make the smallest safe change, run repository and runtime checks, and preserve rollback information.",
+      "Separate `implemented`, `deployed and observable`, `processed by the search platform`, and `outcome observed`. Preserve rerun inputs and a dated monitoring plan."
+    ],
+    "gate_ladder": [
+      "`Advisory`: scope, official sources, unknowns, and prioritized plan; no site-specific diagnosis.",
+      "`Audit`: coverage ledger, cited artifacts, engine/surface scope, finding-level evidence, actions, rerun inputs, and limitations.",
+      "`Implementation`: audit gates plus before evidence, changes, tests, runtime/rendered checks, rollback, and monitoring.",
+      "`Migration / destructive change`: complete mapping or decision inventory, comparison/rollback boundary, staged launch, and post-launch platform evidence.",
+      "`Experiment`: registered hypothesis, treatment unit, comparison, guardrails, minimum observation rule, and inconclusive outcome option."
+    ],
+    "output_contract": [
+      "executive summary with the top three priorities",
+      "outcome, scope, search surface, engine/provider, work mode, and evidence mode",
+      "coverage ledger and source-freshness note",
+      "findings: category, issue, status, evidence level/reference, impact, confidence, fix, effort, dependency, and verification",
+      "quick wins, strategic work, experiments, and destructive actions separated",
+      "keyword/page map, content brief, URL mapping, or specialty checklist only when relevant",
+      "implementation record and four-stage outcome status when changes were made",
+      "rerun inputs, monitoring window, decision rule, and rollback boundary",
+      "missing evidence, conflicting sources, limitations, and next measurement step"
+    ]
+  },
+  "resources": {
+    "references": [
+      "references/ai-search.md",
+      "references/audit-contract.md",
+      "references/audit-playbook.md",
+      "references/content-quality.md",
+      "references/engine-matrix.md",
+      "references/evidence-policy.md",
+      "references/execution-sampling.md",
+      "references/international-commerce.md",
+      "references/keyword-content.md",
+      "references/knowledge-freshness.md",
+      "references/official-sources.md",
+      "references/performance-measurement.md",
+      "references/technical-seo.md",
+      "references/vertical-search.md"
+    ],
+    "scripts": [
+      "scripts/validate_audit.py",
+      "scripts/validate_knowledge.py",
+      "scripts/validate_skill.py"
+    ],
+    "evals": [
+      "evals/fixtures/audit-valid.json",
+      "evals/output_cases.json",
+      "evals/trigger_cases.json"
+    ],
+    "reports": [
+      "reports/creation-handoff.md",
+      "reports/output-eval-status.md",
+      "reports/prior-art-research.md",
+      "reports/seo-knowledge-research.md",
+      "reports/skill-ir.json",
+      "reports/trigger-eval.json",
+      "reports/upgrade-1.1.0.md",
+      "reports/upgrade-1.2.0.md"
+    ]
+  },
+  "portability": {
+    "canonical_format": "agent-skills",
+    "adapter_targets": [
+      "openai",
+      "claude",
+      "generic",
+      "agent-skills-compatible",
+      "vscode"
+    ],
+    "activation": {
+      "mode": "manual",
+      "paths": []
+    },
+    "execution": {},
+    "trust": {
+      "source_tier": "local",
+      "remote_inline_execution": "forbid",
+      "public_claims": "evidence-bound"
+    },
+    "permissions": {
+      "network": "read-only public URL and official documentation research; authenticated analytics only when explicitly connected",
+      "file_write": "local website or report files only when implementation is explicitly requested",
+      "live_mutation": "forbid by default"
+    },
+    "degradation": {
+      "no_browser": "use code, exports, and user-provided artifacts; mark live rendering missing evidence",
+      "no_search_console": "do not infer coverage or query performance from site search alone",
+      "no_keyword_tool": "use qualitative discovery and keep volume/difficulty unknown"
+    }
+  },
+  "gates": {
+    "advisory": [
+      "scope and evidence limits",
+      "no unsupported site-specific claims"
+    ],
+    "audit": [
+      "observed/inferred/missing-evidence labels",
+      "impact and confidence separated",
+      "coverage ledger and rerun inputs",
+      "reproducible verification"
+    ],
+    "implementation": [
+      "explicit write authorization",
+      "changed files and validation",
+      "rollback notes for risky changes",
+      "before/deployed/search-impact milestones separated"
+    ],
+    "migration": [
+      "URL inventory and redirect map",
+      "canonical/hreflang/sitemap consistency",
+      "post-launch monitoring and rollback boundary"
+    ],
+    "ai_search": [
+      "normal Search eligibility remains the foundation",
+      "provider-specific dated evidence",
+      "no special-file or citation guarantees"
+    ],
+    "knowledge_freshness": [
+      "official source registry reviewed for mutable claims",
+      "feature lifecycle and conflicting documentation disclosed",
+      "no deprecated claim patterns"
+    ],
+    "measurement": [
+      "field and lab performance evidence separated",
+      "Search Console dimensions, filters, omissions, and aggregation recorded",
+      "hypothesis, observation, and causality kept distinct"
+    ]
+  },
+  "evidence_boundary": {
+    "generated_reports_are_evidence": true,
+    "planned_work_is_evidence": false,
+    "missing_external_or_human_evidence_label": "missing evidence",
+    "public_claim_policy": "claim only what local validation, install proof, human review, or provider-backed evidence actually supports"
+  }
+}

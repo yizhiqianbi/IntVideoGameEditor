@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>沈酌 · 玩具</title>
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #241820;
+    --muted: #7b6c74;
+    --line: #eadfe3;
+    --paper: #f7f1ee;
+    --panel: #fffaf8;
+    --accent: #9b3562;
+    --user: #2a1d24;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.85fr);
+    height: 100%;
+    background: var(--paper);
+    color: var(--ink);
+    font: 16px/1.5 "Iowan Old Style", "Songti SC", serif;
+  }
+  section { min-width: 0; min-height: 0; }
+  .chat, .toy { display: flex; flex-direction: column; height: 100%; }
+  .toy { border-left: 1px solid var(--line); background: #fbf7f4; }
+  header, form { display: flex; align-items: center; gap: 12px; padding: 18px 22px; }
+  header { justify-content: space-between; }
+  h1 { margin: 0; font-size: 22px; font-weight: 500; letter-spacing: 0.01em; }
+  .meta { color: var(--muted); font-size: 13px; }
+  .dot { width: 8px; height: 8px; border-radius: 99px; background: #c8b8be; display: inline-block; margin-right: 6px; }
+  .dot.on { background: #2f8f62; }
+  #log {
+    flex: 1;
+    overflow: auto;
+    padding: 8px 22px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .bubble { max-width: min(440px, 82%); display: flex; flex-direction: column; gap: 8px; }
+  .bubble p { margin: 0; white-space: pre-wrap; }
+  .bubble.user { align-self: flex-end; }
+  .bubble.user p { background: var(--user); color: #fff8f4; border-radius: 16px 16px 4px 16px; padding: 10px 14px; }
+  .bubble.bot p { background: white; border-radius: 16px 16px 16px 4px; padding: 10px 14px; }
+  .bubble.system { align-self: center; color: var(--muted); font-size: 13px; }
+  audio { width: min(280px, 100%); height: 32px; }
+  .typing { color: var(--muted); font-size: 13px; min-height: 1.2em; padding: 0 22px 8px; }
+  form { border-top: 1px solid var(--line); }
+  textarea, button { font: inherit; color: inherit; }
+  textarea {
+    flex: 1; resize: none; min-height: 44px; max-height: 120px;
+    border: 0; background: transparent; padding: 8px 0; outline: none;
+  }
+  button {
+    border: 1px solid var(--line); background: white; border-radius: 999px;
+    padding: 8px 14px; cursor: pointer;
+  }
+  button.primary { background: var(--ink); color: white; border-color: var(--ink); }
+  button.stop { color: var(--accent); }
+  .stage { flex: 1; display: grid; place-items: center; position: relative; }
+  .device {
+    width: 148px; height: 280px; border-radius: 80px;
+    background: linear-gradient(180deg, #fff 0%, #f4d7e2 42%, #e7b7c9 100%);
+    box-shadow: inset 0 0 0 10px #fff6f8, 0 24px 50px rgba(80, 30, 48, 0.12);
+    position: relative;
+    transform-origin: 50% 70%;
+  }
+  .device::before {
+    content: "";
+    position: absolute; left: 50%; top: 54px; width: 54px; height: 54px; margin-left: -27px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(155,53,98,var(--glow, 0.15)), transparent 68%);
+    box-shadow: 0 0 0 8px rgba(255,255,255,0.7);
+  }
+  .device[data-running="true"][data-pattern="pulse"] { animation: pulse var(--speed) ease-in-out infinite; }
+  .device[data-running="true"][data-pattern="wave"] { animation: wave var(--speed) ease-in-out infinite; }
+  .device[data-running="true"][data-pattern="steady"] { animation: steady calc(var(--speed) * 0.45) linear infinite; }
+  .device[data-running="true"][data-pattern="escalate"] { animation: escalate var(--speed) ease-in infinite; }
+  .readout { position: absolute; left: 22px; right: 22px; bottom: 28px; display: flex; justify-content: space-between; align-items: baseline; }
+  .readout strong { font-size: 42px; font-weight: 500; }
+  .actions { display: flex; gap: 8px; padding: 0 22px 22px; }
+  @keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(calc(1 + var(--amp))); }
+  }
+  @keyframes wave {
+    0%, 100% { transform: translateY(0) rotate(-2deg); }
+    50% { transform: translateY(calc(var(--amp) * -70px)) rotate(3deg); }
+  }
+  @keyframes steady {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(calc(var(--amp) * 18px)); }
+    75% { transform: translateX(calc(var(--amp) * -18px)); }
+  }
+  @keyframes escalate {
+    0% { transform: scale(1); }
+    80% { transform: scale(calc(1 + var(--amp) * 1.6)); }
+    100% { transform: scale(1); }
+  }
+  @media (max-width: 860px) {
+    body { grid-template-columns: 1fr; grid-template-rows: minmax(360px, 1fr) minmax(320px, 0.8fr); }
+    .toy { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+<section class="chat">
+  <header>
+    <div>
+      <h1>沈酌</h1>
+      <div class="meta">MaiBot</div>
+    </div>
+    <div class="meta" id="link"><span class="dot"></span>正在连接</div>
+  </header>
+  <div id="log"></div>
+  <div class="typing" id="typing"></div>
+  <form id="composer">
+    <textarea id="draft" rows="1" placeholder="跟他说一句"></textarea>
+    <button class="primary" type="submit">发送</button>
+  </form>
+</section>
+<section class="toy">
+  <header>
+    <div>
+      <h1>玩具</h1>
+      <div class="meta">本机模拟，没有真实硬件</div>
+    </div>
+    <div class="meta" id="battery">电量</div>
+  </header>
+  <div class="stage">
+    <div class="device" id="device" data-running="false" data-pattern="off"></div>
+    <div class="readout">
+      <span id="motion">已停止</span>
+      <strong id="level">0</strong>
+    </div>
+  </div>
+  <div class="actions">
+    <button data-intensity="4" data-pattern="pulse">轻脉冲</button>
+    <button data-intensity="10" data-pattern="wave">起伏</button>
+    <button data-intensity="16" data-pattern="escalate">渐强</button>
+    <button class="stop" id="stop">停止</button>
+  </div>
+</section>
+<script>
+const patterns = {off:"关闭", steady:"持续", pulse:"脉冲", wave:"起伏", escalate:"渐强"};
+const log = document.getElementById("log");
+let seen = "";
+
+function bubble(message) {
+  const item = document.createElement("article");
+  item.className = "bubble " + (message.role || "system");
+  if (message.text) {
+    const text = document.createElement("p");
+    text.textContent = message.text;
+    item.append(text);
+  }
+  for (const voice of message.voices || []) {
+    const audio = document.createElement("audio");
+    audio.controls = true;
+    audio.src = "/voice/" + voice;
+    item.append(audio);
+  }
+  return item;
+}
+
+async function refreshChat() {
+  const chat = await (await fetch("/chat")).json();
+  const link = document.getElementById("link");
+  link.innerHTML = `<span class="dot${chat.connected ? " on" : ""}"></span>${chat.detail || ""}`;
+  document.getElementById("typing").textContent = chat.typing ? "他在组织这句话" : "";
+  const signature = JSON.stringify(chat.messages.map(item => [item.id, item.text, item.voices]));
+  if (signature !== seen) {
+    seen = signature;
+    log.replaceChildren(...(chat.messages.length ? chat.messages.map(bubble) : []));
+    log.scrollTop = log.scrollHeight;
+  }
+}
+
+async function refreshToy() {
+  const state = await (await fetch("/state")).json();
+  const device = document.getElementById("device");
+  const level = Number(state.intensity) || 0;
+  device.dataset.running = state.running ? "true" : "false";
+  device.dataset.pattern = state.pattern || "off";
+  device.style.setProperty("--amp", String(0.04 + level / 90));
+  device.style.setProperty("--speed", (1.15 - level / 28) + "s");
+  device.style.setProperty("--glow", String(0.18 + level / 28));
+  document.getElementById("motion").textContent = state.running ? "运行中 · " + (patterns[state.pattern] || state.pattern) : "已停止";
+  document.getElementById("level").textContent = level + "/20";
+  document.getElementById("battery").textContent = "电量 " + state.battery + "%";
+}
+
+document.getElementById("composer").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const draft = document.getElementById("draft");
+  const text = draft.value.trim();
+  if (!text) return;
+  draft.value = "";
+  const response = await fetch("/chat", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify({text})});
+  if (!response.ok) {
+    const payload = await response.json().catch(() => ({}));
+    document.getElementById("typing").textContent = payload.error || "没送出去";
+  }
+  await refreshChat();
+});
+document.getElementById("draft").addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    event.currentTarget.form.requestSubmit();
+  }
+});
+async function command(body) {
+  await fetch("/command", {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)});
+  await refreshToy();
+}
+for (const button of document.querySelectorAll("button[data-intensity]")) {
+  button.addEventListener("click", () => command({intensity:Number(button.dataset.intensity), pattern:button.dataset.pattern, seconds:20}));
+}
+document.getElementById("stop").addEventListener("click", () => command({stop:true}));
+refreshChat();
+refreshToy();
+setInterval(() => { refreshChat(); refreshToy(); }, 1000);
+</script>

@@ -41,16 +41,16 @@ export async function rememberChatImage(env: Env, userId: string, assetId: strin
     ON CONFLICT(user_id, source_asset_id) DO UPDATE SET object_key=excluded.object_key, mime_type=excluded.mime_type, created_at=excluded.created_at`).bind(crypto.randomUUID(), createdAt, assetId, userId, ALBUM_LIMIT).run();
 }
 
-async function readAlbumAsset(env: Env, user: UserRecord, id: string): Promise<Response> {
+async function readAlbumAsset(env: Env, user: UserRecord, id: string): Promise<Response | null> {
   if (!env.MEDIA) throw new ApiError(503, "相册暂时无法打开。");
   const row = await env.DB.prepare("SELECT id, kind, mime_type, created_at, object_key FROM relationship_album WHERE id=? AND user_id=?")
     .bind(id, user.id).first<AlbumRow>();
-  if (!row) throw new ApiError(404, "画面不存在。");
+  if (!row) return null;
   let object: R2ObjectBody | null;
   try { object = await env.MEDIA.get(row.object_key); }
   catch { throw new ApiError(503, "相册暂时无法打开。"); }
-  if (!object || !("body" in object)) throw new ApiError(404, "画面不存在。");
-  if (object.customMetadata?.ownerId && object.customMetadata.ownerId !== user.id) throw new ApiError(404, "画面不存在。");
+  if (!object || !("body" in object)) return null;
+  if (object.customMetadata?.ownerId && object.customMetadata.ownerId !== user.id) return null;
   const headers = new Headers({
     "Content-Type": row.mime_type,
     "Cache-Control": "private, no-store",
@@ -128,6 +128,8 @@ export async function handleRelationshipAlbum(request: Request, env: Env, user: 
   const roleId = characterId(url.searchParams.get("characterId") ?? "");
   const rows = await env.DB.prepare(`SELECT id, kind, mime_type, created_at FROM relationship_album
     WHERE user_id=? AND character_id=? ORDER BY created_at DESC, id DESC LIMIT ?`).bind(user.id, roleId, ALBUM_LIMIT).all<AlbumRow>();
+  // No personal images for this character: let the public album fallback run.
+  if (!rows.results?.length) return null;
   return json({
     items: (rows.results ?? []).map(row => ({ id: row.id, kind: row.kind, mimeType: row.mime_type, createdAt: row.created_at })),
   });

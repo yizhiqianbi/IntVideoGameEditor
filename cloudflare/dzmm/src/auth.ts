@@ -2,7 +2,7 @@ import { randomBytes, scrypt, timingSafeEqual, createHash } from "node:crypto";
 import { ApiError, json, readJson, readOptionalJson } from "./http";
 import type { Env, UserRecord } from "./types";
 import { handleEmailAuth, type EmailAuthOptions } from "./email-auth";
-import { guestWelcomeCreditStatement, passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
+import { NEW_GUEST_CREDITS, guestWelcomeCreditStatement, passwordSignupCreditStatement, publicSignupCreditConfig } from "./signup-credits";
 import { referralCodeForUser, referralCodeFromBody, findInviter, referralRewardStatements, acquisitionRegisteredStatement } from "./referrals";
 import { rememberDailyVisit } from "./visits";
 
@@ -160,50 +160,13 @@ export function credentials(body: Record<string, unknown>, minimumPasswordLength
 }
 
 function nickname(body: Record<string, unknown>) {
-  if (
-    typeof body.nickname !== "string" ||
-    !body.nickname.trim() ||
-    body.nickname.length > 30 ||
-    body.nickname.includes("\0")
-  ) {
+  if (typeof body.nickname !== "string" || body.nickname.includes("\0") || /[\u0000-\u001f\u007f]/.test(body.nickname)) {
     throw new ApiError(400, "昵称需要 1 至 30 个字符。");
   }
-  return body.nickname.trim();
-}
-
-export function accountNameKey(name: string) {
-  return name.normalize("NFKC").trim().replace(/\s+/g, " ").toLowerCase();
-}
-
-export function requireAccountName(value: unknown) {
-  if (typeof value !== "string" || value.includes("\0") || /[\u0000-\u001f\u007f]/.test(value)) {
-    throw new ApiError(400, "名字需要 1 至 30 个字符。");
-  }
-  const name = value.normalize("NFKC").trim().replace(/\s+/g, " ");
-  if (!name || name.length > 30) throw new ApiError(400, "名字需要 1 至 30 个字符。");
+  const name = body.nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
+  if (!name || name.length > 30) throw new ApiError(400, "昵称需要 1 至 30 个字符。");
   if (name === "游客") throw new ApiError(400, "这个名字不能使用。");
   return name;
-}
-
-export function isAccountNameTaken(error: unknown) {
-  const text = String(error);
-  return text.includes("name_taken") || /account_names/i.test(text);
-}
-
-function claimAccountName(env: Env, userId: string, name: string, nonce: string) {
-  const key = accountNameKey(name);
-  // The second row repeats the key for every registered account already showing
-  // it. One statement then fails the primary key, including accounts that have
-  // no account_names row yet. A failed guest upgrade selects nothing.
-  return env.DB.prepare(`INSERT INTO account_names(name_key,user_id)
-    SELECT name_key,user_id FROM (
-      SELECT ? AS name_key,? AS user_id
-      WHERE EXISTS(SELECT 1 FROM users WHERE id=? AND mutation_token=? AND is_guest=0)
-      UNION ALL
-      SELECT lower(trim(nickname)),id FROM users
-      WHERE is_guest=0 AND id<>? AND lower(trim(nickname))=?
-        AND EXISTS(SELECT 1 FROM users WHERE id=? AND mutation_token=? AND is_guest=0)
-    )`).bind(key, userId, userId, nonce, userId, key, userId, nonce);
 }
 
 function hex(value: Uint8Array) {
@@ -288,7 +251,9 @@ async function createGuest(request: Request, env: Env) {
   const currentToken = tokenFrom(request);
   if (existing && currentToken)
     return json({ user: existing, authenticated: !existing.isGuest }, 200, authCookies(request, currentToken));
-  await rateLimit(request, env, "guest", 60);
+  // Every landing page used to mint a guest row (4.6k empty accounts). Keep a
+  // stricter per-network budget so crawlers and scripts cannot mass-create.
+  await rateLimit(request, env, "guest", 20);
   const user: UserRecord = {
     id: crypto.randomUUID(),
     email: null,
@@ -313,7 +278,7 @@ async function createGuest(request: Request, env: Env) {
   // The first guest from a network can try the tavern. Another incognito window
   // is still a guest, but it does not receive the welcome Credit again.
   try {
-    if (await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
+    if (NEW_GUEST_CREDITS > 0 && await guestWelcomeAllowed(request, env)) await guestWelcomeCreditStatement(env, user.id, Date.now()).run();
   } catch {
     /* A grant failure must never block the guest session. */
   }
@@ -335,7 +300,6 @@ async function guestWelcomeAllowed(request: Request, env: Env): Promise<boolean>
 async function register(request: Request, env: Env) {
   const body = bodyRecord(await readJson(request, 64 * 1024));
   if (Object.hasOwn(body, "role")) throw new ApiError(400, "账户权限只能由管理员设置。");
-  if (!Object.hasOwn(body, "email") && !Object.hasOwn(body, "password")) return registerByName(request, env, body);
   const { email, password } = credentials(body);
   const name = nickname(body);
   const referralCode = referralCodeFromBody(body);
@@ -404,73 +368,6 @@ async function register(request: Request, env: Env) {
     version: registeredVersion,
     emailVerified: false,
     hasPassword: true,
-    passwordSetupRequired: false,
-  };
-  return json({ user, authenticated: true }, 201, authCookies(request, token));
-}
-
-async function registerByName(request: Request, env: Env, body: Record<string, unknown>) {
-  const name = requireAccountName(body.nickname);
-  const referralCode = referralCodeFromBody(body);
-  await rateLimit(request, env, "register", 20);
-  const current = await currentUser(request, env);
-  if (current && !current.isGuest) throw new ApiError(409, "当前已登录，请先退出再注册其他账号。");
-  const userId = current?.id || crypto.randomUUID();
-  if (referralCode) await findInviter(env, referralCode, userId);
-  const token = hex(randomBytes(32));
-  const nonce = crypto.randomUUID();
-  const now = Date.now();
-  let registeredVersion = 0;
-  try {
-    if (current) {
-      const results = await env.DB.batch<{ version: number }>([
-        env.DB.prepare(
-          "UPDATE users SET email=NULL,password_hash=NULL,nickname=?,is_guest=0,version=version+1,mutation_token=?,referral_code=COALESCE(referral_code,?) WHERE id=? AND is_guest=1 RETURNING version",
-        ).bind(name, nonce, referralCodeForUser(userId), userId),
-        env.DB.prepare(
-          "UPDATE preferences SET nickname=? WHERE user_id=? AND EXISTS (SELECT 1 FROM users WHERE id=? AND mutation_token=?)",
-        ).bind(name, userId, userId, nonce),
-        env.DB.prepare(
-          "DELETE FROM sessions WHERE user_id=? AND EXISTS (SELECT 1 FROM users WHERE id=? AND mutation_token=?)",
-        ).bind(userId, userId, nonce),
-        env.DB.prepare(
-          "INSERT INTO sessions (token_hash,user_id,expires_at,created_at) SELECT ?,?,?,? WHERE EXISTS (SELECT 1 FROM users WHERE id=? AND mutation_token=?)",
-        ).bind(digest(token), userId, now + SESSION_AGE, now, userId, nonce),
-        claimAccountName(env, userId, name, nonce),
-        passwordSignupCreditStatement(env, userId, nonce, now),
-        ...referralRewardStatements(env, referralCode, userId, nonce, now),
-        acquisitionRegisteredStatement(env, userId, nonce, now),
-      ]);
-      if (!results[0].meta.changes) throw new ApiError(409, "账号状态已改变，请刷新后重试。");
-      registeredVersion = Number(results[0].results[0].version);
-    } else {
-      await env.DB.batch([
-        env.DB.prepare(
-          "INSERT INTO users (id,email,password_hash,nickname,is_guest,version,mutation_token,created_at,referral_code) VALUES (?,NULL,NULL,?,0,0,?,?,?)",
-        ).bind(userId, name, nonce, now, referralCodeForUser(userId)),
-        env.DB.prepare(
-          "INSERT INTO sessions (token_hash,user_id,expires_at,created_at) VALUES (?,?,?,?)",
-        ).bind(digest(token), userId, now + SESSION_AGE, now),
-        claimAccountName(env, userId, name, nonce),
-        passwordSignupCreditStatement(env, userId, nonce, now),
-        ...(referralRewardStatements(env, referralCode, userId, nonce, now)),
-        acquisitionRegisteredStatement(env, userId, nonce, now),
-      ]);
-    }
-  } catch (error) {
-    if (error instanceof ApiError) throw error;
-    if (isAccountNameTaken(error)) throw new ApiError(409, "这个名字已被使用，请换一个。");
-    throw error;
-  }
-  const user: UserRecord = {
-    id: userId,
-    email: null,
-    nickname: name,
-    isGuest: false,
-    role: "user",
-    version: registeredVersion,
-    emailVerified: false,
-    hasPassword: false,
     passwordSetupRequired: false,
   };
   return json({ user, authenticated: true }, 201, authCookies(request, token));

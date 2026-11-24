@@ -1,0 +1,14 @@
+{
+  "name": "pawtale",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev --webpack --hostname 127.0.0.1 --port 3026",
+    "build": "next build --webpack",
+    "start": "next start --hostname 127.0.0.1 --port 3026",
+    "test": "node --test lib/*.test.mjs",
+    "verify:original": "node scripts/verify-original.mjs"
+  },
+  "dependencies": { "next": "16.1.6", "react": "19.2.3", "react-dom": "19.2.3" }
+}

@@ -1,6 +1,7 @@
 import { countDzmmContextText } from "./dzmm-character-context";
 import { DzmmValidationError, validateDzmmChatInput, type DzmmChatInput, type DzmmProviderMessage } from "./dzmm-chat";
 import { xumengLocaleInstruction } from "./xumeng-i18n";
+import { parseTavernImagePresetId } from "./tavern/image";
 
 export const DZMM_ILLUSTRATION_SCALES = ["wide", "medium", "close"] as const;
 export type DzmmIllustrationScale = (typeof DZMM_ILLUSTRATION_SCALES)[number];
@@ -21,6 +22,8 @@ export type DzmmIllustrationDraft = {
   pov: boolean;
   visibility: DzmmIllustrationVisibility;
   shot: DzmmIllustrationShot;
+  /** Optional ST-style image preset id; applied server-side when building the provider prompt. */
+  imagePreset?: string;
 };
 export type DzmmIllustrationRequest = DzmmIllustrationDraft & {
   accountId: string;
@@ -145,7 +148,7 @@ export function parseDzmmIllustrationShots(value: unknown): DzmmIllustrationShot
 
 export function parseDzmmIllustrationDraft(value: unknown): DzmmIllustrationRequest {
   if (!record(value)) throw new Error("画面请求无效。");
-  exact(value, ["accountId", "conversationId", "messageId", "pov", "visibility", "shot"], "画面请求字段无效。");
+  exact(value, ["accountId", "conversationId", "messageId", "pov", "visibility", "shot", "imagePreset"], "画面请求字段无效。");
   if (typeof value.accountId !== "string" || typeof value.conversationId !== "string" || typeof value.messageId !== "string") {
     throw new Error("画面请求无效。");
   }
@@ -155,8 +158,9 @@ export function parseDzmmIllustrationDraft(value: unknown): DzmmIllustrationRequ
   const visibility: DzmmIllustrationVisibility = value.visibility;
   const shot = parseDzmmIllustrationShot(value.shot, true);
   if (!illustrationShotReady(shot)) throw new Error("请先写下人物、姿势或场景。");
+  const imagePreset = parseTavernImagePresetId(value.imagePreset);
   const draft: DzmmIllustrationRequest = { accountId: value.accountId, conversationId: value.conversationId, messageId: value.messageId,
-    pov: value.pov, visibility, shot };
+    pov: value.pov, visibility, shot, ...(imagePreset ? { imagePreset } : {}) };
   if (Array.from(composeDzmmIllustration(draft)).length > DZMM_ILLUSTRATION_SCENE_LIMIT) {
     throw new Error("画面描述请控制在 800 字以内。");
   }

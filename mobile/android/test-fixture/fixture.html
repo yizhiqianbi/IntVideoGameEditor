@@ -1,0 +1,167 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>叙梦 Android 隔离验收 · Isolated fixture</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #101214; color: #f4f2ed; font: 16px/1.6 system-ui, sans-serif; }
+    main { width: min(100%, 760px); margin: auto; padding: 24px 20px max(24px, env(safe-area-inset-bottom)); }
+    h1 { margin: 0 0 8px; font-size: clamp(23px, 6vw, 32px); line-height: 1.25; }
+    h2 { margin: 0 0 12px; font-size: 19px; }
+    p { margin: 8px 0 14px; color: #c5c5c0; }
+    section { border-top: 1px solid #393d40; padding: 22px 0; }
+    a { color: #b9df91; overflow-wrap: anywhere; }
+    button, input { max-width: 100%; font: inherit; }
+    button, .action { display: inline-block; min-height: 44px; padding: 8px 13px; margin: 3px 5px 3px 0; border: 1px solid #7f965f; border-radius: 6px; background: #24351d; color: #f4f2ed; text-decoration: none; }
+    button { cursor: pointer; }
+    input[type=file] { display: block; width: 100%; margin: 12px 0; }
+    output { display: block; min-height: 28px; overflow-wrap: anywhere; font: 14px/1.6 ui-monospace, monospace; color: #c2e69e; }
+    code { overflow-wrap: anywhere; }
+    [hidden] { display: none !important; }
+    #fullscreen-target { padding: 24px; border: 1px dashed #84936d; background: #17220f; }
+    #fullscreen-target:fullscreen { display: grid; place-content: center; width: 100%; height: 100%; padding: 24px; text-align: center; }
+    #file-result { white-space: pre-wrap; }
+    .links { display: flex; flex-wrap: wrap; gap: 12px; }
+    @media (max-width: 400px) { main { padding-left: 14px; padding-right: 14px; } .action, button { width: 100%; margin-right: 0; } }
+  </style>
+</head>
+<body>
+<main id="fixture-main">
+  <header>
+    <h1>叙梦 Android 隔离验收</h1>
+    <p>Isolated fixture · 本页仅使用本地无身份测试数据，不连接叙梦真实服务。</p>
+    <output id="viewport-state" aria-label="Viewport dimensions"></output>
+  </header>
+
+  <section id="navigation-section" aria-labelledby="navigation-title">
+    <h2 id="navigation-title">页面返回 · Hash navigation</h2>
+    <output id="route-state" aria-live="polite">home</output>
+    <div id="home-panel"><p>首页 · Home</p><a id="internal-link" class="action" href="#detail">进入详情 · Open detail</a></div>
+    <div id="detail-panel" hidden><p>详情 · Detail</p><a id="nested-link" class="action" href="#detail/nested">进入下一层 · Next level</a><button id="route-back" type="button">网页返回 · History back</button></div>
+    <div id="nested-panel" hidden><p>下一层 · Nested detail</p><button id="nested-back" type="button">网页返回 · History back</button></div>
+  </section>
+
+  <section aria-labelledby="confirm-title">
+    <h2 id="confirm-title">确认取消 · Confirm cancellation</h2>
+    <button id="confirm-button" type="button">打开确认框 · Show confirm</button>
+    <output id="confirm-result" aria-live="polite">not-opened</output>
+  </section>
+
+  <section aria-labelledby="upload-title">
+    <h2 id="upload-title">文件选择 · File chooser</h2>
+    <label for="file-input">选择测试图片、JSON 或 HTML · Choose test files</label>
+    <input id="file-input" name="fixtureUpload" type="file" accept="image/png,image/jpeg,image/webp,application/json,text/html,.json,.html,.htm" multiple>
+    <output id="file-count" aria-live="polite">0</output>
+    <output id="file-result" aria-live="polite">none</output>
+  </section>
+
+  <section aria-labelledby="download-title">
+    <h2 id="download-title">下载导出 · Downloads</h2>
+    <p>Blob 下载在 <code>a.click()</code> 后立即撤销 URL，验证原生保存不会丢失文件。</p>
+    <button id="blob-download" type="button">导出 Blob JSON · Export JSON</button>
+    <output id="blob-result" aria-live="polite">not-requested</output>
+    <a id="http-download" class="action" href="/download" download="fixture-http.json">下载 HTTP JSON · HTTP download</a>
+  </section>
+
+  <section aria-labelledby="fullscreen-title">
+    <h2 id="fullscreen-title">整屏显示 · Fullscreen</h2>
+    <div id="fullscreen-target">
+      <strong>本地全屏区域 · Local fullscreen surface</strong>
+      <button id="fullscreen-button" type="button">进入全屏 · Enter fullscreen</button>
+      <button id="fullscreen-exit" type="button">退出全屏 · Exit fullscreen</button>
+      <output id="fullscreen-state" aria-live="polite">windowed</output>
+    </div>
+  </section>
+
+  <section aria-labelledby="links-title">
+    <h2 id="links-title">外链与受限地址 · Link routing</h2>
+    <p>外链只打开 example.com。受限地址仅用于验证拦截，不读取本机文件。</p>
+    <div class="links">
+      <a id="external-link" href="https://example.com/">普通外链 · External link</a>
+      <a id="external-blank-link" href="https://example.com/" target="_blank" rel="noopener noreferrer">新窗口外链 · New window</a>
+      <a id="unsafe-file-link" href="file:///android_asset/not-authorized.html">受限 file 链接 · Block file</a>
+      <a id="unsafe-javascript-link" href="javascript:document.getElementById('unsafe-result').textContent='javascript-executed';void(0)">受限 javascript 链接 · Block JavaScript URL</a>
+    </div>
+    <output id="unsafe-result" aria-live="polite">not-executed</output>
+  </section>
+
+  <section aria-labelledby="cookie-title">
+    <h2 id="cookie-title">会话持久性 · HttpOnly cookie persistence</h2>
+    <p>服务端只返回是否存在测试 cookie；页面不显示 cookie 内容。设置后重启应用，再点击检查。</p>
+    <button id="set-cookie-button" type="button">设置测试 Cookie · Set cookie</button>
+    <button id="check-cookie-button" type="button">检查是否保留 · Check cookie</button>
+    <button id="reload-button" type="button">重新加载 · Reload page</button>
+    <output id="cookie-state" aria-label="Has fixture cookie" aria-live="polite">false</output>
+    <output id="cookie-status" aria-live="polite">loading</output>
+  </section>
+</main>
+<script>
+  "use strict";
+  const byId = id => document.getElementById(id);
+  function renderRoute() {
+    const route = location.hash.slice(1) || "home";
+    byId("route-state").textContent = route;
+    byId("home-panel").hidden = route !== "home";
+    byId("detail-panel").hidden = route !== "detail" && route !== "details";
+    byId("nested-panel").hidden = route !== "detail/nested" && route !== "details/nested";
+  }
+  function renderViewport() { byId("viewport-state").textContent = `${innerWidth} x ${innerHeight}`; }
+  addEventListener("hashchange", renderRoute);
+  addEventListener("resize", renderViewport);
+  byId("route-back").onclick = byId("nested-back").onclick = () => history.back();
+  byId("confirm-button").onclick = () => {
+    byId("confirm-result").textContent = confirm("取消后应保留页面。Cancel should keep this page. Continue?") ? "confirmed" : "canceled";
+  };
+  byId("file-input").onchange = event => {
+    const files = [...(event.currentTarget.files || [])];
+    byId("file-count").textContent = String(files.length);
+    byId("file-result").textContent = files.map(file => file.name).join("\n") || "none";
+  };
+  byId("blob-download").onclick = () => {
+    const blob = new Blob([JSON.stringify({ fixture: "xumeng-android", source: "blob", harmless: true }, null, 2)], { type: "application/json;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.id = "blob-download-anchor"; anchor.href = url; anchor.download = "fixture-blob.json";
+    document.body.append(anchor); anchor.click(); URL.revokeObjectURL(url); anchor.remove();
+    byId("blob-result").textContent = "requested-and-revoked";
+  };
+  byId("fullscreen-button").onclick = async () => {
+    try {
+      if (!byId("fullscreen-target").requestFullscreen) throw new Error("unsupported");
+      await byId("fullscreen-target").requestFullscreen();
+    } catch { byId("fullscreen-state").textContent = "unavailable"; }
+  };
+  byId("fullscreen-exit").onclick = async () => {
+    try { if (document.fullscreenElement) await document.exitFullscreen(); }
+    catch { byId("fullscreen-state").textContent = "exit-failed"; }
+  };
+  document.addEventListener("fullscreenchange", () => {
+    byId("fullscreen-state").textContent = document.fullscreenElement ? "fullscreen" : "windowed";
+  });
+  async function checkCookie() {
+    byId("cookie-status").textContent = "checking";
+    try {
+      const response = await fetch("/check", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) throw new Error("check-failed");
+      const result = await response.json();
+      byId("cookie-state").textContent = String(result.hasFixtureCookie === true);
+      byId("cookie-status").textContent = "checked";
+    } catch { byId("cookie-status").textContent = "error"; }
+  }
+  byId("set-cookie-button").onclick = async () => {
+    byId("cookie-status").textContent = "setting";
+    try {
+      const response = await fetch("/cookie", { credentials: "same-origin", cache: "no-store" });
+      if (!response.ok) throw new Error("set-failed");
+      await checkCookie();
+    } catch { byId("cookie-status").textContent = "error"; }
+  };
+  byId("check-cookie-button").onclick = checkCookie;
+  byId("reload-button").onclick = () => location.reload();
+  renderRoute(); renderViewport(); void checkCookie();
+</script>
+</body>
+</html>

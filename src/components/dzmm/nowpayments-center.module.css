@@ -12,6 +12,9 @@
 .open,.closed { flex-shrink:0; padding:5px 9px; border-radius:6px; background:var(--soft); font-size:11px; color:var(--muted); }
 .open { color:var(--pink); background:var(--pink-soft); }
 .note,.rules { margin:12px 0; color:var(--muted); font-size:12px; line-height:1.8; }
+.fold { margin:4px 0 12px; }
+.fold summary { width:fit-content; color:var(--muted); font-size:12px; cursor:pointer; }
+.primary { width:100%; border-radius:14px; min-height:48px; font-size:15px; font-weight:650; }
 .error { padding:11px 13px; border-radius:8px; background:var(--pink-soft); color:var(--pink); font-size:12px; line-height:1.8; overflow-wrap:anywhere; }
 .error p { margin:0 0 9px; }
 .receipt { margin-top:20px; padding:20px; border:1px solid var(--line); border-left:3px solid var(--pink); border-radius:9px; }

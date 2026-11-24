@@ -4,7 +4,15 @@ import { useEffect, useState } from "react";
 import { OUTERWEAR_COPY, fileToDataUrl, submitRemoveOuterwear } from "./remove-outerwear-client.js";
 import { NOVEL_COPY, defaultCount, submitNovel } from "./novel-client.js";
 import { DEFAULT_PROMPTS } from "./prompt-defaults.js";
-import { optimizePrompt, optimizeVideoPrompt, submitAnimeFace, submitImageVideo, submitTextImage } from "./studio-client.js";
+import { optimizePrompt, optimizeVideoPrompt, submitAnimeFace, submitFaceVideo, submitImageVideo, submitTextImage, uploadFaceVideo } from "./studio-client.js";
+import {
+  FACE_VIDEO_HINT,
+  FACE_VIDEO_PROMPT,
+  FACE_VIDEO_WAITING,
+  isVideoFile,
+  videoFileProblem,
+  videoSecondsProblem,
+} from "../../lib/face-video.mjs";
 
 const IMAGE_EXT = /\.(png|jpe?g|webp|gif|bmp|heic|heif|avif|tiff?)$/i;
 
@@ -36,7 +44,7 @@ function readImage(file, setFile, setError) {
   setFile(file);
 }
 
-function PictureField({ title, hint, mark, url, tall, onFile }) {
+function PictureField({ title, hint, mark, url, tall, onFile, accept = "image/*,.heic,.heif,.avif", video = false }) {
   const [over, setOver] = useState(false);
   return (
     <label
@@ -55,10 +63,10 @@ function PictureField({ title, hint, mark, url, tall, onFile }) {
       <input
         className="file"
         type="file"
-        accept="image/*,.heic,.heif,.avif"
+        accept={accept}
         onChange={event => onFile(event.target.files?.[0] ?? null)}
       />
-      {url ? <img src={url} alt="" /> : (
+      {url ? (video ? <video src={url} muted playsInline preload="metadata" /> : <img src={url} alt="" />) : (
         <>
           <span className="plus" aria-hidden="true">+</span>
           <strong>{title}</strong>
@@ -68,6 +76,24 @@ function PictureField({ title, hint, mark, url, tall, onFile }) {
       {url && mark ? <em className="ref-mark">{mark}</em> : null}
     </label>
   );
+}
+
+// 参考图卡位：内部持有预览 URL，方便同时放两张可选参考图。
+function ReferenceSlot({ title, hint, file, onFile }) {
+  const url = usePreview(file);
+  return <PictureField title={title} hint={hint} url={url} onFile={onFile} />;
+}
+
+// 从本地视频里读时长，用来挡住过长的素材。
+function videoSeconds(file) {
+  const url = URL.createObjectURL(file);
+  return new Promise(resolve => {
+    const element = document.createElement("video");
+    element.preload = "metadata";
+    element.onloadedmetadata = () => resolve(Number.isFinite(element.duration) ? element.duration : 0);
+    element.onerror = () => resolve(0);
+    element.src = url;
+  }).finally(() => URL.revokeObjectURL(url));
 }
 
 function Chips({ label, value, options, onChange }) {
@@ -200,14 +226,46 @@ const COMMON_NOTES = [
 function FaceForm() {
   const [face, setFace] = useState(null);
   const [scene, setScene] = useState(null);
-  const [prompt, setPrompt] = useState(DEFAULT_PROMPTS.face);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
+  const [resultVideo, setResultVideo] = useState(false);
   const faceUrl = usePreview(face);
   const sceneUrl = usePreview(scene);
+  const sceneIsVideo = scene ? isVideoFile(scene.name, scene.type) : false;
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => () => {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+  }, [resultUrl]);
+
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+    setResultVideo(false);
+  }
+
+  function takeScene(file) {
+    if (!file) return;
+    setError("");
+    clearResult();
+    if (isVideoFile(file.name, file.type)) {
+      const problem = videoFileProblem(file.name, file.type, file.size);
+      if (problem) {
+        setError(problem);
+        return;
+      }
+      setScene(file);
+      return;
+    }
+    readImage(file, setScene, setError);
+  }
+
+  function takeFace(file) {
+    if (!file) return;
+    setError("");
+    clearResult();
+    readImage(file, setFace, setError);
+  }
 
   async function submit(event) {
     event.preventDefault();
@@ -218,15 +276,39 @@ function FaceForm() {
     setError("");
     setBusy(true);
     try {
+      if (sceneIsVideo) {
+        const seconds = await videoSeconds(scene);
+        const problem = videoSecondsProblem(seconds);
+        if (problem) {
+          setError(problem);
+          return;
+        }
+        const uploaded = await uploadFaceVideo(scene);
+        if (!uploaded.ok) {
+          clearResult();
+          setError(uploaded.error || "视频没有传上去。");
+          return;
+        }
+        const result = await submitFaceVideo(await fileToDataUrl(face), uploaded.url, FACE_VIDEO_PROMPT, seconds);
+        if (!result.ok) {
+          clearResult();
+          setError(result.error);
+          return;
+        }
+        clearResult();
+        setResultVideo(true);
+        setResultUrl(result.url);
+        return;
+      }
       const result = await submitAnimeFace(await fileToDataUrl(face), await fileToDataUrl(scene), DEFAULT_PROMPTS.face);
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
       const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      clearResult();
+      setResultVideo(false);
       setResultUrl(next);
     } catch {
       setError("换脸没有完成。");
@@ -238,19 +320,28 @@ function FaceForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="AI 换脸" line="一键替换人脸，轻松创作" />
+        <Lead title="AI 换脸" line="一键替换人脸，图片和视频都行" />
         <div className="pair">
-          <PictureField title="选择素材" hint="原始画面，JPG、PNG" url={sceneUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setScene, setError); }} />
-          <PictureField title="选择素材" hint="目标人脸，JPG、PNG" url={faceUrl} onFile={file => { setError(""); if (resultUrl) URL.revokeObjectURL(resultUrl); setResultUrl(""); readImage(file, setFace, setError); }} />
+          <PictureField
+            title="选择素材"
+            hint="原始画面，图片或视频"
+            accept="image/*,.heic,.heif,.avif,video/mp4,video/quicktime,video/x-m4v,.mp4,.mov,.m4v"
+            mark={sceneIsVideo ? "视频" : ""}
+            video={sceneIsVideo}
+            url={sceneUrl}
+            onFile={takeScene}
+          />
+          <PictureField title="选择素材" hint="目标人脸，JPG、PNG" url={faceUrl} onFile={takeFace} />
         </div>
-        <Guide steps={["上传原始画面", "上传目标人脸", "开始生成"]} />
-        <ExampleBar text="把参考脸换进原画面，保留姿势、服装和背景。" />
-        <Notes items={["请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
+        <Guide steps={["上传原始画面，可以是图片或视频", "上传目标人脸", "开始生成"]} />
+        <ExampleBar text="把参考脸换进原来的画面或视频，保留姿势、服装和背景。" />
+        <Notes items={["原始画面可以用清晰图片，也可以用 MP4、MOV 视频。", FACE_VIDEO_HINT, "视频换脸默认 1080P 参考换脸，完成即可播放。", "请使用清晰、无遮挡的单人图片。", "多人脸可能无法识别。", ...COMMON_NOTES]} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
-        <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? "处理中…" : "开始生成"}</button>
+        <button className="primary wide" type="submit" disabled={busy || !face || !scene}>{busy ? (sceneIsVideo ? "正在换脸…" : "处理中…") : "开始生成"}</button>
       </form>
-      <aside className="preview" id="result" aria-label="预览" hidden={!resultUrl}>
-        {resultUrl ? <img src={resultUrl} alt="换脸结果" /> : null}
+      <aside className="preview" id="result" aria-label="预览" hidden={!busy && !resultUrl}>
+        {busy ? <p className="hint" role="status">{sceneIsVideo ? FACE_VIDEO_WAITING : "处理中…"}</p> : null}
+        {!busy && resultUrl ? (resultVideo ? <video src={resultUrl} controls playsInline /> : <img src={resultUrl} alt="换脸结果" />) : null}
       </aside>
     </>
   );
@@ -349,19 +440,23 @@ function VideoForm() {
   const [resultUrl, setResultUrl] = useState("");
   const [previews, setPreviews] = useState([]);
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
+  useEffect(() => () => { if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
   useEffect(() => {
     const urls = files.map(file => URL.createObjectURL(file));
     setPreviews(urls);
     return () => urls.forEach(url => URL.revokeObjectURL(url));
   }, [files]);
 
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
+    setResultUrl("");
+  }
+
   function takeFiles(list) {
     const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
     if (!incoming.length) return;
     setError("");
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
-    setResultUrl("");
+    clearResult();
     setFiles(current => (mode === "first" ? incoming.slice(0, 1) : [...current, ...incoming]).slice(0, 10));
   }
 
@@ -383,13 +478,12 @@ function VideoForm() {
       for (const file of files) images.push(await fileToDataUrl(file));
       const result = await submitImageVideo(images, action, seconds, mode);
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
-      const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      const next = typeof result.url === "string" ? result.url : URL.createObjectURL(result.blob);
+      clearResult();
       setResultUrl(next);
     } catch {
       setError("视频没有完成。");
@@ -455,28 +549,29 @@ const IMAGE_CLARITY = [
 ];
 
 function ImageForm() {
-  const [files, setFiles] = useState([]);
+  const [files, setFiles] = useState([null, null]);
   const [prompt, setPrompt] = useState("");
   const [ratio, setRatio] = useState("portrait");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [resultUrl, setResultUrl] = useState("");
-  const [previews, setPreviews] = useState([]);
 
-  useEffect(() => () => { if (resultUrl) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
-  useEffect(() => {
-    const urls = files.map(file => URL.createObjectURL(file));
-    setPreviews(urls);
-    return () => urls.forEach(url => URL.revokeObjectURL(url));
-  }, [files]);
+  useEffect(() => () => { if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl); }, [resultUrl]);
 
-  function takeFiles(list) {
-    const incoming = list instanceof File ? [list] : [...(list || [])].filter(item => item instanceof File);
-    if (!incoming.length) return;
-    setError("");
-    if (resultUrl) URL.revokeObjectURL(resultUrl);
+  function clearResult() {
+    if (resultUrl.startsWith("blob:")) URL.revokeObjectURL(resultUrl);
     setResultUrl("");
-    setFiles(incoming.slice(0, 1));
+  }
+
+  function takeFile(index, file) {
+    if (!file) return;
+    if (!acceptedImage(file)) {
+      setError("请上传图片。");
+      return;
+    }
+    setError("");
+    clearResult();
+    setFiles(current => current.map((item, position) => (position === index ? file : item)));
   }
 
   async function submit(event) {
@@ -489,16 +584,17 @@ function ImageForm() {
     setBusy(true);
     try {
       const images = [];
-      for (const file of files) images.push(await fileToDataUrl(file));
-      const result = await submitTextImage({ prompt, ratio, image: images[0] || "" });
+      for (const file of files) {
+        if (file) images.push(await fileToDataUrl(file));
+      }
+      const result = await submitTextImage({ prompt, ratio, images });
       if (!result.ok) {
-        if (resultUrl) URL.revokeObjectURL(resultUrl);
-        setResultUrl("");
+        clearResult();
         setError(result.error);
         return;
       }
       const next = URL.createObjectURL(result.blob);
-      if (resultUrl) URL.revokeObjectURL(resultUrl);
+      clearResult();
       setResultUrl(next);
     } catch {
       setError("图片没有完成。");
@@ -510,18 +606,18 @@ function ImageForm() {
   return (
     <>
       <form className="form" onSubmit={submit}>
-        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，让灵感变成图片" />
+        <Lead title="用文字描绘你的画面" line="描述主体、场景或风格，可选一张参考图" />
         <div className="stage">
-          <PictureField title="点击上传图片" hint="选填，JPG、PNG" url={previews[0] || ""} onFile={file => takeFiles(file)} />
-          <Guide steps={["上传参考图片，可以不传", "输入想生成的画面", "选择比例，开始生成"]} />
+          <ReferenceSlot title="参考图" hint="选填，JPG、PNG" file={files[0]} onFile={file => takeFile(0, file)} />
+          <Guide steps={["参考图可选，最多一张", "输入想生成的画面", "选择比例，开始生成"]} />
         </div>
         <PromptBox
           label="画面描述"
           value={prompt}
           max={800}
           min={5}
-          placeholder="例如：月光下的古风少女站在樱花树旁，远处山峦若隐若现"
-          onChange={value => { setResultUrl(""); setPrompt(value); }}
+          placeholder="例如：让参考图里的人物站在月光下的樱花树旁"
+          onChange={value => { clearResult(); setPrompt(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "image");
@@ -529,14 +625,13 @@ function ImageForm() {
               setError(outcome.error);
               return;
             }
-            if (resultUrl) URL.revokeObjectURL(resultUrl);
-            setResultUrl("");
+            clearResult();
             setPrompt(outcome.prompt);
           }}
         />
-        <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { setResultUrl(""); setPrompt(value); }} />
-        <Notes items={COMMON_NOTES} />
-        <RatioCards value={ratio} onChange={value => { setResultUrl(""); setRatio(value); }} />
+        <ExampleBar text="将人物置于温暖的夕阳海边，画面自然，具有电影质感。" onUse={value => { clearResult(); setPrompt(value); }} />
+        <Notes items={["可以带一张参考图，比如人物或服装。", "在描述里写清参考图负责什么，生成会更贴近预期。", ...COMMON_NOTES]} />
+        <RatioCards value={ratio} onChange={value => { clearResult(); setRatio(value); }} />
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
@@ -558,7 +653,7 @@ function NovelForm() {
   const [count, setCount] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState("");
+  const [result, setResult] = useState(null);
   const words = Number(count);
   const countOk = Number.isInteger(words) && words >= 1 && words <= 6000;
 
@@ -586,13 +681,13 @@ function NovelForm() {
         count: String(words),
       }, { adultConfirmed: true });
       if (!outcome.ok) {
-        setResult("");
+        setResult(null);
         setError(outcome.error);
         return;
       }
-      setResult(outcome.text || "");
+      setResult(outcome.sections ? outcome : { title: "", sections: [{ heading: "", paragraphs: [outcome.text || ""] }] });
     } catch {
-      setResult("");
+      setResult(null);
       setError("小说没有完成。");
     } finally {
       setBusy(false);
@@ -609,7 +704,7 @@ function NovelForm() {
           max={800}
           min={2}
           placeholder="例如：林晚，二十八岁，书店店主，话少。"
-          onChange={value => { setResult(""); setCharacter(value); }}
+          onChange={value => { setResult(null); setCharacter(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "character");
@@ -617,7 +712,7 @@ function NovelForm() {
               setError(outcome.error);
               return;
             }
-            setResult("");
+            setResult(null);
             setCharacter(outcome.prompt);
           }}
         />
@@ -627,7 +722,7 @@ function NovelForm() {
           max={800}
           min={10}
           placeholder="例如：一个三十岁的旅人在雨夜走进旧书店。"
-          onChange={value => { setResult(""); setText(value); }}
+          onChange={value => { setResult(null); setText(value); }}
           polish={async value => {
             setError("");
             const outcome = await optimizePrompt(value, "story");
@@ -635,7 +730,7 @@ function NovelForm() {
               setError(outcome.error);
               return;
             }
-            setResult("");
+            setResult(null);
             setText(outcome.prompt);
           }}
         />
@@ -650,14 +745,26 @@ function NovelForm() {
         </div>
         <label>
           小说字数 必填
-          <input type="number" inputMode="numeric" min="1" max="6000" value={count} placeholder="请输入 1 到 6000" onChange={event => { setResult(""); setCount(event.target.value); }} />
+          <input type="number" inputMode="numeric" min="1" max="6000" value={count} placeholder="请输入 1 到 6000" onChange={event => { setResult(null); setCount(event.target.value); }} />
         </label>
         {error ? <p className="alert" role="alert">{error}</p> : null}
         <button className="primary wide" type="submit" disabled={busy || character.trim().length < 2 || text.trim().length < 10 || !countOk}>{busy ? "处理中…" : "开始生成"}</button>
       </form>
       <aside className="preview preview-text" id="result" aria-label="预览">
         {busy ? <p className="hint" role="status">{NOVEL_COPY.waiting}</p> : null}
-        {!busy && result ? <pre>{result}</pre> : null}
+        {!busy && result ? (
+          <article className="novel-doc">
+            {result.title ? <h3 className="novel-title">{result.title}</h3> : null}
+            {(result.sections || []).map((section, index) => (
+              <section className="novel-section" key={`${index}-${section.heading || ""}`}>
+                {section.heading ? <h4>{section.heading}</h4> : null}
+                {(section.paragraphs || []).map((paragraph, paragraphIndex) => (
+                  <p key={paragraphIndex}>{paragraph}</p>
+                ))}
+              </section>
+            ))}
+          </article>
+        ) : null}
         {!busy && !result ? <p className="hint">正文会显示在这里。</p> : null}
       </aside>
     </>

@@ -1,9 +1,12 @@
-import { channelBody, publishReference } from "@/lib/channel";
+import { channelBody, publishReference, storeVideo } from "@/lib/channel";
 import { adultAsk } from "@/lib/channel-env";
 import { jsonError, sameOrigin } from "@/lib/http";
 import { fitVideoFrame, normalizeImage } from "@/lib/reference-image.mjs";
 import { buildImageVideo } from "@/lib/studio-page.mjs";
-import { pollWandVideo, startWandVideo } from "@/lib/wand-video.mjs";
+import { h3Duration, h3TaskId, pollH3Video, startH3Video } from "@/lib/tencent-video.mjs";
+import { pollVideoLite, startVideoLite, videoLiteTaskId } from "@/lib/wand-video-lite.mjs";
+import { pollUpscale, startUpscale } from "@/lib/video-upscale.mjs";
+import { pollWandVideo } from "@/lib/wand-video.mjs";
 
 export const maxDuration = 300;
 export const runtime = "nodejs";
@@ -13,13 +16,18 @@ function wandTaskId(value: string) {
 }
 
 function failure(error: unknown) {
-  const message = error instanceof Error ? error.message : "视频没有完成。";
-  const status = message.includes("还没配上") ? 503 : 502;
+  const raw = error instanceof Error ? error.message : "";
+  const message = /aborted due to timeout|TimeoutError/i.test(raw) ? "视频这次等太久了。请再试一次。" : (raw || "视频没有完成。");
+  const status = message.includes("还没配上") ? 503 : message.includes("等太久") ? 504 : message.includes("太大") ? 413 : 502;
   return jsonError(message, status);
 }
 
 function pending(taskId: string) {
   return Response.json({ taskId }, { status: 202, headers: { "cache-control": "no-store" } });
+}
+
+function done(url: string) {
+  return Response.json({ url, type: "video/mp4" }, { headers: { "Cache-Control": "no-store" } });
 }
 
 export async function POST(request: Request) {
@@ -28,8 +36,32 @@ export async function POST(request: Request) {
   let body: { image?: unknown; action?: unknown; seconds?: unknown; taskId?: unknown };
   try { body = await request.json(); } catch { return jsonError("请求格式无效。", 400); }
   if (typeof body.taskId === "string") {
-    if (Object.keys(body).some(key => key !== "taskId") || !wandTaskId(body.taskId)) return jsonError("视频任务无效。", 400);
+    if (Object.keys(body).some(key => key !== "taskId")) return jsonError("视频任务无效。", 400);
     try {
+      if (body.taskId.startsWith("up:")) {
+        const [, upTaskId, encoded] = body.taskId.split(":");
+        const rawUrl = encoded ? Buffer.from(encoded, "base64url").toString("utf8") : "";
+        try {
+          const rendered = await pollUpscale(upTaskId);
+          if (!rendered) return pending(body.taskId);
+          const url = await storeVideo(rendered.bytes, rendered.contentType);
+          return done(url);
+        } catch {
+          if (!rawUrl) return jsonError("超清放大没有完成。", 502);
+          return done(rawUrl);
+        }
+      }
+      if (videoLiteTaskId(body.taskId)) {
+        const rendered = await pollVideoLite(body.taskId);
+        if (!rendered) return pending(body.taskId);
+        return finishVideo(await storeVideo(rendered.bytes, rendered.contentType));
+      }
+      if (h3TaskId(body.taskId)) {
+        const rendered = await pollH3Video(body.taskId);
+        if (!rendered) return pending(body.taskId);
+        return finishVideo(await storeVideo(rendered.bytes, rendered.contentType));
+      }
+      if (!wandTaskId(body.taskId)) return jsonError("视频任务无效。", 400);
       const rendered = await pollWandVideo(body.taskId);
       if (!rendered) return pending(body.taskId);
       return channelBody(rendered.bytes, rendered.contentType);
@@ -40,15 +72,14 @@ export async function POST(request: Request) {
   const built = buildImageVideo(body);
   if (!built.ok || !built.values?.positive_prompt) return jsonError(built.error || "请求格式无效。", built.status || 400);
   const sources = Array.isArray(built.images) ? built.images : [];
-  const imageUrls = [];
+  const imageUrls: string[] = [];
   for (const source of sources) {
     const normalized = await normalizeImage(typeof source === "string" ? source : "");
     if (!normalized.ok || !normalized.bytes || !normalized.type) return jsonError(normalized.error || "这张图片读不了。", 400);
-    const fitted = await fitVideoFrame(normalized.bytes).catch(() => null);
-    const bytes = fitted?.bytes || normalized.bytes;
-    const type = fitted?.type || normalized.type;
+    // 首帧模式裁成标准画幅；参考模式保留原图。
+    const fitted = built.mode === "first" ? await fitVideoFrame(normalized.bytes).catch(() => null) : null;
     try {
-      imageUrls.push(await publishReference(bytes, type));
+      imageUrls.push(await publishReference(fitted?.bytes || normalized.bytes, fitted?.type || normalized.type));
     } catch (error) {
       const message = error instanceof Error ? error.message : "参考图没有传上去。";
       return jsonError(message, message.includes("还没配上") ? 503 : 502);
@@ -56,15 +87,40 @@ export async function POST(request: Request) {
   }
   const prompt = built.values.positive_prompt.includes("二十一岁") ? built.values.positive_prompt : adultAsk(built.values.positive_prompt);
   try {
-    const taskId = await startWandVideo({
+    // 默认走上一版：MiniMax H3 fast；设 TENCENT_VIDEO_PROVIDER=wand-lite 切到 WAND 1.5 Lite。
+    if (process.env.TENCENT_VIDEO_PROVIDER === "wand-lite") {
+      const taskId = await startVideoLite({
+        prompt,
+        firstFrame: built.mode === "first" ? imageUrls[0] : "",
+        imageUrls: built.mode === "reference" ? imageUrls : [],
+        duration: built.seconds,
+        resolution: "720P",
+        ratio: built.mode === "reference" ? "adaptive" : undefined,
+      });
+      return pending(taskId);
+    }
+    const taskId = await startH3Video({
       prompt,
-      imageUrl: imageUrls[0],
-      imageUrls,
-      seconds: built.seconds,
-      mode: built.mode,
+      firstFrame: built.mode === "first" ? imageUrls[0] : "",
+      imageUrls: built.mode === "reference" ? imageUrls : [],
+      duration: h3Duration(built.seconds),
+      resolution: "720P",
+      ratio: built.mode === "reference" ? "adaptive" : undefined,
+      removeAudio: false,
     });
     return pending(taskId);
   } catch (error) {
     return failure(error);
+  }
+}
+
+// 成片先落媒体库；默认保持 720P，只有显式开 TENCENT_VIDEO_UPSCALE=on 才走超清放大。
+async function finishVideo(url: string) {
+  if (String(process.env.TENCENT_VIDEO_UPSCALE || "off").toLowerCase() !== "on") return done(url);
+  try {
+    const upTaskId = await startUpscale(url);
+    return pending(`up:${upTaskId}:${Buffer.from(url, "utf8").toString("base64url")}`);
+  } catch {
+    return done(url);
   }
 }

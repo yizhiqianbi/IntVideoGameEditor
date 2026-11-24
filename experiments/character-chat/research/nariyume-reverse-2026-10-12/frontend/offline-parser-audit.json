@@ -1,0 +1,138 @@
+{
+  "kind": "offline pure-parser fixture verification from archived bundle",
+  "source_sha256": "32a8543b66faa82925f1baf9b7236bdb870397d4068742d58b2d27e48b1ff9c1",
+  "paid_calls": 0,
+  "network_calls": 0,
+  "source_character_range": [
+    364063,
+    373128
+  ],
+  "passed": 7,
+  "total": 7,
+  "results": [
+    {
+      "input": "Hi. I missed you. I made tea. It went cold. Tell me your news.",
+      "expected_display_bubbles": [
+        "Hi. I missed you.",
+        "I made tea. It went cold.",
+        "Tell me your news."
+      ],
+      "reason": "first 1+3 word units reaches 4, then 2 sentences per bubble",
+      "actual_display_bubbles": [
+        "Hi. I missed you.",
+        "I made tea. It went cold.",
+        "Tell me your news."
+      ],
+      "matches": true
+    },
+    {
+      "input": "嗯。想你啦。今天下雨了。我没带伞。",
+      "expected_display_bubbles": [
+        "嗯。想你啦。",
+        "今天下雨了。我没带伞。"
+      ],
+      "reason": "Han characters are word units; first 1+3 reaches 4",
+      "actual_display_bubbles": [
+        "嗯。想你啦。",
+        "今天下雨了。我没带伞。"
+      ],
+      "matches": true
+    },
+    {
+      "input": "No. Nope. Fine.",
+      "expected_display_bubbles": [
+        "No. Nope. Fine."
+      ],
+      "reason": "all sentences together still under 4 units; no upper bubble count fixed",
+      "actual_display_bubbles": [
+        "No. Nope. Fine."
+      ],
+      "matches": true
+    },
+    {
+      "input": "我想你。你呢？",
+      "expected_display_bubbles": [
+        "我想你。你呢？"
+      ],
+      "reason": "first 3 Han units requires next 2",
+      "actual_display_bubbles": [
+        "我想你。你呢？"
+      ],
+      "matches": true
+    },
+    {
+      "input": "我有点想你。你呢？",
+      "expected_display_bubbles": [
+        "我有点想你。",
+        "你呢？"
+      ],
+      "reason": "first sentence 5 Han units; next remaining sentence stands alone",
+      "actual_display_bubbles": [
+        "我有点想你。",
+        "你呢？"
+      ],
+      "matches": true
+    },
+    {
+      "input": "嗯。\n\n我刚赢了。\n今天请我吃甜的。",
+      "expected_display_bubbles": [
+        "嗯。我刚赢了。",
+        "今天请我吃甜的。"
+      ],
+      "reason": "line breaks are sentence-detector boundaries; original paragraphs do not define final bubble boundaries",
+      "actual_display_bubbles": [
+        "嗯。我刚赢了。",
+        "今天请我吃甜的。"
+      ],
+      "matches": true
+    },
+    {
+      "input": "你好呀☺️",
+      "expected_display_bubbles": [
+        "你好呀☺️"
+      ],
+      "reason": "zero/one detected sentence is returned intact",
+      "actual_display_bubbles": [
+        "你好呀☺️"
+      ],
+      "matches": true
+    }
+  ],
+  "edge_inspections": [
+    {
+      "input": "Dr. Smith paid 3.5 dollars. Then he left. We waved.",
+      "sentences": [
+        "Dr. Smith paid 3.5 dollars.",
+        "Then he left.",
+        "We waved."
+      ],
+      "bubbles": [
+        "Dr. Smith paid 3.5 dollars.",
+        "Then he left. We waved."
+      ]
+    },
+    {
+      "input": "Look at https://example.com/a.b. Then tell me what you think. I can wait.",
+      "sentences": [
+        "Look at https://example.com/a.b.",
+        "Then tell me what you think.",
+        "I can wait."
+      ],
+      "bubbles": [
+        "Look at https://example.com/a.b. Then tell me what you think.",
+        "I can wait."
+      ]
+    },
+    {
+      "input": "“你好。”我来了。你想聊啥？",
+      "sentences": [
+        "“你好。”我来了。",
+        "你想聊啥？"
+      ],
+      "bubbles": [
+        "“你好。”我来了。",
+        "你想聊啥？"
+      ]
+    }
+  ]
+}

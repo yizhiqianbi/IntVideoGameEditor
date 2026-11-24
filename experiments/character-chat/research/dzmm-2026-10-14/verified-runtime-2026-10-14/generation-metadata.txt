@@ -1,0 +1,28 @@
+config
+{
+  "token_count": 57,
+  "prompt_tokens": 2011,
+  "completion_tokens": 37,
+  "cached_tokens": 1664,
+  "repeat_comparison_available": true,
+  "exact_previous_assistant_repeat": false,
+  "current_output_chars": 57,
+  "previous_assistant_output_chars": 24,
+  "message_count": 4,
+  "ttft": 1642,
+  "latency_ms": 1990,
+  "success": true,
+  "error": null,
+  "enable_think": false
+}
+generation_config
+{
+  "temperature": 0.8,
+  "top_p": 0.8,
+  "max_tokens": 2500,
+  "repetition_penalty": 1.1,
+  "stop": [
+    "</s>",
+    "<|endoftext|>"
+  ]
+}

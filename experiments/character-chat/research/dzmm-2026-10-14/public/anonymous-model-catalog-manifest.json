@@ -1,0 +1,24 @@
+{
+  "retrievedAt": "2026-10-13T23:23:59.690727+00:00",
+  "method": "GET",
+  "url": "https://www.dzmm.ai/api/trpc/chat.models?input=%7B%22json%22%3A%7B%22service%22%3A%22chat%22%7D%7D",
+  "procedureDeclaredBy": "https://www.dzmm.ai/assets/1OYk4JId.js",
+  "procedure": "chat.models",
+  "input": {
+    "service": "chat"
+  },
+  "httpStatus": 200,
+  "authentication": "none; no cookies, Authorization header, browser storage, or user credentials used",
+  "localFile": "anonymous-model-catalog-response.json",
+  "bytes": 21905,
+  "sha256": "1338c365f408a1a1614672cd6264f1d310620c60823e60ba665359f72a4677e1",
+  "modelCount": 44,
+  "categoryCount": 5,
+  "defaultModel": "x-apex-surge-0505",
+  "language": "zh-CN",
+  "boundaries": [
+    "This is the anonymous public directory default, not an observed selection or generation in the user test chat.",
+    "Display names/internal names and advertised limits do not prove an upstream supplier, deployed weights, or actual context retention.",
+    "No inference/generation request was made."
+  ]
+}

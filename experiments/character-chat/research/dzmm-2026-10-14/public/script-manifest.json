@@ -1,0 +1,807 @@
+{
+  "retrievedAt": "2026-10-13T22:23:18.468Z",
+  "sourceUrl": "https://www.dzmm.ai/",
+  "transport": "existing system HTTP proxy 127.0.0.1:7897",
+  "scope": "public declared JavaScript only",
+  "limits": {
+    "files": 100,
+    "totalBytes": 10000000,
+    "parallel": 4
+  },
+  "totalBytes": 1380119,
+  "remainingDeclaredUrls": 38,
+  "records": [
+    {
+      "url": "https://www.dzmm.ai/assets/3xPCSOkP.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/3xPCSOkP.js",
+      "bytes": 23384,
+      "sha256": "48b3fd43a7ea756ce9d7a337569908149a2eae7eb8846813a70f8889880dd01b",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/6WNce5Qy2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/6WNce5Qy2.js",
+      "bytes": 873,
+      "sha256": "f624fa5ffb24a1297687f0c1dceadb9386852e971ceb82cc47ce4118ddcfddb3",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B_-dtN2r.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BHxqDO3v.js",
+      "file": "scripts/B_-dtN2r.js",
+      "bytes": 1293,
+      "sha256": "ae1e69a6a5346934edb90328025febf2b05e061cadae26bfdda2736fcd6244e4",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B-yBd9GK2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/B-yBd9GK2.js",
+      "bytes": 1076,
+      "sha256": "430ce0ff8158cf290f67bd3f6240a86f0840e22a9d21a792819c604a62b70411",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/b5xybJRc.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/b5xybJRc.js",
+      "bytes": 1605,
+      "sha256": "72814baed885351d3e007dfd76f4985f809088933ff688241e059609f86efd20",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B80NVB4Q.js",
+      "declaredBy": "https://www.dzmm.ai/assets/l0c7Nlsb.js",
+      "file": "scripts/B80NVB4Q.js",
+      "bytes": 1103,
+      "sha256": "257ed0ebfe7276469028a9061d99922ccf05cbbef9105be979ebf9574653d31f",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B8x3grgj.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/B8x3grgj.js",
+      "bytes": 2726,
+      "sha256": "af370313a2988cd28f57ed3af081a15df99b47c5ed79938ab42700c2067974ec",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Ba1IFV8l2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/Df8XXHUy.js",
+      "file": "scripts/Ba1IFV8l2.js",
+      "bytes": 2734,
+      "sha256": "036c0dc3a3a27e253b70dcfd2365464fb1525c00080e407f69d3dd6d58cd7ff0",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BaYJom9t.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BaYJom9t.js",
+      "bytes": 3899,
+      "sha256": "7dde766e19b1236aa37c4898c350a1365e80c823916c3d30228dca58565d9e19",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BEo0iW5m2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BEo0iW5m2.js",
+      "bytes": 1866,
+      "sha256": "14ac7b2892f14538d4ac2e5c84c920292c85c35f49cb377fa1645a5778b19450",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/BGGQdcaW.js\ncurl: (35) LibreSSL SSL_c"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BHxqDO3v.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BHxqDO3v.js",
+      "bytes": 1038,
+      "sha256": "3b2a3e95676632feea665ba8e2533e93b8b6e78fc38809dc8e510763cb8e80da",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BL1JBMtO2.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BL1JBMtO2.js",
+      "bytes": 1443,
+      "sha256": "3c8ae5034ac59068840162a380646d20d836136d69e29fa74f4f3c0ad0b28e82",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BM2AjgXo.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BM2AjgXo.js",
+      "bytes": 1309,
+      "sha256": "aa1cd6926c55591e22ae552b4c4a361718116a9cb3794561d63e81bf538f2ade",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BqHtAcMj.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BqHtAcMj.js",
+      "bytes": 2458,
+      "sha256": "b02a00bd59fdcd35c1007c4e2813c2a3078cd8242a739d4fa7f26a80b58c00a9",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BrbkVyDQ.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BrbkVyDQ.js",
+      "bytes": 2274,
+      "sha256": "37e69ba6148f43c4364e47e8ee61b9511211286bb1931214c82e37d844fbef73",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BStC-x-h.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BStC-x-h.js",
+      "bytes": 10129,
+      "sha256": "785195df2a2d18eab38fb3abfe258856b389b5e690ebd47990693cf0c63a2ad1",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Bv2o_brT.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/Bv2o_brT.js",
+      "bytes": 31464,
+      "sha256": "d85acd97d945a52da1ec134447b38408b452e37912bf0295ab43dd7da7dbdced",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Bv3kvUO1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/Df8XXHUy.js",
+      "file": "scripts/Bv3kvUO1.js",
+      "bytes": 3041,
+      "sha256": "239586f439fbc4a94c8a58df59ae35e18fa95de8c2e3ecb2346c6d105a3bf570",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BvlL9q8t.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BvlL9q8t.js",
+      "bytes": 2060,
+      "sha256": "739b385766b6c81ed73aa486f55870978ef7b25a692df296011acbb7899903ac",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BWj4TzTF.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BWj4TzTF.js",
+      "bytes": 4703,
+      "sha256": "7e7616104ab3b9b9f671c5dc3f62065409697b494fab0b712058b2946758b704",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BwR6X9W5.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/BwR6X9W5.js",
+      "bytes": 2246,
+      "sha256": "6d206c3b60383f650a1b315b15237c09b2f175cfaa421c685ae4583a4ecf3dcb",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C_JNJIRR.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/C_JNJIRR.js",
+      "bytes": 762,
+      "sha256": "693c7e73e71f48009231938daf70f9739b6e5fb5597993b001f3d21b393f8496",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C_KXO_2J.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/C_KXO_2J.js",
+      "bytes": 6917,
+      "sha256": "fc98b4ee050308d23e508148bd76df1019527f635871283c5bac11c1c57eedcc",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C-z6H0yW.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/C-z6H0yW.js",
+      "bytes": 4403,
+      "sha256": "a2a8f4ab9e98c58645c7d117c957a1c512c785401851ec174d5db2d6e6c05eff",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C0qR5Err.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/C0qR5Err.js",
+      "bytes": 1991,
+      "sha256": "31b47a8893c35a96b9a00e7d2e89a49aafcc64e3122e63c6a059fed3dcf526a7",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C16ZCC6H.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/C16ZCC6H.js",
+      "bytes": 850,
+      "sha256": "2728556d4ab024251ee89bfb8302f2e68fc68377ed8700120d40335d5be6e568",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C836Z5Ug.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/C836Z5Ug.js",
+      "bytes": 1946,
+      "sha256": "f4ef07bdd86e695e7df13f37f4963f09185cede30d947f363bbda98c24de8e9f",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cahj8_J12.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D942RL9O.js",
+      "file": "scripts/Cahj8_J12.js",
+      "bytes": 2260,
+      "sha256": "9b59db41c7daaa68319e408a7e1068e3b489ab9bf18462a16a13c1a8bfd45ede",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CBlohM1z.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CBlohM1z.js",
+      "bytes": 1185,
+      "sha256": "6349c4e8de2345b39828a3de37d7cb75fcf2b5408944849f7c68ca4a48921fe4",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CE8gZ8xj.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CE8gZ8xj.js",
+      "bytes": 16603,
+      "sha256": "d17e7c80d22386ded6fe466f0d248344ac9de22aaddf35a792588862c14f2d81",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CePslSNu.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CePslSNu.js",
+      "bytes": 2230,
+      "sha256": "d5931508d727ea893f59ffd48f934718fde00dce31daac3507b5a238b40011f5",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/cFgj4xVf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/cFgj4xVf.js",
+      "bytes": 2125,
+      "sha256": "fa001328d892c406b5cb2281f256a1d8e80eb0d0cd8c55fd158e164bd98f3f68",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CIvumkdL.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CIvumkdL.js",
+      "bytes": 1834,
+      "sha256": "49a48e7506dacf9507c19845d1fdd7481cda121e384e34fd82aba9276ce86069",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CjO_jQ2j.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/CjO_jQ2j.js",
+      "bytes": 1085,
+      "sha256": "42ce8c6defa38f85dabfd126353aadc439279a184ff2ecaa62817ec39aecdb26",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CNO9hkDE2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CNO9hkDE2.js",
+      "bytes": 1719,
+      "sha256": "d15e140620570622c2bc438018fa6fee1e32fe94887872bf39b059fa08cb32cb",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/COL8txXm.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/COL8txXm.js",
+      "bytes": 2557,
+      "sha256": "c9ceba89b741247b4ff3f766178a03e73c0d5641be9d74c1c1910200e2fe931d",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CqL8LPib.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CqL8LPib.js",
+      "bytes": 9513,
+      "sha256": "d62896a044d907b51ae948f77d4f0a38d734c55ede14debf6a136a89afbb6aec",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cr2j_J5Q.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/Cr2j_J5Q.js\ncurl: (35) LibreSSL SSL_c"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Crk9z2yq.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/Crk9z2yq.js",
+      "bytes": 30625,
+      "sha256": "b8c38d47ec143eb2fa1c59ead77f38abda9dea2e67010ac857359474fb2ab90e",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CTjdXC6g.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CTjdXC6g.js",
+      "bytes": 16957,
+      "sha256": "14090349c48e6c6ffa7c38dfb80d901c92acb16574ab550c5899c7733672a4c9",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CVAj6ulD.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CVAj6ulD.js",
+      "bytes": 8800,
+      "sha256": "2b8cc773db633ec650defe254612375f60e483da0de9db5cab4ba76b16443058",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cwq4Grgf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/Cwq4Grgf.js",
+      "bytes": 36723,
+      "sha256": "6c77f1aa6cbf63a1d91017b99de53da0bdca10eb81f2f88bd510b80625df2a00",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CWUiP1Cv.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CWUiP1Cv.js",
+      "bytes": 21024,
+      "sha256": "1488d2e5c37107dae0f9add2f4e0b194f43fe5ed11a6de4160f42143b72bd774",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CXfO4V1O.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CXfO4V1O.js",
+      "bytes": 2292,
+      "sha256": "3e0249319e53d56765d52c01978b8682bd394d596ee5d00449e61e2c89e52329",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/CY0pVTmB.js",
+      "bytes": 67852,
+      "sha256": "6884b17827d7849b77dcebe5da60cda59e9a80df71c125aa83f1dd6bdff41761",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CzsFpplX.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CzsFpplX.js",
+      "bytes": 3843,
+      "sha256": "cec9a92824562da2c275d52b7324611987d6d693831f9bb789166d458601f872",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CZYiu_ml2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/CZYiu_ml2.js",
+      "bytes": 1454,
+      "sha256": "9807ad4dc78ce6eaa79549514769d1b4051d68195ad62f60dcda7f1c387e7775",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/d_VtCf2U.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/d_VtCf2U.js",
+      "bytes": 2374,
+      "sha256": "b4d4b0930139bd36644294e4d0c7f2a3cc4fc8955b15ab94c467f06c990a86dd",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D0a-z9Dn.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/D0a-z9Dn.js",
+      "bytes": 16536,
+      "sha256": "b62c4178736bbb3d5bde832b9b55b0b7b830d2088ed36c1c716e155c8ba1896b",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/D12SqV8q.js\ncurl: (35) LibreSSL SSL_c"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D1pzKEEW2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/D1pzKEEW2.js",
+      "bytes": 5490,
+      "sha256": "7c56a438bb0971bbb6fd57089ae0c00d49de5ceb813520c3f0d513d66001659c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D1TKfHHM.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/D1TKfHHM.js",
+      "bytes": 3072,
+      "sha256": "694d2b7d880d8475e1518ffdf3281b9c9b32d9b8b960ecffa72c5d10eb107291",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D1TZs-Kn.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/D1TZs-Kn.js",
+      "bytes": 2522,
+      "sha256": "b486db8772a4c36aa12b5b6e5635b7130db2664e6818e5f177316a67dd3433c1",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D6MgTJhu.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/D6MgTJhu.js",
+      "bytes": 3547,
+      "sha256": "9636441555b7281a8ee7929d941741415596f69ec9d9deadcb4fd9b07bef4749",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D942RL9O.js",
+      "declaredBy": "https://www.dzmm.ai/assets/C16ZCC6H.js",
+      "file": "scripts/D942RL9O.js",
+      "bytes": 7899,
+      "sha256": "9755d6467aa20965c60c3a58b2debf5697e64a591e7c5d11951c0af481c1bcbd",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DaJRBPSy.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DaJRBPSy.js",
+      "bytes": 2616,
+      "sha256": "394ce1c60b41f277ec9ec093f8819dc47e74dbcfc546a2167ab5a7335229afe0",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DapuVdKe2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DapuVdKe2.js",
+      "bytes": 1283,
+      "sha256": "dbf76346c03c8aeec217f6f69b501449f7ee0a9a86e7e9f0495801fc04a65261",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DbIaBNmK.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DbIaBNmK.js",
+      "bytes": 1311,
+      "sha256": "ef980d348eb642d3d655a88b90b1bad65e6125868dfec118b6d6eb3e399c1906",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DBm1QQjB2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DBm1QQjB2.js",
+      "bytes": 1344,
+      "sha256": "ee700f0c31c11c84f27b0b60c936fb733a96fbc4393aa48bad4011347bae167d",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DcAvZ4pI2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DcAvZ4pI2.js",
+      "bytes": 8405,
+      "sha256": "dfb17a32df05da474a23a48070b41a4c44d4313d4bcfa193ea7f0ac9d3f773f8",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DcT2pgYP.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DcT2pgYP.js",
+      "bytes": 1430,
+      "sha256": "aaf5705d162cc3c2f300df5757d9ddf7ae2381eef02880e607a13c44d1bfc511",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DD28ibXf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DD28ibXf.js",
+      "bytes": 6729,
+      "sha256": "d8235607bfb3c27266462a340a736966cdd971a59bcba70a11d97400172adbd4",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DDppqIRY2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DDppqIRY2.js",
+      "bytes": 4823,
+      "sha256": "4786105ecef6c052dbff7f050deba376489cf3872e5c1090a00588cb1c4b3cb0",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DeGLTvCM2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DeGLTvCM2.js",
+      "bytes": 7390,
+      "sha256": "cc8fc257f0690f94496b0e25df06caeac5c5d02e9ba0a750e8853adc5f97fb19",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DelMOdhK.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DelMOdhK.js",
+      "bytes": 30070,
+      "sha256": "1a899cabc1d8f9d47c99da58682f991c52b6dce30b1ddeec2c134b91ad437cfe",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DErG8DAA.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DErG8DAA.js",
+      "bytes": 1347,
+      "sha256": "3518a32d2498c867bc3dd38f227641fb181b53c61ee3cef369a7e5734d3a504c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Df4Qb__N.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BStC-x-h.js",
+      "file": "scripts/Df4Qb__N.js",
+      "bytes": 882,
+      "sha256": "e503f26c6834bfd37d419a243f6115e4325fc165eb84a2e539341582ab8bbb3d",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Df8XXHUy.js",
+      "declaredBy": "https://www.dzmm.ai/assets/l0c7Nlsb.js",
+      "file": "scripts/Df8XXHUy.js",
+      "bytes": 43823,
+      "sha256": "f185fbe65b85226e58005659f79e949a341ecf7ac1925423af0de1fe514abd32",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DGA99hEY2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DGA99hEY2.js",
+      "bytes": 1387,
+      "sha256": "b29aef649ec908b091f9d81c2333aeacc1f79886ba7c0bb31a108cd0e8e21243",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DGYhCETr.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DGYhCETr.js",
+      "bytes": 905,
+      "sha256": "faa92613e413ba18112356dd9edfa55746f289d100e4c233cae017ba3695a9c3",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DH1XKXPj.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DH1XKXPj.js",
+      "bytes": 1296,
+      "sha256": "cf134203afe8005d888d452b8dca78d61c0f5c671fae9a9b8ec63f055bfab056",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DKiJT6Az.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DKiJT6Az.js",
+      "bytes": 1296,
+      "sha256": "9011c7435f3c862648759ac0a46ccb6d188fa0cf9d663ee3c84f5131acec24a4",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DM3G8dBN.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DM3G8dBN.js",
+      "bytes": 1210,
+      "sha256": "ceabd748f3346a224820c3770a0f8ab65ea2ae1b856c6fe02a71f021384a2a70",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DmDHELVI.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DmDHELVI.js",
+      "bytes": 228475,
+      "sha256": "7c625e1c18988e7dbf6c979f10bc0f1ed80b85458e75b2cf581bc8036bc4181f",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Dmh5XVOP.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/Dmh5XVOP.js",
+      "bytes": 1692,
+      "sha256": "44cc669d3b0174a2799ddd4fad260fe6e312632a36c1df973ae6066d5c5c791c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DNQXxwI_.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DNQXxwI_.js",
+      "bytes": 15770,
+      "sha256": "96e5708cac37acdc3f321e1d522a1707631dea9f609d6ecf95ac173d1b55cade",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DOtrvenY.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DOtrvenY.js",
+      "bytes": 14026,
+      "sha256": "75c813960e12d7f984019435a364367d497b5ef78ae35677a3c2940e120cc24d",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DpBqK-wI.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DpBqK-wI.js",
+      "bytes": 867,
+      "sha256": "e25d90546d144e0d825514642dca3de400d86dc79f9714a86b447a4ca4dd957f",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DPrafzN1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DPrafzN1.js",
+      "bytes": 2780,
+      "sha256": "99a48a8b41a33a83e9b0ffdb3d0d9b6864922dd19b89554130bcf7189ada360c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DtHT9kfN2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DtHT9kfN2.js",
+      "bytes": 2139,
+      "sha256": "8034e020a14b706553e27fa2bbf22469b79d9729bd562c5a29294e7b529cc87d",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DuygT3k6.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BStC-x-h.js",
+      "file": "scripts/DuygT3k6.js",
+      "bytes": 17115,
+      "sha256": "8203b1c2b1603c0f2540704c71a3a58db07109ef933f7e3764e494afd85237cd",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DVVIUGoA.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DVVIUGoA.js",
+      "bytes": 1979,
+      "sha256": "520ceb220a20a2381d7ddd44c12e5c4aa923447ea03438e426dd9224f8f4022c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DxahvcAH.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/DxahvcAH.js",
+      "bytes": 816,
+      "sha256": "58ff99bf3516d32c3469aed6a65e30b9bcdf8269a7fceb68ff09be39b4d0a766",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/FJsuBrIJ.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/FJsuBrIJ.js",
+      "bytes": 1118,
+      "sha256": "2b07ad3d45423728a74d968110006babfa2fb1f7ed29a158d4e025f8d598d748",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/g1SiSVUt.js",
+      "declaredBy": "https://www.dzmm.ai/assets/B_-dtN2r.js",
+      "file": "scripts/g1SiSVUt.js",
+      "bytes": 1928,
+      "sha256": "6098f5976e3459eefed1b736b517d908f23a8aad9e29b0783bdbc830f80105ca",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/gDs7nKvi.js",
+      "declaredBy": "https://www.dzmm.ai/assets/Df8XXHUy.js",
+      "file": "scripts/gDs7nKvi.js",
+      "bytes": 475464,
+      "sha256": "9c9f1aef4ea2786b7d79a8a9cd72c07efef7335190cc44e1e937a9ad3b81ef2e",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/KyjSwpuu.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/KyjSwpuu.js",
+      "bytes": 3385,
+      "sha256": "c8864bda34554d9510e15f1b4ee42e249755f37aadc5345294dda2fbb22c00da",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/l0c7Nlsb.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/l0c7Nlsb.js",
+      "bytes": 939,
+      "sha256": "0964e299c606c37b2f9a3696e0e915543d2523388eccf4446a45075bdd139697",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/mLW5cOLx.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/mLW5cOLx.js",
+      "bytes": 1766,
+      "sha256": "334769154c4e9fccfe4393ab6925d1ef910c62fa6959aba8a6a69f1283927a71",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/MTBEDFcs.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/MTBEDFcs.js",
+      "bytes": 3409,
+      "sha256": "5b05a3c9e48402dcd03554f1fcdc7b249d0f600b8417f53785bcb862986825e0",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/n088RFjy2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/n088RFjy2.js",
+      "bytes": 875,
+      "sha256": "be2ec449f6e2238dd181b84393ca80db38682512426558297caf66ed7f5e23ab",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/nXC8UB43.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/nXC8UB43.js",
+      "bytes": 2959,
+      "sha256": "1ebde148dc84c2de4ab5c6015889bc66204b64c8b97fafc1274fdebaf191c614",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/ogNz9gT_.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/ogNz9gT_.js",
+      "bytes": 1186,
+      "sha256": "cf23afb6ec8325fdc226193b7e885fd861ed9ce15b6c9ae0d3c2fe7322ba042b",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/oMRwvnxA.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/oMRwvnxA.js\ncurl: (35) LibreSSL SSL_c"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/RDHp3C9Z.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/RDHp3C9Z.js",
+      "bytes": 62596,
+      "sha256": "1838b9f746bcea230a963baf16c1803e7bb65a9065568a4e17503b5dc15bb901",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/RvhQPTCt.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/RvhQPTCt.js",
+      "bytes": 1085,
+      "sha256": "8d2ffa475cda4674d26cc229e862066cada612072bea867ac395e3aff6f350de",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/VOOrAp242.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/VOOrAp242.js",
+      "bytes": 1585,
+      "sha256": "daf27795cbe067d84809fabb861c91cde3183b1270d1bb29c835e9f6a4b4eb73",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/XcKYCqkf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/XcKYCqkf.js",
+      "bytes": 14553,
+      "sha256": "af4a33e9e5de6af969a920af2d049eb6885db2ace04a28b15963c91ba4fa681c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Ym4tzEuR.js",
+      "declaredBy": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "file": "scripts/Ym4tzEuR.js",
+      "bytes": 12351,
+      "sha256": "514b6eddeae2fc353fbdb131649bbfa1b397e0f95660bcfa3d854e74faec04a8",
+      "status": "saved"
+    }
+  ]
+}

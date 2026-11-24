@@ -1,4 +1,5 @@
-const MODEL = "seedream-5-0-flash-NSFW";
+import { CHAT_STILL_MODEL } from "./xumeng-chat-prompt-format.ts";
+
 const ORIGIN = "https://www.whatstoken.ai";
 const SIZES: Record<string, string> = {
   "9:16": "1152x2048",
@@ -43,7 +44,7 @@ export async function generateSeedreamFlash(input: {
   if (!key || !prompt) throw new Error("出图服务还没接上。");
   const fetcher = input.fetchImpl ?? fetch;
   const size = input.ratio && SIZES[input.ratio] ? SIZES[input.ratio] : "2K";
-  const body: Record<string, unknown> = { model: MODEL, prompt, size, watermark: false };
+  const body: Record<string, unknown> = { model: CHAT_STILL_MODEL, prompt, size, watermark: false };
   if (input.image?.trim()) body.image = dataUrl(input.image);
   const generated = await fetcher(`${ORIGIN}/v1/images/generations`, {
     method: "POST",

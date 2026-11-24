@@ -2,7 +2,7 @@ import { DzmmPaymentError, type DzmmPaymentContext, type DzmmPaymentMethodOption
 
 export type DzmmSubscriptionPlan = {
   id: string; label: string; revision: number; amountMinor: number; currency: "cny";
-  durationDays: 30; dailyCredits: number; maxClaims: 30; timezone: "Asia/Shanghai";
+  durationDays: 7 | 30; dailyCredits: number; maxClaims: 7 | 30; timezone: "Asia/Shanghai";
 };
 export type DzmmSubscriptionConfig = {
   provider: "zpay"; mode: "live"; testMode: false; enabled: boolean;
@@ -11,7 +11,7 @@ export type DzmmSubscriptionConfig = {
 };
 export type DzmmSubscription = {
   id: string; orderId: string; planId: string; label: string; status: "active" | "queued" | "expired" | "revoked";
-  startsAt: number; expiresAt: number; dailyCredits: number; claimsCount: number; maxClaims: 30 | 90;
+  startsAt: number; expiresAt: number; dailyCredits: number; claimsCount: number; maxClaims: 7 | 30 | 90;
 };
 export type DzmmSubscriptionCheckin = {
   subscriptionId: string | null; dayKey: string; timezone: "Asia/Shanghai";
@@ -24,7 +24,7 @@ export type DzmmSubscriptionOverview = {
 };
 export type DzmmSubscriptionOrder = {
   id: string; accountId: string; planId: string; planRevision: number; label: string;
-  amountMinor: number; currency: "cny"; durationDays: 30; dailyCredits: number; maxClaims: 30;
+  amountMinor: number; currency: "cny"; durationDays: 7 | 30; dailyCredits: number; maxClaims: 7 | 30;
   provider: "zpay"; mode: "live"; method: DzmmPaymentMethod;
   status: "pending" | "paid" | "expired" | "failed" | "refunded";
   createdAt: number; updatedAt: number; paidAt: number | null; checkoutUrl: string | null; subscriptionId: string | null;
@@ -77,10 +77,11 @@ export function isDzmmSubscriptionCheckoutUrl(value: unknown, orderId?: string, 
 
 function parsePlan(value: unknown): DzmmSubscriptionPlan {
   if (!record(value) || !text(value.id) || !text(value.label) || !amount(value.revision) || value.revision <= 0
-    || !amount(value.amountMinor) || value.amountMinor <= 0 || value.currency !== "cny" || value.durationDays !== 30
-    || !amount(value.dailyCredits) || value.dailyCredits <= 0 || value.maxClaims !== 30 || value.timezone !== "Asia/Shanghai") throw malformed();
+    || !amount(value.amountMinor) || value.amountMinor <= 0 || value.currency !== "cny"
+    || (value.durationDays !== 7 && value.durationDays !== 30) || !amount(value.dailyCredits) || value.dailyCredits <= 0
+    || value.maxClaims !== value.durationDays || value.timezone !== "Asia/Shanghai") throw malformed();
   return { id: value.id, label: value.label, revision: value.revision, amountMinor: value.amountMinor,
-    currency: "cny", durationDays: 30, dailyCredits: value.dailyCredits, maxClaims: 30, timezone: "Asia/Shanghai" };
+    currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30, timezone: "Asia/Shanghai" };
 }
 
 function parseSubscription(value: unknown): DzmmSubscription {
@@ -88,7 +89,7 @@ function parseSubscription(value: unknown): DzmmSubscription {
     || !["active", "queued", "expired", "revoked"].includes(value.status as string)
     || !timestamp(value.startsAt) || !timestamp(value.expiresAt) || value.expiresAt <= value.startsAt
     || !amount(value.dailyCredits) || value.dailyCredits <= 0 || !amount(value.claimsCount)
-    || (value.maxClaims !== 30 && value.maxClaims !== 90) || value.claimsCount > value.maxClaims
+    || (value.maxClaims !== 7 && value.maxClaims !== 30 && value.maxClaims !== 90) || value.claimsCount > value.maxClaims
     || (value.maxClaims === 90 && (value.planId !== "vip_quarterly" || value.dailyCredits !== 500))) throw malformed();
   return { id: value.id, orderId: value.orderId, planId: value.planId, label: value.label, status: value.status as DzmmSubscription["status"],
     startsAt: value.startsAt, expiresAt: value.expiresAt, dailyCredits: value.dailyCredits,
@@ -133,7 +134,7 @@ function parseOrder(value: unknown, accountId: string): DzmmSubscriptionOrder {
     || (value.subscriptionId !== null && !text(value.subscriptionId))
     || (value.checkoutUrl !== null && !isDzmmSubscriptionCheckoutUrl(value.checkoutUrl, value.id))) throw malformed();
   return { id: value.id, accountId, planId: value.planId, planRevision: value.planRevision, label: value.label,
-    amountMinor: value.amountMinor, currency: "cny", durationDays: 30, dailyCredits: value.dailyCredits, maxClaims: 30,
+    amountMinor: value.amountMinor, currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30,
     provider: "zpay", mode: "live", method: value.method, status: value.status as DzmmSubscriptionOrder["status"],
     createdAt: value.createdAt, updatedAt: value.updatedAt, paidAt: value.paidAt as number | null, checkoutUrl: value.checkoutUrl as string | null,
     subscriptionId: value.subscriptionId as string | null };

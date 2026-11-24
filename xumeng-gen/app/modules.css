@@ -218,13 +218,14 @@
   font-size: 26px;
   line-height: 1;
 }
-.modules .preview img, .modules .preview video, .modules .drop img {
+.modules .preview img, .modules .preview video, .modules .drop img, .modules .drop video {
   width: 100%;
   max-height: 460px;
   object-fit: contain;
   border-radius: 12px;
   background: #10131a;
 }
+.modules .drop video { height: 100%; max-height: 100%; }
 .modules .preview-text { align-content: start; justify-items: stretch; text-align: left; }
 .modules .quote, .modules .preview pre {
   margin: 0;
@@ -426,3 +427,124 @@
   padding: 8px;
 }
 .modules .primary:disabled { opacity: 0.6; cursor: default; }
+
+/* 叙梦入口：从 xumengchat.top 过来的品牌桥接 */
+.modules .home .xm-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 2px 2px;
+}
+.xm-top-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13px;
+  letter-spacing: .04em;
+  color: var(--text);
+}
+.xm-top-brand i { font-style: normal; color: #e07a9b; }
+.xm-top-brand em { font-style: normal; color: rgba(246, 243, 236, .45); }
+.xm-back {
+  font-size: 12px;
+  color: rgba(246, 243, 236, .66);
+  text-decoration: none;
+  border: 1px solid rgba(246, 243, 236, .16);
+  border-radius: 999px;
+  padding: 6px 11px;
+  transition: color .18s ease, border-color .18s ease;
+}
+.xm-back:hover { color: #f6f3ec; border-color: rgba(224, 122, 155, .5); }
+.modules .xumeng-hero {
+  position: relative;
+  overflow: hidden;
+  display: grid;
+  gap: 10px;
+  padding: 22px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(224, 122, 155, .34);
+  background:
+    radial-gradient(520px 260px at 88% -20%, rgba(224, 122, 155, .32), transparent 62%),
+    radial-gradient(420px 240px at -10% 110%, rgba(232, 200, 160, .16), transparent 60%),
+    linear-gradient(158deg, #2a1420, #140a10 70%);
+}
+.xumeng-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .04), transparent 40%);
+  pointer-events: none;
+}
+.xm-kicker {
+  margin: 0;
+  font-size: 11px;
+  letter-spacing: .22em;
+  color: #e8c8a0;
+}
+.xumeng-hero h1 {
+  margin: 0;
+  font-family: "Iowan Old Style", Palatino, "Songti SC", serif;
+  font-weight: 560;
+  letter-spacing: -.035em;
+  font-size: clamp(26px, 3.4vw, 34px);
+  line-height: 1.2;
+}
+.xm-line {
+  margin: 0;
+  color: rgba(246, 243, 236, .64);
+  font-size: 13px;
+  max-width: 46ch;
+}
+.xm-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.xm-primary, .xm-ghost {
+  border-radius: 999px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 650;
+  border: 1px solid transparent;
+}
+.xm-primary {
+  color: #fff;
+  background: linear-gradient(120deg, #e07a9b, #b9365f);
+  box-shadow: 0 12px 28px -14px rgba(224, 122, 155, .8);
+}
+.xm-ghost {
+  color: #f6f3ec;
+  background: rgba(255, 255, 255, .04);
+  border-color: rgba(255, 255, 255, .18);
+}
+.xm-note { margin: 2px 0 0; font-size: 11px; color: rgba(246, 243, 236, .4); }
+
+/* 小说结果：标题单独展示，正文按章节/段落结构化 */
+.modules .novel-doc {
+  width: 100%;
+  max-height: 72vh;
+  overflow: auto;
+  padding-right: 8px;
+  text-align: left;
+}
+.modules .novel-title {
+  margin: 0 0 18px;
+  font-family: "Iowan Old Style", Palatino, "Songti SC", serif;
+  font-size: 24px;
+  font-weight: 560;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+}
+.modules .novel-section + .novel-section { margin-top: 22px; }
+.modules .novel-section h4 {
+  margin: 0 0 10px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--cyan);
+  letter-spacing: 0.02em;
+}
+.modules .novel-section p {
+  margin: 0 0 14px;
+  font-family: "Iowan Old Style", Palatino, "Songti SC", serif;
+  font-size: 15.5px;
+  line-height: 1.9;
+  color: var(--text);
+  white-space: pre-wrap;
+}

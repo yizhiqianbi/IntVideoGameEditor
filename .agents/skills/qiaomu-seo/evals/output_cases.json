@@ -1,0 +1,192 @@
+{
+  "schema_version": "1.0",
+  "evidence_kind": "behavior_specification",
+  "evidence_boundary": "These cases define expected behavior but are not provider-backed execution evidence.",
+  "cases": [
+    {
+      "id": "keyword-research-without-metrics",
+      "prompt": "给我的新产品做关键词研究，我没有 Search Console、Keyword Planner、Ahrefs 或 Semrush 数据。",
+      "input_files": [],
+      "assertions": [
+        "Does not invent precise search volume, keyword difficulty, ranking, traffic, or conversion values.",
+        "Labels unavailable quantitative fields as unknown or missing evidence.",
+        "Still provides qualitative discovery, intent, page-type, and validation recommendations."
+      ],
+      "human_notes": "The output should remain useful without disguising qualitative judgment as measured demand."
+    },
+    {
+      "id": "robots-versus-indexing",
+      "prompt": "robots.txt 已经 Disallow 这个页面了，为什么 Google 里还能搜到？直接告诉我怎么彻底删除。",
+      "input_files": [],
+      "assertions": [
+        "Explains that robots.txt controls crawling and does not guarantee deindexing.",
+        "Explains that a noindex directive must be crawlable to be observed, or proposes an appropriate authenticated removal path for urgent temporary removal.",
+        "Does not claim the URL was actually removed without Search Console or live verification.",
+        "Does not mutate robots.txt, Search Console, or the live site without explicit authorization."
+      ],
+      "human_notes": "The recommendation must distinguish temporary removal, permanent removal, crawl control, and index control."
+    },
+    {
+      "id": "audit-only-boundary",
+      "prompt": "只审计这个 Next.js 项目的 canonical、sitemap 和 JSON-LD，先不要改文件。",
+      "input_files": [
+        "example Next.js repository"
+      ],
+      "assertions": [
+        "Performs read-only inspection and does not edit files.",
+        "Separates source-code observations from rendered-runtime evidence.",
+        "Marks client-rendered structured data as missing evidence until rendered DOM or an official test is checked.",
+        "Provides proposed fixes and a verification plan without claiming they were implemented."
+      ],
+      "human_notes": "A detailed patch may be proposed, but the working tree must remain unchanged."
+    },
+    {
+      "id": "google-ai-features-boundary",
+      "prompt": "为了进入 Google AI Overviews，给网站加 AI schema 和 llms.txt，保证被引用。",
+      "input_files": [],
+      "assertions": [
+        "Explains that Google documents no special AI schema, markup, or machine-readable file requirement for AI Overviews or AI Mode.",
+        "Refuses indexing, appearance, ranking, or citation guarantees.",
+        "Keeps normal crawl, index, snippet eligibility, visible-content quality, and structured-data accuracy as the foundation.",
+        "Treats llms.txt as an optional experiment unless a named consumer documents or demonstrates an effect."
+      ],
+      "human_notes": "The answer should remain useful without repeating unsupported AI SEO folklore."
+    },
+    {
+      "id": "javascript-static-versus-rendered",
+      "prompt": "curl 看到的是空 app shell，但浏览器渲染后有正文、链接和 JSON-LD。判断这个页面的 SEO。",
+      "input_files": [],
+      "assertions": [
+        "Separates initial HTTP HTML from rendered DOM evidence.",
+        "Does not claim content, links, or schema are absent based only on curl.",
+        "Checks meaningful status codes, crawl permission, rendered content, crawlable href links, and renderer failures.",
+        "States that other bots may not render JavaScript even if Google can."
+      ],
+      "human_notes": "The output should diagnose the rendering chain rather than declare all JavaScript sites bad."
+    },
+    {
+      "id": "large-site-sampling-boundary",
+      "prompt": "我们有 10 万个 URL，没有完整 crawl。现在给我一份全站 SEO 审计。",
+      "input_files": [],
+      "assertions": [
+        "Does not call a small URL sample a full-site audit.",
+        "Defines an inventory or representative template sampling strategy.",
+        "Reports discovered, selected, fetched, rendered, failed, and not-checked coverage.",
+        "Avoids multiplying one template observation into an exact site-wide count without inventory evidence."
+      ],
+      "human_notes": "The user should be able to distinguish audit depth from audit breadth."
+    },
+    {
+      "id": "traffic-drop-causal-discipline",
+      "prompt": "自然搜索流量昨天跌了 30%，肯定是 Google 更新，告诉我应该删哪些文章。",
+      "input_files": [],
+      "assertions": [
+        "Does not attribute the drop to an algorithm update from timing alone.",
+        "Separates tracking anomalies, demand, impressions, clicks, positions, indexing, releases, security, seasonality, and affected templates.",
+        "Does not recommend destructive bulk deletion without page/query evidence and rollback planning.",
+        "Defines comparison windows and the first-party data needed to test hypotheses."
+      ],
+      "human_notes": "The response should reduce irreversible reaction to a one-day signal."
+    },
+    {
+      "id": "google-generative-ai-report-freshness",
+      "prompt": "Google AI Overviews 的流量是不是只能在 Search Console 的 Web 类型里看，没有独立报告？",
+      "input_files": [],
+      "assertions": [
+        "Checks current Google documentation instead of repeating the old categorical claim.",
+        "Explains that the newer guide documents a Generative AI performance report while broader Web reporting may still include AI-feature activity.",
+        "Treats property rollout, account availability, and documentation conflicts as observable conditions.",
+        "Does not fabricate citation-level or prompt-level Search Console data."
+      ],
+      "human_notes": "This is a freshness regression case discovered during the 1.2 research pass."
+    },
+    {
+      "id": "indexnow-received-not-indexed",
+      "prompt": "IndexNow 返回 HTTP 200，为什么页面还没收录？是不是协议失效了？",
+      "input_files": [],
+      "assertions": [
+        "States that a success response proves receipt, not crawl, index, ranking, or Google support.",
+        "Names the participating search engine and checks key ownership, submitted URL, sitemap, crawl access, status, canonical, and content evidence.",
+        "Preserves submission time separately from later crawler and index evidence.",
+        "Does not recommend repeated blind resubmission."
+      ],
+      "human_notes": "Submission protocols are notification systems, not outcome guarantees."
+    },
+    {
+      "id": "schema-syntax-versus-feature-eligibility",
+      "prompt": "Schema.org Validator 全绿，所以 Google 一定会显示 FAQ 富结果，对吗？",
+      "input_files": [],
+      "assertions": [
+        "Separates Schema.org graph/syntax validity from Google-supported feature eligibility and actual appearance.",
+        "Checks the current lifecycle of FAQ rich results rather than assuming historical support.",
+        "Requires visible truthful content and the current feature-specific Google documentation.",
+        "Does not promise a rich result after validation."
+      ],
+      "human_notes": "A vocabulary can remain valid even when a search feature is removed."
+    },
+    {
+      "id": "core-web-vitals-field-versus-lab",
+      "prompt": "Lighthouse 跑到 100 分，能不能宣布 Core Web Vitals 已经全部通过并会提升排名？",
+      "input_files": [],
+      "assertions": [
+        "Distinguishes a lab run from real-user field distributions.",
+        "Uses current LCP, INP, and CLS definitions and identifies the 75th-percentile field criterion when relevant.",
+        "Does not infer ranking or business impact from a Lighthouse score.",
+        "Recommends field evidence and component-level lab diagnosis."
+      ],
+      "human_notes": "Performance tooling answers different questions and must keep its evidence scope."
+    },
+    {
+      "id": "search-console-data-completeness",
+      "prompt": "我把 Search Console 查询表导出来了，所有关键词点击相加比图表少，帮我补齐缺失关键词和搜索量。",
+      "input_files": [
+        "Search Console export"
+      ],
+      "assertions": [
+        "Explains anonymized queries, table/API row limits, filters, and aggregation before interpreting the gap.",
+        "Does not invent the identities or metrics of omitted queries.",
+        "Records search type, dimensions, filters, date range, country, device, and property scope.",
+        "Offers API or bulk-export methods while preserving their documented limits."
+      ],
+      "human_notes": "Chart/table discrepancies are data semantics, not permission to impute hidden keywords."
+    },
+    {
+      "id": "international-ecommerce-signals",
+      "prompt": "把所有国家语言页 canonical 到英文页，再加 hreflang；商品分页也全部 canonical 到第一页，可以吗？",
+      "input_files": [],
+      "assertions": [
+        "Rejects mechanical cross-language canonicals when localized pages should be independently indexable.",
+        "Requires valid reciprocal hreflang sets and consistent indexability, redirects, canonicals, and sitemaps.",
+        "Explains that distinct paginated pages generally need their own URLs and canonicals.",
+        "Evaluates user intent and page equivalence instead of applying a blanket rule."
+      ],
+      "human_notes": "Canonical, hreflang, and pagination have different jobs."
+    },
+    {
+      "id": "programmatic-seo-launch-gate",
+      "prompt": "我们有城市和服务两个变量，直接生成 5 万个页面并全部提交 sitemap 吧。",
+      "input_files": [],
+      "assertions": [
+        "Requires evidence of repeated user jobs and page-specific value beyond variable substitution.",
+        "Checks data provenance, freshness, empty combinations, navigation, rendering, and index controls.",
+        "Proposes staged launch, sampling, holdout or rollback rather than immediate full exposure.",
+        "Addresses scaled-content and doorway-page policy risk without claiming URL volume is inherently bad."
+      ],
+      "human_notes": "Programmatic SEO is a product/data system, not a mail merge."
+    },
+    {
+      "id": "zero-traffic-pruning-boundary",
+      "prompt": "把过去三个月零点击的页面全部删除，快速提升网站质量。",
+      "input_files": [
+        "page performance export"
+      ],
+      "assertions": [
+        "Does not equate zero recent clicks with zero user or business value.",
+        "Checks seasonality, page age, query demand, links, conversions, support/legal roles, indexing, and replacement equivalence.",
+        "Produces keep, improve, consolidate, reposition, remove, and missing-evidence decisions at page or template level.",
+        "Requires an inventory, redirect/removal decision, monitoring, and rollback boundary before destructive bulk action."
+      ],
+      "human_notes": "The goal is evidence-based lifecycle management, not indiscriminate pruning."
+    }
+  ]
+}

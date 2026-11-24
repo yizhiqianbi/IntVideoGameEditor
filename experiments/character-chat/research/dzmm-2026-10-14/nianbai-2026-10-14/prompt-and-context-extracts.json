@@ -1,0 +1,272 @@
+{
+  "scope": "Read-only public frontend source analysis. No API calls, guest changes, or model generations by this subagent. Excerpts use zero-based UTF-8 byte offsets.",
+  "createdAt": "2026-10-14T02:44:15.056767+00:00",
+  "sources": [
+    {
+      "key": "component",
+      "file": "public/scripts/C58mxSVt2.js",
+      "url": "https://www.dzmm.ai/assets/C58mxSVt2.js",
+      "bytes": 209514,
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f"
+    },
+    {
+      "key": "locale",
+      "file": "public/scripts/D58JO2kB2.js",
+      "url": "https://www.dzmm.ai/assets/D58JO2kB2.js",
+      "bytes": 243678,
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1"
+    },
+    {
+      "key": "shared",
+      "file": "public/scripts/D12SqV8q.js",
+      "url": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "bytes": 1691217,
+      "sha256": "5dfcb47b825471d5aa49e26333aeef04826ce688702874631f223c794938f420"
+    },
+    {
+      "key": "persona",
+      "file": "nianbai-2026-10-14/BjxJ3Cc_2.js",
+      "url": "https://www.dzmm.ai/assets/BjxJ3Cc_2.js",
+      "bytes": 2240,
+      "sha256": "552bf743528aca1b409889d6b224be214ad76034131a435b99cd8e7f39d57700"
+    },
+    {
+      "key": "route",
+      "file": "public/scripts/B28hEJCi.js",
+      "url": "https://www.dzmm.ai/assets/B28hEJCi.js",
+      "bytes": 91387,
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7"
+    }
+  ],
+  "extracts": [
+    {
+      "id": "default-options",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 132710,
+      "byteEndExclusive": 132865,
+      "excerpt": "function Iu({conversationId:e,mode:t=`companion`,persona:n=`gentle`,personaMode:r=`manual`,onConversationCreated:i,onMemoryChanged:a}={}){var o,s;let[c,l]=",
+      "interpretation": "defaults companion/gentle/manual"
+    },
+    {
+      "id": "transport",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 133507,
+      "byteEndExclusive": 134012,
+      "excerpt": "let he=(0,F.useMemo)(()=>new Yl({api:`/api/agent/pod/chat`,prepareSendMessagesRequest:({id:e,messages:t,body:n,headers:r,credentials:i})=>{let a=w.current;return{api:`/api/agent/pod/chat`,headers:r,credentials:i,body:{...n==null?{}:n,id:e,messages:t.slice(-1),conversationId:a,mode:ue.current,persona:T.current,personaMode:de.current}}}}),[]),ge=mu({id:e==null?`agent-new`:e,transport:he,experimental_throttle:50,onError:e=>{S.current=e},onFinish:({isError:e})=>{var t;e&&yu(S.current)||(t=me.current)==nu",
+      "interpretation": "dedicated agent chat endpoint; last UI message only"
+    },
+    {
+      "id": "history",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 134350,
+      "byteEndExclusive": 134780,
+      "excerpt": "let t=await ye.agent.messages.query({conversationId:e,limit:200,includeStalled:!0});if(!a()||n&&(O.current.status!==`ready`||ve.current||O.current.messages!==r))return null;let i=t.sort((e,t)=>e.seq-t.seq).filter(e=>e.role===`user`||e.role===`assistant`||e.role===`system`),o={};for(let e of i)e.imageUrls&&Array.isArray(e.imageUrls)&&e.imageUrls.length>0&&(o[e.id]=e.imageUrls);re(o);let s=i.map(e=>Du({id:e.id,role:e.role,conten",
+      "interpretation": "persisted ordered history; not full prompt evidence"
+    },
+    {
+      "id": "create",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 139487,
+      "byteEndExclusive": 139712,
+      "excerpt": "let t=await ye.agent.create.mutate({mode:ue.current,persona:T.current,personaMode:de.current});return w.current=t.id,(e=E.current)==null||e.call(E,t.id),await M(t.id,!1),t.id}finally{_(!1)}})();try{return await pe.current}fin",
+      "interpretation": "same mode/persona settings stored when creating conversation"
+    },
+    {
+      "id": "send",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 140212,
+      "byteEndExclusive": 140522,
+      "excerpt": "let t={conversationId:e,mode:ue.current,persona:T.current,personaMode:de.current,imageUrls:n!=null&&n.length?n:void 0};return oe.current=t,await O.current.sendMessage({text:r||``},{body:t}),!0}catch(e){b.current=null;let t=e instanceof Error?e.message:String(e);return t.includes(`\"error\":\"timeout\"`)||t.includ",
+      "interpretation": "optional image URLs; no system or model field"
+    },
+    {
+      "id": "history-tools",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 131999,
+      "byteEndExclusive": 132559,
+      "excerpt": "function Du(e){let t=[];if(e.toolInvocations&&e.toolInvocations.length>0)for(let n of e.toolInvocations)n.result!=null&&t.push({type:`tool-${n.toolName}`,toolCallId:n.toolCallId,state:`output-available`,input:n.args,output:n.result});return e.content&&t.push({type:`text`,text:e.content}),{id:e.id,role:e.role,parts:t,metadata:e.memorySaveStatus||e.replyStalled?{...e.memorySaveStatus?{memorySaveStatus:e.memorySaveStatus}:{},...e.memorySaveStatus&&e.memoryRecovery?{memoryRecovery:e.memoryRecovery}:{},...e.replyStalled?hu:{}}:void 0}}var Ou=6,ku=e=>new Promi",
+      "interpretation": "persisted tools and memory metadata reconstructed for rendering"
+    },
+    {
+      "id": "persona-tool-result",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 142302,
+      "byteEndExclusive": 142867,
+      "excerpt": "function Lu(e){var t;if((e==null?void 0:e.role)!==`assistant`)return null;let n=(t=e.parts)==null?[]:t;for(let e=n.length-1;e>=0;e--){var r,i;let t=n[e];if(!((r=t.type)!=null&&r.startsWith(`tool-`))&&t.type!==`dynamic-tool`||(t.type===`dynamic-tool`?t.toolName:t.type.split(`-`).slice(1).join(`-`))!==`switch_persona`||t.state!==`output-available`&&t.state!==`result`)continue;let a=(i=t.output)==null?t.result:i;if(a!=null&&a.switched&&(a.persona===`gentle`||a.persona===`direct`))return a.persona}return null}var $=r(),Ru=({imageUrl:e,uploading:t,onRemove:n})=>(0",
+      "interpretation": "switch_persona tool output changes frontend persona"
+    },
+    {
+      "id": "persona-toggle",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 197744,
+      "byteEndExclusive": 198364,
+      "excerpt": "var sf=[{persona:`gentle`,name:Me,traitKey:`chat.agent.persona.gentle`},{persona:`direct`,name:je,traitKey:`chat.agent.persona.direct`}];function cf({conversationId:e,persona:t,disabled:n,onPersonaChange:r}){let i=C(`nianbai.persona-toggle`),{t:a}=De(),o=A(xe().agent.persona.set.mutationOptions({onSuccess:({persona:e})=>r(e),onError:e=>{var t;oe({title:a(((t=e.data)==null?void 0:t.code)===`CONFLICT`?`chat.agent.persona.switchBusy`:`chat.agent.persona.switchFailed`),variant:`destructive`})}}));if(!i)return null;let s=n||o.isPending;return(0,$.jsx)(`div`,{role:`radiogroup`,\"aria-label\":a(`chat.agent.persona.switchL",
+      "interpretation": "manual persona mutation; two options"
+    },
+    {
+      "id": "persona-names-prewarm",
+      "source": "nianbai-2026-10-14/BjxJ3Cc_2.js",
+      "sha256": "552bf743528aca1b409889d6b224be214ad76034131a435b99cd8e7f39d57700",
+      "byteStart": 866,
+      "byteEndExclusive": 1514,
+      "excerpt": "var o=`念白`,s=`白念`,c=e(t()),l=-1/0,u=`agent-chat-input`;function d(){let e=Date.now();e-l<3e5||(l=e,i.agent.prewarmPod.mutate().catch(()=>void 0))}function f(){let e=r(`nianbai.pod-prewarm`);(0,c.useEffect)(()=>{if(!e)return;d();let t=e=>{e.target instanceof Element&&e.target.id===`agent-chat-input`&&d()};return document.addEventListener(`focusin`,t),()=>document.removeEventListener(`focusin`,t)},[e])}var p=n(),m=[`0ms`,`160ms`,`320ms`],h=3e3,g=15e3;function _(e){let[t,n]=(0,c.useState)(0);return(0,c.useEffect)(()=>{if(!e)return;let t=setTimeout(()=>n(1),h),r=setTimeout(()=>n(2),g);return()=>{clearTimeout(t),clearTimeout(r),n(0)}},[e",
+      "interpretation": "gentle name 念白/direct name 白念; prewarmPod at most every 5min"
+    },
+    {
+      "id": "bubble-format",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 145205,
+      "byteEndExclusive": 145702,
+      "excerpt": "var Wu=/\\n\\n+/,Gu=/\\n\\n+/g,Ku=/^-{3,}$/;function qu(e){return e.replace(/\\r\\n?/g,`\n`)}function Ju(e){return qu(e).split(Wu).map(e=>e.trim()).filter(e=>e&&!Ku.test(e))}function Yu(e){let t=qu(e),n=-1,r=0;for(let e of t.matchAll(Gu))n=e.index,r=e.index+e[0].length;return n<0?{complete:[],pending:t}:{complete:Ju(t.slice(0,n)),pending:t.slice(r)}}var Xu={added:`新增`,changed:`修改`,removed:`删除`},Zu=4;function Qu({line:e}){return(0,$.jsxs)(`li`,{className:`space-y-1 px-4 py-2.5`,children:[",
+      "interpretation": "blank line paragraph boundary -> bubbles, no instructions shown"
+    },
+    {
+      "id": "bubble-reveal",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 144893,
+      "byteEndExclusive": 145292,
+      "excerpt": "function Uu(e,t,n){let[r,i]=(0,F.useState)({key:e,shown:0}),a=(0,F.useRef)(-1/0),o=r.key===e?r.shown:0;return(0,F.useEffect)(()=>{if(!n||o>=t)return;let r=Math.max(0,a.current+800-Date.now()),s=setTimeout(()=>{a.current=Date.now(),i({key:e,shown:o+1})},r);return()=>clearTimeout(s)},[e,n,o,t]),n?Math.min(o,t):t}var Wu=/\\n\\n+/,Gu=/\\n\\n+/g,Ku=/^-{3,}$/;function qu(e){return e.replace(/\\r\\n?/g,`\n`)}f",
+      "interpretation": "800ms paced reveal of available bubbles"
+    },
+    {
+      "id": "memory-tools",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 169046,
+      "byteEndExclusive": 170086,
+      "excerpt": "Ed={memory_save:{label:`记住了...`,icon:c},memory_search:{label:`翻记忆...`,icon:b},memory_list:{label:`想想...`,icon:c},memory_edit:{label:`修改记忆...`,icon:u},memory_write:{label:`整理记忆...`,icon:u},diary_write:{label:`写日记...`,icon:y},workspace_activity:{label:`处理中...`,icon:vt},memory_delete:{label:`忘掉...`,icon:i},search_conversations:{label:`翻聊天记录...`,icon:b},read_conversation:{label:`看上下文...`,icon:b},web_search:{label:`搜一下...`,icon:p},web_fetch:{label:`看链接...`,icon:p},switch_persona:{label:`调整状态...`,icon:g},set_timeout:{label:`冷处理...`,icon:_},check_credits:{label:`看看余额...`,icon:ee},open_recharge:{label:`打开充值...`,icon:s},task_status:{label:`看看任务...`,icon:re},open_task_center:{label:`打开任务中心...`,icon:re},award_share_task:{label:`看看你分享的图...`,icon:re},offline_task_reminders:{label:`设置离线任务提醒...`,icon:re},user_choice:{label:`出题中...`,icon:re},time_capsule:{label:`封存中...`,ico",
+      "interpretation": "UI tool-name map; not a backend schema or tool-enable proof"
+    },
+    {
+      "id": "workspace-tools",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 170878,
+      "byteEndExclusive": 171328,
+      "excerpt": "workspace_status:{label:`看看工作区...`,icon:ie},workspace_read:{label:`翻工作区...`,icon:b},workspace_write:{label:`收进工作区...`,icon:u},shell_exec:{label:`在沙盒里试试...`,icon:v}},Dd={memory_write:`记忆整理操作已完成`,diary_write:`日记操作已完成`,workspace_activity:`操作已完成`},Od={memory_write:`整理了记忆`,diary_write:`写了日记`,workspace_activity:`在工作区里做了些操作`};function ",
+      "interpretation": "UI tool labels for workspace access and shell"
+    },
+    {
+      "id": "memory-query",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 181997,
+      "byteEndExclusive": 182527,
+      "excerpt": "function Bd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.memories.queryOptions()),i=A(t.agent.removeMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memories.queryKey()})}})),a=A(t.agent.pinMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memories.queryKey()})}}));return{memories:(e=r.data)==null?[]:e,isLoading:r.isLoading,isError:r.isError,error:r.error,refetch:r.refetch,remove:i.mutateAsync,togglePin:a.mutateAsync}}function Vd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.timeCaps",
+      "interpretation": "memory list queried without conversationId"
+    },
+    {
+      "id": "memory-lazy-read",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 188212,
+      "byteEndExclusive": 188847,
+      "excerpt": "let c=ke(i.agent.memoryFile.queryOptions({path:e},{enabled:o})),l=t?(n=/^diary\\/(\\d{4}-\\d{2}-\\d{2})(?=[ ._-]|$)/.exec(e))==null?void 0:n[1]:void 0;return(0,$.jsx)(`div`,{ref:a,className:c.isPending?`min-h-12`:void 0,children:c.isError?(0,$.jsx)(qd,{message:r(`chat.agent.memory.loadError`),retryLabel:r(`chat.agent.memory.retry`),onRetry:()=>void c.refetch()}):c.isPending?(0,$.jsx)(Jd,{text:r(`chat.agent.memory.loading`)}):(0,$.jsx)(Yd,{content:c.data.content,diary:t,date:l&&!Number.isNaN(Date.parse(l))?l:void 0})})},Zd=()=>{let{t:e}=De(),t=_e(),{memories:n,isLoading:r,isError:i,refetch:a}=Bd();return r?(0,$.jsx)(Jd,{text:e(`chat",
+      "interpretation": "read only paths returned in visible memory list"
+    },
+    {
+      "id": "memory-file-branch",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 189139,
+      "byteEndExclusive": 189775,
+      "excerpt": "n[0].id===`memory-file`?(0,$.jsxs)(`div`,{className:`flex flex-col gap-2`,children:[(0,$.jsx)(Yd,{content:n[0].content}),n.slice(1).map(e=>`workspacePath`in e&&typeof e.workspacePath==`string`&&(0,$.jsx)(Xd,{path:e.workspacePath},e.id))]}):(0,$.jsxs)(`div`,{className:`flex flex-col gap-2`,children:[(0,$.jsx)(`p`,{className:`px-1 text-xs text-muted-foreground/70`,children:e(`chat.agent.memory.description`,{count:n.length,max:30})}),n.map(e=>(0,$.jsxs)(`div`,{className:S(`rounded-lg border p-3`,e.pinned?`border-primary/30 bg-primary/5`:`border-border/70`),children:[(0,$.jsxs)(`div`,{className:`flex items-start gap-2`,children:[e.p",
+      "interpretation": "file-based memory branch plus legacy entry-list branch"
+    },
+    {
+      "id": "memory-format",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 180089,
+      "byteEndExclusive": 181491,
+      "excerpt": "function Ld(e){let t=e.replace(/\\r\\n/g,`\n`).split(`\n`),n=[],r={},i=[],a,o=()=>{var e;let t=i.join(`\n`).trim(),a=(e=Id(t))==null?{content:t}:e;(a.content||a.title)&&n.push({...a,...r}),i=[],r={}};for(let e=0;e<t.length;e++){var s;let n=t[e],c=(s=/^ {0,3}(`{3,}|~{3,})/.exec(n))==null?void 0:s[1];if(a)(c==null?void 0:c[0])===a[0]&&c.length>=a.length&&n.trim()===c&&(a=void 0);else if(c)a=c;else if(n===`---`&&(e===0||t[e-1].trim()===``)){let n=e+1;for(;n<t.length&&/^(id|importance|pinned|createdAt|updatedAt|mood):/.test(t[n]);)n++;let i=t.slice(e+1,n);if(t[n]===`---`&&i.length>0&&i.some(e=>e.startsWith(`id:`))&&i.some(e=>e.startsWith(`createdAt:`))){o();for(let e of i){let t=e.indexOf(`:`),n=e.slice(0,t),i=e.slice(t+1).trim();if(i.startsWith(`\"`))try{i=JSON.parse(i)}catch{continue}typeof i==`string`&&(n===`createdAt`&&!Number.isNaN(Date.parse(i))&&(r.createdAt=i),n===`mood`&&(r.mood=i),n===`pinned`&&(r.pinned=i===`true`))}e=n;continue}}let l=a?n:n.replace(/\\[([^\\]]+)\\]\\((?:MEMORY\\.md|(?:memory|diary)\\/[^)]+)\\)/g,(e,t)=>/^(?:MEMORY\\.md|(?:memory|diary)\\/)/.test(t.replace(/^`|`$/g,``))?``:t);if(l!==n&&/^\\s*(?:[-*+]\\s*)?$/.test(l)||!a&&/^\\s*(?:(?:[-*+]|#{1,6})\\s+)?(?:`?(?:MEMORY\\.md|(?:memory|diary)\\/[^\\s`]+|(?:memory|diary)\\/[^`]+\\.(?:md|txt))`?)\\s*$/.test(l))continue;let u=!a&&/^(\\s*[-*+]\\s+)(\\{.*\\})\\s*$/.exec(l),d=u&&Id(u[2]);i.push(d?`${u[1]}${d.title?`${d.title}：`:``}${d.content}`",
+      "interpretation": "markdown plus structured frontmatter parser; filenames visible"
+    },
+    {
+      "id": "memory-recovery",
+      "source": "public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byteStart": 197180,
+      "byteEndExclusive": 197822,
+      "excerpt": "function of({state:e}){let{t}=De();return e?(0,$.jsxs)(`div`,{role:`status`,className:`absolute left-4 right-4 top-14 z-10 rounded-lg bg-secondary/95 px-4 py-2 text-sm text-foreground backdrop-blur-sm`,children:[e===`blocked`&&t(`chat.agent.memoryRecovery.blocked`,{defaultValue:`上一轮记忆正在补存，请稍候`}),e===`pending`&&t(`chat.agent.memoryRecovery.pending`,{defaultValue:`上一轮记忆尚未补存，本轮可能读不到`}),e===`conflict`&&t(`chat.agent.memoryRecovery.conflict`,{defaultValue:`有一份未合并的记忆已保留`})]}):null}var sf=[{persona:`gentle`,name:Me,traitKey:`chat.agent.persona.gentle`},{perso",
+      "interpretation": "pending/blocked/conflict recovery UI"
+    },
+    {
+      "id": "locale-persona",
+      "source": "public/scripts/D58JO2kB2.js",
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1",
+      "byteStart": 55429,
+      "byteEndExclusive": 55689,
+      "excerpt": "\"persona\":{\"gentle\":\"温柔\",\"direct\":\"直接\",\"current\":\"当前：{{persona}}模式\",\"switchLabel\":\"切换念白性格\",\"switchFailed\":\"切换失败，请稍后再试\",\"switchBusy\":\"念白正在回复，等这条说完再换\"},\"toolbar\":{\"back\":\"返回\",\"open",
+      "interpretation": "localized persona labels, not prompts"
+    },
+    {
+      "id": "locale-reminders",
+      "source": "public/scripts/D58JO2kB2.js",
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1",
+      "byteStart": 57588,
+      "byteEndExclusive": 58919,
+      "excerpt": "\"offlineReminders\":{\"title\":\"离线任务提醒\",\"boundHere\":\"提醒接收位置：本对话。每个账号只绑定一个念白对话。\",\"boundElsewhere\":\"提醒已绑定另一个念白对话。开启此处开关，会改为本对话接收。\",\"bindHere\":\"开启后，提醒固定发到本对话，不会在多个对话重复发送。\",\"description\":\"开启后，即使没开网页，念白也会在此对话提醒未领的奖励、快完成的任务和签到。每天最多一条，提醒本身不扣聊天积分。\",\"time\":\"每天提醒时间（UTC+8）\",\"telegram\":\"符合条件时也推送 Telegram\",\"eligibility\":\"只提醒能够确认的任务；无法核实资格的任务暂不推送。签到和领奖仍需你自己在任务中心操作。\",\"loadFailed\":\"暂时无法读取提醒设置，请重新打开面板。\",\"saveFailed\":\"提醒设置保存失败，请稍后重试\"},\"settings\":{\"deleteConversation\":\"删除对话\",\"deleteConfirmTitle\":\"删除这个对话？\",\"deleteConfirmDesc\":\"删除后无法恢复，对话中的记忆不会被删除。\",\"confirmDelete\":\"删除\",\"cancel\":\"取消\",\"deleteSuccess\":\"对话已删除\",\"deleteFailed\":\"删除失败，请稍后重试\"},\"webSearch\":{\"title\":\"搜索结果\",\"noResults\":\"没有找到相关结果\"},\"billing\":{\"loading\":\"正在获取价格\",\"unavailable\":\"暂时无法",
+      "interpretation": "explicit daily task reminders, not arbitrary proactive conversation"
+    },
+    {
+      "id": "locale-delete-memory",
+      "source": "public/scripts/D58JO2kB2.js",
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1",
+      "byteStart": 58565,
+      "byteEndExclusive": 58680,
+      "excerpt": "\"deleteConfirmDesc\":\"删除后无法恢复，对话中的记忆不会被删除。\",\"confirmDelete\":\"删除\",\"cancel",
+      "interpretation": "deleting conversation does not delete its memory; UI contract"
+    },
+    {
+      "id": "rpc-transport",
+      "source": "public/scripts/D12SqV8q.js",
+      "sha256": "5dfcb47b825471d5aa49e26333aeef04826ce688702874631f223c794938f420",
+      "byteStart": 785927,
+      "byteEndExclusive": 786325,
+      "excerpt": "function WN(){return[FM({condition:e=>vbe(e.input),true:pN({url:`/api/trpc`,transformer:{serialize:e=>e,deserialize:hh.deserialize}}),false:FM({condition:e=>kye(e.path),true:xbe({url:`/api/trpc`,transformer:hh,maxItems:10}),false:pN({url:`/api/trpc`,transformer:hh})})})]}var{TRPCProvider:nxe,useTRPC:GN,useTRPCClient:KN}=txe(),qN=CN({links:WN()}),JN=UN({client:qN,queryClient:wh}),YN=()=>{let e=Dm",
+      "interpretation": "agent procedures use shared /api/trpc transport"
+    },
+    {
+      "id": "locale-introduction",
+      "source": "public/scripts/D58JO2kB2.js",
+      "sha256": "5e6e69940d27153452b512955969699710d2097fd785424a42030ad9fb8c52d1",
+      "byteStart": 125299,
+      "byteEndExclusive": 125913,
+      "excerpt": "nianbaiIntro:{title:`认识念白`,subtitle:`懂你、记得你、陪你一起规划与成长的 AI 伙伴。`,features:{memory:{name:`长期记忆`,desc:`记住你说过的事，在合适的时刻自然提起。`},capsule:{name:`时间胶囊`,desc:`给未来的自己留一封信，到约定的时间再打开。`},countdown:{name:`倒计时`,desc:`把在意的日子记下来，每天一起期待。`},diary:{name:`日记时光`,desc:`在每天结束时，温柔地回顾今天发生的一切。`}},startButton:`开始聊天`}},errors:{rateLimitTitle:`搜索次数已达上限`,rateLimitDescription:`您已达到",
+      "interpretation": "marketing product description, not prompt"
+    }
+  ],
+  "negativeSearch": {
+    "file": "public/scripts/C58mxSVt2.js",
+    "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+    "literalCaseSensitiveCounts": {
+      "assembly": 0,
+      "diagnostic": 0,
+      "systemPrompt": 0,
+      "system_prompt": 0,
+      "SOUL": 0,
+      "AGENTS": 0,
+      "HEARTBEAT": 0,
+      "model": 0,
+      "prompt": 1,
+      "system": 2,
+      "onContextMenu": 0
+    },
+    "notes": {
+      "prompt": "Only image.prompt display property.",
+      "system": "Two hits: generic AI SDK role schema and history role filter; not a system-prompt body."
+    }
+  },
+  "actualNianbaiSystemPromptRecovered": false
+}

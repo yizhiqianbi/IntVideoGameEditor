@@ -1,4 +1,7 @@
-import { dzmmModelReasoning, dzmmModelTemperature } from "./dzmm-models";
+import { dzmmModelReasoning, dzmmModelTemperature, findDzmmProviderModel } from "./dzmm-models";
+import { mergeTavernSampler, resolveTavernSampler } from "./tavern/sampler";
+import { buildTavernGroupPrompt, type TavernGroupMember } from "./tavern/group";
+import { readTavernFlags } from "./tavern/flags";
 import {
   buildDzmmPromptPlan,
   createDzmmSseParser,
@@ -12,6 +15,7 @@ import {
   sanitizeDzmmProviderError,
   validateDzmmChatInput,
   currentDzmmWorldState,
+  xumengAdultWritingPrompt,
 } from "./dzmm-chat";
 import { applyDzmmWorldPatch, readDzmmExplicitTimeJump } from "./dzmm-world-state";
 import { createDzmmWorldTailFilter, encodeDzmmWorldEvent } from "./dzmm-world-stream";
@@ -91,9 +95,48 @@ export async function handleDzmmChatPost(
   try {
     const body = await readDzmmJsonBody(request);
     if (options.prepareInput) ({ input, plan } = options.prepareInput(body, requestTime));
-    else { input = validateDzmmChatInput(body); plan = buildDzmmPromptPlan(input, requestTime); }
+    else {
+      input = validateDzmmChatInput(body);
+      const flags = readTavernFlags(env);
+      if (!flags.group && input.group) return failure("群聊功能暂未开放。", 403, "TAVERN_GROUP_DISABLED");
+      if (!flags.engine && input.promptStyle === "tavern") { input.promptStyle = undefined; delete input.group; }
+      if (!flags.sampler) delete input.sampler;
+      if (!flags.memory) delete input.memoryConfig;
+      plan = buildDzmmPromptPlan(input, requestTime);
+    }
   } catch (error) {
     return failure(error instanceof DzmmValidationError ? error.message : "无法读取聊天请求，请重试。", 400);
+  }
+  // Group chat: assemble a multi-character prompt and remember who speaks so the
+  // client can label the assistant turn.
+  let groupSpeaker: { name: string; characterId: string } | undefined;
+  if (input.group) {
+    try {
+      const group = buildTavernGroupPrompt({
+        members: input.group.members as TavernGroupMember[],
+        messages: input.messages,
+        userName: input.userName || "用户",
+        preset: input.preset,
+        persona: input.userPersona,
+        memory: input.storyMemory ? JSON.stringify(input.storyMemory) : undefined,
+        jailbreak: xumengAdultWritingPrompt(),
+        speaker: input.group.speaker,
+      });
+      groupSpeaker = { name: group.speaker.name, characterId: group.speaker.characterId };
+      plan = {
+        messages: group.plan.messages,
+        diagnostics: {
+          version: "tavern-group-v1",
+          historyMessages: input.messages.length,
+          exampleMessages: 0,
+          loreEntries: group.plan.sections.filter(section => section.id === "worldInfoBefore" || section.id === "worldInfoAfter").length,
+          hasMemory: Boolean(input.storyMemory),
+          segments: group.plan.sections.map(section => ({ source: section.id, role: section.role, chars: section.chars })),
+        },
+      };
+    } catch (error) {
+      return failure(error instanceof Error ? error.message : "群聊请求无效。", 400);
+    }
   }
   const config = readDzmmProviderConfig(env);
   if (!config.configured) {
@@ -107,11 +150,22 @@ export async function handleDzmmChatPost(
   catch (error) {
     return failure(error instanceof DzmmBillingError ? error.message : "模型成本上限配置无效，请联系站主。", 503, "BILLING_UNAVAILABLE");
   }
+  // SillyTavern sampler settings are optional; absent keeps the legacy defaults byte-for-byte.
+  const samplerParams = input.sampler ? (() => {
+    const capability = findDzmmProviderModel(upstream.model);
+    const resolved = resolveTavernSampler(mergeTavernSampler(input.sampler).settings, {
+      supportsTemperature: capability?.supportsTemperature !== false,
+      contextLength: capability?.contextLength ?? 32_000,
+    });
+    const { max_tokens: ignoredMaxTokens, ...rest } = resolved.providerParams;
+    void ignoredMaxTokens;
+    return rest;
+  })() : undefined;
   const buildProviderBody = (maxOutputTokens: number) => JSON.stringify({
     model: upstream.model, stream: true, ...(upstream.direct ? { stream_options: { include_usage: true } } : {}), messages: plan.messages,
     ...dzmmModelReasoning(upstream.model),
     ...(maxPrice ? { provider: dzmmProviderRouting(upstream.model, maxPrice) } : {}),
-    ...dzmmModelTemperature(upstream.model, input.model === "story" || input.model === "heretic" ? 0.9 : 0.75), max_tokens: maxOutputTokens,
+    ...(samplerParams ?? dzmmModelTemperature(upstream.model, input.model === "story" || input.model === "heretic" ? 0.9 : 0.75)), max_tokens: maxOutputTokens,
   });
   let effectiveMaxTokens = input.maxTokens;
   let lease: DzmmBillingLease | undefined;
@@ -324,6 +378,10 @@ export async function handleDzmmChatPost(
         "X-Xumeng-Max-Output-Tokens": String(effectiveMaxTokens),
         "X-Xumeng-Context": JSON.stringify({ historyMessages: plan.diagnostics.historyMessages,
           exampleMessages: plan.diagnostics.exampleMessages, loreEntries: plan.diagnostics.loreEntries, hasMemory: plan.diagnostics.hasMemory }),
+        ...(groupSpeaker ? {
+          "X-Xumeng-Speaker": encodeURIComponent(groupSpeaker.name),
+          "X-Xumeng-Speaker-Id": encodeURIComponent(groupSpeaker.characterId),
+        } : {}),
       },
     });
   } catch (error) {

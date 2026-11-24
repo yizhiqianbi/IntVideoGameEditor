@@ -142,6 +142,8 @@ export async function loadMissingPublishedCharacters<T extends { id: string }>(o
   load: (id: string) => Promise<T>;
   remember: (character: T) => void;
   onSettled?: (id: string) => void;
+  /** Called when a lookup fails; the id stays retryable instead of being dropped. */
+  onFailed?: (id: string) => void;
   isStopped?: () => boolean;
   signal?: AbortSignal;
   concurrency?: number;
@@ -173,7 +175,9 @@ export async function loadMissingPublishedCharacters<T extends { id: string }>(o
         if (character?.id === id) options.remember(character);
       } catch {
         if (halted()) return;
-        options.attempted.add(id);
+        // A transient network/deploy failure must not make the conversation
+        // look permanently broken: leave the id retryable and report it.
+        options.onFailed?.(id);
       }
       if (!halted()) options.onSettled?.(id);
     }

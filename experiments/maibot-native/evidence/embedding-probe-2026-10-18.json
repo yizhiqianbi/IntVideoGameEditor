@@ -1,0 +1,13 @@
+{
+  "date": "2026-10-18",
+  "endpoint": "https://openrouter.ai/api/v1/embeddings",
+  "requested_model": "qwen/qwen3-embedding-8b",
+  "returned_model": "Qwen/Qwen3-Embedding-8B",
+  "http_status": 200,
+  "dimension": 4096,
+  "all_values_finite": true,
+  "prompt_tokens": 14,
+  "total_tokens": 14,
+  "cost": 0.00000014,
+  "scope": "Direct provider availability check using a synthetic Chinese sentence. Does not prove MaiBot runtime or its memory retrieval is running."
+}

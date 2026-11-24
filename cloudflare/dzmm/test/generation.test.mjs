@@ -345,3 +345,10 @@ test('wan3.0 canvas video holds 150 credits per second and the client cannot cho
  expect(await call(await fixture({balance:5000}),'/v1/generation/canvas',{method:'POST',body:{kind:'image',model:'seedream-4.5',resolution:'720P',requestId:randomUUID()}}),400);
  expect(await call(await fixture({balance:5000}),'/v1/generation/canvas',{method:'POST',body:{kind:'video',model:'not-a-model',requestId:randomUUID(),seconds:5}}),400);
 });
+test('chat segment video holds a fixed 300 credits for five seconds',async()=>{
+ const clip=expect(await call(await fixture({balance:300}),'/v1/generation/canvas',{method:'POST',body:{kind:'chat-segment',requestId:randomUUID()}}),201);
+ assert.equal(clip.kind,'video');assert.equal(clip.credits,300);assert.equal(clip.status,'reserved');
+ expect(await call(await fixture({balance:299}),'/v1/generation/canvas',{method:'POST',body:{kind:'chat-segment',requestId:randomUUID()}}),402);
+ expect(await call(await fixture({balance:1000}),'/v1/generation/canvas',{method:'POST',body:{kind:'chat-segment',requestId:randomUUID(),seconds:15}}),400);
+ expect(await call(await fixture({balance:1000}),'/v1/generation/canvas',{method:'POST',body:{kind:'chat-segment',requestId:randomUUID(),credits:1}}),400);
+});

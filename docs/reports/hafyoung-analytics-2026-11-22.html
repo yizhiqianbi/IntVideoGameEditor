@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>HAFYOUNG 站点数据报告 · 2026-11-22</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--card2:#1b222b;--line:#262d36;--tx:#e6edf3;--mut:#8b949e;--blue:#4f9cf9;--green:#3fb950;--amber:#d29922;--red:#f85149}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+.wrap{max-width:1180px;margin:0 auto;padding:34px 22px 60px}
+header{border-bottom:1px solid var(--line);padding-bottom:20px;margin-bottom:26px}
+.kicker{color:var(--blue);font-size:12px;letter-spacing:.14em;text-transform:uppercase;font-weight:700}
+h1{font-size:30px;margin:8px 0 6px;letter-spacing:-.01em}
+.sub{color:var(--mut);font-size:13px}
+.sub code{background:#1f2630;padding:2px 6px;border-radius:5px;color:#c9d1d9;font-size:12px}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin:24px 0 30px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 14px 12px}
+.kpi .n{font-size:26px;font-weight:700;letter-spacing:-.02em}
+.kpi .l{color:var(--mut);font-size:12px;margin-top:2px}
+.kpi .s{font-size:11px;margin-top:6px;color:var(--mut)}
+.up{color:var(--green)} .down{color:var(--red)}
+h2{font-size:17px;margin:34px 0 12px;display:flex;align-items:center;gap:8px}
+h2:before{content:"";width:3px;height:15px;background:var(--blue);border-radius:2px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1.25fr .75fr;gap:14px}
+.chart{width:100%;height:auto;display:block}
+.tbl{width:100%;border-collapse:collapse;font-size:13px}
+.tbl th{text-align:left;color:var(--mut);font-weight:600;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase;padding:0 8px 8px;border-bottom:1px solid var(--line)}
+.tbl td{padding:7px 8px;border-bottom:1px solid #1e242c;vertical-align:top}
+.tbl tr:last-child td{border-bottom:none}
+.tbl td:nth-child(2),.tbl td:nth-child(3){text-align:right;white-space:nowrap}
+.tbl th:nth-child(2),.tbl th:nth-child(3){text-align:right}
+.brow{display:flex;align-items:center;gap:10px;margin:7px 0;font-size:12.5px}
+.blabel{width:190px;flex:0 0 190px;color:#c9d1d9;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.btrack{flex:1;background:#1f2630;border-radius:5px;height:15px;overflow:hidden}
+.bfill{height:100%;border-radius:5px}
+.bval{width:52px;text-align:right;color:var(--mut);font-variant-numeric:tabular-nums}
+.pill{font-size:11px;padding:2px 7px;border-radius:99px;background:#1f2630;color:#c9d1d9}
+.pill.ok{background:rgba(63,185,80,.14);color:#56d364}
+.note{background:#141a21;border:1px solid var(--line);border-left:3px solid var(--amber);border-radius:8px;padding:12px 14px;color:#c9d1d9;font-size:13px;margin-top:14px}
+.note b{color:var(--amber)}
+.mut{color:var(--mut)}
+.small{font-size:12px}
+ul.rec{margin:8px 0 0;padding-left:18px;color:#c9d1d9}
+ul.rec li{margin:6px 0}
+footer{margin-top:40px;padding-top:18px;border-top:1px solid var(--line);color:var(--mut);font-size:12px}
+@media(max-width:900px){.kpis{grid-template-columns:repeat(2,1fr)}.grid2,.grid3{grid-template-columns:1fr}.blabel{width:132px;flex-basis:132px}}
+</style></head><body><div class="wrap">
+<header>
+<div class="kicker">Cloudflare Pages · 站点数据报告</div>
+<h1>HAFYOUNG SpaceCool</h1>
+<div class="sub">项目 <code>hafyoung-cooling</code> · 自定义域名 <code>www.hafyoung-cooling.com</code> · 数据区间 <b>2026-11-01 → 2026-11-22</b>（22 天，Asia/Shanghai）· 生成于 2026-11-22 16:09</div>
+</header>
+
+<div class="kpis">
+<div class="kpi"><div class="n">165</div><div class="l">人工浏览量 pv</div><div class="s">日均 7.5</div></div>
+<div class="kpi"><div class="n">116</div><div class="l">独立访客 uv</div><div class="s">日均 5.3 · 人均 1.42 页</div></div>
+<div class="kpi"><div class="n">29</div><div class="l">互动事件</div><div class="s">其中询盘/报价/邮件 14 次</div></div>
+<div class="kpi"><div class="n">11<span style="font-size:14px;color:var(--mut)"> 秒</span></div><div class="l">单页停留（中位数）</div><div class="s">均值 88 秒 · n=135</div></div>
+<div class="kpi"><div class="n">2,447</div><div class="l">爬虫请求</div><div class="s">是人工浏览的 14.8 倍</div></div>
+<div class="kpi"><div class="n">6.3%</div><div class="l">人工流量占比</div><div class="s">搜索 1151 · AI 362</div></div>
+</div>
+
+<h2>每日人工浏览与访客</h2>
+<div class="card"><svg viewBox="0 0 980 300" class="chart" role="img" aria-label="每日人工浏览与访客">
+<defs><linearGradient id="g1" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4f9cf9"/><stop offset="1" stop-color="#2563eb"/></linearGradient></defs>
+<line x1="48" y1="256.0" x2="964" y2="256.0" stroke="#2a3038" stroke-width="1"/><text x="40" y="260.0" fill="#7c8794" font-size="10" text-anchor="end">0</text><line x1="48" y1="196.5" x2="964" y2="196.5" stroke="#2a3038" stroke-width="1"/><text x="40" y="200.5" fill="#7c8794" font-size="10" text-anchor="end">5</text><line x1="48" y1="137.0" x2="964" y2="137.0" stroke="#2a3038" stroke-width="1"/><text x="40" y="141.0" fill="#7c8794" font-size="10" text-anchor="end">10</text><line x1="48" y1="77.5" x2="964" y2="77.5" stroke="#2a3038" stroke-width="1"/><text x="40" y="81.5" fill="#7c8794" font-size="10" text-anchor="end">15</text><line x1="48" y1="18.0" x2="964" y2="18.0" stroke="#2a3038" stroke-width="1"/><text x="40" y="22.0" fill="#7c8794" font-size="10" text-anchor="end">20</text><g><rect x="48" y="4" width="10" height="10" rx="2" fill="url(#g1)"/><text x="63" y="13" fill="#9aa4af" font-size="11">人工浏览 pv</text>
+<line x1="158" y1="9" x2="180" y2="9" stroke="#34d399" stroke-width="2"/><circle cx="169" cy="9" r="2.6" fill="#34d399"/><text x="187" y="13" fill="#9aa4af" font-size="11">独立访客 uv</text></g><rect x="55.5" y="172.7" width="26.6" height="83.3" rx="2" fill="url(#g1)"><title>2026-11-01: 7 浏览</title></rect><rect x="97.1" y="18.0" width="26.6" height="238.0" rx="2" fill="url(#g1)"><title>2026-11-02: 20 浏览</title></rect><rect x="138.8" y="160.8" width="26.6" height="95.2" rx="2" fill="url(#g1)"><title>2026-11-03: 8 浏览</title></rect><rect x="180.4" y="101.3" width="26.6" height="154.7" rx="2" fill="url(#g1)"><title>2026-11-04: 13 浏览</title></rect><rect x="222.0" y="172.7" width="26.6" height="83.3" rx="2" fill="url(#g1)"><title>2026-11-05: 7 浏览</title></rect><rect x="263.7" y="160.8" width="26.6" height="95.2" rx="2" fill="url(#g1)"><title>2026-11-06: 8 浏览</title></rect><rect x="305.3" y="232.2" width="26.6" height="23.8" rx="2" fill="url(#g1)"><title>2026-11-07: 2 浏览</title></rect><rect x="346.9" y="256.0" width="26.6" height="0.0" rx="2" fill="url(#g1)"><title>2026-11-08: 0 浏览</title></rect><rect x="388.6" y="160.8" width="26.6" height="95.2" rx="2" fill="url(#g1)"><title>2026-11-09: 8 浏览</title></rect><rect x="430.2" y="125.1" width="26.6" height="130.9" rx="2" fill="url(#g1)"><title>2026-11-10: 11 浏览</title></rect><rect x="471.9" y="89.4" width="26.6" height="166.6" rx="2" fill="url(#g1)"><title>2026-11-11: 14 浏览</title></rect><rect x="513.5" y="160.8" width="26.6" height="95.2" rx="2" fill="url(#g1)"><title>2026-11-12: 8 浏览</title></rect><rect x="555.1" y="125.1" width="26.6" height="130.9" rx="2" fill="url(#g1)"><title>2026-11-13: 11 浏览</title></rect><rect x="596.8" y="196.5" width="26.6" height="59.5" rx="2" fill="url(#g1)"><title>2026-11-14: 5 浏览</title></rect><rect x="638.4" y="220.3" width="26.6" height="35.7" rx="2" fill="url(#g1)"><title>2026-11-15: 3 浏览</title></rect><rect x="680.0" y="172.7" width="26.6" height="83.3" rx="2" fill="url(#g1)"><title>2026-11-16: 7 浏览</title></rect><rect x="721.7" y="101.3" width="26.6" height="154.7" rx="2" fill="url(#g1)"><title>2026-11-17: 13 浏览</title></rect><rect x="763.3" y="220.3" width="26.6" height="35.7" rx="2" fill="url(#g1)"><title>2026-11-18: 3 浏览</title></rect><rect x="804.9" y="208.4" width="26.6" height="47.6" rx="2" fill="url(#g1)"><title>2026-11-19: 4 浏览</title></rect><rect x="846.6" y="160.8" width="26.6" height="95.2" rx="2" fill="url(#g1)"><title>2026-11-20: 8 浏览</title></rect><rect x="888.2" y="232.2" width="26.6" height="23.8" rx="2" fill="url(#g1)"><title>2026-11-21: 2 浏览</title></rect><rect x="929.9" y="220.3" width="26.6" height="35.7" rx="2" fill="url(#g1)"><title>2026-11-22: 3 浏览</title></rect><polyline points="68.8,220.3 110.5,137.0 152.1,184.6 193.7,137.0 235.4,208.4 277.0,160.8 318.6,232.2 360.3,256.0 401.9,196.5 443.5,160.8 485.2,160.8 526.8,160.8 568.5,172.7 610.1,208.4 651.7,220.3 693.4,196.5 735.0,148.9 776.6,220.3 818.3,220.3 859.9,160.8 901.5,232.2 943.2,244.1" fill="none" stroke="#34d399" stroke-width="1.8" stroke-linejoin="round"/><circle cx="68.8" cy="220.3" r="2.6" fill="#34d399"><title>2026-11-01: 3 访客</title></circle><circle cx="110.5" cy="137.0" r="2.6" fill="#34d399"><title>2026-11-02: 10 访客</title></circle><circle cx="152.1" cy="184.6" r="2.6" fill="#34d399"><title>2026-11-03: 6 访客</title></circle><circle cx="193.7" cy="137.0" r="2.6" fill="#34d399"><title>2026-11-04: 10 访客</title></circle><circle cx="235.4" cy="208.4" r="2.6" fill="#34d399"><title>2026-11-05: 4 访客</title></circle><circle cx="277.0" cy="160.8" r="2.6" fill="#34d399"><title>2026-11-06: 8 访客</title></circle><circle cx="318.6" cy="232.2" r="2.6" fill="#34d399"><title>2026-11-07: 2 访客</title></circle><circle cx="360.3" cy="256.0" r="2.6" fill="#34d399"><title>2026-11-08: 0 访客</title></circle><circle cx="401.9" cy="196.5" r="2.6" fill="#34d399"><title>2026-11-09: 5 访客</title></circle><circle cx="443.5" cy="160.8" r="2.6" fill="#34d399"><title>2026-11-10: 8 访客</title></circle><circle cx="485.2" cy="160.8" r="2.6" fill="#34d399"><title>2026-11-11: 8 访客</title></circle><circle cx="526.8" cy="160.8" r="2.6" fill="#34d399"><title>2026-11-12: 8 访客</title></circle><circle cx="568.5" cy="172.7" r="2.6" fill="#34d399"><title>2026-11-13: 7 访客</title></circle><circle cx="610.1" cy="208.4" r="2.6" fill="#34d399"><title>2026-11-14: 4 访客</title></circle><circle cx="651.7" cy="220.3" r="2.6" fill="#34d399"><title>2026-11-15: 3 访客</title></circle><circle cx="693.4" cy="196.5" r="2.6" fill="#34d399"><title>2026-11-16: 5 访客</title></circle><circle cx="735.0" cy="148.9" r="2.6" fill="#34d399"><title>2026-11-17: 9 访客</title></circle><circle cx="776.6" cy="220.3" r="2.6" fill="#34d399"><title>2026-11-18: 3 访客</title></circle><circle cx="818.3" cy="220.3" r="2.6" fill="#34d399"><title>2026-11-19: 3 访客</title></circle><circle cx="859.9" cy="160.8" r="2.6" fill="#34d399"><title>2026-11-20: 8 访客</title></circle><circle cx="901.5" cy="232.2" r="2.6" fill="#34d399"><title>2026-11-21: 2 访客</title></circle><circle cx="943.2" cy="244.1" r="2.6" fill="#34d399"><title>2026-11-22: 1 访客</title></circle><text x="68.8" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-01</text><text x="193.7" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-04</text><text x="318.6" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-07</text><text x="443.5" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-10</text><text x="568.5" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-13</text><text x="693.4" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-16</text><text x="818.3" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-19</text><text x="943.2" y="284" fill="#7c8794" font-size="10" text-anchor="middle">11-22</text>
+</svg>
+<div class="small mut" style="margin-top:8px">峰值：2026-11-02 单日 20 次浏览；访客最多 2026-11-02（10 人）。近 7 天 40 pv / 30 uv，较前 7 天 <span class="down">-33%</span> pv、<span class="down">-30%</span> uv。</div></div>
+
+<h2>热门页面</h2>
+<div class="card"><div class="brow"><div class="blabel" title="/">/</div>
+        <div class="btrack"><div class="bfill" style="width:520px;background:#4f9cf9"></div></div>
+        <div class="bval">82</div></div>
+<div class="brow"><div class="blabel" title="/zh/">/zh/</div>
+        <div class="btrack"><div class="bfill" style="width:285px;background:#34d399"></div></div>
+        <div class="bval">45</div></div>
+<div class="brow"><div class="blabel" title="/guides/oem-portable-air-conditioner-manufacturer/">/guides/oem-portable-air-conditioner-manufacturer/</div>
+        <div class="btrack"><div class="bfill" style="width:44px;background:#f59e0b"></div></div>
+        <div class="bval">7</div></div>
+<div class="brow"><div class="blabel" title="/models/cog-2/">/models/cog-2/</div>
+        <div class="btrack"><div class="bfill" style="width:38px;background:#a78bfa"></div></div>
+        <div class="bval">6</div></div>
+<div class="brow"><div class="blabel" title="/models/pog-2/">/models/pog-2/</div>
+        <div class="btrack"><div class="bfill" style="width:32px;background:#f472b6"></div></div>
+        <div class="bval">5</div></div>
+<div class="brow"><div class="blabel" title="/models/pog-1/">/models/pog-1/</div>
+        <div class="btrack"><div class="bfill" style="width:19px;background:#22d3ee"></div></div>
+        <div class="bval">3</div></div>
+<div class="brow"><div class="blabel" title="/models/c18/">/models/c18/</div>
+        <div class="btrack"><div class="bfill" style="width:19px;background:#fb923c"></div></div>
+        <div class="bval">3</div></div>
+<div class="brow"><div class="blabel" title="/ja/">/ja/</div>
+        <div class="btrack"><div class="bfill" style="width:19px;background:#94a3b8"></div></div>
+        <div class="bval">3</div></div>
+<div class="brow"><div class="blabel" title="/guides/portable-air-conditioner-buying-guide/">/guides/portable-air-conditioner-buying-guide/</div>
+        <div class="btrack"><div class="bfill" style="width:19px;background:#e879f9"></div></div>
+        <div class="bval">3</div></div>
+<div class="brow"><div class="blabel" title="/guides/tent-air-conditioner-setup/">/guides/tent-air-conditioner-setup/</div>
+        <div class="btrack"><div class="bfill" style="width:13px;background:#4ade80"></div></div>
+        <div class="bval">2</div></div>
+<div class="brow"><div class="blabel" title="/de/">/de/</div>
+        <div class="btrack"><div class="bfill" style="width:13px;background:#facc15"></div></div>
+        <div class="bval">2</div></div>
+<div class="brow"><div class="blabel" title="/ar/">/ar/</div>
+        <div class="btrack"><div class="bfill" style="width:13px;background:#38bdf8"></div></div>
+        <div class="bval">2</div></div></div>
+
+<div class="grid2" style="margin-top:14px">
+<div class="card"><h2 style="margin-top:0">流量来源</h2><table class="tbl"><thead><tr><th>来源</th><th>浏览</th><th>占比</th></tr></thead><tbody><tr><td>直接访问 / 无来源</td><td>124</td><td>75%</td></tr><tr><td>www.google.com</td><td>15</td><td>9%</td></tr><tr><td>weixin110.qq.com</td><td>7</td><td>4%</td></tr><tr><td>www.bing.com</td><td>5</td><td>3%</td></tr><tr><td>cn.bing.com</td><td>5</td><td>3%</td></tr><tr><td>www.google.com.hk</td><td>3</td><td>2%</td></tr><tr><td>kml-dtmachine-100002882-prod-vscode-service.kce-aip-wlf1-hb2</td><td>3</td><td>2%</td></tr><tr><td>m.baidu.com</td><td>2</td><td>1%</td></tr></tbody></table></div>
+<div class="card"><h2 style="margin-top:0">访问国家/地区</h2><table class="tbl"><thead><tr><th>国家</th><th>浏览</th><th>占比</th></tr></thead><tbody><tr><td>US</td><td>32</td><td>19%</td></tr><tr><td>CN</td><td>30</td><td>18%</td></tr><tr><td>SG</td><td>21</td><td>13%</td></tr><tr><td>FR</td><td>12</td><td>7%</td></tr><tr><td>HK</td><td>11</td><td>7%</td></tr><tr><td>PL</td><td>10</td><td>6%</td></tr><tr><td>GB</td><td>10</td><td>6%</td></tr><tr><td>DE</td><td>8</td><td>5%</td></tr><tr><td>NL</td><td>7</td><td>4%</td></tr><tr><td>JP</td><td>5</td><td>3%</td></tr></tbody></table></div>
+</div>
+
+<div class="grid3" style="margin-top:14px">
+<div class="card"><h2 style="margin-top:0">互动事件</h2>
+<table class="tbl"><thead><tr><th>事件</th><th>次数</th><th>访客</th></tr></thead><tbody><tr><td>inquiry</td><td>9</td><td>2</td></tr><tr><td>film</td><td>8</td><td>2</td></tr><tr><td>play:film</td><td>7</td><td>7</td></tr><tr><td>quote</td><td>4</td><td>3</td></tr><tr><td>email</td><td>1</td><td>1</td></tr></tbody></table>
+<div class="small mut" style="margin-top:10px">inquiry 询盘按钮、quote 询价、email 邮件、film / play:film 视频播放。9 次询盘全部发生在英文首页 <code>/</code>。</div></div>
+<div class="card"><h2 style="margin-top:0">设备 / 语言</h2>
+<table class="tbl"><thead><tr><th>设备</th><th>浏览</th></tr></thead><tbody><tr><td>desktop</td><td>114</td></tr><tr><td>mobile</td><td>49</td></tr><tr><td>tablet</td><td>2</td></tr></tbody></table>
+<div style="height:10px"></div>
+<table class="tbl"><thead><tr><th>语言</th><th>浏览</th></tr></thead><tbody><tr><td>en</td><td>111</td></tr><tr><td>zh-Hans</td><td>45</td></tr><tr><td>ja</td><td>3</td></tr><tr><td>de</td><td>2</td></tr><tr><td>ar</td><td>2</td></tr><tr><td>ru</td><td>1</td></tr><tr><td>fr</td><td>1</td></tr></tbody></table>
+</div>
+</div>
+
+<h2>爬虫抓取构成</h2>
+<div class="grid2">
+<div class="card"><table class="tbl"><thead><tr><th>爬虫</th><th>请求数</th></tr></thead><tbody><tr><td>其他/未识别</td><td>562</td></tr><tr><td>bingbot</td><td>506</td></tr><tr><td>PetalBot</td><td>300</td></tr><tr><td>Googlebot</td><td>277</td></tr><tr><td>OAI-SearchBot</td><td>123</td></tr><tr><td>Amazonbot</td><td>118</td></tr><tr><td>curl</td><td>100</td></tr><tr><td>ClaudeBot</td><td>92</td></tr><tr><td>ChatGPT-User</td><td>69</td></tr><tr><td>GPTBot</td><td>55</td></tr><tr><td>SemrushBot</td><td>42</td></tr><tr><td>AhrefsBot</td><td>42</td></tr></tbody></table>
+<div class="small mut" style="margin-top:10px">ChatGPT 来源的 utm 共 30 次浏览（utm / ref = <code>chatgpt.com</code>）。</div></div>
+<div class="card"><h2 style="margin-top:0">AI 爬虫 vs 搜索引擎</h2>
+<table class="tbl"><thead><tr><th>类别</th><th>请求数</th><th>主要来源</th></tr></thead><tbody>
+<tr><td>AI 助手 / 搜索</td><td style="text-align:right">362</td><td class="small mut">OAI-SearchBot 123 · ClaudeBot 92 · ChatGPT-User 69 · GPTBot 55</td></tr>
+<tr><td>传统搜索引擎</td><td style="text-align:right">1151</td><td class="small mut">bingbot 506 · PetalBot 300 · Googlebot 277</td></tr>
+<tr><td>SEO 工具 / 其他</td><td style="text-align:right">934</td><td class="small mut">Ahrefs/Semrush/Yandex 等</td></tr>
+</tbody></table>
+<div class="note" style="margin-top:12px"><b>值得注意</b>：AI 爬虫（约 362 次）已经接近 Googlebot 的 1.3 倍，说明站点在被 AI 搜索收录与引用。另有 301/308 重定向 322 次（旧 <code>*.html</code> 路径迁移，属正常）、404 共 122 次，后者集中在多语言旧图片路径（<code>/es/…png</code>、<code>/pt/…jpg</code>），会浪费抓取预算。</div>
+</div>
+</div>
+
+<h2>部署记录（Cloudflare Pages）</h2>
+<div class="card"><table class="tbl"><thead><tr><th>部署时间 (UTC)</th><th>环境</th><th>状态</th><th>提交</th></tr></thead><tbody><tr><td>2026-11-02 06:04 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>Add specifications, factory facts, certifications an</td></tr><tr><td>2026-11-02 06:03 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>Add specifications, factory facts, certifications an</td></tr><tr><td>2026-11-01 20:23 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>Add specifications, factory facts, certifications an</td></tr><tr><td>2026-11-01 20:03 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>Add specifications, factory facts, certifications an</td></tr><tr><td>2026-11-01 11:54 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>HAFYOUNG SpaceCool site: Cloudflare Pages source as </td></tr><tr><td>2026-11-01 11:52 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>HAFYOUNG SpaceCool site: Cloudflare Pages source as </td></tr><tr><td>2026-11-01 06:59 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-28 03:36 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 10:58 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 10:57 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 10:56 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 09:41 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 09:35 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 08:53 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 07:26 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr><tr><td>2026-10-27 07:25 UTC</td><td>production</td><td><span class='pill ok'>success</span></td><td>（无提交信息）</td></tr></tbody></table>
+<div class="small mut" style="margin-top:10px">16 次部署全部成功；最后一次生产部署 <b>2026-11-02 06:04 UTC</b>（提交 9b9296c9 “Add specifications, factory facts…”），此后站点未再更新。生产分支 <code>main</code>，构建输出 <code>dist</code>，绑定 D1 <code>hafyoung-stats</code> 与生产密钥 <code>STATS_KEY</code>；Functions 已启用。</div></div>
+
+<h2>站点与统计链路</h2>
+<div class="card small">
+<ul class="rec">
+<li><b>托管</b>：Cloudflare Pages 项目 <code>hafyoung-cooling</code>，创建于 2026-10-27，自定义域名 <code>www.hafyoung-cooling.com</code>（CNAME → <code>hafyoung-cooling.pages.dev</code>），线上返回 200，命中 Cloudflare 香港节点。</li>
+<li><b>DNS 不在 Cloudflare</b>：<code>hafyoung-cooling.com</code> 的 NS 是 <code>ns1/ns2.myhostadmin.net</code>（新网），所以 Cloudflare 侧<b>没有</b>对该域名的 Zone 级流量分析（请求数、带宽、缓存命中率都不在 CF 控制台）。</li>
+<li><b>统计是站内自建的</b>：<code>/k.js</code> 上报到 <code>/k/h</code>，写入 D1 表 <code>hits</code>（pv / ev / end / bot 四类），本报告数据即来自该表，共 2,776 条、2026-11-01 起。</li>
+<li><b>Cloudflare Web Analytics 未启用</b>：页面里没有 CF 的 <code>beacon.min.js</code>，Pages 项目的 <code>web_analytics_tag</code> 为空。</li>
+<li><b>口径</b>：pv/uv/事件只统计执行了 JS 的真人浏览器（无 Cookie，uv 用随机 <code>vid</code> 近似），广告拦截或禁用 JS 的访问会漏计；爬虫按 UA 单独计入 <code>bot</code>，不计入人工流量。停留时长只统计页面隐藏时上报的 <code>end</code> 事件，中位数为 11 秒更接近真实阅读，均值被少数超长会话（最长 3600 秒）拉高。</li>
+</ul>
+</div>
+
+<h2>结论与建议</h2>
+<div class="card">
+<ul class="rec">
+<li><b>量级</b>：21 天 165 pv / 116 uv，日均不到 8 次浏览，属于刚起步的展示站；87/116 位访客只看一页，人均 1.42 页，内容深度和内部链接（型号页 ↔ 指南页）还有很大空间。</li>
+<li><b>质量</b>：约 69% 桌面端、67% 英文，询盘 9 次 / 询价 4 次，主要来自英文首页；中文首页 <code>/zh/</code> 是第二入口且视频播放（film 8 次）集中在这里，说明中文页的视频素材有效。</li>
+<li><b>近 7 天在掉量</b>：40 pv / 30 uv（-33% pv / -30% uv），互动事件从 12 次降到 3 次；与 11-02 之后未再部署、也没有新内容发布的时间点吻合。</li>
+<li><b>AI 来源值得投入</b>：ChatGPT 系爬虫 ~340 次 + utm=chatgpt.com 的 30 次浏览；建议补 FAQ / 规格对比 / 认证（已有 Buying Guide 结构可复用），做成可被引用的硬事实段落。</li>
+<li><b>低成本改两处</b>：① 给 <code>hafyoung-cooling.com</code> 加 301 到 <code>www</code> 或反之，避免双入口分散权重；② 修掉多语言目录下的旧图 404（122 次），或加 <code>/:lang/…</code> 兜底规则。</li>
+<li><b>想要 CF 侧的请求/带宽数据</b>：需把域名 NS 迁到 Cloudflare（或在 CF 控制台另开 Web Analytics 并加 JS 片段）；目前站内 D1 统计已经能回答“谁来看、看什么、点了什么”。</li>
+</ul>
+</div>
+
+<footer>数据源：Cloudflare Pages API（项目/部署）+ D1 <code>hafyoung-stats.hits</code>（站点自有埋点）· 生成时间 2026-11-22 16:09 · 报告文件：docs/reports/hafyoung-analytics-2026-11-22.html</footer>
+</div></body></html>

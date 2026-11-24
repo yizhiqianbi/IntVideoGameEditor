@@ -1,0 +1,168 @@
+{
+  "success": true,
+  "person_id": "e08ebb3141dbf2a37946a65e62afb57f",
+  "person_name": "你",
+  "from_cache": true,
+  "evidence_unchanged": true,
+  "snapshot_id": 9,
+  "profile_version": 4,
+  "profile_text": "# 人物画像\n人物ID: e08ebb3141dbf2a37946a65e62afb57f\n主称呼: 你\n别名: 你\n\n## 身份设定\n- 目标人物叫阿舟。\n\n## 关系设定\n- 目标人物叫阿舟\n\n## 稳定了解\n- 目标人物平时最喜欢喝桂花乌龙，不加糖\n- 目标人物平时最喜欢喝不加糖的桂花乌龙\n- 目标人物叫阿舟\n- 目标人物平时最喜欢喝不加糖的桂花乌龙。\n\n## 相处偏好\n- 目标人物平时最喜欢喝不加糖的桂花乌龙\n- 目标人物平时最喜欢喝桂花乌龙，不加糖\n\n## 近期互动\n- 暂无\n\n## 不确定信息\n- 暂无\n\n## 维护备注\n- 自动画像仅供内部参考；若与当前对话冲突，以当前对话为准。",
+  "aliases": [
+    "你"
+  ],
+  "relation_edges": [],
+  "vector_evidence": [
+    {
+      "hash": "44e6539a4a6c12b8c8c53bff30aed27ea6187dafeba6c68a5ed4a7873c15ab04",
+      "type": "paragraph",
+      "score": 1.1,
+      "content": "目标人物平时最喜欢喝不加糖的桂花乌龙",
+      "source": "person_fact:e08ebb3141dbf2a37946a65e62afb57f",
+      "metadata": {
+        "chat_id": "6b506294825dff986b8694c00dc10312",
+        "chat_ids": [
+          "6b506294825dff986b8694c00dc10312"
+        ],
+        "evidence_message_ids": [
+          "78a2b7e2-e11d-4046-ba27-db7ae5d883cb",
+          "6ed7fcd0-572c-4681-8023-1b104a2440d9"
+        ],
+        "evidence_source": "user_supported",
+        "external_id": "person_fact:e08ebb3141dbf2a37946a65e62afb57f:e95e40bcd9d2c32afa10615eadae9ec1",
+        "fact_claim": {
+          "authority": "direct_user",
+          "profile_section": "stable_facts",
+          "stability": "stable"
+        },
+        "fact_claim_ids": [
+          "d985647dd5f385677fbffb94508dde6e4f9ddecd0cf0db9ffe810c124fb0ffa0"
+        ],
+        "participants": [
+          "你"
+        ],
+        "person_id": "e08ebb3141dbf2a37946a65e62afb57f",
+        "person_ids": [
+          "e08ebb3141dbf2a37946a65e62afb57f"
+        ],
+        "person_name": "你",
+        "source_type": "person_fact",
+        "tags": [
+          "person_fact"
+        ],
+        "writeback_source": "memory_flow_service"
+      }
+    },
+    {
+      "hash": "f3d3853a7d674ed1a9fde8abf94af957e24658651172c3ff0b77cae485e9daf4",
+      "type": "paragraph",
+      "score": 1.1,
+      "content": "目标人物叫阿舟",
+      "source": "person_fact:e08ebb3141dbf2a37946a65e62afb57f",
+      "metadata": {
+        "chat_id": "0cc26da45bd12d72d79dabb9f773dfd6",
+        "chat_ids": [
+          "0cc26da45bd12d72d79dabb9f773dfd6",
+          "6b506294825dff986b8694c00dc10312"
+        ],
+        "evidence_message_ids": [
+          "78a2b7e2-e11d-4046-ba27-db7ae5d883cb",
+          "6ed7fcd0-572c-4681-8023-1b104a2440d9"
+        ],
+        "evidence_source": "user_supported",
+        "external_id": "person_fact:4dd0239ce258d1816a82c2da0f9710a1:192665f4299c6e53fc0d4876d2928148",
+        "fact_claim": {
+          "authority": "direct_user",
+          "profile_section": "stable_facts",
+          "stability": "stable"
+        },
+        "fact_claim_ids": [
+          "1d56e4467ad773639404a74651a2afa4f794c1ea090b420d1b60ba67c8accfab"
+        ],
+        "participants": [
+          "你"
+        ],
+        "person_id": "4dd0239ce258d1816a82c2da0f9710a1",
+        "person_ids": [
+          "4dd0239ce258d1816a82c2da0f9710a1"
+        ],
+        "person_name": "你",
+        "source_type": "person_fact",
+        "tags": [
+          "person_fact"
+        ],
+        "writeback_source": "memory_flow_service"
+      }
+    },
+    {
+      "hash": "13739341170fbf8951963a2ce50abb220ccf2fe6b770b605267e0495a7baa20b",
+      "type": "paragraph",
+      "score": 1.1,
+      "content": "目标人物平时最喜欢喝桂花乌龙，不加糖",
+      "source": "person_fact:e08ebb3141dbf2a37946a65e62afb57f",
+      "metadata": {
+        "chat_id": "6b506294825dff986b8694c00dc10312",
+        "chat_ids": [
+          "6b506294825dff986b8694c00dc10312"
+        ],
+        "evidence_message_ids": [
+          "78a2b7e2-e11d-4046-ba27-db7ae5d883cb"
+        ],
+        "evidence_source": "user_supported",
+        "external_id": "person_fact:e08ebb3141dbf2a37946a65e62afb57f:4817a998508f30a854a82b6b2ea2e71a",
+        "fact_claim": {
+          "authority": "direct_user",
+          "profile_section": "stable_facts",
+          "stability": "stable"
+        },
+        "fact_claim_ids": [
+          "ecc90d8740b3c2b86327e9eb0d2a6931b8fef487e7b97ce6b84e4d03a475a43f"
+        ],
+        "participants": [
+          "你"
+        ],
+        "person_id": "e08ebb3141dbf2a37946a65e62afb57f",
+        "person_ids": [
+          "e08ebb3141dbf2a37946a65e62afb57f"
+        ],
+        "person_name": "你",
+        "source_type": "person_fact",
+        "tags": [
+          "person_fact"
+        ],
+        "writeback_source": "memory_flow_service"
+      }
+    }
+  ],
+  "evidence_ids": [
+    "44e6539a4a6c12b8c8c53bff30aed27ea6187dafeba6c68a5ed4a7873c15ab04",
+    "f3d3853a7d674ed1a9fde8abf94af957e24658651172c3ff0b77cae485e9daf4",
+    "13739341170fbf8951963a2ce50abb220ccf2fe6b770b605267e0495a7baa20b"
+  ],
+  "fact_claim_ids": [
+    "ecc90d8740b3c2b86327e9eb0d2a6931b8fef487e7b97ce6b84e4d03a475a43f",
+    "d985647dd5f385677fbffb94508dde6e4f9ddecd0cf0db9ffe810c124fb0ffa0",
+    "6a08357ae09308efc46bc9f06e27203f6a945fafa1b730412600eafe9c2740b5"
+  ],
+  "evidence_fingerprint": "da7534339a5eeb0909d76b60cb41c94eb7b9cb09d320b5dc490edf5b2814aed8",
+  "updated_at": 1792299461.362111,
+  "expires_at": 1792321061.362109,
+  "source_note": "sdk_memory_kernel.memory_profile_admin.query",
+  "auto_profile_text": "# 人物画像\n人物ID: e08ebb3141dbf2a37946a65e62afb57f\n主称呼: 你\n别名: 你\n\n## 身份设定\n- 目标人物叫阿舟。\n\n## 关系设定\n- 目标人物叫阿舟\n\n## 稳定了解\n- 目标人物平时最喜欢喝桂花乌龙，不加糖\n- 目标人物平时最喜欢喝不加糖的桂花乌龙\n- 目标人物叫阿舟\n- 目标人物平时最喜欢喝不加糖的桂花乌龙。\n\n## 相处偏好\n- 目标人物平时最喜欢喝不加糖的桂花乌龙\n- 目标人物平时最喜欢喝桂花乌龙，不加糖\n\n## 近期互动\n- 暂无\n\n## 不确定信息\n- 暂无\n\n## 维护备注\n- 自动画像仅供内部参考；若与当前对话冲突，以当前对话为准。",
+  "has_manual_override": false,
+  "manual_override_text": "",
+  "override_updated_at": null,
+  "override_updated_by": "",
+  "profile_source": "auto_snapshot",
+  "feedback_refresh_request": {
+    "person_id": "e08ebb3141dbf2a37946a65e62afb57f",
+    "status": "pending",
+    "reason": "person_fact",
+    "source_query_tool_id": "",
+    "retry_count": 0,
+    "last_error": "",
+    "requested_at": 1792299377.785008,
+    "updated_at": 1792299377.785008
+  },
+  "uncertain_fact_count": 0,
+  "uncertain_candidates": []
+}

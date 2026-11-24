@@ -1,0 +1,46 @@
+{
+  "template_source": "deepseek-v3-template-source.json",
+  "rendering": "Manual direct transcription of official text-only system/user/assistant branches, add_generation_prompt=true; no downloaded template/model code executed.",
+  "samples": [
+    {
+      "input": "assembly-final-input.json",
+      "observed": 2011,
+      "content_sum": 2002,
+      "template_count": 2008,
+      "template_overhead": 6,
+      "observed_minus_template": 3
+    },
+    {
+      "input": "probe-a-input.json",
+      "observed": 2022,
+      "content_sum": 2013,
+      "template_count": 2019,
+      "template_overhead": 6,
+      "observed_minus_template": 3
+    },
+    {
+      "input": "probe-b-input.json",
+      "observed": 2052,
+      "content_sum": 2044,
+      "template_count": 2050,
+      "template_overhead": 6,
+      "observed_minus_template": 2
+    },
+    {
+      "input": "probe-c-input.json",
+      "observed": 2050,
+      "content_sum": 2042,
+      "template_count": 2048,
+      "template_overhead": 6,
+      "observed_minus_template": 2
+    },
+    {
+      "input": "probe-a-repeat-input.json",
+      "observed": 2022,
+      "content_sum": 2013,
+      "template_count": 2019,
+      "template_overhead": 6,
+      "observed_minus_template": 3
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+upstream/
+instance/
+instance-intimate/
+.data/
+.venv/
+__pycache__/
+*.pyc

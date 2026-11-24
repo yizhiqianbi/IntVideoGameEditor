@@ -1,0 +1,7 @@
+.next/
+node_modules/
+.env*
+!.env.example
+qa/*.png
+qa/*.log
+qa/original-files.sha256.json

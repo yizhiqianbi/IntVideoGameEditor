@@ -1,9 +1,11 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { createReadStream, existsSync, statSync } from "node:fs";
+import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
+import { optimizeAigenPrompt, type AigenPromptEnv, type AigenPromptKind } from "../../src/lib/xumeng-aigen-prompt";
 import { renderKrea2Still } from "../../src/lib/xumeng-krea2-bridge";
+import { XUMENG_SHARE_COVER_MAX_BYTES, xumengShareCoverImageType, xumengVideoCoverUpstream } from "../../src/lib/xumeng-share-poster";
 import react from "@vitejs/plugin-react";
 import { XUMENG_GENERATION_WORKSPACE_ENABLED } from "../../src/lib/xumeng-feature-availability";
 
@@ -24,6 +26,33 @@ const previewState = {
   version: 1, favorites: [], custom: [], conversations: [],
   preferences: { nickname: "游客", persona: "", preset: "保持角色性格。", model: "qwen", dark: true },
 };
+
+function previewPromptEnv(): AigenPromptEnv {
+  const env: Record<string, string> = {};
+  for (const name of ["OPENROUTER_API_KEY", "OPENROUTER_BASE_URL", "GENERATION_OPENROUTER_API_KEY", "SEALION_API_KEY", "SEALION_BASE_URL"]) {
+    const value = process.env[name]?.trim();
+    if (value) env[name] = value;
+  }
+  // Dev server only. The production worker reads its own secrets and never this file.
+  const file = resolve(frontendRoot, "../../.env.local");
+  if (existsSync(file)) {
+    for (const line of readFileSync(file, "utf8").split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#") || !trimmed.includes("=")) continue;
+      const eq = trimmed.indexOf("=");
+      const name = trimmed.slice(0, eq).trim();
+      const value = trimmed.slice(eq + 1).trim().replace(/^['"]|['"]$/g, "");
+      if (value && !env[name]) env[name] = value;
+    }
+  }
+  return {
+    GENERATION_OPENROUTER_API_KEY: env.GENERATION_OPENROUTER_API_KEY,
+    OPENROUTER_API_KEY: env.OPENROUTER_API_KEY,
+    OPENROUTER_BASE_URL: env.OPENROUTER_BASE_URL,
+    SEALION_API_KEY: env.SEALION_API_KEY,
+    SEALION_BASE_URL: env.SEALION_BASE_URL,
+  };
+}
 
 function sendJson(res: import("node:http").ServerResponse, status: number, body: unknown) {
   res.statusCode = status;
@@ -56,6 +85,28 @@ async function serveVideoCatalog(req: IncomingMessage, res: ServerResponse) {
   createReadStream(file).pipe(res);
 }
 
+async function serveShareCover(req: IncomingMessage, res: ServerResponse) {
+  if (req.method !== "GET" && req.method !== "HEAD") { sendJson(res, 405, { error: "请求方法不支持。" }); return; }
+  const incoming = new URL(req.url ?? "/", "http://127.0.0.1");
+  const upstream = xumengVideoCoverUpstream(incoming.searchParams.get("src"), incoming.searchParams.get("v"));
+  if (!upstream) { sendJson(res, 400, { error: "封面地址无效。" }); return; }
+  try {
+    const remote = await fetch(upstream, { redirect: "manual", signal: AbortSignal.timeout(8000) });
+    if (!remote.ok) { await remote.body?.cancel(); sendJson(res, 502, { error: "封面暂时读不出来。" }); return; }
+    const bytes = Buffer.from(await remote.arrayBuffer());
+    const type = bytes.byteLength <= XUMENG_SHARE_COVER_MAX_BYTES ? xumengShareCoverImageType(bytes) : null;
+    if (!type) { sendJson(res, 502, { error: "封面暂时读不出来。" }); return; }
+    res.statusCode = 200;
+    res.setHeader("Content-Type", type);
+    res.setHeader("Cache-Control", "public, max-age=300, must-revalidate");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Length", String(bytes.byteLength));
+    res.end(req.method === "HEAD" ? undefined : bytes);
+  } catch {
+    if (!res.headersSent) sendJson(res, 502, { error: "封面暂时读不出来。" });
+  }
+}
+
 function servePublishedAssets(): Plugin {
   return {
     name: "xumeng-published-assets",
@@ -72,6 +123,10 @@ function servePublishedAssets(): Plugin {
         }
         if (pathname === "/assets/xumeng/video-catalog.json") {
           void serveVideoCatalog(req, res);
+          return;
+        }
+        if (pathname === "/api/xumeng-share/cover") {
+          void serveShareCover(req, res);
           return;
         }
         if (pathname === "/api/aiapi/still" || pathname === "/api/aiapi/video") {
@@ -102,10 +157,30 @@ function servePublishedAssets(): Plugin {
           return;
         }
         // Vite has no Worker. These replies only let the local template page render.
+        if (pathname === "/api/aigen/optimize-prompt" || pathname === "/api/backend/v1/aigen/optimize-prompt") {
+          if (req.method !== "POST") { sendJson(res, 405, { error: "仅支持 POST。" }); return; }
+          const chunks: Buffer[] = [];
+          req.on("data", chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
+          req.on("end", () => {
+            void (async () => {
+              if (req.headers["x-adult-confirmed"] !== "1") { sendJson(res, 403, { error: "需要先确认已满 18 岁。" }); return; }
+              let body: { text?: unknown; kind?: unknown } = {};
+              try { body = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}") as { text?: unknown; kind?: unknown }; }
+              catch { sendJson(res, 400, { error: "请求格式无效。" }); return; }
+              if (body.text != null && typeof body.text !== "string") { sendJson(res, 400, { error: "请求格式无效。" }); return; }
+              const kind: AigenPromptKind = body.kind === "video" ? "video" : body.kind == null || body.kind === "image" ? "image" : "image";
+              if (body.kind != null && body.kind !== "image" && body.kind !== "video") { sendJson(res, 400, { error: "优化类型无效。" }); return; }
+              const result = await optimizeAigenPrompt(typeof body.text === "string" ? body.text : "", previewPromptEnv(), kind);
+              if (!result.ok) { sendJson(res, result.status, { error: result.error }); return; }
+              sendJson(res, 200, { prompt: result.prompt });
+            })().catch(() => { if (!res.headersSent) sendJson(res, 502, { error: "提示词没有优化完。" }); });
+          });
+          return;
+        }
         if (pathname.startsWith("/api/backend/v1/")) {
           const path = pathname.slice("/api/backend/v1".length);
           // The shelf reads the public catalog. Local preview has no worker, so this GET is forwarded read-only.
-          if (req.method === "GET" && (path === "/publishing/catalog" || path.startsWith("/publishing/catalog/"))) {
+          if (req.method === "GET" && (path === "/publishing/catalog" || path.startsWith("/publishing/catalog/") || path.startsWith("/publishing/media/"))) {
             const incoming = new URL(req.url ?? "/", "http://127.0.0.1");
             const target = `https://xumengchat.top/api/backend/v1${path}${incoming.search}`;
             void fetch(target, { headers: { accept: "application/json" } }).then(async (upstream) => {
@@ -114,6 +189,16 @@ function servePublishedAssets(): Plugin {
               res.setHeader("cache-control", "no-store");
               res.end(Buffer.from(await upstream.arrayBuffer()));
             }).catch(() => sendJson(res, 503, { error: "本地预览连不上公共目录。" }));
+            return;
+          }
+          if (req.method === "GET" && (path === "/payments/config" || path === "/subscriptions/config" || path === "/nowpayments/config" || path === "/billing/config")) {
+            const target = `https://xumengchat.top/api/backend/v1${path}`;
+            void fetch(target, { headers: { accept: "application/json" } }).then(async (upstream) => {
+              res.statusCode = upstream.status;
+              res.setHeader("content-type", upstream.headers.get("content-type") || "application/json; charset=utf-8");
+              res.setHeader("cache-control", "no-store");
+              res.end(Buffer.from(await upstream.arrayBuffer()));
+            }).catch(() => sendJson(res, 503, { error: "本地预览连不上支付配置。" }));
             return;
           }
           if (path === "/auth/login" && req.method === "POST") return sendJson(res, 401, { error: "本地预览没有账号服务。线上用 Super 登录后打开 /ops，才能看到管理数据。" });

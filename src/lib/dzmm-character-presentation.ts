@@ -83,20 +83,31 @@ export function getDzmmCharacterPreviewText(character: { name?: string; introduc
 }
 
 const CARD_HEADING = /^(?:#{1,6}\s*)?(?:【[^】\n]{0,24}】|\[[^\]\n]{0,24}\])$/u;
+const LEADING_HEADING = /^(?:#{1,6}\s*)?(?:【[^】\n]{0,24}】|\[[^\]\n]{0,24}\])\s*/u;
 const CARD_INSTRUCTION = /^(?:you are\b|请扮演|你是一个)/iu;
 const FIELD_LINE = /^[^\n：:]{1,16}[:：]\s*\S/u;
+const SHELF_NOTE = /百度百科|作者的话|作者注|这里直接/u;
+
+function fieldHits(line: string): number {
+  return line.match(/[^\s：:]{1,12}[:：]/gu)?.length ?? 0;
+}
 
 /** One plain sentence for a card. Setting headings, field labels, and model instructions stay off the shelf. */
 export function getDzmmCharacterCardBlurb(character: { name?: string; introduction?: string; description?: string; catalogReadiness?: string }, userName?: string, limit = 48): string {
   const lines = getDzmmCharacterPreviewText(character, userName)
     .replace(/<[^>\n]*>/gu, "\n")
     .split(/\n+/)
-    .map((line) => line.replace(/\s+/g, " ").trim())
-    .filter((line) => line && !/[<>]/u.test(line) && !CARD_HEADING.test(line) && !CARD_INSTRUCTION.test(line)
+    .map((line) => {
+      const heading = /^\s*[#＃]{1,6}(?:\s|$)/u.test(line);
+      const text = line.replace(LEADING_HEADING, "").replace(/^\s*[#＃]{1,6}\s*/u, "").replace(/\s+/g, " ").trim();
+      if (!text || (heading && text.length <= 16 && !/[。！？!?—–]/u.test(text))) return "";
+      return text;
+    })
+    .filter((line) => line && !/[<>]/u.test(line) && !CARD_HEADING.test(line) && !CARD_INSTRUCTION.test(line) && !SHELF_NOTE.test(line)
       && (/[\p{Script=Han}]/u.test(line) ? line.length >= 2 : line.length >= 8));
-  const prose = lines.find((line) => !FIELD_LINE.test(line));
-  const chosen = prose ?? lines[0]?.replace(/^[^\n：:]{1,16}[:：]\s*/u, "") ?? "";
-  const sentence = chosen.split(/[。！？!?]/u)[0]?.trim() ?? "";
+  const prose = lines.find((line) => fieldHits(line) < 2 && !FIELD_LINE.test(line));
+  const chosen = prose ?? lines.find((line) => fieldHits(line) < 2)?.replace(/^[^\n：:]{1,16}[:：]\s*/u, "") ?? "";
+  const sentence = chosen.split(/[。！？!?]/u)[0]?.replace(/^\s*[#＃]{1,6}\s*/u, "").replace(/^[\p{Extended_Pictographic}\uFE0F\s]+/u, "").trim() ?? "";
   if (!sentence || CARD_INSTRUCTION.test(sentence)) return character.catalogReadiness === "metadata-only" ? "人物背景待补充" : "";
   return sentence.length > limit ? `${sentence.slice(0, limit)}…` : sentence;
 }

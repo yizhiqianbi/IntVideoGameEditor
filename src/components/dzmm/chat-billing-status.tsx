@@ -83,12 +83,12 @@ export function ChatBillingStatus({ accountId, isGuest, enabled, refreshKey, onR
   return <div className={s.status} aria-busy={loading}>
     <div className={s.balance} role="status" aria-live="polite">
       {usage ? <>
-        <p>可用 <strong>{points(usage.availableBalance)} Credit</strong>
+        <p>可用 <strong>{points(usage.availableBalance)} 金币</strong>
           {loading && <span> · 刷新中…</span>}
         </p>
-        {usage.debtCredits > 0 && <p className={s.pending}>待补足 {points(usage.debtCredits)} Credit，请查看余额与消费记录。{!XUMENG_PAYMENTS_ENABLED && "收款暂时关闭。"}</p>}
+        {usage.debtCredits > 0 && <p className={s.pending}>待补足 {points(usage.debtCredits)} 金币，请查看余额与消费记录。{!XUMENG_PAYMENTS_ENABLED && "收款暂时关闭。"}</p>}
       </> : <p className={currentRead?.error ? s.error : undefined}>
-        {currentRead?.error || "正在读取 Credit 余额…"}
+        {currentRead?.error || "正在读取 金币 余额…"}
       </p>}
     </div>
     <div className={s.actions}>

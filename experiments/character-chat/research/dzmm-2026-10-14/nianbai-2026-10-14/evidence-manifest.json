@@ -1,0 +1,138 @@
+{
+  "title": "DZMM 念白 Agent 研究证据清单",
+  "generatedAt": "2026-10-14T03:44:59.305861+00:00",
+  "root": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/nianbai-2026-10-14",
+  "scope": "Static public client extracts and manually recorded UI observations. Model self-reports are labeled as such; this manifest does not establish hidden server prompt or model identity.",
+  "files": [
+    {
+      "path": "BjxJ3Cc_2.js",
+      "bytes": 2240,
+      "sha256": "552bf743528aca1b409889d6b224be214ad76034131a435b99cd8e7f39d57700"
+    },
+    {
+      "path": "empty-notebook-ui.txt",
+      "bytes": 136,
+      "sha256": "df990607535d64cd4c136ba8ce7309063088498019e2f128f940eee0c00011fb"
+    },
+    {
+      "path": "extract-tools-evidence.py",
+      "bytes": 6459,
+      "sha256": "bce5bec9ed25fd46d6606b6284d342d9905a0bb00734b1ee63702712e851f031"
+    },
+    {
+      "path": "initial-chat-ui.txt",
+      "bytes": 227,
+      "sha256": "dd8cf9ba5adf27f6e58e02124df32a635f22cf754ba4e90c8631e8d483ce9fd7"
+    },
+    {
+      "path": "intro-ui.txt",
+      "bytes": 384,
+      "sha256": "297ee6acd0fc32aebfb20e4765cc4b7da5f7e210b528fc8eab6383f9763bae2d"
+    },
+    {
+      "path": "memory-panel-after-reload.jpg",
+      "bytes": 14025,
+      "sha256": "cd0faee36272c4c56aa9144f89d52a38e6ff948cb3f0892331af11791fce1a97"
+    },
+    {
+      "path": "memory-panel-after-reload.txt",
+      "bytes": 225,
+      "sha256": "c7284d9b4685ceb71c7b12c019357963e5f95e1d2b21591e4727383a578dc089"
+    },
+    {
+      "path": "memory-panel-after-save-first-read.txt",
+      "bytes": 225,
+      "sha256": "c7284d9b4685ceb71c7b12c019357963e5f95e1d2b21591e4727383a578dc089"
+    },
+    {
+      "path": "persona-import-manifest.json",
+      "bytes": 361,
+      "sha256": "97187cbca37ff7780480cc54d9886ddef1e20ec740ef97db2e3cabed72f9c39e"
+    },
+    {
+      "path": "probe-01-workspace-list-ui.txt",
+      "bytes": 992,
+      "sha256": "2d8d5458057e409aee7ca0f1ca7c09baf34b5628ca318cd632ed96f8d13d1e01"
+    },
+    {
+      "path": "probe-02-code-blocks.json",
+      "bytes": 454,
+      "sha256": "4e9a5212c441e89fd630cc10406224b09b6c75c4192f00ee36b15fd87422dbec"
+    },
+    {
+      "path": "probe-02-context-files-ui.txt",
+      "bytes": 1785,
+      "sha256": "9b20743ec9f544148051e91202f6687d873b52f2212a13c436d04c4c6594c620"
+    },
+    {
+      "path": "probe-03-prompt-access-ui.txt",
+      "bytes": 3079,
+      "sha256": "bb1617c89b1711ddff17565eb73cfec75ec03c6b2f4a912c29abe7fc50165552"
+    },
+    {
+      "path": "probe-04-memory-save-ui.txt",
+      "bytes": 3457,
+      "sha256": "0437a14a808fabd2cdfdb48f76d9c110d530624f8b4ca4863997c5047b3ab0b9"
+    },
+    {
+      "path": "probe-05-structure-diagnostic-ui.txt",
+      "bytes": 1400,
+      "sha256": "e9bd18546da3a16c48e49fb011de12d424adc8d7123e1f6c11c0cc167eb4957a"
+    },
+    {
+      "path": "probe-06-fidelity-ui.txt",
+      "bytes": 1462,
+      "sha256": "8a4182c72d30cb6558ad9cae4244b5366d18271ab8032b50100eef78da8aca3c"
+    },
+    {
+      "path": "probe-07-metadata-ui.txt",
+      "bytes": 1742,
+      "sha256": "bd8e6b30efda8d9a723eed4a1fde4294849c35c4c0eb5085a18bf2411b5c45eb"
+    },
+    {
+      "path": "prompt-and-context-extracts.json",
+      "bytes": 22943,
+      "sha256": "fa35f57d280989f4f0201c8052b53ac4566940ec08c838f06b12a1fbd1453755"
+    },
+    {
+      "path": "prompt-and-context.md",
+      "bytes": 8720,
+      "sha256": "bc4c95d9cc97a74857769b62ed2081e71682b59c8d87f5db5b9c2f389eb90268"
+    },
+    {
+      "path": "prompt-contract-extracts.json",
+      "bytes": 4497,
+      "sha256": "39d261620fe1d30b04058bf0c80e533d7d438a717561a006e6c9ba56aa31c8c1"
+    },
+    {
+      "path": "prompt-contract.md",
+      "bytes": 10227,
+      "sha256": "a8c8a98265050e210155930d851b21234ac84afa762e5b9ab1079aa9db8ad3dd"
+    },
+    {
+      "path": "prompt-template-path-search.json",
+      "bytes": 19453,
+      "sha256": "9a6da1fb8962058c8da3b535bceaf5311dac22fbfdcf601770533a6d64abce19"
+    },
+    {
+      "path": "results.md",
+      "bytes": 9915,
+      "sha256": "87c8eb06d745e90fb3948fcf2767cf49b738686a450ad59454c72b70afb594a3"
+    },
+    {
+      "path": "runtime-observations.md",
+      "bytes": 6036,
+      "sha256": "f199fd01cd19b6226c6ee7d3a6c452772da8b369fc9696d5e1e70e262fa3f53f"
+    },
+    {
+      "path": "tools-and-flow.md",
+      "bytes": 12799,
+      "sha256": "5189f627de4a75372e35c5cc3c1187aee1c5eaefb59747fa844872615766b033"
+    },
+    {
+      "path": "tools-evidence.json",
+      "bytes": 58814,
+      "sha256": "c8d74a9338f138d125ba32a24f6332b4a2236f86dd35bff69ed65ece3c469678"
+    }
+  ]
+}

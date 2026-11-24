@@ -1,14 +1,28 @@
 import { NextResponse } from "next/server";
 import { AiapiError, aiapiImageFrame, runAiapiJob, type AiapiJob } from "./aiapi-channel";
+import { uploadTicket } from "./channel-upload.mjs";
 import { jsonError } from "./http";
 
 export function channelRequested(value: unknown): boolean {
   return value === "channel";
 }
 
+export function mediaOrigin(): string {
+  return (process.env.CREATE_MEDIA_ORIGIN || "https://channel-media.xumengchat.top").replace(/\/+$/, "");
+}
+
+function hostedByMediaOrigin(raw: unknown, origin: string): raw is string {
+  if (typeof raw !== "string") return false;
+  try {
+    return new URL(raw).origin === new URL(origin).origin;
+  } catch {
+    return false;
+  }
+}
+
 export async function publishAsset(bytes: Buffer, type: string): Promise<string> {
   const secret = process.env.AIAPI_SECRETKEY?.trim() ?? "";
-  const origin = (process.env.CREATE_MEDIA_ORIGIN || "https://channel-media.xumengchat.top").replace(/\/$/, "");
+  const origin = mediaOrigin();
   if (!secret) throw new AiapiError("渠道密钥还没配上。", 503);
   const response = await fetch(`${origin}/api/studio/channel-reference`, {
     method: "POST",
@@ -18,7 +32,7 @@ export async function publishAsset(bytes: Buffer, type: string): Promise<string>
     signal: AbortSignal.timeout(30_000),
   });
   const payload = await response.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
-  if (!response.ok || typeof payload?.url !== "string" || !payload.url.startsWith("https://")) {
+  if (!response.ok || !hostedByMediaOrigin(payload?.url, origin)) {
     const error = typeof payload?.error === "string" ? payload.error.slice(0, 160) : "文件没有放到渠道能打开的地址。";
     throw new AiapiError(error, response.status === 503 ? 503 : 502);
   }
@@ -27,6 +41,34 @@ export async function publishAsset(bytes: Buffer, type: string): Promise<string>
 
 export async function publishReference(bytes: Buffer, type: string): Promise<string> {
   return publishAsset(bytes, type);
+}
+
+// 渠道任务完成后下载的成片，用签名直传存到自己的素材库，再把我们域名下的地址给浏览器。
+export async function storeVideo(bytes: Uint8Array, type = "video/mp4"): Promise<string> {
+  const secret = process.env.AIAPI_SECRETKEY?.trim() ?? "";
+  const origin = mediaOrigin();
+  if (!secret) throw new AiapiError("渠道密钥还没配上。", 503);
+  if (!bytes?.byteLength) throw new AiapiError("成片没有下载下来。", 502);
+  let ticket: { url: string };
+  try {
+    ticket = uploadTicket(secret, origin, bytes.byteLength);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "成片太大。";
+    throw new AiapiError(message, 413);
+  }
+  const response = await fetch(ticket.url, {
+    method: "PUT",
+    headers: { "Content-Type": type },
+    body: new Uint8Array(bytes),
+    redirect: "manual",
+    signal: AbortSignal.timeout(90_000),
+  });
+  const payload = await response.json().catch(() => null) as { url?: unknown; error?: unknown } | null;
+  if (!response.ok || !hostedByMediaOrigin(payload?.url, origin)) {
+    const error = typeof payload?.error === "string" ? payload.error.slice(0, 160) : "成片没有存下来。";
+    throw new AiapiError(error, 502);
+  }
+  return payload.url;
 }
 
 export function channelImageRatio(value: string): string {

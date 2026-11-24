@@ -1,0 +1,639 @@
+{
+  "retrievedAt": "2026-10-13T22:20:39.984Z",
+  "sourceUrl": "https://www.dzmm.ai/",
+  "transport": "existing system HTTP proxy 127.0.0.1:7897",
+  "scope": "public declared JavaScript only",
+  "limits": {
+    "files": 100,
+    "totalBytes": 10000000,
+    "parallel": 4
+  },
+  "totalBytes": 2224545,
+  "remainingDeclaredUrls": 541,
+  "records": [
+    {
+      "url": "https://www.dzmm.ai/assets/assets/3DkZuZ0j2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/3DkZuZ0j2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/6WNce5Qy2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/6WNce5Qy2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/awgiVRCu.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/awgiVRCu.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/B-yBd9GK2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/B-yBd9GK2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/B5kM4usF.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/B5kM4usF.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BbVTixf82.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BbVTixf82.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BIwlcFaM2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BIwlcFaM2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BlLroZUB2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BlLroZUB2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BpGdvtix.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BpGdvtix.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BRA875bJ2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BRA875bJ2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BrbkVyDQ.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BrbkVyDQ.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/BStC-x-h.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/BStC-x-h.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Bv2o_brT.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Bv2o_brT.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Bv3kvUO1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Bv3kvUO1.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Bvh3rj8y2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Bvh3rj8y2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C_KXO_2J.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C_KXO_2J.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C_YLaiga2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C_YLaiga2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C0qR5Err.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C0qR5Err.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C4LF5OAM.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C4LF5OAM.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C58mxSVt2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C58mxSVt2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/C836Z5Ug.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/C836Z5Ug.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CBlohM1z.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CBlohM1z.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CiHN72H4.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CiHN72H4.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CIvumkdL.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CIvumkdL.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CjO_jQ2j.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CjO_jQ2j.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CmVmVdZU.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CmVmVdZU.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/COL8txXm.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/COL8txXm.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CqL8LPib.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CqL8LPib.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Cr2j_J5Q.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Cr2j_J5Q.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Crk9z2yq.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Crk9z2yq.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CVAj6ulD.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CVAj6ulD.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Cwq4Grgf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Cwq4Grgf.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CxmxQgYj.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CxmxQgYj.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CzA7EK_1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CzA7EK_1.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CzsFpplX.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CzsFpplX.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/CZYiu_ml2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/CZYiu_ml2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/d_VtCf2U.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/d_VtCf2U.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/D12SqV8q.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/D12SqV8q.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/D3DtKabU2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/D3DtKabU2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/D54PNVlk2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/D54PNVlk2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/D5rHLWpo.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/D5rHLWpo.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/D9wOS6E7.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/D9wOS6E7.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DapuVdKe2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DapuVdKe2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Daqgvd1b2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Daqgvd1b2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DbIaBNmK.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DbIaBNmK.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Dbkc75CJ2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Dbkc75CJ2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DcLtoIrR.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DcLtoIrR.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DcT2pgYP.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DcT2pgYP.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DD28ibXf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DD28ibXf.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DE-wLD9A.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DE-wLD9A.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DErG8DAA.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DErG8DAA.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Df4Qb__N.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Df4Qb__N.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Df8XXHUy.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Df8XXHUy.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DGA99hEY2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DGA99hEY2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DGYhCETr.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DGYhCETr.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DJ2Fgxb_.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DJ2Fgxb_.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DJ9PUnpr2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DJ9PUnpr2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DJGXybbs.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DJGXybbs.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DKiJT6Az.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DKiJT6Az.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DmDHELVI.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DmDHELVI.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DNgnk_mx.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DNgnk_mx.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DNjTmo46.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DNjTmo46.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DOQ8mDl12.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DOQ8mDl12.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DOtrvenY.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DOtrvenY.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DpBqK-wI.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DpBqK-wI.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DraFVbGm2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DraFVbGm2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DRxDiMhb.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DRxDiMhb.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DsEpUSbs.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DsEpUSbs.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Du6L78y2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Du6L78y2.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DuygT3k6.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DuygT3k6.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DxahvcAH.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DxahvcAH.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DXJWwD3K2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DXJWwD3K2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/DZz_p7y1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/DZz_p7y1.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/evaMAU3z.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/evaMAU3z.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/FJsuBrIJ.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/FJsuBrIJ.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/FKO44Lz82.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/FKO44Lz82.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/g1SiSVUt.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/g1SiSVUt.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/gDs7nKvi.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/gDs7nKvi.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/Gw14SS3r.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/Gw14SS3r.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/jYJnhcZl2.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/jYJnhcZl2.js\ncurl: (56) The re"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/k2miS5ub.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/k2miS5ub.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/L-LHZ5JA.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/L-LHZ5JA.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/MnxVv3GY.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/MnxVv3GY.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/oMRwvnxA.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/oMRwvnxA.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/RDHp3C9Z.js",
+      "declaredBy": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/RDHp3C9Z.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/twpbdlvL.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/twpbdlvL.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/UTMonbaK.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/UTMonbaK.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/assets/XcKYCqkf.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "status": "unavailable",
+      "error": "Command failed: curl --max-time 15 -x http://127.0.0.1:7897 -fsSL https://www.dzmm.ai/assets/assets/XcKYCqkf.js\ncurl: (56) The req"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BGGQdcaW.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BGGQdcaW.js",
+      "bytes": 5990,
+      "sha256": "f95e530a603a9406dd3f00a734d72b579a049f68876d58d5d52590f221b4431c",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BHxqDO3v.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BHxqDO3v.js",
+      "bytes": 1038,
+      "sha256": "3b2a3e95676632feea665ba8e2533e93b8b6e78fc38809dc8e510763cb8e80da",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BL1JBMtO2.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BL1JBMtO2.js",
+      "bytes": 1443,
+      "sha256": "3c8ae5034ac59068840162a380646d20d836136d69e29fa74f4f3c0ad0b28e82",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/BStC-x-h.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/BStC-x-h.js",
+      "bytes": 10129,
+      "sha256": "785195df2a2d18eab38fb3abfe258856b389b5e690ebd47990693cf0c63a2ad1",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/C16ZCC6H.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/C16ZCC6H.js",
+      "bytes": 850,
+      "sha256": "2728556d4ab024251ee89bfb8302f2e68fc68377ed8700120d40335d5be6e568",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CjO_jQ2j.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/CjO_jQ2j.js",
+      "bytes": 1085,
+      "sha256": "42ce8c6defa38f85dabfd126353aadc439279a184ff2ecaa62817ec39aecdb26",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cr2j_J5Q.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/Cr2j_J5Q.js",
+      "bytes": 1566,
+      "sha256": "f15a5379aa4ab51a88e55ce5033b1d7783b53e4408807f615190e9757f5d825b",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CY0pVTmB.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/CY0pVTmB.js",
+      "bytes": 67852,
+      "sha256": "6884b17827d7849b77dcebe5da60cda59e9a80df71c125aa83f1dd6bdff41761",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/D12SqV8q.js",
+      "bytes": 1691217,
+      "sha256": "5dfcb47b825471d5aa49e26333aeef04826ce688702874631f223c794938f420",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/l0c7Nlsb.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/l0c7Nlsb.js",
+      "bytes": 939,
+      "sha256": "0964e299c606c37b2f9a3696e0e915543d2523388eccf4446a45075bdd139697",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/oMRwvnxA.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/oMRwvnxA.js",
+      "bytes": 379840,
+      "sha256": "6bc1253da0aa9fba96d758220b8ac7859e402d80035cba8063de0e461c2b4936",
+      "status": "saved"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/RDHp3C9Z.js",
+      "declaredBy": "https://www.dzmm.ai/",
+      "file": "scripts/RDHp3C9Z.js",
+      "bytes": 62596,
+      "sha256": "1838b9f746bcea230a963baf16c1803e7bb65a9065568a4e17503b5dc15bb901",
+      "status": "saved"
+    }
+  ]
+}

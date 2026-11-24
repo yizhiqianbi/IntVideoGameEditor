@@ -49,6 +49,8 @@
 .results>.tool{margin-top:12px}
 .resultInfo>.tool{margin:0 8px 8px 0}
 .r2vCompare>.tool{grid-column:1 / -1;justify-self:start;width:32px}
+.optimize{display:inline-flex;align-items:center;justify-content:center;width:fit-content;margin:10px 0 0;padding:8px 14px;border:1px solid color-mix(in srgb,#f5c451 55%,var(--line));border-radius:999px;background:transparent;color:#f5c451;font:inherit;font-size:12px;line-height:1.4;cursor:pointer}
+.optimize:hover:not(:disabled){background:color-mix(in srgb,#f5c451 12%,transparent)}
 .primary.decision:not(.submit){background:transparent;color:var(--text);border:1px solid var(--line)}
 .primary.submit{background:var(--gold,#b47a45);color:#fff;border:0}
 .primary.submit:hover:not(:disabled){background:color-mix(in srgb,var(--gold,#b47a45) 88%,#fff)}

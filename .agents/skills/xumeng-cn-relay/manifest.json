@@ -1,0 +1,21 @@
+{
+  "name": "xumeng-cn-relay",
+  "version": "1.0.0",
+  "owner": "xumeng",
+  "updated_at": "2026-11-19",
+  "status": "active",
+  "maturity_tier": "verified",
+  "lifecycle_stage": "production",
+  "review_cadence": "on-provider-change",
+  "target_platforms": ["claude", "cursor", "generic", "agent-skills-compatible"],
+  "release_gates": [
+    "live_test_evidence",
+    "rollback_documented",
+    "pitfalls_documented",
+    "no_domestic_hosting"
+  ],
+  "evidence": [
+    "docs/xumeng-cn-access-plan.md#10-p1-部署记录2026-11-19",
+    "infra/cn-edge/README.md#部署时踩过的坑2026-11-19-实战"
+  ]
+}

@@ -76,6 +76,11 @@ export async function fetchGenerationJobs(accountId: string, signal?: AbortSigna
   if (!Array.isArray(value.jobs) || value.jobs.length > 100) throw malformed();
   return value.jobs.map(parseGenerationJob);
 }
+export async function optimizeGenerationPrompt(accountId: string, text: string, edit = false, signal?: AbortSignal): Promise<string> {
+  const value = await request("/optimize-prompt", accountId, "POST", { text, edit }, signal);
+  if (typeof value.prompt !== "string" || value.prompt.trim().length < 5 || value.model !== "x-ai/grok-imagine-image-2.0") throw malformed();
+  return value.prompt;
+}
 export async function quoteGeneration(input: GenerationInput, signal?: AbortSignal): Promise<GenerationQuote> {
   const value = await request("/quote", input.accountId, "POST", input, signal);
   if (!record(value.quote) || !amount(value.quote.estimatedCredits) || !amount(value.quote.maxCredits) || value.quote.maxCredits < value.quote.estimatedCredits) throw malformed();

@@ -4,6 +4,7 @@ import { isDzmmModelPreset } from "./dzmm-models";
 import { readDzmmJsonBody, type DzmmChatEnvironment, type DzmmChatHandlerOptions } from "./dzmm-chat-handler";
 import { DzmmValidationError, dzmmUpstreamHeaders, readDzmmProviderConfig, resolveDzmmChatUpstream, sanitizeDzmmProviderError, type DzmmModelPreset } from "./dzmm-chat";
 import { parseStoryState, type DzmmStoryState } from "./dzmm-story-memory";
+import { parseTavernMemoryProfile, tavernMemoryProfileInstruction } from "./tavern/memory";
 import { prepareDzmmBillingRequest, DzmmBillingError, dzmmProviderRouting, readDzmmGenerationId, readDzmmGenerationUsage,
   readDzmmProviderMaxPrice, trustedDzmmGenerationUsage,
   type DzmmBillingCompletion, type DzmmBillingLease, type DzmmGenerationUsage } from "./dzmm-generation-billing";
@@ -32,8 +33,9 @@ export function validateDzmmMemoryInput(value: unknown): {
   messages: Array<{ role: "user" | "assistant"; content: string }>;
   previousState?: DzmmStoryState;
   model: DzmmModelPreset;
+  profile?: ReturnType<typeof parseTavernMemoryProfile>;
 } {
-  if (!record(value) || Object.keys(value).some(key => !["messages", "previousState", "model"].includes(key))) {
+  if (!record(value) || Object.keys(value).some(key => !["messages", "previousState", "model", "profile"].includes(key))) {
     throw new DzmmValidationError("剧情记忆请求格式无效。");
   }
   if (!Array.isArray(value.messages) || !value.messages.length || value.messages.length > 24) {
@@ -55,7 +57,7 @@ export function validateDzmmMemoryInput(value: unknown): {
   let previousState: DzmmStoryState | undefined;
   try { if (value.previousState !== undefined) previousState = parseStoryState(value.previousState); }
   catch { throw new DzmmValidationError("旧剧情记忆格式无效。"); }
-  return { messages, previousState, model };
+  return { messages, previousState, model, ...(parseTavernMemoryProfile(value.profile) ? { profile: parseTavernMemoryProfile(value.profile) } : {}) };
 }
 
 /** Summary is a separate, bounded model call; it never returns story continuation. */
@@ -67,7 +69,8 @@ export async function handleDzmmMemoryPost(request: Request, env: DzmmChatEnviro
   if (!config.configured) return Response.json({ error: "模型服务未配置，无法整理历史。" }, { status: 503, headers: HEADERS });
   const upstream = resolveDzmmChatUpstream(env, input.model, config);
   if (!upstream.configured) return Response.json({ error: "这个模型还没配好，请稍后再试。" }, { status: 503, headers: HEADERS });
-  const providerMessages = [{ role: "system", content: MEMORY_INSTRUCTION }, { role: "user", content: JSON.stringify({
+  const profileInstruction = tavernMemoryProfileInstruction(input.profile);
+  const providerMessages = [{ role: "system", content: profileInstruction ? `${MEMORY_INSTRUCTION}\n${profileInstruction}` : MEMORY_INSTRUCTION }, { role: "user", content: JSON.stringify({
     previousState: input.previousState ?? null, historicalMessages: input.messages,
   }) }];
   let maxPrice: ReturnType<typeof readDzmmProviderMaxPrice>;
