@@ -148,6 +148,10 @@ test("card blurbs keep one sentence and drop setting dumps and model instruction
   assert.equal(getDzmmCharacterCardBlurb({ description: "你是一个小说家，负责推进剧情。\n宁宁把杯子放下，看着他。" }), "宁宁把杯子放下，看着他");
   assert.equal(getDzmmCharacterCardBlurb({ description: "</rule S>\n<rule>你是一个小说家。</rule>\n宁宁把杯子放下。" }), "宁宁把杯子放下");
   assert.equal(getDzmmCharacterCardBlurb({ name: "霍聿深", description: "{{user}}联姻的丈夫。他很少笑。" }, "阿宁"), "阿宁联姻的丈夫");
+  assert.equal(getDzmmCharacterCardBlurb({ description: "【世界观背景】她在雨里等他，伞还没打开。" }), "她在雨里等他，伞还没打开");
+  assert.equal(getDzmmCharacterCardBlurb({ description: "【简介】百度百科：这是作者备注。\n她把伞收起来。" }), "她把伞收起来");
+  assert.equal(getDzmmCharacterCardBlurb({ description: "林霜 年龄：29岁 种族：人类 身高：178cm\n她把文件推到你面前。" }), "她把文件推到你面前");
+  assert.equal(getDzmmCharacterCardBlurb({ description: "# 另一种世界\n欢迎来到一个与现实截然不同的世界。" }), "欢迎来到一个与现实截然不同的世界");
 });
 
 test("story text shows the current username wherever {{user}} appears", () => {

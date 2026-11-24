@@ -1,0 +1,28 @@
+[
+  {
+    "name": "app",
+    "requested_url": "https://nariyume.com/app/",
+    "url": "https://nariyume.com/app/",
+    "bytes": 61495,
+    "sha256": "8ceded5e38968304b5ead4d11f5673738f8e1654d048d8f77ffd56ad9b6f305f",
+    "path": "experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/app.html",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "private, no-store",
+      "Server": "cloudflare"
+    }
+  },
+  {
+    "name": "studio",
+    "requested_url": "https://www.nariyume.com/studio",
+    "url": "https://www.nariyume.com/studio",
+    "bytes": 5215,
+    "sha256": "622e6a12b0b87877dfff440e35a5c1bd93c7a6865cb5204f830e8230195bfac5",
+    "path": "experiments/character-chat/research/nariyume-reverse-2026-10-12/frontend/studio.html",
+    "headers": {
+      "Content-Type": "text/html; charset=utf-8",
+      "Cache-Control": "public, max-age=0, must-revalidate",
+      "Server": "cloudflare"
+    }
+  }
+]

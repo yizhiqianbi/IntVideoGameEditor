@@ -255,9 +255,11 @@
 .metrics a,
 .likeCount {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
   gap: 6px;
   min-height: 28px;
+  white-space: nowrap;
 }
 
 .metrics a { color: inherit; text-decoration: none; }
@@ -288,13 +290,6 @@
   color: var(--muted);
   font-size: 11px;
   line-height: 1.55;
-}
-
-.primaryActions {
-  display: flex;
-  gap: 8px;
-  margin-top: auto;
-  padding-top: 24px;
 }
 
 .stickyCta {
@@ -330,46 +325,6 @@
 .stickyStart:hover {
   filter: brightness(0.96);
   transform: translateY(-1px);
-}
-
-.stickyFavorite {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border: 1px solid var(--line);
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  color: var(--text);
-  font-size: 12px;
-  backdrop-filter: blur(12px);
-}
-
-.stickyFavorite:hover,
-.stickyFavorite[aria-pressed="true"] {
-  border-color: var(--pink);
-  color: var(--pink);
-  background: color-mix(in srgb, var(--pink-soft) 84%, var(--surface));
-}
-
-.start {
-  flex: 1;
-  min-height: 40px;
-  padding: 8px 18px;
-  border-radius: 24px;
-  background: var(--pink);
-  color: #fff !important;
-  font-size: 14px;
-  font-weight: 500;
-}
-
-.start:hover {
-  filter: brightness(0.96);
-  transform: translateY(-1px);
-}
-
-.customize {
-  min-width: 102px;
-  font-size: 13px;
 }
 
 .introduction {
@@ -637,9 +592,6 @@
     padding-right: 8px;
     padding-left: 8px;
   }
-  .primaryActions {
-    padding-top: 20px;
-  }
   .stickyCta {
     position: fixed;
     top: auto;
@@ -665,16 +617,6 @@
   .stickyStart {
     flex: 1;
     justify-content: center;
-  }
-  .stickyFavorite {
-    flex: 0 0 auto;
-    padding-right: 13px;
-    padding-left: 13px;
-  }
-  .customize {
-    min-width: 74px;
-    padding-right: 10px;
-    padding-left: 10px;
   }
   .relatedGrid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -732,17 +674,8 @@
     gap: 10px 14px;
     margin-top: 12px;
   }
-  .primaryActions {
-    padding-top: 14px;
-  }
   .stickyCta {
     bottom: calc(68px + env(safe-area-inset-bottom, 0px));
-  }
-  .stickyFavorite span {
-    display: none;
-  }
-  .start {
-    min-height: 44px;
   }
   .introduction {
     margin-top: 24px;
@@ -772,13 +705,11 @@
   }
   .coverFrame:hover .cover,
   .relatedCard:hover .relatedImage,
-  .start:hover {
+  .stickyStart:hover {
     transform: none;
   }
 }
 
-.performanceActions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 12px; }
-.performanceActions button { padding: 10px 13px; font-size: 12px; }
 .album { margin-top: 28px; }
 .album h2 { margin: 0 0 8px; font-size: 18px; }
 .albumNote, .albumEmpty p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }

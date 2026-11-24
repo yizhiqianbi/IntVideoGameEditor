@@ -20,7 +20,7 @@ type Props = {
   userId: string; isGuest: boolean; paymentConfig: DzmmPaymentConfig | null;
   refreshKey?: number;
   returnOrderId?: string; cancelled?: boolean; onRequireAccount: () => void; onCreditChanged?: () => void;
-  checkinOnly?: boolean;
+  checkinOnly?: boolean; embedded?: boolean;
 };
 const number = (value: number) => value.toLocaleString("zh-CN");
 const money = (value: number) => new Intl.NumberFormat("zh-CN", { style: "currency", currency: "CNY", minimumFractionDigits: value % 100 === 0 ? 0 : 2 }).format(value / 100);
@@ -30,7 +30,7 @@ const orderStatus: Record<DzmmSubscriptionOrder["status"], string> = {
   pending: "等待付款确认", paid: "付款已确认", expired: "订单已过期", failed: "付款未完成", refunded: "订单已退款",
 };
 
-export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey = 0, returnOrderId, cancelled = false, onRequireAccount, onCreditChanged, checkinOnly = false }: Props) {
+export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey = 0, returnOrderId, cancelled = false, onRequireAccount, onCreditChanged, checkinOnly = false, embedded = false }: Props) {
   const [config, setConfig] = useState<DzmmSubscriptionConfig | null>(null);
   const [overview, setOverview] = useState<DzmmSubscriptionOverview | null>(null);
   const [selected, setSelected] = useState("");
@@ -415,13 +415,14 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
   </section>;
 
-  return <section className={s.section} aria-labelledby="subscription-title">
-    <div className={s.heading}>
+  return <section className={`${s.section} ${embedded ? s.embedded : ""}`} aria-labelledby="subscription-title">
+    {!embedded && <div className={s.heading}>
       <div><h2 id="subscription-title">会员</h2><p>有效期内每天领取一次 金币。微信或 USDT 购买。</p></div>
       <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}>
         <Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新状态"}
       </button>
-    </div>
+    </div>}
+    {embedded && <h2 id="subscription-title" className={s.srOnly}>会员</h2>}
     {(!XUMENG_PAYMENTS_ENABLED || (config && !config.enabled)) && <p className={s.coming} role="note"><strong>{!XUMENG_PAYMENTS_ENABLED ? "人民币购买已停用" : "购买暂未开放"}</strong><span>{!XUMENG_PAYMENTS_ENABLED ? "人民币收款已停用，历史订单与会员权益保留；USDT 购买状态见下方。" : config?.note || "已有会员权益仍可按有效期签到，新购买与续订请稍后再试。"}</span></p>}
     {error && <p className={s.error} role="alert">{error}</p>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
@@ -479,7 +480,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       </div>
     </div>}
 
-    <div className={s.membership}>
+    {!(embedded && isGuest) && <div className={s.membership}>
       <div className={s.membershipHeading}>
         <h3>{membershipTitle}</h3><span className={`${s.status} ${activeSubscription ? s.activeStatus : ""}`}>{membershipStatus}</span>
       </div>
@@ -495,9 +496,9 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         <div><dt>VIP 累计领取</dt><dd>{number(current.totalSubscriptionGranted)} <small>金币</small></dd></div>
         {activeSubscription && <div><dt>本期已签到</dt><dd>{activeSubscription.claimsCount}<small> / {activeSubscription.maxClaims} 次</small></dd></div>}
       </dl>}
-    </div>
+    </div>}
 
-    {checkin}
+    {!(embedded && isGuest) && checkin}
     {queued.length > 0 && <div className={s.queuedSection}>
       <h3>已购 · 待生效</h3>
       <ul className={s.queued} aria-label="待生效会员">{queued.map(entry => <li key={entry.id}>
@@ -507,13 +508,15 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     </div>}
 
     {XUMENG_PAYMENTS_ENABLED && <div className={s.purchaseSection}>
-      <div className={s.purchaseHeading}><h3>{activeSubscription || queued.length ? "续订 VIP" : "开通 VIP"}</h3><p>手动续订 · 不自动扣费</p></div>
+      <div className={s.purchaseHeading}>
+        <div><h3>{activeSubscription || queued.length ? "续订 VIP" : "开通 VIP"}</h3><p>微信支付 · 不自动扣费</p></div>
+        {embedded && <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新"}</button>}
+      </div>
       <ul className={s.mediaBenefits} aria-label="VIP 媒体权益">
         <li><Icon name="chat" size={17} /><span>中文语音</span><strong>每日 20 条</strong></li>
         <li><Icon name="sparkles" size={17} /><span>剧情图片</span><strong>每日 5 张</strong></li>
-        <li><Icon name="video" size={17} /><span>全站短剧</span><strong>会员期内免费看</strong></li>
+        <li><Icon name="video" size={17} /><span>全站短剧</span><strong>期内免费</strong></li>
       </ul>
-      <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于 金币，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
       {config?.plans.length ? <>
         <fieldset className={s.plans} disabled={busy || purchaseBlocked}><legend className={s.srOnly}>VIP 会员套餐</legend>
           {config.plans.map(entry => <label className={`${s.plan} ${entry.id === plan?.id ? s.selected : ""}`} key={entry.id}>
@@ -536,11 +539,15 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         : !available ? "VIP 购买暂不可用，请稍后刷新状态。"
         : error ? "暂时无法读取 VIP 套餐，请稍后刷新状态。" : "VIP 套餐准备中，开放后可在这里购买。"}</p>}
     </div>}
-    <ul className={s.rulesList} aria-label="VIP 领取与续订规则">
-      <li>每日北京时间 00:00 重置，每天手动领取一次；每期领取上限以购买方案与会员状态为准，当天未领取的额度不补发。</li>
-      <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买 金币，两种来源进入同一余额，已到账 金币 不随会员到期失效。" : "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。"}</li>
-      <li>{config?.modelBillingLinked ? "金币 可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前 金币 尚未接入聊天扣费。"}</li>
-    </ul>
+    <details className={s.rulesFold}>
+      <summary>权益与领取说明</summary>
+      <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于金币，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
+      <ul className={s.rulesList} aria-label="VIP 领取与续订规则">
+        <li>每日北京时间 00:00 重置，每天手动领取一次；每期领取上限以购买方案与会员状态为准，当天未领取的额度不补发。</li>
+        <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买金币，两种来源进入同一个余额，已到账金币不随会员到期失效。" : "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。"}</li>
+        <li>{config?.modelBillingLinked ? "金币可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前金币尚未接入聊天扣费。"}</li>
+      </ul>
+    </details>
     <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
   </section>;
 }

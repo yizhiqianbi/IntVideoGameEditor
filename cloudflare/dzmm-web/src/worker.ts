@@ -26,11 +26,14 @@ import { getXumengPaymentInfoPage, renderXumengPaymentInfoPage, XUMENG_PAYMENT_I
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { AiapiError, runAiapiJob, sniffAiapiBytes } from "../../../src/lib/aiapi-channel";
 import { XUMENG_CALLS_ENABLED } from "../../../src/lib/xumeng-feature-availability";
+import { XUMENG_SHARE_COVER_MAX_BYTES, xumengShareCoverImageType, xumengVideoCoverUpstream } from "../../../src/lib/xumeng-share-poster";
 import { xumengLocaleFromCountry } from "../../../src/lib/xumeng-region";
 import { STUDIO_STILL_CREDITS } from "../../../src/lib/xumeng-studio-still-billing";
 import { DZMM_COVER_VIDEO_MAX_BYTES } from "../../../src/lib/dzmm-cover-media";
-import { canvasTokenVideoCreditsFor } from "../../../src/lib/xumeng-canvas-billing";
+import { canvasTokenVideoCreditsFor, CHAT_SEGMENT_VIDEO_CREDITS, CHAT_SEGMENT_VIDEO_SECONDS } from "../../../src/lib/xumeng-canvas-billing";
 import { publicOauthCookie, sharedSessionCookies } from "../../../src/lib/xumeng-session-cookie";
+import { optimizeAigenPrompt, refineChatScenePrompt } from "../../../src/lib/xumeng-aigen-prompt";
+import { CHAT_CLIP_MODEL } from "../../../src/lib/xumeng-chat-prompt-format";
 import { generateVideoCharacter } from "./video-character";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
@@ -105,7 +108,25 @@ const PUBLIC_ASSET_FILES = new Set([
   "content-covers/promo-member.webp", "content-covers/promo-recharge.webp", "content-covers/promo-invite.webp",
   "content-covers/create-hero.webp", "content-covers/create-role.webp", "content-covers/create-novel.webp", "content-covers/create-girlfriend.webp",
   "content-covers/create-game.webp", "content-covers/create-scenario.webp", "content-covers/create-generate.webp",
-  "home/shelf-hero.webp", "home/hero-1.webp", "home/hero-2.webp", "home/hero-3.webp", "home/great-vibes-latin.woff2", "home/great-vibes-OFL.txt",
+  "content-covers/motion/create-generate.mp4", "content-covers/motion/create-girlfriend.mp4",
+  "content-covers/motion/create-role.mp4", "content-covers/motion/create-scenario.mp4",
+  "content-covers/motion/create-novel.mp4",
+  "home/shelf-hero.webp", "home/hero-1.webp", "home/hero-2.webp", "home/hero-3.webp",
+  "home/cover-su-peizhen.webp", "home/cover-shanghai.webp", "home/cover-weakness.webp", "home/cover-tiangong.webp",
+  "home/cover-linshuang.webp", "home/cover-miveth.webp", "home/cover-qin.webp",
+  "home/motion/shelf-linshuang.mp4", "home/motion/shelf-miveth.mp4", "home/motion/shelf-qin.mp4",
+  "home/motion/shelf-mom.mp4", "home/motion/shelf-nun.mp4", "home/motion/shelf-ballet.mp4",
+  "home/motion/shelf-clerk.mp4", "home/motion/shelf-guan.mp4", "home/motion/shelf-you.mp4",
+  "home/motion/shelf-mizuko.mp4", "home/motion/shelf-yu.mp4", "home/motion/shelf-su.mp4",
+  "home/motion/shelf-limei.mp4", "home/motion/shelf-spring.mp4", "home/motion/shelf-baixue.mp4",
+  "home/motion/shelf-sisters.mp4", "home/motion/shelf-megan.mp4",
+  "home/motion/shelf-top003.mp4", "home/motion/shelf-top008.mp4", "home/motion/shelf-top009.mp4",
+  "home/motion/shelf-top011.mp4", "home/motion/shelf-top013.mp4", "home/motion/shelf-top015.mp4",
+  "home/motion/shelf-top016.mp4", "home/motion/shelf-top018.mp4", "home/motion/shelf-top019.mp4",
+  "home/motion/shelf-top020.mp4", "home/motion/shelf-top021.mp4", "home/motion/shelf-top022.mp4",
+  "home/motion/shelf-top024.mp4", "home/motion/shelf-top025.mp4", "home/motion/shelf-top026.mp4",
+  "home/motion/shelf-top028.mp4", "home/motion/shelf-top029.mp4", "home/motion/shelf-top030.mp4",
+  "home/great-vibes-latin.woff2", "home/great-vibes-OFL.txt",
   "public-character-samples.json", "public-character-introductions.json",
   "public-character-media.json", "public-category-covers.json",
   "generation-templates/manifest.json", "generation-templates/character.svg",
@@ -236,7 +257,7 @@ async function publicAsset(request: Request, env: Env): Promise<Response> {
   // Our own media (hero/creative covers/brand images) changes rarely; let
   // browsers keep it for a week instead of re-downloading on every visit.
   const assetPath = new URL(request.url).pathname;
-  if (/^\/assets\/xumeng\/(?:home|content-covers|brand|categories|covers|gallery|generation-templates)\/[^/]+\.(?:webp|jpg|jpeg|png|svg|ico)$/.test(assetPath)) {
+  if (/^\/assets\/xumeng\/(?:home|content-covers|brand|categories|covers|gallery|generation-templates)\/(?:motion\/)?[^/]+\.(?:webp|jpg|jpeg|png|svg|ico|mp4)$/.test(assetPath)) {
     const headers = new Headers(response.headers);
     headers.set("Cache-Control", "public, max-age=604800, stale-while-revalidate=86400");
     headers.set("X-Content-Type-Options", "nosniff");
@@ -331,6 +352,25 @@ async function reserveCanvasVideo(request: Request, env: Env, seconds: number): 
     method: "POST",
     headers: backendHeaders(request),
     body: JSON.stringify({ kind: "video", requestId: crypto.randomUUID(), seconds, model: "minimax-h3" }),
+    redirect: "manual",
+  }));
+  const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
+  if (upstream.status === 401) return json({ error: "请先登录后再生成视频。" }, 401);
+  if (upstream.status === 403) return json({ error: "请先登录正式账户后再生成视频。" }, 403);
+  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `可用 Credit 不足，这次视频需要 ${credits} Credit。`, code: "insufficient_credits" }, 402);
+  if (upstream.status === 429) return json({ error: typeof payload?.error === "string" ? payload.error : "正在生成的任务过多，请先等待完成。" }, 429);
+  if (!upstream.ok || payload?.credits !== credits || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
+    return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
+  }
+  return { id: payload.reservationId, claimToken: payload.claimToken, credits };
+}
+
+async function reserveChatSegmentVideo(request: Request, env: Env): Promise<{ id: string; claimToken: string; credits: number } | Response> {
+  const credits = CHAT_SEGMENT_VIDEO_CREDITS;
+  const upstream = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/generation/canvas`, {
+    method: "POST",
+    headers: backendHeaders(request),
+    body: JSON.stringify({ kind: "chat-segment", requestId: crypto.randomUUID() }),
     redirect: "manual",
   }));
   const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
@@ -776,6 +816,32 @@ function channelFailure(error: unknown): Response {
   return json({ error: message }, status);
 }
 
+async function aigenOptimizePrompt(request: Request, env: Env): Promise<Response> {
+  if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: "POST" });
+  if (request.headers.get("x-adult-confirmed") !== "1") return json({ error: "需要先确认已满 18 岁。" }, 403);
+  const session = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/session`, { headers: backendHeaders(request), redirect: "manual" }));
+  const account = await session.json().catch(() => null) as { user?: { id?: unknown; isGuest?: unknown } } | null;
+  if (session.status === 401 || !account?.user || typeof account.user.id !== "string") return json({ error: "请先登录后再优化提示词。" }, 401);
+  if (!session.ok) return json({ error: "账户服务暂时不可用。" }, 503);
+  if (account.user.isGuest !== false) return json({ error: "请先登录后再优化提示词。" }, 403);
+  const limit = await env.CHAT_RATE_LIMITER.limit({ key: `aigen-optimize:${account.user.id}` });
+  if (!limit.success) return json({ error: "提示词优化太频繁，请稍后再试。" }, 429);
+  const length = Number(request.headers.get("content-length") || 0);
+  if (length > 20_000) return json({ error: "请求格式无效。" }, 400);
+  const body = await request.json().catch(() => null) as { text?: unknown; kind?: unknown } | null;
+  if (body?.text != null && typeof body.text !== "string") return json({ error: "请求格式无效。" }, 400);
+  const kind = body?.kind == null ? "image" : body.kind;
+  if (kind !== "image" && kind !== "video") return json({ error: "优化类型无效。" }, 400);
+  const result = await optimizeAigenPrompt(typeof body?.text === "string" ? body.text : "", {
+    OPENROUTER_API_KEY: env.DZMM_API_KEY,
+    OPENROUTER_BASE_URL: env.DZMM_BASE_URL,
+    SEALION_API_KEY: env.SEALION_API_KEY,
+    SEALION_BASE_URL: env.SEALION_BASE_URL,
+  }, kind);
+  if (!result.ok) return json({ error: result.error }, result.status);
+  return json({ prompt: result.prompt });
+}
+
 async function videoCharacterApi(request: Request, env: Env): Promise<Response> {
   if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: "POST" });
   const session = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/session`, { headers: backendHeaders(request), redirect: "manual" }));
@@ -963,16 +1029,25 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   if (!limit.success) return json({ error: "视频请求太频繁，请稍后再试。" }, 429);
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "请求格式无效。" }, 400); }
-  const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown; seconds?: unknown } : {};
-  const seconds = typeof record.seconds === "number" ? record.seconds : 5;
-  const hold = await reserveCanvasVideo(request, env, seconds);
+  const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown } : {};
+  const source = typeof record.prompt === "string" ? record.prompt : "";
+  const refined = await refineChatScenePrompt(source, CHAT_CLIP_MODEL, {
+    OPENROUTER_API_KEY: env.DZMM_API_KEY,
+    OPENROUTER_BASE_URL: env.DZMM_BASE_URL,
+    SEALION_API_KEY: env.SEALION_API_KEY,
+    SEALION_BASE_URL: env.SEALION_BASE_URL,
+  });
+  if (!refined.ok && refined.status !== 503) return json({ error: refined.error }, refined.status);
+  const prompt = refined.ok ? refined.prompt : source.replace(/\s+/g, " ").trim();
+  if (!prompt) return json({ error: "这一段不能生成视频。" }, 400);
+  const hold = await reserveChatSegmentVideo(request, env);
   if (hold instanceof Response) return hold;
   const video = await runH3CanvasVideo({
     base: env.H3_COMFY_URL ?? "",
     token: env.H3_COMFY_TOKEN ?? "",
-    prompt: typeof record.prompt === "string" ? record.prompt : "",
+    prompt,
     image: typeof record.image === "string" ? record.image : "",
-    seconds,
+    seconds: CHAT_SEGMENT_VIDEO_SECONDS,
   });
   if (!video.ok) {
     await video.body?.cancel();
@@ -1282,6 +1357,29 @@ async function scenarioNarration(request: Request, env: Env, options: DzmmChatHa
   } catch (error) { if (error instanceof DzmmValidationError) return json({ error: error.message }, 400); throw error; }
 }
 
+async function shareCover(request: Request): Promise<Response> {
+  if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
+  const incoming = new URL(request.url);
+  const upstream = xumengVideoCoverUpstream(incoming.searchParams.get("src"), incoming.searchParams.get("v"));
+  if (!upstream) return json({ error: "封面地址无效。" }, 400);
+  try {
+    const remote = await fetch(upstream, { redirect: "manual", headers: { accept: "image/avif,image/webp,image/png,image/jpeg" } });
+    if (!remote.ok) { await remote.body?.cancel(); return json({ error: "封面暂时读不出来。" }, 502); }
+    const bytes = new Uint8Array(await remote.arrayBuffer());
+    const type = bytes.byteLength <= XUMENG_SHARE_COVER_MAX_BYTES ? xumengShareCoverImageType(bytes) : null;
+    if (!type) return json({ error: "封面暂时读不出来。" }, 502);
+    const headers = new Headers({
+      "content-type": type,
+      "cache-control": "public, max-age=300, must-revalidate",
+      "x-content-type-options": "nosniff",
+      "content-length": String(bytes.byteLength),
+    });
+    return new Response(request.method === "HEAD" ? null : bytes, { status: 200, headers });
+  } catch {
+    return json({ error: "封面暂时读不出来。" }, 502);
+  }
+}
+
 export async function fetchRequest(
   request: Request,
   env: Env,
@@ -1289,6 +1387,7 @@ export async function fetchRequest(
 ): Promise<Response> {
   const path = new URL(request.url).pathname;
   try {
+    if (path === "/api/xumeng-share/cover") return await shareCover(request);
     if (path === "/assets/xumeng/video-catalog.json") {
       if (request.method !== "GET" && request.method !== "HEAD") return json({ error: "请求方法不支持。" }, 405, { Allow: "GET, HEAD" });
       const upstream = await fetch("https://video.xumengchat.top/catalog.json", { headers: { accept: "application/json" } });
@@ -1442,6 +1541,7 @@ export async function fetchRequest(
         return new Response(request.method === "HEAD" ? null : response.body, { status: response.status, headers });
       }
       checkMutationOrigin(request);
+      if (path === "/api/aigen/optimize-prompt") return await aigenOptimizePrompt(request, env);
       if (path === "/api/xumeng/video-character") return await videoCharacterApi(request, env);
       if (path === "/api/aiapi/still") return await aiapiStill(request, env);
       if (path === "/api/aiapi/video") return await aiapiVideo(request, env);

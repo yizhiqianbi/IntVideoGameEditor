@@ -1,0 +1,60 @@
+# DZMM Gamefy 开发者文档
+
+> 在 DZMM 平台上开发 H5 小游戏的完整参考：浏览器 SDK、服务端函数、本地开发 CLI、
+> 限制与错误码。面向 AI coding agent，可整份读入上下文。
+
+文档版本 50dd12a6ec4b。链接均相对本站根目录。
+
+## 开始
+
+- [欢迎](/gamefy/docs/index.md): 文档地图与如何阅读
+- [快速入门](/gamefy/docs/getting-started.md): 目录结构、保存、发布
+- [游戏运行环境](/gamefy/docs/runtime.md): iframe 沙箱、dev vs prod
+- [本地开发 CLI](/gamefy/docs/connected-dev.md): gamefy pull / dev / deploy
+- [发布与上架](/gamefy/docs/publishing.md): 两个动作的区别、审核状态
+
+## 浏览器 SDK
+
+- [SDK 总览](/gamefy/docs/sdk.md): 所有 API 一览表
+- [AI 对话](/gamefy/docs/sdk/completions.md): dzmm.completions
+- [AI 画图与编辑](/gamefy/docs/sdk/draw.md): dzmm.draw.*
+- [音频播放](/gamefy/docs/sdk/audio.md): dzmm.audio.*
+- [启动加载状态](/gamefy/docs/sdk/loading.md): dzmm.loading.*
+- [能力检查](/gamefy/docs/sdk/capabilities.md): dzmm.capabilities.get
+- [聊天存档](/gamefy/docs/sdk/chat.md): dzmm.chat.* 树状分支
+- [KV 存储](/gamefy/docs/sdk/kv.md): dzmm.kv.* 键值对
+- [存档生命周期](/gamefy/docs/sdk/save-actions.md): dzmm.save.onAction
+- [玩家提示](/gamefy/docs/sdk/toast.md): dzmm.toast.*
+- [游戏日志](/gamefy/docs/sdk/log.md): dzmm.log.*
+- [玩家信息](/gamefy/docs/sdk/user.md): dzmm.user.info / jwks
+- [模型列表](/gamefy/docs/sdk/models.md): dzmm.models.list
+- [分享 & 启动参数](/gamefy/docs/sdk/share.md): dzmm.share / getLaunchParams
+- [作品工坊](/gamefy/docs/sdk/workshop.md): dzmm.workshop.*
+- [联机房间与语音](/gamefy/docs/sdk/realtime.md): dzmm.rt.* / voice.*
+
+## Recipes
+
+- [常用 Recipes](/gamefy/docs/recipes.md): AI 编码助手可复用做法
+- [save-slots](/gamefy/docs/recipes/save-slots.md): 多存档槽与 KV 扩展
+- [completions-safe](/gamefy/docs/recipes/completions-safe.md): AI 调用竞态与错误处理
+- [ai-json](/gamefy/docs/recipes/ai-json.md): 结构化 JSON 输出
+- [model-picker](/gamefy/docs/recipes/model-picker.md): 动态模型选择
+
+## 服务端函数
+
+- [是什么 & 何时用](/gamefy/docs/serverless.md): 服务端编排、共享 KV、防作弊
+- [编写函数](/gamefy/docs/serverless/writing.md): functions/*.ts 签名与示例
+- [ctx API 详解](/gamefy/docs/serverless/ctx.md): kv / completions / chat / draw
+- [浏览器调用](/gamefy/docs/serverless/calling.md): dzmm.fn.invoke / invokeStream
+- [限制与错误码](/gamefy/docs/serverless/limits.md): CPU / 时长 / 配额 / 错误处理
+
+## 参考
+
+- [命令行与发布错误码](/gamefy/docs/cli-errors.md): gamefy / 网页上传的报错与处理
+- [错误处理大全](/gamefy/docs/errors.md): DzmmError / RPCError 错误码
+- [平台限制总表](/gamefy/docs/limits.md): 所有上限一处看
+- [常见问题](/gamefy/docs/faq.md): 快速排错
+
+## 全文
+
+- [llms-full.txt](/gamefy/llms-full.txt): 上面每一页拼成的单文件，适合一次性读入

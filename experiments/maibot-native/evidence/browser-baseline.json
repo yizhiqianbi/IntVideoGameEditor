@@ -1,0 +1,195 @@
+{
+  "scope": "synthetic browser conversation, genuine native MaiBot and OpenRouter",
+  "capturedAt": "2026-10-18T04:59:21.205040+00:00",
+  "sourceRevision": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "phase": "before transport quote display correction",
+  "sessionId": "300da27b-9134-4139-8359-0ed5f42333cc",
+  "messages": [
+    {
+      "id": "7b062dc1-2411-49bd-becf-c00601fda1d4",
+      "role": "user",
+      "text": "你好呀，我是阿舟",
+      "createdAt": "2026-10-18T04:55:31.288Z",
+      "nativeId": "7b062dc1-2411-49bd-becf-c00601fda1d4",
+      "requestId": "4b3e154b-0369-4cc0-a8f3-3c7f5eb1441b"
+    },
+    {
+      "id": "6c8af3e7-3174-4237-a2b0-43fcd3c3f8d4",
+      "role": "assistant",
+      "text": "你好呀，我是阿舟 阿舟你好呀～这名字听着就像要划船去哪儿似的",
+      "createdAt": "2026-10-18T04:55:39.858Z",
+      "nativeId": null
+    },
+    {
+      "id": "a73e801b-11d1-481b-b879-633443fdba40",
+      "role": "assistant",
+      "text": "中午也在摸鱼吗",
+      "createdAt": "2026-10-18T04:55:41.965Z",
+      "nativeId": null
+    },
+    {
+      "id": "4668a17a-ca7a-40b4-8633-3646d1277b42",
+      "role": "user",
+      "text": "嗯，偷偷摸会儿鱼，想听你撒个娇",
+      "createdAt": "2026-10-18T04:56:06.310Z",
+      "nativeId": "4668a17a-ca7a-40b4-8633-3646d1277b42",
+      "requestId": "7fbd244c-e737-4424-a396-d25cc1cad3c9"
+    },
+    {
+      "id": "05980777-d052-42bf-ba55-9173c961bf2c",
+      "role": "assistant",
+      "text": "嗯，偷偷摸会儿鱼，想听你撒个娇 一上来就要我撒娇",
+      "createdAt": "2026-10-18T04:56:16.123Z",
+      "nativeId": null
+    },
+    {
+      "id": "2f86fb14-f03d-403a-befc-d6c91ce4d9fa",
+      "role": "assistant",
+      "text": "你倒是很会啊～那先夸我一句",
+      "createdAt": "2026-10-18T04:56:19.876Z",
+      "nativeId": null
+    },
+    {
+      "id": "0700f967-3e4a-45f1-9e79-1dad5a40aea5",
+      "role": "assistant",
+      "text": "夸得好听我再考虑考虑",
+      "createdAt": "2026-10-18T04:56:22.880Z",
+      "nativeId": null
+    },
+    {
+      "id": "840b97a6-713e-4cf3-ab31-42242448c290",
+      "role": "user",
+      "text": "你明明凶巴巴的，但是好可爱",
+      "createdAt": "2026-10-18T04:56:42.225Z",
+      "nativeId": "840b97a6-713e-4cf3-ab31-42242448c290",
+      "requestId": "67333c2a-d327-4c1b-9bde-0bea4a4c9c13"
+    },
+    {
+      "id": "0471b434-8118-435c-8a2a-5f6e482774d9",
+      "role": "assistant",
+      "text": "你明明凶巴巴的，但是好可爱 凶巴巴也是被你气的嘛，哼，不过这夸法还算过关",
+      "createdAt": "2026-10-18T04:56:53.480Z",
+      "nativeId": null
+    },
+    {
+      "id": "e1d5f74b-7f46-4a95-879d-688ae04d70b2",
+      "role": "assistant",
+      "text": "那就……阿舟最好啦，中午摸鱼还想着我",
+      "createdAt": "2026-10-18T04:56:58.436Z",
+      "nativeId": null
+    },
+    {
+      "id": "4a7b0d59-bdfd-45cd-861f-ca9e2f13da36",
+      "role": "assistant",
+      "text": "开心一点点",
+      "createdAt": "2026-10-18T04:56:59.941Z",
+      "nativeId": null
+    },
+    {
+      "id": "43514670-2828-4327-a4be-e42e63c22a91",
+      "role": "user",
+      "text": "其实今天有点烦",
+      "createdAt": "2026-10-18T04:57:34.680Z",
+      "nativeId": "43514670-2828-4327-a4be-e42e63c22a91",
+      "requestId": "3a769d3f-8811-44cd-aa8f-84a52fa6a6ae"
+    },
+    {
+      "id": "f8345346-aeb0-421c-9a34-78fab4476bc0",
+      "role": "user",
+      "text": "但不想聊工作的事，讲讲你吧",
+      "createdAt": "2026-10-18T04:57:38.291Z",
+      "nativeId": "f8345346-aeb0-421c-9a34-78fab4476bc0",
+      "requestId": "f04edb71-c413-48d8-b74b-8c631a7f1a8e"
+    },
+    {
+      "id": "9d1e2ee8-e368-4506-b42a-c316f6d3c09a",
+      "role": "assistant",
+      "text": "但不想聊工作的事，讲讲你吧 不晓得",
+      "createdAt": "2026-10-18T04:57:47.350Z",
+      "nativeId": null
+    },
+    {
+      "id": "cce0d08e-8555-4344-a18a-806b61dc00d9",
+      "role": "assistant",
+      "text": "但不想聊工作的事，讲讲你吧 那就不聊那个啦，抱抱你一下～",
+      "createdAt": "2026-10-18T04:57:54.540Z",
+      "nativeId": null
+    },
+    {
+      "id": "defe6859-eb6a-467f-92de-65343356939f",
+      "role": "assistant",
+      "text": "我今天中午吃了碗面然后就瘫床上了，撑得不想动",
+      "createdAt": "2026-10-18T04:58:00.994Z",
+      "nativeId": null
+    },
+    {
+      "id": "09bd1630-44de-482e-86ee-a575e3969b8a",
+      "role": "assistant",
+      "text": "现在还有点困。你呢，吃过了没",
+      "createdAt": "2026-10-18T04:58:04.906Z",
+      "nativeId": null
+    },
+    {
+      "id": "f2bb1d31-f900-420c-a387-f37e3607297e",
+      "role": "user",
+      "text": "吃的啥面呀，怎么能把自己吃瘫啦",
+      "createdAt": "2026-10-18T04:58:38.549Z",
+      "nativeId": "f2bb1d31-f900-420c-a387-f37e3607297e",
+      "requestId": "e8118fe2-f859-4cb4-b282-a2bba92e434a"
+    },
+    {
+      "id": "019a615a-7416-45c8-870c-ff1e52af6345",
+      "role": "assistant",
+      "text": "吃的啥面呀，怎么能把自己吃瘫啦 牛肉面还加了颗溏心蛋",
+      "createdAt": "2026-10-18T04:58:43.586Z",
+      "nativeId": null
+    },
+    {
+      "id": "2961c752-59ae-4427-a6f8-1cac19d988fe",
+      "role": "assistant",
+      "text": "汤都喝了大半，你说这不撑嘛",
+      "createdAt": "2026-10-18T04:58:47.339Z",
+      "nativeId": null
+    },
+    {
+      "id": "acc646ed-c918-4ca8-8c9b-ce06b39873a5",
+      "role": "assistant",
+      "text": "现在躺着刷手机呢，翻个身都嫌累",
+      "createdAt": "2026-10-18T04:58:51.692Z",
+      "nativeId": null
+    },
+    {
+      "id": "21698723-ac78-4128-93de-5849a33efd8e",
+      "role": "user",
+      "text": "本来想说讨厌你，结果你一撒娇我就没脾气了",
+      "createdAt": "2026-10-18T04:58:57.041Z",
+      "nativeId": "21698723-ac78-4128-93de-5849a33efd8e",
+      "requestId": "9261664d-ef59-4060-ba04-1607a33b6681"
+    },
+    {
+      "id": "bfe9abf2-c895-4f58-9617-366bcdea6661",
+      "role": "assistant",
+      "text": "本来想说讨厌你，结果你一撒娇我就没脾气了 我就知道你这人吃软不吃硬，凶你两句就没脾气啦",
+      "createdAt": "2026-10-18T04:59:04.836Z",
+      "nativeId": null
+    },
+    {
+      "id": "7ac20a4f-73c7-4d75-8020-7fe4be12fda0",
+      "role": "assistant",
+      "text": "哼",
+      "createdAt": "2026-10-18T04:59:06.044Z",
+      "nativeId": null
+    },
+    {
+      "id": "d30bd135-7fd6-48c3-b73a-9d9a1c01ce41",
+      "role": "assistant",
+      "text": "别真的讨厌我哦",
+      "createdAt": "2026-10-18T04:59:08.151Z",
+      "nativeId": null
+    }
+  ],
+  "notes": [
+    "content currently includes native ReplyComponent text due to transport serialization bug; this is not all fresh model dialogue",
+    "No canned replies or legacy character-chat engine involved"
+  ]
+}

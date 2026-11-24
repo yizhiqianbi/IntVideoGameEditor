@@ -1,0 +1,62 @@
+{
+  "captured_at": "2026-10-14",
+  "authority": "controlled-replay",
+  "target": "https://www.nariyume.com/api/chat",
+  "method": "POST",
+  "request_type": "fetch",
+  "status": 200,
+  "duration_ms_approx": 1470,
+  "transferred_bytes_approx": 1500,
+  "completion_raw_json_content": "今天吃到了热乎乎的早餐，心情很好。🙂 [happy]",
+  "completion_visible": "今天吃到了热乎乎的早餐，心情很好。🙂",
+  "completion_char_count": 18,
+  "usage": {
+    "prompt_tokens": 3659,
+    "completion_tokens": 16,
+    "total_tokens": 3675,
+    "prompt_tokens_details": {
+      "cached_tokens": 2048,
+      "cache_write_tokens": 0,
+      "audio_tokens": 0,
+      "video_tokens": 0
+    },
+    "completion_tokens_details": {
+      "reasoning_tokens": 0,
+      "image_tokens": 0,
+      "audio_tokens": 0
+    }
+  },
+  "derived": {
+    "cached_prompt_fraction_approx": 0.56,
+    "interpretation": "compatible with a stable upstream prompt prefix; not a direct system-prompt length measurement"
+  },
+  "model": null,
+  "provider": null,
+  "headers": {
+    "x-nariyume-openrouter-route": "gateway",
+    "x-nariyume-relay-route": "public",
+    "x-nariyume-hedge": "none"
+  },
+  "server_timing_ms": {
+    "auth": 0,
+    "admission": 127,
+    "brain": 165,
+    "relay": 877,
+    "openrouter": 662
+  },
+  "limits": [
+    "The response omitted model and provider fields for this call.",
+    "The raw response content is retained only as a short, user-authored test output; no request body is stored.",
+    "Authorization, Cookie, device identifiers, and other sensitive headers were intentionally excluded."
+  ],
+  "direct_probe_without_auth": {
+    "captured_at": "2026-10-14",
+    "transport": "python urllib direct POST",
+    "status": 403,
+    "selected_headers": {
+      "content-type": "text/plain; charset=UTF-8"
+    },
+    "body_bytes": 17,
+    "interpretation": "The endpoint rejects a minimal request without the browser's authorization context; the frontend's same-origin request shape alone is insufficient."
+  }
+}

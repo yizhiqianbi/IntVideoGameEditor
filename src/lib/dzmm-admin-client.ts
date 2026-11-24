@@ -346,3 +346,31 @@ export async function deleteDzmmAdminBanner(accountId: string, id: string, signa
   const value = await request(`/banners/${encodeURIComponent(id)}/delete`, accountId, { accountId }, signal);
   return parseBanner(value.banner);
 }
+
+export type StudioCoverRow = { slot: string; url: string; updatedAt: number };
+
+export async function fetchStudioCovers(accountId: string, signal?: AbortSignal): Promise<StudioCoverRow[]> {
+  const value = await request("/studio-covers", accountId, undefined, signal);
+  if (!Array.isArray(value.covers)) throw malformed();
+  return value.covers.map((item) => {
+    if (!record(item) || typeof item.slot !== "string" || typeof item.url !== "string" || !timestamp(item.updatedAt)) throw malformed();
+    return { slot: item.slot, url: item.url, updatedAt: item.updatedAt };
+  });
+}
+
+export async function uploadStudioCover(accountId: string, slot: string, file: Blob, signal?: AbortSignal): Promise<StudioCoverRow> {
+  if (!uuid(accountId)) throw new DzmmAdminError(401, "管理账号无效，请重新登录。");
+  const response = await fetch(`${API}/studio-covers/${encodeURIComponent(slot)}`, {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  const value: unknown = await response.json().catch(() => null);
+  if (!response.ok || !record(value)) throw new DzmmAdminError(response.status, record(value) && text(value.error, 500) ? value.error : "封面没有传上去。");
+  if (value.accountId !== accountId || typeof value.slot !== "string" || typeof value.url !== "string" || !timestamp(value.updatedAt)) throw malformed();
+  return { slot: value.slot, url: value.url, updatedAt: value.updatedAt };
+}
+
+export async function resetStudioCover(accountId: string, slot: string, signal?: AbortSignal): Promise<void> {
+  await request(`/studio-covers/${encodeURIComponent(slot)}/delete`, accountId, { accountId }, signal);
+}

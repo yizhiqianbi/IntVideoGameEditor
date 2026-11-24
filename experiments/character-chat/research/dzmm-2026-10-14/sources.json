@@ -1,0 +1,174 @@
+{
+  "schema": "dzmm_public_research_sources_v1",
+  "research_date": "2026-10-14",
+  "timezone": "Asia/Shanghai",
+  "scope": "public product pages; current official Gamefy fulltext; existing public UI capture; no account/authenticated data or model calls",
+  "current_public_pages": [
+    {
+      "url": "https://www.dzmm.ai/",
+      "title": "DZMM AI homepage",
+      "access": "web read successful; initial CLI without configured system proxy 403; configured system HTTP proxy normal public GET 200",
+      "supports": [
+        "role-card and creator-game product surface"
+      ],
+      "does_not_support": [
+        "backend model",
+        "private prompt",
+        "training recipe"
+      ]
+    },
+    {
+      "url": "https://dzmm-home.github.io/dzmm-addr/",
+      "title": "DZMM line selector",
+      "access": "web read successful",
+      "supports": [
+        "index co-lists Lumivale domestic and dzmm.ai overseas routes"
+      ],
+      "does_not_support": [
+        "current editor fields reverified"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/character/3376434",
+      "title": "Worldbook helper",
+      "access": "web read successful with version variation between search and open",
+      "evidence_type": "creator public description",
+      "supports": [
+        "creator workflow separation and test/refine advice"
+      ],
+      "does_not_support": [
+        "platform worldbook algorithm"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/character/2814538?source=home_highest_rated_7d",
+      "title": "Shelter survival creator description",
+      "access": "web indexed description read",
+      "evidence_type": "creator public description",
+      "supports": [
+        "creator claim of short history plus long summary"
+      ],
+      "does_not_support": [
+        "platform global memory implementation",
+        "code verified"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/character/2849651",
+      "title": "DND dungeon creator description",
+      "access": "web indexed description read",
+      "evidence_type": "creator public description",
+      "supports": [
+        "creator fixed rules then AI generation and test iteration"
+      ],
+      "does_not_support": [
+        "main-chat backend"
+      ]
+    },
+    {
+      "url": "https://github.com/waylon256yhw/dzmm-builder",
+      "title": "Community author project",
+      "access": "web read successful",
+      "evidence_type": "author original public repository; explicitly unofficial guide",
+      "supports": [
+        "author modular-prompt/state-management design"
+      ],
+      "does_not_support": [
+        "current platform parameter contract",
+        "official affiliation"
+      ]
+    }
+  ],
+  "prior_evidence": {
+    "ui_snapshot": {
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/output/dzmm/source-feature-exploration-2026-10-03.json",
+      "source_site": "https://www.lumivale.xyz",
+      "observed_at": "2026-10-02T17:37:12.867Z",
+      "used_only": [
+        "preset-editor",
+        "character-creation-form",
+        "professional-role-editor"
+      ],
+      "not_refreshed_today": true
+    },
+    "gamefy_capture": {
+      "date": "2026-10-10",
+      "document_version": "50dd12a6ec4b",
+      "manifest_path": "/Users/pencil/Documents/IntVideoGameEditor/output/research/ai-xiaoshuo-2026-10-10/source-manifest.json",
+      "original_fulltext_in_repository": false,
+      "summary_path": "/Users/pencil/Documents/IntVideoGameEditor/docs/xumeng-dzmm-developer-knowledge-2026-10-10.md",
+      "summary_sha256": "5a4746727e910e05cbf835c347833de207701d680f57cbb88a7712aafc6958bc",
+      "llms_full_recorded_sha256": "4eea23d62c6a2225b70db81b7d6d5a7027602e9328d61588c0048b39bf38c9f9",
+      "not_refreshed_today": false,
+      "superseded_for_gamefy_claims_by_current_fulltext": true
+    }
+  },
+  "excluded_search_results": {
+    "reason": "no confirmed affiliation/link chain from target platform, or unrelated same-name project",
+    "domains_or_projects": [
+      "dzmm.app",
+      "dzmm.one",
+      "aidzmm.com",
+      "github.com/dzmm",
+      "github.com/b31o8321/dzmm"
+    ]
+  },
+  "not_performed": [
+    "login",
+    "registration",
+    "paid generation",
+    "chat send",
+    "bot setup/send",
+    "credential access",
+    "challenge bypass",
+    "private character-card retrieval",
+    "execution of external community scripts"
+  ],
+  "web_tool_official_document_attempts_failed": [
+    "https://www.dzmm.ai/gamefy/llms.txt",
+    "https://www.dzmm.ai/gamefy/llms-full.txt",
+    "https://www.dzmm.ai/gamefy/docs/sdk/completions.md",
+    "https://www.dzmm.ai/gamefy/docs/recipes/model-picker.md",
+    "https://www.dzmm.ai/gamefy/docs/recipes/ai-json.md",
+    "https://www.dzmm.ai/gamefy/docs/recipes/completions-safe.md",
+    "https://www.dzmm.ai/gamefy/docs/serverless.md",
+    "https://www.dzmm.ai/studio/bots/docs/"
+  ],
+  "web_tool_document_failure_does_not_mean_unverified_fulltext": true,
+  "current_official_documents": [
+    {
+      "url": "https://www.dzmm.ai/gamefy/llms.txt",
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/gamefy-llms.txt",
+      "access": "public HTTP 200 via user-configured system HTTP proxy; fetched by root",
+      "read_by_this_agent": true,
+      "document_version": "50dd12a6ec4b",
+      "bytes": 3053,
+      "sha256": "c1d713e76e0eea267dbcf8d39c2f9cfa8fd1a42026680452247a98c0a244ab5b",
+      "sections_used": [
+        "document version and exact page index"
+      ],
+      "not_performed": "no actual SDK/model API generation call"
+    },
+    {
+      "url": "https://www.dzmm.ai/gamefy/llms-full.txt",
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/gamefy-llms-full.txt",
+      "access": "public HTTP 200 via user-configured system HTTP proxy; fetched by root",
+      "read_by_this_agent": true,
+      "document_version": "50dd12a6ec4b",
+      "bytes": 244166,
+      "sha256": "4eea23d62c6a2225b70db81b7d6d5a7027602e9328d61588c0048b39bf38c9f9",
+      "sections_used": [
+        "AI completions",
+        "model catalog",
+        "model-picker",
+        "completions-safe",
+        "ai-json",
+        "serverless",
+        "ctx.completions",
+        "chat active history and branching",
+        "request/output limits"
+      ],
+      "not_performed": "no actual SDK/model API generation call"
+    }
+  ]
+}

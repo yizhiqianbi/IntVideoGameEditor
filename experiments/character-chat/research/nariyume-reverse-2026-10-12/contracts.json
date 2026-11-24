@@ -1,0 +1,180 @@
+{
+  "artifact": "independently authored observable client contract",
+  "date": "2026-10-12",
+  "source": {
+    "url": "https://nariyume.com/app/assets/main-BHN5IlOI.js",
+    "sha256": "32a8543b66faa82925f1baf9b7236bdb870397d4068742d58b2d27e48b1ff9c1"
+  },
+  "unknown": [
+    "private main system prompt",
+    "runtime model ID/provider",
+    "main decoding settings",
+    "backend LLM call count",
+    "backend training/weights",
+    "feature enablement"
+  ],
+  "chat": {
+    "transport": "authenticated POST /api/chat; client response.json()",
+    "requestFields": [
+      "kind",
+      "characterId",
+      "clientTurnId",
+      "rungIndex",
+      "history",
+      "conversationSummary?",
+      "userMessage",
+      "dynamic",
+      "locale?",
+      "imageDataURL?",
+      "pronunciation?"
+    ],
+    "dynamicFields": [
+      "firstConversation",
+      "userName",
+      "birthdayISO",
+      "ageBand",
+      "affectionLevel",
+      "userFacts",
+      "harness",
+      "lastAssistantAt",
+      "nowMs",
+      "tzOffsetMinutes",
+      "personaReminder",
+      "proactive?"
+    ],
+    "responseContentPath": "choices[0].message.content",
+    "optionalMetadata": [
+      "model",
+      "provider",
+      "usage",
+      "budget",
+      "pilot",
+      "voiceGrant"
+    ],
+    "mainSystemAndModelSentByClient": false,
+    "logicalRequestFrozenForRetry": true
+  },
+  "presentation": {
+    "storedAssistantMessagesPerReply": 1,
+    "uiPieceFields": [
+      "sourceMessage",
+      "pieceIndex"
+    ],
+    "parserForms": [
+      "reply/text/emotion/photo_description XML-like",
+      "plain text",
+      "trailing emotion marker"
+    ],
+    "parserBubblesIsPrimaryDisplay": false,
+    "primaryGrouping": {
+      "first": "accumulate sentences until 4 word units or no sentences remain",
+      "rest": "pairs of sentences",
+      "hardThreeBubbleLimit": false,
+      "cjkUnits": "count Han/Hiragana/Katakana per whitespace token, min 1",
+      "scope": "PE presentation pieces; not final DOM rows"
+    },
+    "textOnlyCps": {
+      "Nari": 19.1,
+      "Yume": 21
+    },
+    "ttsEvents": "piece start/end drive reveal",
+    "domRender": {
+      "chain": "ChatLayer / Im / tI / eI / JS",
+      "firstPiece": "one meaningful sentence per row",
+      "laterPieces": "usually pairs; 1 in each 5 pieces chosen via stable original reply ID FNV-style hash uses singles",
+      "newlineSplit": true,
+      "sentenceSuffix": "UTF-16 start offset within current text",
+      "historyReconstructsSourceGrouping": true,
+      "dateCompatibility": true,
+      "staticSupplementNotIncludedInOriginal7Fixtures": true
+    }
+  },
+  "memory": {
+    "kind": "memory",
+    "v": 2,
+    "sections": [
+      "slots",
+      "facts",
+      "plans",
+      "story",
+      "self"
+    ],
+    "batch": {
+      "minPairs": 8,
+      "maxPairs": 16,
+      "minUserChars": 24,
+      "timeoutMs": 45000
+    },
+    "caps": {
+      "facts": 60,
+      "plans": 12,
+      "storyPerCharacter": 14,
+      "selfPerCharacter": 14
+    },
+    "retrieval": {
+      "maxFacts": 9,
+      "approxWhitespaceWords": 120,
+      "englishKeywordPattern": "[a-z]{4,}",
+      "pureChineseMatchLimitation": true
+    },
+    "providerPromptVisible": false
+  },
+  "proactive": {
+    "tickMs": 60000,
+    "foreground": true,
+    "requires": [
+      "main chat home",
+      "empty composer",
+      "no overlay",
+      "no generation/input/reveal busy",
+      "quota access"
+    ],
+    "quiet": "22:00–07:00; weekends until 09:00",
+    "request": "empty userMessage + dynamic.proactive",
+    "notEveryTickSends": true
+  },
+  "oneShot": {
+    "clientTaskPromptVisible": true,
+    "fields": [
+      "kind",
+      "characterId?",
+      "system",
+      "user",
+      "maxTokens",
+      "temperature",
+      "json",
+      "purpose",
+      "activityId?",
+      "gameRun?"
+    ],
+    "parametersCannotBeAppliedToMainChat": true
+  },
+  "live": {
+    "loggedInUiObserved": true,
+    "existingHistoryUntouched": true,
+    "syntheticTurnsSent": 10,
+    "perCharacter": {
+      "Nari": 5,
+      "Yume": 5
+    },
+    "rawModelResponseCaptured": false,
+    "modelProviderCaptured": false,
+    "uiLocale": "zh-Hans",
+    "EnglishInstructionFailedBothInThisTrajectory": true,
+    "cleanConversation": false,
+    "exactLatencyMeasured": false,
+    "noPurchase": true,
+    "quotaCost": "unknown"
+  },
+  "tests": {
+    "originalPureParserSynthetic": {
+      "passed": 7,
+      "total": 7
+    },
+    "independentIllustration": {
+      "passed": 4,
+      "total": 4,
+      "simplifiedLexer": true
+    }
+  }
+}

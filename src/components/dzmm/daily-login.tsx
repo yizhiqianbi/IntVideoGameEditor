@@ -29,6 +29,7 @@ export function DailyLogin({ userId, isGuest, locale = "zh-Hans", onRequireAccou
   account.current = userId;
 
   const load = useCallback(async () => {
+    if (isGuest) { setLoading(false); setError(""); setData(null); return; }
     setLoading(true); setError("");
     try {
       const tasks = await fetchDzmmTasks();
@@ -38,7 +39,7 @@ export function DailyLogin({ userId, isGuest, locale = "zh-Hans", onRequireAccou
     } catch (failure) {
       if (active.current) setError(failure instanceof Error ? failure.message : copy.checkinUnavailable);
     } finally { if (active.current) setLoading(false); }
-  }, [userId, copy.accountSwitched, copy.checkinUnavailable]);
+  }, [isGuest, userId, copy.accountSwitched, copy.checkinUnavailable]);
   useEffect(() => { active.current = true; void load(); return () => { active.current = false; }; }, [load]);
   useEffect(() => {
     const reload = () => { void load(); };

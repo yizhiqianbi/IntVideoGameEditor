@@ -1,0 +1,31 @@
+{
+  "config": {
+    "token_count": 2,
+    "prompt_tokens": 2050,
+    "completion_tokens": 2,
+    "cached_tokens": 1664,
+    "repeat_comparison_available": true,
+    "exact_previous_assistant_repeat": false,
+    "current_output_chars": 2,
+    "previous_assistant_output_chars": 24,
+    "message_count": 4,
+    "ttft": 658,
+    "latency_ms": 695,
+    "success": true,
+    "error": null,
+    "enable_think": false
+  },
+  "generation_config": {
+    "temperature": 0.8,
+    "top_p": 0.8,
+    "max_tokens": 2500,
+    "repetition_penalty": 1.1,
+    "stop": [
+      "</s>",
+      "<|endoftext|>"
+    ]
+  },
+  "header": "generationId: 91c5290e-6423-46aa-ad54-bc1d274a7baa\n[hidden]\n[hidden]",
+  "chatUrl": "https://www.dzmm.ai/chat?c=846ac38a-3d67-4839-82fc-c11853f59f27",
+  "input": "文本测试，只回复“收到”：\n🙂🙃🫠🥹🧋🧸✨ 👩🏽‍💻 👨‍👩‍👧‍👦 🇨🇳 🇯🇵 ❤️"
+}

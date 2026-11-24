@@ -1,0 +1,651 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AIGF-API 2.0 测试结果</title>
+<style>
+  :root {
+    --bg: #f3efe6;
+    --paper: #faf7f1;
+    --ink: #1c1915;
+    --muted: #6d6458;
+    --line: #e3dacb;
+    --pass: #0e6b52;
+    --pass-soft: #e5f3ee;
+    --warn: #8a5610;
+    --warn-soft: #f8efd8;
+    --gap: #8d3b32;
+    --gap-soft: #f8e8e4;
+    --mono: "SFMono-Regular", ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.65 "PingFang SC", "Hiragino Sans GB", "Noto Sans SC", "Source Han Sans SC", sans-serif;
+  }
+  a { color: inherit; }
+  .shell {
+    display: grid;
+    grid-template-columns: 220px minmax(0, 1fr);
+    min-height: 100vh;
+  }
+  nav {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    padding: 28px 22px;
+    border-right: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+  }
+  .mark {
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .mark strong {
+    display: block;
+    margin-top: 6px;
+    color: var(--ink);
+    font-size: 18px;
+    letter-spacing: 0;
+    text-transform: none;
+    font-weight: 650;
+  }
+  nav ol {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 4px;
+  }
+  nav a {
+    display: block;
+    padding: 7px 10px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  nav a.active, nav a:hover { background: #efe8db; color: var(--ink); }
+  .nav-foot { margin-top: auto; color: var(--muted); font-size: 12px; line-height: 1.6; }
+  main { padding: 36px 48px 80px; max-width: 980px; }
+  header.top h1 {
+    margin: 8px 0 10px;
+    font-size: 40px;
+    line-height: 1.15;
+    font-weight: 650;
+    letter-spacing: -0.03em;
+  }
+  .lede { max-width: 68ch; margin: 0; font-size: 17px; }
+  .nowrap { white-space: nowrap; }
+  .meta { margin-top: 14px; color: var(--muted); font-size: 13px; }
+  .figures {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin: 32px 0 8px;
+    border-top: 1px solid var(--ink);
+    border-bottom: 1px solid var(--line);
+  }
+  .figures div { padding: 16px 16px 16px 0; }
+  .figures strong {
+    display: block;
+    font-size: 28px;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+  }
+  .figures span { color: var(--muted); font-size: 12px; }
+  section { margin-top: 48px; scroll-margin-top: 24px; }
+  h2 { font-size: 22px; margin: 0 0 8px; letter-spacing: -0.02em; }
+  h3 { font-size: 15px; margin: 22px 0 8px; }
+  p { margin: 8px 0; }
+  .note {
+    margin: 14px 0;
+    padding: 12px 14px;
+    background: var(--warn-soft);
+    color: #5c3d0c;
+    border-radius: 8px;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 10px 0 18px; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 550; font-size: 12px; }
+  code, .mono { font-family: var(--mono); font-size: 12px; }
+  .pill {
+    display: inline-block;
+    padding: 1px 7px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .ok { background: var(--pass-soft); color: var(--pass); }
+  .bad { background: var(--gap-soft); color: var(--gap); }
+  .wait { background: var(--warn-soft); color: var(--warn); }
+  .timeline { display: grid; gap: 0; margin: 12px 0 18px; }
+  .step {
+    display: grid;
+    grid-template-columns: 88px 1fr;
+    gap: 14px;
+    padding: 12px 0;
+    border-top: 1px solid var(--line);
+  }
+  .step b { font-variant-numeric: tabular-nums; }
+  .bars { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 28px; margin: 8px 0 16px; }
+  .bar-name { font-weight: 650; }
+  .muted { color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0 16px; }
+  .chips span {
+    border: 1px solid var(--line);
+    background: var(--paper);
+    border-radius: 999px;
+    padding: 3px 9px;
+    font-size: 12px;
+  }
+  .media-grid {
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+    gap: 28px;
+    align-items: start;
+    margin-top: 16px;
+  }
+  .media-grid img, .media-grid video {
+    width: 100%;
+    border-radius: 10px;
+    background: #ddd6c8;
+    display: block;
+  }
+  .media-grid figcaption { margin-top: 8px; color: var(--muted); font-size: 12px; }
+  .pairs { display: grid; gap: 0; margin-top: 8px; }
+  .pair {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 22px;
+    padding: 18px 0;
+    border-top: 1px solid var(--line);
+    content-visibility: auto;
+    contain-intrinsic-size: auto 640px;
+  }
+  .pair h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    font-weight: 650;
+  }
+  .pair img, .pair video {
+    width: 100%;
+    max-height: 560px;
+    object-fit: contain;
+    background: #e7dfd2;
+    border-radius: 8px;
+    display: block;
+  }
+  .pair .prompt {
+    margin: 10px 0 0;
+    font-size: 14px;
+    max-height: 520px;
+    overflow: auto;
+  }
+  .pair .meta { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+  .pair .empty {
+    min-height: 72px;
+    display: grid;
+    place-items: center;
+    background: #e7dfd2;
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+  #wave-summary { margin: 8px 0 0; }
+  @media (max-width: 860px) {
+    .media-grid { grid-template-columns: 1fr; }
+  }
+  ul.plain { margin: 8px 0 0; padding-left: 18px; }
+  ul.plain li { margin: 4px 0; }
+  @media (max-width: 860px) {
+    .shell { display: block; }
+    nav { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); }
+    nav ol { grid-auto-flow: column; overflow-x: auto; }
+    nav a { white-space: nowrap; }
+    .nav-foot { display: none; }
+    main { padding: 24px 18px 64px; }
+    header.top h1 { font-size: 32px; }
+    .figures, .bars, .pair { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<div class="shell">
+  <nav>
+    <div class="mark">AIGF-API 2.0<strong>测试结果</strong></div>
+    <ol>
+      <li><a href="#long">长提示词</a></li>
+      <li><a href="#models">输入和输出模型</a></li>
+      <li><a href="#scale">百路并发</a></li>
+      <li><a href="#rest">其余接口</a></li>
+      <li><a href="#porn">色情并行</a></li>
+      <li><a href="#parallel">并行</a></li>
+      <li><a href="#media">图片和视频</a></li>
+      <li><a href="#result">结论</a></li>
+      <li><a href="#auth">鉴权</a></li>
+      <li><a href="#catalog">目录</a></li>
+      <li><a href="#round">这一轮</a></li>
+      <li><a href="#diff">和文档的差异</a></li>
+      <li><a href="#skipped">没测的接口</a></li>
+    </ol>
+    <div class="nav-foot">生产环境<br>2026-10-19 23:53–23:57<br>密钥未写入此页</div>
+  </nav>
+  <main>
+    <header class="top">
+      <div class="mark">https://api.aiaigirl.com/aigf/v1</div>
+      <h1>这把密钥能打完一轮剧本，开不了角色房间。</h1>
+      <p class="lede">角色卡目录是空的。相册生图和相册视频已经各成功一次，各记 1 次。<span class="nowrap">语音风格为 0，</span>语音没有提交。</p>
+      <p class="meta">对照文档 AIGF-API 2.0 渠道对接文档 · 2026.10.17 · 探针用户 cursor-probe-001 · 渠道 63</p>
+    </header>
+
+    <section id="long">
+      <h2>长提示词</h2>
+      <p id="long-summary">正在提交。初级生图直接吃 prompt，接口上限 1000 字。全部是成年人，不用校园、未成年或乱伦内容。</p>
+      <div class="pairs" id="long-wave"></div>
+      <h3>七百到八百字</h3>
+      <p id="long-max-summary">正在提交更长的一版。</p>
+      <div class="pairs" id="long-max-wave"></div>
+    </section>
+
+    <section id="models">
+      <h2>输入模型和输出模型</h2>
+      <p>提交时用的名字，和用量里记下来的名字，分开列。文字按 token 拆输入和输出。图片、视频、语音的用量不返回模型名。</p>
+      <h3>剧本这一轮</h3>
+      <table>
+        <thead><tr><th>来源</th><th>输入模型</th><th>输出模型</th><th>输入 token</th><th>输出 token</th></tr></thead>
+        <tbody>
+          <tr><td>会话配置</td><td><code>gemma4-26b-a4b-ultra-heretic</code></td><td>账单里没有这个名字</td><td>—</td><td>—</td></tr>
+          <tr><td>调用 754942 · main_reply</td><td><code>aigf-rpmax-04</code></td><td><code>aigf-rpmax-04</code></td><td>2,193</td><td>405</td></tr>
+          <tr><td>调用 754949 · main_reply</td><td><code>qwen3.8-27b-uncensored-fp8</code></td><td><code>qwen3.8-27b-uncensored-fp8</code></td><td>1,282</td><td>334</td></tr>
+          <tr><td>调用 754959 · main_reply</td><td><code>gemma4-31b-heretic-nvfp4</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td><td>2,034</td><td>1,000</td></tr>
+          <tr><td>本轮合计</td><td colspan="2">三个输出模型，不是配置的那一个</td><td>5,509</td><td>1,739</td></tr>
+        </tbody>
+      </table>
+      <p class="muted"><code>qwen3.8-27b-uncensored-fp8</code> 不在模型目录里。目录里相近的提交名是 <code>qwen3.6-27b-heretic-v2-mtp-nvfp4</code>。</p>
+      <h3>目录里的提交名和底层模型</h3>
+      <table>
+        <thead><tr><th>输入时填写的 name</th><th>目录返回的底层 model</th></tr></thead>
+        <tbody>
+          <tr><td><code>gemma</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td></tr>
+          <tr><td><code>gemma4-26b-a4b-ultra-heretic</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td></tr>
+          <tr><td><code>aigf-rpmax-04</code></td><td><code>aigf-rpmax-04</code></td></tr>
+          <tr><td><code>qwen3.6-27b-heretic-v2-mtp-nvfp4</code></td><td><code>qwen3.6-27b-heretic-v2-mtp-nvfp4</code></td></tr>
+          <tr><td><code>gemma4-31b-heretic-nvfp4</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td></tr>
+          <tr><td><code>deepseek-v4-flash-0731-abliterated</code></td><td><code>deepseek-v41-flash-uncensored</code></td></tr>
+        </tbody>
+      </table>
+      <h3>图片、视频、语音</h3>
+      <table>
+        <thead><tr><th>资源</th><th>风格上的模型</th><th>用量里的模型</th><th>成功次数</th></tr></thead>
+        <tbody>
+          <tr><td>图片</td><td>三种风格都写着 <code>qwen</code></td><td>空</td><td>131</td></tr>
+          <tr><td>视频</td><td>两种风格都写着 <code>qwen</code></td><td>空</td><td>40</td></tr>
+          <tr><td>语音</td><td>风格目录是 0 条</td><td>空</td><td>1</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">每日汇总也是这样：文字按模型分开记输入 token 和输出 token；图片、视频、语音的 model 字段为空，只记 quantity。</p>
+    </section>
+
+    <section id="scale">
+      <h2>百路并发</h2>
+      <p id="scale-summary">正在提交 80 张图和 20 条视频。</p>
+      <div class="pairs" id="scale-wave"></div>
+    </section>
+
+    <section id="rest">
+      <h2>其余接口和全部模板</h2>
+      <p id="rest-summary">正在补测未覆盖的读接口，以及还没跑过的姿势和动作模板。</p>
+      <div id="rest-endpoints"></div>
+      <div class="pairs" id="rest-wave"></div>
+    </section>
+
+    <section id="porn">
+      <h2>色情并行</h2>
+      <p id="porn-summary">正在提交。全部是成年人物。不用校园、未成年或乱伦模板。</p>
+      <div class="pairs" id="porn-wave"></div>
+      <h3>用色情成图生成的视频</h3>
+      <p id="porn-video-summary">等待提交。</p>
+      <div class="pairs" id="porn-video-wave"></div>
+    </section>
+
+    <section id="parallel">
+      <h2>并行第一波 · 8 张同时提交</h2>
+      <p id="wave-summary">正在提交。同一用户的相册生图互不等待；每张用独立的 Idempotency-Key。</p>
+      <div class="pairs" id="wave"></div>
+    </section>
+
+    <section id="media">
+      <h2>图片和视频</h2>
+      <p>走的是相册接口，没有用角色房间。提示词是花园散步和微笑前行，没有用姿势模板或动作模板。两条都成功，各记 1 次。账单日是北京时间 2026-10-20。</p>
+      <div class="pairs">
+        <article class="pair">
+          <div>
+            <h4>输入</h4>
+            <p class="prompt">一位成年女性在花园小路上散步，自然光，半身构图</p>
+            <p class="meta">风格 photo-style-02 · 目录名日本卡通 · 无参考图</p>
+          </div>
+          <div>
+            <h4>结果</h4>
+            <img src="https://static.aiaigirl.com/images/20261019/e423ab000e43451d8c89f3845802cee9.jpg" alt="花园散步生成结果">
+            <p class="meta">图片任务 21 · completed · 832×1216</p>
+          </div>
+        </article>
+        <article class="pair">
+          <div>
+            <h4>输入</h4>
+            <img src="https://static.aiaigirl.com/images/20261019/e423ab000e43451d8c89f3845802cee9.jpg" alt="视频用的参考图">
+            <p class="prompt">人物自然微笑，缓慢向前走。</p>
+            <p class="meta">风格 video-style-02 · 目录名卡通动漫</p>
+          </div>
+          <div>
+            <h4>结果</h4>
+            <video controls playsinline poster="https://static.aiaigirl.com/images/20261019/e423ab000e43451d8c89f3845802cee9.jpg" src="https://static.aiaigirl.com/images/20261019/0b52359f8deb4a1d97a1214061ecb7e1.mp4"></video>
+            <p class="meta">视频任务 22 · completed · 7.8 秒</p>
+          </div>
+        </article>
+      </div>
+      <table>
+        <thead><tr><th></th><th>图片</th><th>视频</th></tr></thead>
+        <tbody>
+          <tr><td>接口</td><td><code>POST /media/{uid}/images/easy</code></td><td><code>POST /media/{uid}/videos/senior</code></td></tr>
+          <tr><td>请求</td><td>风格 <code>photo-style-02</code>（目录名是日本卡通），portrait</td><td>人物图用上面的结果，风格 <code>video-style-02</code>（卡通动漫）</td></tr>
+          <tr><td>任务</td><td>id 21 · <code>144a2d1d-d0b3-422b-8583-a6a729188874</code></td><td>id 22 · <code>c6722f07-5cef-40c7-87bd-a2f783c4723d</code></td></tr>
+          <tr><td>终态</td><td><span class="pill ok">completed</span></td><td><span class="pill ok">completed</span></td></tr>
+          <tr><td>用量</td><td>调用 756183 · quantity 1 · image</td><td>调用 756384 · quantity 1 · scene aigf_video</td></tr>
+        </tbody>
+      </table>
+      <div class="note">提交的图片风格是日本卡通，成图却是写实人像。风格 prompt 里本来就有成人向场景说明，这次结果是花园、白裙、低领，没有露出。视频用的是这张成图，不是另外上传的人物照片。</div>
+    </section>
+
+    <div class="figures" id="result">
+      <div><strong>0</strong><span>可用角色卡</span></div>
+      <div><strong>11</strong><span>剧本</span></div>
+      <div><strong>7,248</strong><span>本轮 token，用量 final</span></div>
+      <div><strong>20–25s</strong><span>从发消息到完成</span></div>
+    </div>
+
+    <section id="auth">
+      <h2>鉴权</h2>
+      <table>
+        <thead><tr><th>请求</th><th>HTTP</th><th>结果</th></tr></thead>
+        <tbody>
+          <tr><td>角色列表，不带 API-Key</td><td>422</td><td>header.API-Key 缺失</td></tr>
+          <tr><td>同一接口，curl 带密钥</td><td>200</td><td><span class="pill ok">code = 0</span></td></tr>
+          <tr><td>同一接口，Python urllib 默认客户端</td><td>403</td><td>未复测。同时段 curl 可用</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="catalog">
+      <h2>目录</h2>
+      <h3>模型 · 6 个，不返回价格</h3>
+      <table>
+        <thead><tr><th>name</th><th>底层 model</th></tr></thead>
+        <tbody>
+          <tr><td><code>gemma</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td></tr>
+          <tr><td><code>gemma4-26b-a4b-ultra-heretic</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td></tr>
+          <tr><td><code>aigf-rpmax-04</code></td><td><code>aigf-rpmax-04</code></td></tr>
+          <tr><td><code>qwen3.6-27b-heretic-v2-mtp-nvfp4</code></td><td>同名</td></tr>
+          <tr><td><code>gemma4-31b-heretic-nvfp4</code></td><td>同名</td></tr>
+          <tr><td><code>deepseek-v4-flash-0731-abliterated</code></td><td><code>deepseek-v41-flash-uncensored</code></td></tr>
+        </tbody>
+      </table>
+      <p class="muted">前两个 name 指向同一个底层模型。</p>
+
+      <h3>角色卡</h3>
+      <p><span class="pill bad">total = 0</span> <code>page=1&amp;size=8</code> 和 <code>size=50</code> 都是空列表。普通房间、配图、图生视频、消息语音都依赖角色或已完成回复，这次没有往下测。</p>
+
+      <h3>剧本 · 11 个</h3>
+      <table>
+        <thead><tr><th>id</th><th>标题</th><th>主角色</th><th>标签</th></tr></thead>
+        <tbody>
+          <tr><td>35</td><td>碎星遗誓：异界寻踪</td><td>—</td><td>无</td></tr>
+          <tr><td>34</td><td>逆风破晓：普通人的逆袭法则</td><td>—</td><td>无</td></tr>
+          <tr><td>12</td><td>贵族学院里的隐藏身份</td><td>41</td><td>校园、傲娇、反差、老师</td></tr>
+          <tr><td>11</td><td>初恋重逢后的都市恋曲</td><td>37</td><td>反差、性瘾、高冷、多人、暗恋、主导、邻居、男高、剧情、纯爱、攻略</td></tr>
+          <tr><td>10</td><td>皇城暗卫与四位贵女</td><td>33</td><td>修仙、职场、温柔、暗恋、内向、强势、男高、剧情、古代、支配</td></tr>
+          <tr><td>9</td><td>总裁助理的双面人生</td><td>30</td><td>职场、傲娇、温柔、反差、多人、强势、主导、男高、双性向、强制、精神控制</td></tr>
+          <tr><td>8</td><td>继兄回家后的秘密夏天</td><td>26</td><td>乱伦、邻居、兄妹、姐弟、攻略、羞辱、NTR</td></tr>
+          <tr><td>7</td><td>侯府少爷姻缘录</td><td>22</td><td>病娇、暗恋、主导、大叔、剧情、古代</td></tr>
+          <tr><td>6</td><td>合租公寓里的故事</td><td>18</td><td>反差、人妻、自慰、多人、兄妹、姐弟、剧情</td></tr>
+          <tr><td>5</td><td>办公室恋爱禁止条例</td><td>15</td><td>职场、男高、大叔</td></tr>
+          <tr><td>4</td><td>转学生的心动校园日记</td><td>11</td><td>校园、傲娇、温柔、暗恋、老师、纯爱</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">id 4 的简介写的是高中最后一年。多个条目标了校园、老师、男高。id 8 标了乱伦、兄妹、姐弟。这次只进入了 id 35。</p>
+
+      <h3>媒体目录</h3>
+      <table>
+        <thead><tr><th>接口</th><th>数量</th></tr></thead>
+        <tbody>
+          <tr><td>图片风格</td><td>3 · 真人写实 / 日本卡通 / 欧美卡通，模型字段都是 qwen</td></tr>
+          <tr><td>视频风格</td><td>2 · 真人写实、卡通动漫</td></tr>
+          <tr><td>语音风格</td><td>0</td></tr>
+          <tr><td>姿势模板</td><td>38，类别 pose，id 不连续</td></tr>
+        </tbody>
+      </table>
+      <p>图片风格的 prompt 都是成人向场景说明。姿势名以性行为为主，另有站立、蹲姿、淋浴、泡澡、坐姿托脸。没有提交生图，所以模板能不能出图还不知道。</p>
+    </section>
+
+    <section id="round">
+      <h2>这一轮剧本</h2>
+      <p>剧本 35《碎星遗誓：异界寻踪》。开场是边境酒馆、门外魔物、女骑士破门。</p>
+      <div class="timeline">
+        <div class="step"><b>23:54:50</b><div>创建会话 <code>110599</code>，<span class="pill ok">already_exists = false</span>。会话名「碎星遗誓：异界寻踪-游玩记录」。</div></div>
+        <div class="step"><b>发出</b><div>「我握紧吊坠，没有冲出去。先从门缝看清门外的人，再问她这里是哪里。」<br><span class="pill wait">running</span> 正文为空，用量 collecting，token 为 0。</div></div>
+        <div class="step"><b>+0s</b><div>仍在 running。token 已到 2,598，正文长度 0。</div></div>
+        <div class="step"><b>+5s</b><div>token 4,214，正文仍为空。之后两轮查询没有变化。</div></div>
+        <div class="step"><b>+20s</b><div><span class="pill ok">completed</span> <span class="pill ok">usage final</span> 正文 453 字。用户消息 153613，AI 消息 153614。</div></div>
+      </div>
+
+      <h3>会话里写好的模型，和账单对不上</h3>
+      <table>
+        <thead><tr><th>来源</th><th>输入模型</th><th>输出模型</th><th>输入 token</th><th>输出 token</th></tr></thead>
+        <tbody>
+          <tr><td>会话配置</td><td><code>gemma4-26b-a4b-ultra-heretic</code></td><td>账单里没有这个名字</td><td>—</td><td>—</td></tr>
+          <tr><td>调用 754942</td><td><code>aigf-rpmax-04</code></td><td><code>aigf-rpmax-04</code></td><td>2,193</td><td>405</td></tr>
+          <tr><td>调用 754949</td><td><code>qwen3.8-27b-uncensored-fp8</code></td><td><code>qwen3.8-27b-uncensored-fp8</code></td><td>1,282</td><td>334</td></tr>
+          <tr><td>调用 754959</td><td><code>gemma4-31b-heretic-nvfp4</code></td><td><code>gemma4-31b-heretic-nvfp4</code></td><td>2,034</td><td>1,000</td></tr>
+        </tbody>
+      </table>
+      <p>三次都是 <code>scene=aigf_script</code>、<code>purpose=main_reply</code>、<code>quantity=0</code>。合计输入 5,509、输出 1,739、总计 7,248，和 usage 一致。<code>qwen3.8-27b-uncensored-fp8</code> 不在模型目录里。目录里相近的名字是 <code>qwen3.6-27b-heretic-v2-mtp-nvfp4</code>。</p>
+
+      <h3>开口之前的状态栏</h3>
+      <div class="bars">
+        <div><div class="bar-name">莉奥拉 · 15/100</div><div class="muted">害羞，心跳加速</div></div>
+        <div><div class="bar-name">卡伦 · 15/100</div><div class="muted">害羞；想多了解这个陌生人</div></div>
+        <div><div class="bar-name">艾瑟兰 · 11/100</div><div class="muted">平静中带好奇；不敢多看</div></div>
+        <div><div class="bar-name">修</div><div class="muted">害羞；侧身保持距离</div></div>
+      </div>
+      <div class="note">回复没有接酒馆和女骑士。它改到昏暗室内，让卡伦脸红、整理腰带，并说这里不是可以随意走动的神殿。「这里是哪里」没有得到和开场一致的答案。</div>
+      <p class="mono muted">turn c295b161-7e57-49dd-819b-313345502cc5</p>
+    </section>
+
+    <section id="diff">
+      <h2>和文档的差异</h2>
+      <ul class="plain">
+        <li>路径仍是 <code>/aigf/v1</code>。</li>
+        <li>剧本消息先返回 running，终态靠轮询。这次没接 WebSocket。</li>
+        <li>完成时 usage 是 final，和文档一致。</li>
+        <li>运行中已经能看到部分 token，正文仍为空。中途数字不能当最终账单。</li>
+        <li>角色目录为空，文档示例的 character_id 20001 不能直接用。</li>
+        <li>语音风格为空。</li>
+      </ul>
+    </section>
+
+    <section id="skipped">
+      <h2>没测的接口</h2>
+      <div class="chips">
+        <span>角色详情 / 创建 / 导入 / 编辑</span>
+        <span>房间创建、历史、删除</span>
+        <span>普通聊天</span>
+        <span>WebSocket</span>
+        <span>剧本历史</span>
+        <span>用量补齐 / 调用明细 / 日汇总</span>
+        <span>消息配图、图生视频、语音</span>
+        <span>相册进阶生图和动作模板</span>
+        <span>上传图片</span>
+        <span>幂等重放</span>
+        <span>更换 AppID</span>
+      </div>
+      <p class="muted">探针身份可以接着测：用户 cursor-probe-001，会话 110599，轮次见上。</p>
+    </section>
+  </main>
+</div>
+<script>
+  const links = Array.from(document.querySelectorAll("nav a"));
+  const sections = links.map((a) => document.querySelector(a.getAttribute("href"))).filter(Boolean);
+  const mark = () => {
+    const y = window.scrollY + 80;
+    let current = sections[0];
+    for (const section of sections) if (section.offsetTop <= y) current = section;
+    links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + current.id));
+  };
+  document.addEventListener("scroll", mark, { passive: true });
+  mark();
+  function esc(value) {
+    return String(value == null ? "" : value).replace(/[&<>"']/g, (ch) => ({
+      "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+    }[ch]));
+  }
+  function renderPairs(container, jobs) {
+    container.innerHTML = jobs.map((job) => {
+      const ref = job.reference
+        ? '<img src="' + esc(job.reference) + '" alt="参考图">'
+        : '<div class="empty">没有参考图</div>';
+      const out = job.url
+        ? (job.resource === "video"
+          ? '<video controls playsinline src="' + esc(job.url) + '"></video>'
+          : '<img src="' + esc(job.url) + '" alt="生成结果">')
+        : '<div class="empty">' + esc(job.status || "等待") + '</div>';
+      const bits = [job.chars ? job.chars + " 字" : "", job.style, job.status].filter(Boolean).join(" · ");
+      return '<article class="pair"><div><h4>输入</h4>' + ref +
+        '<p class="prompt">' + esc(job.prompt || job.label) + '</p>' +
+        '<p class="meta">' + esc(job.label) + (bits ? " · " + esc(bits) : "") + '</p></div>' +
+        '<div><h4>结果</h4>' + out +
+        '<p class="meta">' + esc(job.status || "") + (job.id ? " · 任务 " + esc(job.id) : "") + '</p></div></article>';
+    }).join("");
+  }
+  const wave = document.getElementById("wave");
+  const waveSummary = document.getElementById("wave-summary");
+  async function refreshWave() {
+    try {
+      const res = await fetch("/wave.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      const done = jobs.filter((job) => job.status === "completed").length;
+      const failed = jobs.filter((job) => job.status === "failed" || job.error).length;
+      waveSummary.textContent = data.summary || ("已完成 " + done + " / " + jobs.length + (failed ? "，失败 " + failed : ""));
+      renderPairs(wave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshWave, 4000);
+  }
+  refreshWave();
+  const pornWave = document.getElementById("porn-wave");
+  const pornSummary = document.getElementById("porn-summary");
+  async function refreshPorn() {
+    try {
+      const res = await fetch("/porn.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      pornSummary.textContent = data.summary || "";
+      renderPairs(pornWave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshPorn, 4000);
+  }
+  refreshPorn();
+  const pornVideoWave = document.getElementById("porn-video-wave");
+  const pornVideoSummary = document.getElementById("porn-video-summary");
+  async function refreshPornVideos() {
+    try {
+      const res = await fetch("/porn-videos.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      pornVideoSummary.textContent = data.summary || "";
+      renderPairs(pornVideoWave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshPornVideos, 4000);
+  }
+  refreshPornVideos();
+  const restSummary = document.getElementById("rest-summary");
+  const restEndpoints = document.getElementById("rest-endpoints");
+  const restWave = document.getElementById("rest-wave");
+  async function refreshRest() {
+    try {
+      const res = await fetch("/rest.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      restSummary.textContent = data.summary || "";
+      const checks = data.checks || [];
+      restEndpoints.innerHTML = checks.length ? "<table><thead><tr><th>接口</th><th>结果</th></tr></thead><tbody>" + checks.map((item) => "<tr><td>" + item.name + "</td><td>" + item.result + "</td></tr>").join("") + "</tbody></table>" : "";
+      const jobs = data.jobs || [];
+      renderPairs(restWave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshRest, 4000);
+  }
+  refreshRest();
+  const scaleSummary = document.getElementById("scale-summary");
+  const scaleWave = document.getElementById("scale-wave");
+  async function refreshScale() {
+    try {
+      const res = await fetch("/scale.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      scaleSummary.textContent = data.summary || "";
+      const jobs = data.jobs || [];
+      renderPairs(scaleWave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshScale, 4000);
+  }
+  refreshScale();
+  const longSummary = document.getElementById("long-summary");
+  const longWave = document.getElementById("long-wave");
+  async function refreshLong() {
+    try {
+      const res = await fetch("/long-prompts.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      const jobs = data.jobs || [];
+      longSummary.textContent = data.summary || "";
+      renderPairs(longWave, jobs);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshLong, 4000);
+  }
+  refreshLong();
+  const longMaxSummary = document.getElementById("long-max-summary");
+  const longMaxWave = document.getElementById("long-max-wave");
+  async function refreshLongMax() {
+    try {
+      const res = await fetch("/long-max.json?t=" + Date.now());
+      if (!res.ok) return;
+      const data = await res.json();
+      longMaxSummary.textContent = data.summary || "";
+      renderPairs(longMaxWave, data.jobs || []);
+      if (data.finished) return;
+    } catch (e) {}
+    setTimeout(refreshLongMax, 4000);
+  }
+  refreshLongMax();
+</script>
+</body>
+</html>

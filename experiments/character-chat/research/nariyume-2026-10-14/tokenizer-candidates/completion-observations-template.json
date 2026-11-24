@@ -1,0 +1,17 @@
+{
+  "kind": "UNOBSERVED_TEMPLATE_NOT_NARIYUME_DATA",
+  "measurement_type": null,
+  "completion_scope": null,
+  "fixed_special_token_offset_verified": false,
+  "native_counter_source": null,
+  "observations": [
+    {
+      "id": "capture_1",
+      "raw_completion_text": null,
+      "completion_tokens": null,
+      "reasoning_tokens": null,
+      "model": null,
+      "provider": null
+    }
+  ]
+}

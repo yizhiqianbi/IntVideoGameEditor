@@ -1,0 +1,33 @@
+{
+  "at": "2026-10-18T04:09:13.237Z",
+  "url": "http://127.0.0.1:3010/xumeng/girlfriend",
+  "checks": {
+    "continuousInputMerged": true,
+    "inFlightInputReplaced": true,
+    "noSupersededTurnCommitted": true,
+    "latestInstructionFollowed": true
+  },
+  "model": {
+    "at": "2026-10-18T04:08:52.621Z",
+    "revision": 5,
+    "mode": "planner-replyer",
+    "action": "silent",
+    "plannerModel": "deepseek/deepseek-v4.1-flash",
+    "replyerModel": "deepseek/deepseek-v4.1-flash",
+    "focus": "用户已明确只要一句晚安并得到回应，不再追加打扰",
+    "tone": "",
+    "durationMs": 1670,
+    "fallback": false,
+    "formatRepaired": false
+  },
+  "finalExchange": [
+    {
+      "role": "user",
+      "text": "我想跟你商量一件事\n先等等，我改主意了，只给我一句晚安就好"
+    },
+    {
+      "role": "assistant",
+      "text": "晚安，好梦。"
+    }
+  ]
+}

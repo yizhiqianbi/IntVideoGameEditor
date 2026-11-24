@@ -1,0 +1,537 @@
+{
+  "startedAt": "2026-10-18T04:44:38.015Z",
+  "sessionId": "2ee6f735-eab2-483c-82f7-d7bfb627774e",
+  "opening": [
+    {
+      "id": "1fb59aca-ebf4-42cb-b6cb-b9b31e7a2173",
+      "role": "assistant",
+      "text": "我是 Nari。刚给书签打好一个小结，还要修一下线头。\n\n你好呀，很高兴认识你。",
+      "createdAt": "2026-10-18T04:44:38.010Z",
+      "emotion": "friendly",
+      "kind": "opening"
+    }
+  ],
+  "turns": [
+    {
+      "time": "2026-10-18T04:44:46.681Z",
+      "action": "messages",
+      "input": "你好呀，叫我阿舟就好。书签是送谁的呀？",
+      "latencyMs": 6038,
+      "httpStatus": 200,
+      "output": [
+        {
+          "id": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "role": "user",
+          "text": "你好呀，叫我阿舟就好。书签是送谁的呀？",
+          "createdAt": "2026-10-18T04:44:52.715Z"
+        },
+        {
+          "id": "673e1325-98c6-449d-b406-b797d5d492cf",
+          "role": "assistant",
+          "text": "阿舟，好呀。",
+          "createdAt": "2026-10-18T04:44:52.715Z",
+          "emotion": "friendly",
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "partIndex": 0,
+          "partCount": 3,
+          "kind": "reply",
+          "source": "model"
+        },
+        {
+          "id": "5a7f482e-eccf-4416-8807-3137380cf576",
+          "role": "assistant",
+          "text": "书签本来是给我自己的，夹在常翻的那本旧书里。做的时候想裁个圆角，结果歪了一边，自己用倒也不碍事。",
+          "createdAt": "2026-10-18T04:44:52.715Z",
+          "emotion": "friendly",
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "partIndex": 1,
+          "partCount": 3,
+          "kind": "reply",
+          "source": "model"
+        },
+        {
+          "id": "b0a4b656-d6a6-4a97-a22d-7d426200b58b",
+          "role": "assistant",
+          "text": "你怎么会先问到这个？",
+          "createdAt": "2026-10-18T04:44:52.715Z",
+          "emotion": "friendly",
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "partIndex": 2,
+          "partCount": 3,
+          "kind": "reply",
+          "source": "model"
+        }
+      ],
+      "control": {
+        "version": 1,
+        "lastDecision": {
+          "at": "2026-10-18T04:44:52.717Z",
+          "revision": 1,
+          "mode": "planner-replyer",
+          "action": "reply",
+          "plannerModel": "deepseek/deepseek-v4.1-flash",
+          "replyerModel": "deepseek/deepseek-v4.1-flash",
+          "focus": "接住称呼，回答书签送谁并自然聊下去",
+          "tone": "轻柔、亲近、带一点做手工时的随意认真",
+          "durationMs": 3467,
+          "fallback": false,
+          "formatRepaired": false
+        },
+        "decisions": [
+          {
+            "at": "2026-10-18T04:44:52.717Z",
+            "revision": 1,
+            "mode": "planner-replyer",
+            "action": "reply",
+            "plannerModel": "deepseek/deepseek-v4.1-flash",
+            "replyerModel": "deepseek/deepseek-v4.1-flash",
+            "focus": "接住称呼，回答书签送谁并自然聊下去",
+            "tone": "轻柔、亲近、带一点做手工时的随意认真",
+            "durationMs": 3467,
+            "fallback": false,
+            "formatRepaired": false
+          }
+        ]
+      },
+      "pending": {
+        "enabled": true,
+        "lastAnchor": null,
+        "pausedUntilUser": false,
+        "awaitingUserReply": false,
+        "noReplyNudgeUsed": false,
+        "lastAt": null,
+        "anchorId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "budgetUsed": 0,
+        "pending": {
+          "id": "b9d20c24-e425-4030-bd1a-2a6748f7070b",
+          "kind": "reconsider",
+          "intent": "想着歪掉的那角要不要将错就错，索性换个收边的做法",
+          "createdAt": "2026-10-18T04:44:52.715Z",
+          "notBefore": "2026-10-18T04:45:52.715Z",
+          "expiresAt": "2026-10-18T04:49:52.715Z"
+        }
+      }
+    },
+    {
+      "time": "2026-10-18T04:44:57.206Z",
+      "action": "messages",
+      "input": "因为想讨一张你的手作呀，歪的也要。你愿不愿意？",
+      "latencyMs": 4456,
+      "httpStatus": 200,
+      "output": [
+        {
+          "id": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "role": "user",
+          "text": "因为想讨一张你的手作呀，歪的也要。你愿不愿意？",
+          "createdAt": "2026-10-18T04:45:01.646Z"
+        },
+        {
+          "id": "55ac4902-0609-4b6d-a878-26464b810d2e",
+          "role": "assistant",
+          "text": "愿意呀。歪的那边本来是留给我自己的，不过你想要，就给你。",
+          "createdAt": "2026-10-18T04:45:01.646Z",
+          "emotion": "playful",
+          "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "partIndex": 0,
+          "partCount": 2,
+          "kind": "reply",
+          "source": "model"
+        },
+        {
+          "id": "a8f6b5b5-940c-4714-b0a7-6b92dd29aded",
+          "role": "assistant",
+          "text": "下次我再裁一个圆角，说不定还是歪，到时候也归你。",
+          "createdAt": "2026-10-18T04:45:01.646Z",
+          "emotion": "playful",
+          "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "partIndex": 1,
+          "partCount": 2,
+          "kind": "reply",
+          "source": "model"
+        }
+      ],
+      "control": {
+        "version": 1,
+        "lastDecision": {
+          "at": "2026-10-18T04:45:01.647Z",
+          "revision": 2,
+          "mode": "planner-replyer",
+          "action": "reply",
+          "plannerModel": "deepseek/deepseek-v4.1-flash",
+          "replyerModel": "deepseek/deepseek-v4.1-flash",
+          "focus": "回应阿舟讨要手作书签的请求",
+          "tone": "轻柔亲近，带一点被讨要的欣然与小偏心",
+          "durationMs": 2790,
+          "fallback": false,
+          "formatRepaired": false
+        },
+        "decisions": [
+          {
+            "at": "2026-10-18T04:44:52.717Z",
+            "revision": 1,
+            "mode": "planner-replyer",
+            "action": "reply",
+            "plannerModel": "deepseek/deepseek-v4.1-flash",
+            "replyerModel": "deepseek/deepseek-v4.1-flash",
+            "focus": "接住称呼，回答书签送谁并自然聊下去",
+            "tone": "轻柔、亲近、带一点做手工时的随意认真",
+            "durationMs": 3467,
+            "fallback": false,
+            "formatRepaired": false
+          },
+          {
+            "at": "2026-10-18T04:45:01.647Z",
+            "revision": 2,
+            "mode": "planner-replyer",
+            "action": "reply",
+            "plannerModel": "deepseek/deepseek-v4.1-flash",
+            "replyerModel": "deepseek/deepseek-v4.1-flash",
+            "focus": "回应阿舟讨要手作书签的请求",
+            "tone": "轻柔亲近，带一点被讨要的欣然与小偏心",
+            "durationMs": 2790,
+            "fallback": false,
+            "formatRepaired": false
+          }
+        ]
+      },
+      "pending": {
+        "enabled": true,
+        "lastAnchor": null,
+        "pausedUntilUser": false,
+        "awaitingUserReply": false,
+        "noReplyNudgeUsed": false,
+        "lastAt": null,
+        "anchorId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+        "budgetUsed": 0,
+        "pending": {
+          "id": "524a9fa5-1694-4cdc-9b95-ac06b6608c7b",
+          "kind": "reconsider",
+          "intent": "想着阿舟会不会真的把歪角那张用起来，还是收着",
+          "createdAt": "2026-10-18T04:45:01.646Z",
+          "notBefore": "2026-10-18T04:45:41.646Z",
+          "expiresAt": "2026-10-18T04:50:01.646Z"
+        }
+      }
+    }
+  ],
+  "session": {
+    "id": "2ee6f735-eab2-483c-82f7-d7bfb627774e",
+    "characterId": "nari",
+    "mode": "ai",
+    "title": "你好呀，叫我阿舟就好。书签是送谁的呀？",
+    "createdAt": "2026-10-18T04:44:38.010Z",
+    "updatedAt": "2026-10-18T04:45:01.646Z",
+    "revision": 2,
+    "locale": "auto",
+    "effectiveLocale": "zh",
+    "messages": [
+      {
+        "id": "1fb59aca-ebf4-42cb-b6cb-b9b31e7a2173",
+        "role": "assistant",
+        "text": "我是 Nari。刚给书签打好一个小结，还要修一下线头。\n\n你好呀，很高兴认识你。",
+        "createdAt": "2026-10-18T04:44:38.010Z",
+        "emotion": "friendly",
+        "kind": "opening"
+      },
+      {
+        "id": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "role": "user",
+        "text": "你好呀，叫我阿舟就好。书签是送谁的呀？",
+        "createdAt": "2026-10-18T04:44:52.715Z"
+      },
+      {
+        "id": "673e1325-98c6-449d-b406-b797d5d492cf",
+        "role": "assistant",
+        "text": "阿舟，好呀。",
+        "createdAt": "2026-10-18T04:44:52.715Z",
+        "emotion": "friendly",
+        "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "partIndex": 0,
+        "partCount": 3,
+        "kind": "reply",
+        "source": "model"
+      },
+      {
+        "id": "5a7f482e-eccf-4416-8807-3137380cf576",
+        "role": "assistant",
+        "text": "书签本来是给我自己的，夹在常翻的那本旧书里。做的时候想裁个圆角，结果歪了一边，自己用倒也不碍事。",
+        "createdAt": "2026-10-18T04:44:52.715Z",
+        "emotion": "friendly",
+        "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "partIndex": 1,
+        "partCount": 3,
+        "kind": "reply",
+        "source": "model"
+      },
+      {
+        "id": "b0a4b656-d6a6-4a97-a22d-7d426200b58b",
+        "role": "assistant",
+        "text": "你怎么会先问到这个？",
+        "createdAt": "2026-10-18T04:44:52.715Z",
+        "emotion": "friendly",
+        "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+        "partIndex": 2,
+        "partCount": 3,
+        "kind": "reply",
+        "source": "model"
+      },
+      {
+        "id": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+        "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+        "role": "user",
+        "text": "因为想讨一张你的手作呀，歪的也要。你愿不愿意？",
+        "createdAt": "2026-10-18T04:45:01.646Z"
+      },
+      {
+        "id": "55ac4902-0609-4b6d-a878-26464b810d2e",
+        "role": "assistant",
+        "text": "愿意呀。歪的那边本来是留给我自己的，不过你想要，就给你。",
+        "createdAt": "2026-10-18T04:45:01.646Z",
+        "emotion": "playful",
+        "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+        "partIndex": 0,
+        "partCount": 2,
+        "kind": "reply",
+        "source": "model"
+      },
+      {
+        "id": "a8f6b5b5-940c-4714-b0a7-6b92dd29aded",
+        "role": "assistant",
+        "text": "下次我再裁一个圆角，说不定还是歪，到时候也归你。",
+        "createdAt": "2026-10-18T04:45:01.646Z",
+        "emotion": "playful",
+        "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+        "partIndex": 1,
+        "partCount": 2,
+        "kind": "reply",
+        "source": "model"
+      }
+    ],
+    "memories": [],
+    "memoryEvents": [],
+    "memoryEpisodes": [],
+    "openLoops": [],
+    "summary": "",
+    "closedTopics": [],
+    "dialogueState": {
+      "version": 1,
+      "activeTopic": {
+        "topicKey": "general",
+        "label": "general",
+        "terms": [
+          "你愿不愿意"
+        ],
+        "status": "open",
+        "lastTurnId": null,
+        "updatedAt": "2026-10-18T04:44:57.208Z"
+      },
+      "primaryAct": {
+        "kind": "statement",
+        "text": "你愿不愿意",
+        "topicKey": "general",
+        "turnId": null,
+        "createdAt": "2026-10-18T04:44:57.208Z",
+        "terms": [
+          "你愿不愿意"
+        ]
+      },
+      "pendingUser": null,
+      "pendingAssistant": null,
+      "unresolved": [],
+      "boundary": {
+        "mode": "none",
+        "topicKey": null,
+        "responseCount": 0,
+        "lastVariant": null,
+        "cooldownUntil": null,
+        "lastResponseAt": null
+      },
+      "repairNeeded": false,
+      "recentActs": [
+        {
+          "kind": "statement",
+          "text": "书签是送谁的呀",
+          "topicKey": "general",
+          "turnId": null,
+          "createdAt": "2026-10-18T04:44:46.684Z",
+          "terms": [
+            "书签是送谁的呀"
+          ]
+        },
+        {
+          "kind": "statement",
+          "text": "你愿不愿意",
+          "topicKey": "general",
+          "turnId": null,
+          "createdAt": "2026-10-18T04:44:57.208Z",
+          "terms": [
+            "你愿不愿意"
+          ]
+        }
+      ],
+      "responseLedger": [
+        {
+          "fingerprint": "379f232e:阿舟好呀",
+          "text": "阿舟，好呀。",
+          "shape": "plain",
+          "topicKey": "general",
+          "stance": null,
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "createdAt": "2026-10-18T04:44:52.715Z"
+        },
+        {
+          "fingerprint": "6b83e936:书签本来是给我自己的夹在常翻的那本旧书里做的时候想裁个圆角结果歪了一边自己用倒也不碍事",
+          "text": "书签本来是给我自己的，夹在常翻的那本旧书里。做的时候想裁个圆角，结果歪了一边，自己用倒也不碍事。",
+          "shape": "plain",
+          "topicKey": "general",
+          "stance": null,
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "createdAt": "2026-10-18T04:44:52.715Z"
+        },
+        {
+          "fingerprint": "87ec5a42:你怎么会先问到这个",
+          "text": "你怎么会先问到这个？",
+          "shape": "question",
+          "topicKey": "general",
+          "stance": null,
+          "turnId": "a143461f-9126-4b55-a64a-f2d69ef7017c",
+          "createdAt": "2026-10-18T04:44:52.715Z"
+        },
+        {
+          "fingerprint": "c1063fff:愿意呀歪的那边本来是留给我自己的不过你想要就给你",
+          "text": "愿意呀。歪的那边本来是留给我自己的，不过你想要，就给你。",
+          "shape": "plain",
+          "topicKey": "general",
+          "stance": null,
+          "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "createdAt": "2026-10-18T04:45:01.646Z"
+        },
+        {
+          "fingerprint": "64bd5c04:下次我再裁一个圆角说不定还是歪到时候也归你",
+          "text": "下次我再裁一个圆角，说不定还是歪，到时候也归你。",
+          "shape": "plain",
+          "topicKey": "general",
+          "stance": null,
+          "turnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+          "createdAt": "2026-10-18T04:45:01.646Z"
+        }
+      ],
+      "lastTurnId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+      "updatedAt": "2026-10-18T04:45:01.646Z"
+    },
+    "style": {
+      "affection": "clingy",
+      "length": "adaptive",
+      "questions": "natural",
+      "address": "阿舟",
+      "avoidPetNames": false,
+      "blockedAddresses": []
+    },
+    "initiative": {
+      "enabled": true,
+      "lastAnchor": null,
+      "pausedUntilUser": false,
+      "awaitingUserReply": false,
+      "noReplyNudgeUsed": false,
+      "lastAt": null,
+      "anchorId": "8f6a54f6-6825-4d96-be0e-0bb6d79b535a",
+      "budgetUsed": 0,
+      "pending": {
+        "id": "524a9fa5-1694-4cdc-9b95-ac06b6608c7b",
+        "kind": "reconsider",
+        "intent": "想着阿舟会不会真的把歪角那张用起来，还是收着",
+        "createdAt": "2026-10-18T04:45:01.646Z",
+        "notBefore": "2026-10-18T04:45:41.646Z",
+        "expiresAt": "2026-10-18T04:50:01.646Z"
+      }
+    },
+    "agency": {
+      "version": 1,
+      "threads": [
+        {
+          "id": "2689e30e-cd12-48f9-a8e9-61cb1437e096",
+          "scope": "fictional-character",
+          "subject": "再做一枚圆角书签",
+          "currentState": "下次我再裁一个圆角，说不定还是歪",
+          "nextStep": "挑一小块纸，试着把圆角裁顺一点",
+          "feeling": "被讨要手作的小高兴",
+          "status": "active",
+          "revision": 1,
+          "lastDeliveredRevision": 0,
+          "sourceMessageId": "a8f6b5b5-940c-4714-b0a7-6b92dd29aded",
+          "updatedAt": "2026-10-18T04:45:01.646Z",
+          "notBefore": "2026-10-18T05:15:01.646Z",
+          "expiresAt": "2026-10-19T05:15:01.646Z"
+        }
+      ],
+      "ledger": [],
+      "nextAt": "2026-10-18T05:15:01.646Z"
+    },
+    "characterBeat": null,
+    "characterBeatArchive": [],
+    "state": {
+      "mood": "playful",
+      "moodReason": "根据刚才的对话自然回应。",
+      "relationship": "初次见面",
+      "trust": 0,
+      "closeness": 0
+    },
+    "receipts": [
+      {
+        "requestId": "4891cd5c-544e-452f-bfb6-44b5035b1aab",
+        "revision": 1
+      },
+      {
+        "requestId": "fa4cd250-6135-4802-afdb-bc3d6820ef69",
+        "revision": 2
+      }
+    ],
+    "aiRuntime": {
+      "version": 1,
+      "lastDecision": {
+        "at": "2026-10-18T04:45:01.647Z",
+        "revision": 2,
+        "mode": "planner-replyer",
+        "action": "reply",
+        "plannerModel": "deepseek/deepseek-v4.1-flash",
+        "replyerModel": "deepseek/deepseek-v4.1-flash",
+        "focus": "回应阿舟讨要手作书签的请求",
+        "tone": "轻柔亲近，带一点被讨要的欣然与小偏心",
+        "durationMs": 2790,
+        "fallback": false,
+        "formatRepaired": false
+      },
+      "decisions": [
+        {
+          "at": "2026-10-18T04:44:52.717Z",
+          "revision": 1,
+          "mode": "planner-replyer",
+          "action": "reply",
+          "plannerModel": "deepseek/deepseek-v4.1-flash",
+          "replyerModel": "deepseek/deepseek-v4.1-flash",
+          "focus": "接住称呼，回答书签送谁并自然聊下去",
+          "tone": "轻柔、亲近、带一点做手工时的随意认真",
+          "durationMs": 3467,
+          "fallback": false,
+          "formatRepaired": false
+        },
+        {
+          "at": "2026-10-18T04:45:01.647Z",
+          "revision": 2,
+          "mode": "planner-replyer",
+          "action": "reply",
+          "plannerModel": "deepseek/deepseek-v4.1-flash",
+          "replyerModel": "deepseek/deepseek-v4.1-flash",
+          "focus": "回应阿舟讨要手作书签的请求",
+          "tone": "轻柔亲近，带一点被讨要的欣然与小偏心",
+          "durationMs": 2790,
+          "fallback": false,
+          "formatRepaired": false
+        }
+      ]
+    }
+  }
+}

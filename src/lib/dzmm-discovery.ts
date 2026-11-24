@@ -39,6 +39,7 @@ export const DZMM_DISCOVERY_CATEGORIES = [
   { slug: "gay", name: "男同", tags: ["男同"] },
   { slug: "for-girls", name: "女性视角", tags: ["女性视角"] },
   { slug: "rpg", name: "游戏", tags: ["游戏", "RPG"] },
+  { slug: "shorts", name: "短剧", tags: ["短剧"] },
 ] as const;
 
 export type DzmmDiscoverySort = "hot" | "new" | "likes";

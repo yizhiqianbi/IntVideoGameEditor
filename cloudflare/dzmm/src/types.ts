@@ -19,6 +19,9 @@ export type Env = {
   CHAT_STILL_PROMPT?: string;
   GENERATION_OPENROUTER_API_KEY?: string;
   GENERATION_USD_TO_CNY?: string;
+  /** Optional. Used only when the OpenRouter image-prompt key is absent. */
+  SEALION_API_KEY?: string;
+  SEALION_BASE_URL?: string;
   DB: D1Database;
   MEDIA?: R2Bucket;
   IMAGES?: ImagesBinding;

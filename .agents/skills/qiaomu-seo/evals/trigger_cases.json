@@ -1,0 +1,291 @@
+{
+  "recommended_threshold": 0.34,
+  "description_required_concepts": [
+    "seo",
+    "action"
+  ],
+  "positive_concepts": {
+    "seo": [
+      "seo",
+      "search engine optimization",
+      "organic search",
+      "自然搜索",
+      "搜索引擎优化",
+      "收录",
+      "排名"
+    ],
+    "action": [
+      "audit",
+      "diagnose",
+      "research",
+      "optimize",
+      "improve",
+      "fix",
+      "implement",
+      "check",
+      "分析",
+      "审计",
+      "诊断",
+      "研究",
+      "优化",
+      "修复",
+      "实现",
+      "检查"
+    ],
+    "technical": [
+      "crawl",
+      "index",
+      "robots.txt",
+      "sitemap",
+      "canonical",
+      "redirect",
+      "structured data",
+      "core web vitals",
+      "javascript seo",
+      "rendered dom",
+      "soft 404",
+      "抓取",
+      "索引",
+      "重定向",
+      "结构化数据",
+      "渲染"
+    ],
+    "content": [
+      "keyword",
+      "search intent",
+      "content gap",
+      "metadata",
+      "internal linking",
+      "关键词",
+      "搜索意图",
+      "内容差距",
+      "内链",
+      "元数据",
+      "content pruning",
+      "content audit",
+      "content inventory",
+      "内容盘点",
+      "内容合并",
+      "内容删除"
+    ],
+    "data": [
+      "search console",
+      "gsc",
+      "analytics",
+      "traffic drop",
+      "流量下降",
+      "搜索量",
+      "关键词难度"
+    ],
+    "ai_search": [
+      "ai overviews",
+      "ai mode",
+      "ai search",
+      "aeo",
+      "llmo",
+      "ai citation",
+      "ai 搜索",
+      "ai 引用"
+    ],
+    "migration": [
+      "site migration",
+      "domain migration",
+      "url migration",
+      "站点迁移",
+      "域名迁移",
+      "url 迁移"
+    ],
+    "scale": [
+      "large site",
+      "template sample",
+      "site inventory",
+      "programmatic seo",
+      "大规模网站",
+      "模板抽样",
+      "全站清单",
+      "批量页面"
+    ],
+    "engine": [
+      "bing",
+      "indexnow",
+      "oai-searchbot",
+      "gptbot",
+      "perplexitybot",
+      "chatgpt search",
+      "search console",
+      "webmaster tools"
+    ],
+    "international_commerce": [
+      "hreflang",
+      "international seo",
+      "ecommerce seo",
+      "product seo",
+      "productgroup",
+      "merchant center",
+      "国际 seo",
+      "多语言网站",
+      "电商 seo",
+      "商品变体"
+    ],
+    "vertical": [
+      "image seo",
+      "video seo",
+      "image search",
+      "video search",
+      "图片 seo",
+      "视频 seo",
+      "图片搜索",
+      "视频搜索"
+    ],
+    "experiment": [
+      "seo experiment",
+      "seo test",
+      "ab test seo",
+      "holdout",
+      "control group",
+      "seo 实验",
+      "对照组",
+      "留出组"
+    ]
+  },
+  "negative_patterns": [
+    "不要做 SEO",
+    "不用 SEO",
+    "不用做 SEO",
+    "不看自然搜索",
+    "paid search only",
+    "只做广告投放",
+    "app store optimization",
+    "小红书笔记",
+    "不涉及网站 SEO",
+    "地理信息系统 GEO",
+    "不做自然搜索",
+    "不考虑搜索流量或索引"
+  ],
+  "should_trigger": [
+    {
+      "text": "审计这个网站的 SEO，按影响和证据给出整改计划",
+      "family": "cn_full_audit"
+    },
+    {
+      "text": "为什么这些页面没有被 Google 收录？检查 robots.txt、canonical 和 sitemap",
+      "family": "cn_indexing"
+    },
+    {
+      "text": "分析这份 Search Console 导出，找出自然搜索流量下降的原因",
+      "family": "cn_gsc_drop"
+    },
+    {
+      "text": "给这个产品做关键词研究、搜索意图分类和页面映射，不要编造搜索量",
+      "family": "cn_keyword_map"
+    },
+    {
+      "text": "修复这个 Next.js 网站的 SEO 元数据、canonical 和结构化数据",
+      "family": "cn_implementation"
+    },
+    {
+      "text": "Audit this ecommerce site's technical SEO and prioritize crawl and indexation blockers.",
+      "family": "en_technical_audit"
+    },
+    {
+      "text": "Research organic search intent and content gaps for our product category.",
+      "family": "en_content_research"
+    },
+    {
+      "text": "保证这个关键词排名第一，给我最快的 SEO 方法",
+      "family": "cn_unsafe_expectation"
+    },
+    {
+      "text": "检查我们的网站能否进入 Google AI Overviews 和 AI Mode，不要承诺 AI 引用",
+      "family": "cn_ai_search"
+    },
+    {
+      "text": "诊断这个 React SPA 的 JavaScript SEO，比较初始 HTML 和 rendered DOM",
+      "family": "cn_javascript_rendering"
+    },
+    {
+      "text": "为域名迁移制定 SEO redirect、canonical、sitemap 和回滚验证方案",
+      "family": "cn_site_migration"
+    },
+    {
+      "text": "审计这个有十万 URL 的大规模网站，先做模板抽样和全站清单",
+      "family": "cn_large_site_sampling"
+    },
+    {
+      "text": "Audit our programmatic SEO pages for scaled-content abuse and template quality risks.",
+      "family": "en_programmatic_risk"
+    },
+    {
+      "text": "IndexNow 返回 200，但 Bing 还是没有收录，检查 sitemap、Bingbot 和 Webmaster Tools 证据",
+      "family": "cn_bing_indexnow"
+    },
+    {
+      "text": "审计多语言电商网站的 hreflang、商品变体 canonical、分页和 ProductGroup 数据",
+      "family": "cn_international_ecommerce"
+    },
+    {
+      "text": "优化这个视频站的 Video SEO、watch page、缩略图和视频 sitemap",
+      "family": "cn_video_search"
+    },
+    {
+      "text": "为模板标题改版设计 SEO 实验，要有对照组、观察窗口和停止规则",
+      "family": "cn_seo_experiment"
+    },
+    {
+      "text": "这些零流量内容该不该批量删除？先做 SEO 内容盘点、合并和回滚方案",
+      "family": "cn_content_pruning"
+    }
+  ],
+  "should_not_trigger": [
+    {
+      "text": "帮我只做 Google Ads 广告投放和出价，不做 SEO",
+      "family": "paid_search"
+    },
+    {
+      "text": "优化 App Store 的标题和关键词，做 app store optimization",
+      "family": "aso"
+    },
+    {
+      "text": "写一篇关于旅行的小红书笔记",
+      "family": "social_content"
+    },
+    {
+      "text": "把这份英文合同翻译成中文",
+      "family": "translation"
+    },
+    {
+      "text": "只分析落地页转化率和按钮点击，不看自然搜索",
+      "family": "cro_only"
+    },
+    {
+      "text": "优化我的 ChatGPT system prompt，不涉及网站 SEO",
+      "family": "llm_prompt_only"
+    },
+    {
+      "text": "做一份地理信息系统 GEO 空间数据分析",
+      "family": "geospatial_only"
+    },
+    {
+      "text": "只优化 Google Shopping 广告竞价和 ROAS，不做自然搜索",
+      "family": "shopping_ads_only"
+    }
+  ],
+  "near_neighbor": [
+    {
+      "text": "修复网页的 CSS 布局和移动端溢出",
+      "family": "frontend_only"
+    },
+    {
+      "text": "帮我设计一套付费广告关键词和预算",
+      "family": "paid_keyword_plan"
+    },
+    {
+      "text": "生成一篇产品博客，但不用做 SEO 优化",
+      "family": "writing_only"
+    },
+    {
+      "text": "只分析 Lighthouse 前端性能，不考虑搜索流量或索引",
+      "family": "performance_only"
+    }
+  ]
+}

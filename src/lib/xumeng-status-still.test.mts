@@ -12,7 +12,7 @@ test("status fields lead and the reply only adds a short supplement", () => {
     "衣着：白衬衫",
     "心情：未知",
   ].join("\n"));
-  assert.equal(scene && "scene" in scene && scene.scene, "按这些词条把衣着、身体、姿势和接触画出来，不要改成穿戴整齐的远景或肖像。地点：深夜便利店。衣着：白衬衫。正在发生：她把伞靠在柜台边，看着门口。");
+  assert.equal(scene && "scene" in scene && scene.scene, "地点：深夜便利店。衣着：白衬衫。她把伞靠在柜台边，看着门口。");
 });
 
 test("a reply without status fields stays out of this prompt", () => {
@@ -21,7 +21,7 @@ test("a reply without status fields stays out of this prompt", () => {
 
 test("an unmarked tail of status lines becomes the prompt", () => {
   const scene = statusStillScene("她靠在沙发上。\n地点：[[公寓沙发上]]\n衣着：白衬衫\n心情：发烫");
-  assert.equal(scene && "scene" in scene && scene.scene, "按这些词条把衣着、身体、姿势和接触画出来，不要改成穿戴整齐的远景或肖像。地点：公寓沙发上。衣着：白衬衫。心情：发烫。正在发生：她靠在沙发上。");
+  assert.equal(scene && "scene" in scene && scene.scene, "地点：公寓沙发上。衣着：白衬衫。心情：发烫。她靠在沙发上。");
 });
 
 test("body contact is kept instead of a tame closing line", () => {

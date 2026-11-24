@@ -25,6 +25,8 @@ type MomentProps = {
   imageHint: string;
   disabled: boolean;
   onImage: () => void;
+  /** The message toolbar owns the image and video buttons. */
+  inlineActions?: boolean;
   slot?: ReactNode;
 };
 
@@ -164,11 +166,11 @@ function imageAction(imageLabel: string, imageHint: string, disabled: boolean, o
   </>;
 }
 
-export default function XumengMomentStatusCard({ name, fields, sections, defaultOpen = false, pending = false, imageLabel, imageHint, disabled, onImage, slot }: MomentProps) {
+export default function XumengMomentStatusCard({ name, fields, sections, defaultOpen = false, pending = false, imageLabel, imageHint, disabled, onImage, inlineActions = false, slot }: MomentProps) {
   if (pending) return null;
   const resolved = resolvedSections(name, fields, sections);
   const hasStatus = resolved.some(section => section.fields.length || section.notes?.length);
-  const action = imageAction(imageLabel, imageHint, disabled, onImage, slot);
+  const action = inlineActions ? slot : imageAction(imageLabel, imageHint, disabled, onImage, slot);
   if (!hasStatus) return <section className={`${styles.card}${defaultOpen ? ` ${styles.arrive}` : ""}`} aria-label="解锁此刻画面">{action}</section>;
   return <XumengStatusCard name={name} sections={resolved} defaultOpen={defaultOpen}>{action}</XumengStatusCard>;
 }

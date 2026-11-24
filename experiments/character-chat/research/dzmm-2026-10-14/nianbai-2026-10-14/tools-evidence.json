@@ -1,0 +1,766 @@
+{
+  "scope": "Read-only static inspection of two previously saved public shipped JS modules. No source code execution, no private history, no online calls or runtime observation.",
+  "sources": {
+    "C58mxSVt2.js": {
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "size_bytes": 209514
+    },
+    "B28hEJCi.js": {
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/B28hEJCi.js",
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7",
+      "size_bytes": 91387
+    }
+  },
+  "records": [
+    {
+      "id": "N01",
+      "claim": "Agent conversation routes lazy-load this module",
+      "evidence_type": "static_application",
+      "source": "B28hEJCi.js",
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7",
+      "byte_offset": 83790,
+      "byte_length": 400,
+      "snippet": "Bi=Q.lazy(()=>Z(()=>import(`./C58mxSVt2.js`),__vite__mapDeps([0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66]))),Vi=Q.lazy(()=>Z(()=>import(`./DKKAkNs_2.js`),__vite__mapDeps([67,1,2,3,11]))),Hi=Q.lazy(()=>Z(()=>import(`./Dbkc75CJ2.js`),__vite__mapDeps([68,"
+    },
+    {
+      "id": "N02",
+      "claim": "Agent is separate from regular AI character chat rendering",
+      "evidence_type": "static_application",
+      "source": "B28hEJCi.js",
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7",
+      "byte_offset": 87614,
+      "byte_length": 600,
+      "snippet": "P.type===`agent`?(0,$.jsx)(Q.Suspense,{fallback:(0,$.jsx)(Oi,{}),children:(0,$.jsx)(Bi,{conversationId:P.id})}):(0,$.jsx)(Q.Suspense,{fallback:(0,$.jsx)(Oi,{}),children:P.type===`user`?(0,$.jsx)(Hi,{userId:u.id}):P.data.isGamefy?(0,$.jsx)(Ui,{chatId:P.id,data:P.data},P.id):(0,$.jsx)(ee,{chatId:P.id,chat:P.data,isFirstAiConversation:P.id===S})}):(0,$.jsx)(Oi,{}):d&&d.length===0&&!h?(0,$.jsx)(xr,{className:`h-full`}):(0,$.jsx)(Ri,{})};function Ki(e){return e&&Hn.includes(e)?e:void 0}function qi(e){var t;return e==null||(t=e.data)==null?void 0:t.code}var Ji=()=>{let e=W(),{profile:t,isLoading:n}="
+    },
+    {
+      "id": "N03",
+      "claim": "Hook defaults: companion / gentle / manual",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 132710,
+      "byte_length": 220,
+      "snippet": "function Iu({conversationId:e,mode:t=`companion`,persona:n=`gentle`,personaMode:r=`manual`,onConversationCreated:i,onMemoryChanged:a}={}){var o,s;let[c,l]=(0,F.useState)(``),[u,d]=(0,F.useState)(e?`loading`:`ready`),[f,p"
+    },
+    {
+      "id": "N04",
+      "claim": "Application configures /api/agent/pod/chat and only messages.slice(-1)",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 133507,
+      "byte_length": 600,
+      "snippet": "let he=(0,F.useMemo)(()=>new Yl({api:`/api/agent/pod/chat`,prepareSendMessagesRequest:({id:e,messages:t,body:n,headers:r,credentials:i})=>{let a=w.current;return{api:`/api/agent/pod/chat`,headers:r,credentials:i,body:{...n==null?{}:n,id:e,messages:t.slice(-1),conversationId:a,mode:ue.current,persona:T.current,personaMode:de.current}}}}),[]),ge=mu({id:e==null?`agent-new`:e,transport:he,experimental_throttle:50,onError:e=>{S.current=e},onFinish:({isError:e})=>{var t;e&&yu(S.current)||(t=me.current)==null||t.call(me)}}),O=(0,F.useRef)(ge);O.current=ge;let _e=(0,F.useRef)(ge.messages.length);_e.cu"
+    },
+    {
+      "id": "N05",
+      "claim": "Server history API: limit 200, includeStalled, sort seq, keep user/assistant/system",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 134350,
+      "byte_length": 1100,
+      "snippet": "let t=await ye.agent.messages.query({conversationId:e,limit:200,includeStalled:!0});if(!a()||n&&(O.current.status!==`ready`||ve.current||O.current.messages!==r))return null;let i=t.sort((e,t)=>e.seq-t.seq).filter(e=>e.role===`user`||e.role===`assistant`||e.role===`system`),o={};for(let e of i)e.imageUrls&&Array.isArray(e.imageUrls)&&e.imageUrls.length>0&&(o[e.id]=e.imageUrls);re(o);let s=i.map(e=>Du({id:e.id,role:e.role,content:e.content,createdAt:e.createdAt,toolInvocations:e.toolInvocations,memorySaveStatus:e.memorySaveStatus,memoryRecovery:e.memoryRecovery,replyStalled:e.replyStalled}));return O.current.setMessages(s),fe.current=e,d(`ready`),s}catch(t){return a()?(fe.current===e&&(fe.current=void 0),d(`error`),p(t instanceof Error?t:Error(`Failed to load history`)),null):null}},[]),be=(0,F.useCallback)(async e=>{let t=O.current.messages,n=await M(e,!1),r=t.at(-1);if(!n||(r==null?void 0:r.role)!==`user`)return;let i=Cu(r),a=n.slice(t.length-1).some(e=>e.role===`user`&&Cu(e).endsWith(i));i&&!a&&l(e=>e||i)},[M]);(0,F.useEffect)(()=>{if(!e){D.current+=1,fe.current=void 0,d(`ready`),p("
+    },
+    {
+      "id": "N06",
+      "claim": "Stored toolInvocations are reconstructed into tool-* output-available parts; metadata restored",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 131999,
+      "byte_length": 740,
+      "snippet": "function Du(e){let t=[];if(e.toolInvocations&&e.toolInvocations.length>0)for(let n of e.toolInvocations)n.result!=null&&t.push({type:`tool-${n.toolName}`,toolCallId:n.toolCallId,state:`output-available`,input:n.args,output:n.result});return e.content&&t.push({type:`text`,text:e.content}),{id:e.id,role:e.role,parts:t,metadata:e.memorySaveStatus||e.replyStalled?{...e.memorySaveStatus?{memorySaveStatus:e.memorySaveStatus}:{},...e.memorySaveStatus&&e.memoryRecovery?{memoryRecovery:e.memoryRecovery}:{},...e.replyStalled?hu:{}}:void 0}}var Ou=6,ku=e=>new Promise(t=>setTimeout(t,e)),Au=1e4,ju=5e3,Mu=5*6e4,Nu=8*6e4,Pu=75e3,Fu=e=>{var t;return/\"code\"\\s*:\\s*\"busy\"/.test((t=e==null?void 0:e.message)==null?``:t)};function Iu({conversationId:e"
+    },
+    {
+      "id": "N07",
+      "claim": "Create deduped via pending promise; creates conversation before sending",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 139352,
+      "byte_length": 670,
+      "snippet": "let Ae=(0,F.useCallback)(async()=>{if(w.current)return w.current;if(pe.current)return pe.current;pe.current=(async()=>{_(!0);try{var e;let t=await ye.agent.create.mutate({mode:ue.current,persona:T.current,personaMode:de.current});return w.current=t.id,(e=E.current)==null||e.call(E,t.id),await M(t.id,!1),t.id}finally{_(!1)}})();try{return await pe.current}finally{pe.current=null}},[M]),je=(0,F.useCallback)(async(t,n)=>{if(ce.current||A===`submitted`||A===`streaming`||ve.current)return!1;let r=(t==null?c:t).trim();if(!r&&(!n||n.length===0))return!1;ce.current=!0;try{let t=le.current;for(;;){let n=se.current;if(n&&n.conversationId===e&&!await n.promise)return!1;if("
+    },
+    {
+      "id": "N08",
+      "claim": "Application submit body includes conversationId, mode, persona, personaMode, optional imageUrls",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 140212,
+      "byte_length": 400,
+      "snippet": "let t={conversationId:e,mode:ue.current,persona:T.current,personaMode:de.current,imageUrls:n!=null&&n.length?n:void 0};return oe.current=t,await O.current.sendMessage({text:r||``},{body:t}),!0}catch(e){b.current=null;let t=e instanceof Error?e.message:String(e);return t.includes(`\"error\":\"timeout\"`)||t.includes(`\"error\": \"timeout\"`)||h(e instanceof Error?e:Error(`Failed to send message`)),!1}}fina"
+    },
+    {
+      "id": "N09",
+      "claim": "Bundled AI SDK version string",
+      "evidence_type": "static_sdk",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 93666,
+      "byte_length": 40,
+      "snippet": "var gl=`6.0.105`,_l=J([U(),ws(Uint8Array"
+    },
+    {
+      "id": "N10",
+      "claim": "SDK default reconnect route derived from configured API and chatId, GET, 204 is no stream",
+      "evidence_type": "static_sdk",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 118523,
+      "byte_length": 1200,
+      "snippet": "async reconnectToStream(e){var t,n,r,i,a;let o=await rl(this.body),s=await rl(this.headers),c=await rl(this.credentials),l={...Fs(s),...Fs(e.headers)},u=await((t=this.prepareReconnectToStreamRequest)==null?void 0:t.call(this,{api:this.api,id:e.chatId,body:{...o,...e.body},headers:l,credentials:c,requestMetadata:e.metadata})),d=(n=u==null?void 0:u.api)==null?`${this.api}/${e.chatId}/stream`:n,f=(u==null?void 0:u.headers)===void 0?l:Fs(u.headers),p=(r=u==null?void 0:u.credentials)==null?c:r,m=await((i=this.fetch)==null?globalThis.fetch:i)(d,{method:`GET`,headers:Is(f,`ai-sdk/${gl}`,Ps()),credentials:p});if(m.status===204)return null;if(!m.ok)throw Error((a=await m.text())==null?`Failed to fetch the chat response.`:a);if(!m.body)throw Error(`The response body is empty.`);return this.processResponseStream(m.body)}},Yl=class extends Jl{constructor(e={}){super(e)}processResponseStream(e){return nl({stream:e,schema:Il}).pipeThrough(new TransformStream({async transform(e,t){if(!e.success)throw e.error;t.enqueue(e.value)}}))}},Xl=class{constructor({generateId:e=Ns,id:t=e(),transport:n=new Yl,messageMetadataSchema:r,dataPartSchemas:i,state:a,onError:o,onToolCall:s,onFinish:c,onData:l,sendAut"
+    },
+    {
+      "id": "N11",
+      "claim": "Application actively queries running status, handles recovering, and resumes stream",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 135790,
+      "byte_length": 1856,
+      "snippet": "if(!n())return;let o=await ye.agent.activeRun.query({conversationId:e}).then(e=>({ok:!0,value:e}),()=>({ok:!1}));if(!n())return;if(!o.ok){if(t+=1,t>Ou)return;await ku(Math.min(2e3*2**(t-1),32e3));continue}let s=o.value;if(!s)break;if(s.state===`recovering`){await be(e),h(new gu(_u));return}if(t>=Ou){h(Error(`尚未确认上一轮的结果，请稍后重新打开对话，不要重复发送。`));return}let c=O.current.status;if(c===`submitted`||c===`streaming`)return;r=!0,t+=1,y(!0);let l=O.current.messages,u=l.length;((a=l[l.length-1])==null?void 0:a.role)===`assistant`&&(O.current.setMessages(l.slice(0,-1)),--u);let d=c;try{await O.current.resumeStream(),O.current.status===`ready`&&(d!==`ready`||_e.current>u)&&(i=!0)}catch{}if(!n())return;await ku(Math.min(2e3*2**(t-1),32e3))}let t=O.current.messages[O.current.messages.length-1],o=O.current.status===`error`&&(t==null?void 0:t.role)===`assistant`;(r&&!i||o)&&(await be(e),O.current.clearError())}finally{xe.current===t&&(y(!1),Se.current=null)}},[be]),N=(0,F.useRef)(A);(0,F.useEffect)(()=>{let t=N.current;N.current=A,!(!e||u!==`ready`)&&(A===`submitted`||A===`streaming`||A===`ready`&&(t===`streaming`||t===`submitted`)||A===`error`&&(Fu(j)||yu(j))||Ce(e))},[e,u,A,j,Ce]);let we=(0,F.useRef)(null);(0,F.useEffect)(()=>{if(!e||!Fu(j)||we.current===j)return;we.current=j;let t=k[k.length-1],n=(t==null?void 0:t.role)===`user`?Cu(t):``;M(e,!1).finally(()=>{n&&l(e=>e||n),O.current.clearError()})},[e,j,k,M]);let Te=(0,F.useRef)(null);(0,F.useEffect)(()=>{let t=vu(j);if(!t||!e||Te.current===j)return;Te.current=j;let n=k[k.length-1],r=(n==null?void 0:n.role)===`user`?Cu(n):``;r&&l(e=>e||r),h(t),M(e,!1)},[e,j,k,M]);let Ee=(0,F.useCallback)(()=>{let e=x.current;return e?(clearTimeout(e.timer),x.current=null,ae(null),e):null},[]);(0,F.useEffect)(()=>{if(A===`submitted`)return;let e=A===`error"
+    },
+    {
+      "id": "N12",
+      "claim": "Application retry/time constants: max retries, idle, cold start, migration",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 132535,
+      "byte_length": 260,
+      "snippet": "var Ou=6,ku=e=>new Promise(t=>setTimeout(t,e)),Au=1e4,ju=5e3,Mu=5*6e4,Nu=8*6e4,Pu=75e3,Fu=e=>{var t;return/\"code\"\\s*:\\s*\"busy\"/.test((t=e==null?void 0:e.message)==null?``:t)};function Iu({conversationId:e,mode:t=`companion`,persona:n=`gentle`,personaMode:r=`ma"
+    },
+    {
+      "id": "N13",
+      "claim": "Visibility/pageshow/online recovery; optional idle history reload feature flag",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 138360,
+      "byte_length": 1670,
+      "snippet": "let De=(0,F.useRef)(Date.now()),P=C(`nianbai.offline-task-reminders`);(0,F.useEffect)(()=>{De.current=Date.now()},[k,A]);let Oe=(0,F.useCallback)(async()=>{await O.current.stop()},[]),ke=(0,F.useCallback)(()=>{if(!e)return;let t=O.current.status;if(t!==`streaming`&&t!==`submitted`){Ce(e);return}let n=x.current&&!x.current.gaveUp?Pu:Au;Date.now()-De.current<n||Oe().then(()=>Ce(e))},[e,Oe,Ce]);(0,F.useEffect)(()=>{if(!e)return;let t=()=>{if(document.visibilityState!==`visible`)return;let t=O.current.status;if(t!==`streaming`&&t!==`submitted`){P&&t===`ready`&&!ve.current&&M(e,!1,!0);return}ke()};return document.addEventListener(`visibilitychange`,t),window.addEventListener(`pageshow`,t),()=>{document.removeEventListener(`visibilitychange`,t),window.removeEventListener(`pageshow`,t)}},[e,ke,M,P]),(0,F.useEffect)(()=>{if(!e)return;let t=()=>ke();return window.addEventListener(`online`,t),()=>window.removeEventListener(`online`,t)},[e,ke]),(0,F.useEffect)(()=>()=>{xe.current+=1},[]);let Ae=(0,F.useCallback)(async()=>{if(w.current)return w.current;if(pe.current)return pe.current;pe.current=(async()=>{_(!0);try{var e;let t=await ye.agent.create.mutate({mode:ue.current,persona:T.current,personaMode:de.current});return w.current=t.id,(e=E.current)==null||e.call(E,t.id),await M(t.id,!1),t.id}finally{_(!1)}})();try{return await pe.current}finally{pe.current=null}},[M]),je=(0,F.useCallback)(async(t,n)=>{if(ce.current||A===`submitted`||A===`streaming`||ve.current)return!1;let r=(t==null?c:t).trim();if(!r&&(!n||n.length===0))return!1;ce.current=!0;try{let t=le.current;for(;;){let n=se.current;if(n&&n.conversationId===e&&!await n.promise)return!1;if(t===le.c"
+    },
+    {
+      "id": "N14",
+      "claim": "Cold start/capacity automatic regenerate every 5s, preserving message body",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 137749,
+      "byte_length": 1000,
+      "snippet": "let n=O.current.messages.at(-1);if((n==null?void 0:n.role)!==`user`)return;let r=(t==null?void 0:t.messageId)===n.id,i={messageId:n.id,since:r?t.since:Date.now(),body:r?t.body:oe.current,migrating:r&&t.migrating||Su(j),handled:j},a=i.migrating?Nu:Mu;if(Date.now()+ju-i.since>a){x.current={...i,gaveUp:!0},ae(null),h(Error(xu[e]));return}let o=setTimeout(()=>{var e;let t=O.current;x.current!==i||t.status!==`error`||((e=t.messages.at(-1))==null?void 0:e.id)!==i.messageId||t.regenerate({body:i.body})},ju);return i.timer=o,x.current=i,ae(e),()=>clearTimeout(o)},[A,j,Ee]),(0,F.useEffect)(()=>()=>{Ee()},[e,Ee]);let De=(0,F.useRef)(Date.now()),P=C(`nianbai.offline-task-reminders`);(0,F.useEffect)(()=>{De.current=Date.now()},[k,A]);let Oe=(0,F.useCallback)(async()=>{await O.current.stop()},[]),ke=(0,F.useCallback)(()=>{if(!e)return;let t=O.current.status;if(t!==`streaming`&&t!==`submitted`){Ce(e);return}let n=x.current&&!x.current.gaveUp?Pu:Au;Date.now()-De.current<n||Oe().then(()=>Ce(e))},[e,Oe"
+    },
+    {
+      "id": "N15",
+      "claim": "Cancel RPC serialized and local stream aborted",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 140903,
+      "byte_length": 1000,
+      "snippet": "Ne=(0,F.useCallback)(async()=>{let e=Ee(),t=w.current;if(t){var n;le.current+=1;let e=(((n=se.current)==null?void 0:n.conversationId)===t?se.current.promise:Promise.resolve(!0)).then(async e=>{try{return await ye.agent.cancelRun.mutate({conversationId:t}),e}catch(e){return h(e instanceof Error?e:Error(`Failed to cancel message`)),!1}}),r={conversationId:t,promise:e};se.current=r,e.finally(()=>{se.current===r&&(se.current=null)})}await O.current.stop(),!(!e||!t)&&(O.current.clearError(),await be(t))},[Ee,be]);(0,F.useEffect)(()=>{if(!b.current)return;let e=[...k].reverse().find(e=>e.role===`user`);if(e&&!ne[e.id]){let t=b.current;b.current=null,re(n=>({...n,[e.id]:t}))}},[k,ne]);let Pe=(0,F.useCallback)(e=>{te(t=>t===e?t:e)},[]),Fe=j&&(/timeout/i.test(j.message)||wu(j)||Fu(j)||yu(j)||Eu(k.at(-1)))?null:j,Ie=(o=(s=m==null?f:m)==null?Fe:s)==null?null:o,Le=(0,F.useMemo)(()=>Tu(j,k),[j,k]),Re=ie&&A===`error`?`submitted`:A,ze=Re===`submitted`||Re===`streaming`||g||v,Be=(0,F.useMemo)(()=>({st"
+    },
+    {
+      "id": "N16",
+      "claim": "Application error states preserve input, acknowledge settlement and migration",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 129890,
+      "byte_length": 1666,
+      "snippet": "var hu={replyStalled:!0},gu=class extends Error{},_u=`上一轮的保存或扣款结果还在核对，核对完成前暂时不能发送新消息。通常几分钟内恢复，请稍后重新打开对话；超过 30 分钟仍未恢复，请点「联系客服」。`;function vu(e){if(!e)return null;try{let t=JSON.parse(e.message);if(!t||typeof t!=`object`||!(`code`in t))return null;if(t.code===`agent-maintenance`)return Error(`念白正在维护，请稍后再发送。你的输入已保留。`);if(t.code===`agent-operation-pending`)return new gu(`${_u}你的输入已保留。`);if(t.code===`memory-migration-retry`)return Error(`记忆暂时无法迁移，请稍后再发送。你的输入已保留。`);if(t.code===`agent-refresh-required`)return Error(`这个账号已启用新版念白，请保留输入并刷新页面后继续。你的输入已保留。`)}catch{}return null}function yu(e){var t,n;let r=(t=/\"code\"\\s*:\\s*\"(starting|capacity)\"/.exec((n=e==null?void 0:e.message)==null?``:n))==null?void 0:t[1];return r===`starting`||r===`capacity`?r:null}var bu={starting:`正在启动，马上就好……不用重新发送。`,capacity:`排队中：现在开启的人比较多，轮到你时会自动继续，不用重新发送。`},xu={starting:`启动比平时慢，请稍后重试。`,capacity:`现在开启的人太多，请稍后重试。`};function Su(e){var t;return/\"migrating\"\\s*:\\s*true/.test((t=e==null?void 0:e.message)==null?``:t)}function Cu(e){var t;let n=(t=e.parts)==null?void 0:t.filter(e=>e.type===`text`).map(e=>e.text).join(``).trim();if(n&&n.length>0)return n;let r=e;return typeof r.content==`string`?r.content.trim():``}function wu(e"
+    },
+    {
+      "id": "N17",
+      "claim": "Memory recovery pending/conflict and replyStalled metadata",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 131651,
+      "byte_length": 560,
+      "snippet": "function Tu(e,t){if(wu(e))return`blocked`;for(let e=t.length-1;e>=0;e--){var n;let r=t[e];if(r.role!==`assistant`)continue;let i=(n=r.metadata)==null?void 0:n.memoryRecovery;return i===`pending`||i===`conflict`?i:null}return null}function Eu(e){var t;return(e==null?void 0:e.role)===`assistant`?((t=e.metadata)==null?void 0:t.replyStalled)===!0:!1}function Du(e){let t=[];if(e.toolInvocations&&e.toolInvocations.length>0)for(let n of e.toolInvocations)n.result!=null&&t.push({type:`tool-${n.toolName}`,toolCallId:n.toolCallId,state:`output-available`,input:n.a"
+    },
+    {
+      "id": "N18",
+      "claim": "Completed switch_persona tool results update gentle/direct persona",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 142302,
+      "byte_length": 760,
+      "snippet": "function Lu(e){var t;if((e==null?void 0:e.role)!==`assistant`)return null;let n=(t=e.parts)==null?[]:t;for(let e=n.length-1;e>=0;e--){var r,i;let t=n[e];if(!((r=t.type)!=null&&r.startsWith(`tool-`))&&t.type!==`dynamic-tool`||(t.type===`dynamic-tool`?t.toolName:t.type.split(`-`).slice(1).join(`-`))!==`switch_persona`||t.state!==`output-available`&&t.state!==`result`)continue;let a=(i=t.output)==null?t.result:i;if(a!=null&&a.switched&&(a.persona===`gentle`||a.persona===`direct`))return a.persona}return null}var $=r(),Ru=({imageUrl:e,uploading:t,onRemove:n})=>(0,$.jsx)(`div`,{className:`px-4 pb-1 md:px-6`,children:(0,$.jsxs)(`div`,{className:`relative inline-block`,children:[(0,$.jsx)(`img`,{src:e,alt:`Preview`,className:S(`h-16 w-16 rounded-lg object-c"
+    },
+    {
+      "id": "N19",
+      "claim": "Bubble splitting uses blank paragraphs and removes horizontal-rule-only segments",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 145205,
+      "byte_length": 492,
+      "snippet": "var Wu=/\\n\\n+/,Gu=/\\n\\n+/g,Ku=/^-{3,}$/;function qu(e){return e.replace(/\\r\\n?/g,`\n`)}function Ju(e){return qu(e).split(Wu).map(e=>e.trim()).filter(e=>e&&!Ku.test(e))}function Yu(e){let t=qu(e),n=-1,r=0;for(let e of t.matchAll(Gu))n=e.index,r=e.index+e[0].length;return n<0?{complete:[],pending:t}:{complete:Ju(t.slice(0,n)),pending:t.slice(r)}}var Xu={added:`新增`,changed:`修改`,removed:`删除`},Zu=4;function Qu({line:e}){return(0,$.jsxs)(`li`,{className:`space-y-1 px-4 py-2.5`,child"
+    },
+    {
+      "id": "N20",
+      "claim": "One additional bubble made visible no sooner than 800ms",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 144893,
+      "byte_length": 400,
+      "snippet": "function Uu(e,t,n){let[r,i]=(0,F.useState)({key:e,shown:0}),a=(0,F.useRef)(-1/0),o=r.key===e?r.shown:0;return(0,F.useEffect)(()=>{if(!n||o>=t)return;let r=Math.max(0,a.current+800-Date.now()),s=setTimeout(()=>{a.current=Date.now(),i({key:e,shown:o+1})},r);return()=>clearTimeout(s)},[e,n,o,t]),n?Math.min(o,t):t}var Wu=/\\n\\n+/,Gu=/\\n\\n+/g,Ku=/^-{3,}$/;function qu(e){return e.replace(/\\r\\n?/g,`\n`)}fu"
+    },
+    {
+      "id": "N21",
+      "claim": "Greeting entrance uses typing delay of 600ms",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 173282,
+      "byte_length": 770,
+      "snippet": "Pd=600,Fd=F.memo(({message:e,imageUrls:t,isStreaming:n=!1,assistantName:r,avatarSrc:i,showHeader:a=!0,selectionMode:o=!1,selected:s=!1,onToggleSelect:c,onChoiceSelect:l,entranceDelay:u,bubbleStream:d=!1,toolTrace:f=!1})=>{let{t:p}=De(),m=e.role===`user`,h=e.metadata&&typeof e.metadata==`object`&&`memorySaveStatus`in e.metadata?e.metadata.memorySaveStatus:null,[g,_]=(0,F.useState)(u==null?`visible`:`hidden`);(0,F.useEffect)(()=>{if(u==null){_(`visible`);return}let e=setTimeout(()=>_(`typing`),u),t=setTimeout(()=>_(`visible`),u+Pd);return()=>{clearTimeout(e),clearTimeout(t)}},[u]);let v=(0,F.useMemo)(()=>Md(e),[e]),y=!n&&!v.some(e=>e.kind===`text`),ee=(0,F.useMemo)(()=>{var t;if(!m)return``;let n=(t=e.parts)==null?void 0:t.filter(e=>e.type===`text`).map(e=>e.tex"
+    },
+    {
+      "id": "N22",
+      "claim": "Greeting entrance spacing 1200ms; bubble/tool feature flags passed",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 207079,
+      "byte_length": 160,
+      "snippet": "entranceDelay:dt?e.index*1200:void 0,bubbleStream:M,toolTrace:be})},e.key):null})})}),(0,$.jsx)(`div`,{className:D(`absolute bottom-4 right-4 z-30 transition-al"
+    },
+    {
+      "id": "N23",
+      "claim": "Application conversation component and billing configuration query",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 199740,
+      "byte_length": 570,
+      "snippet": "let{t}=De(),n=Oe(),r=xe(),i=qe(),o=ge(),[s,c]=ce(yt),[l,u]=ce(bt);Pe();let{data:d,isPending:f,isError:p}=ke(r.agent.billingConfig.queryOptions()),m=(0,F.useMemo)(()=>{if(f)return{text:pf,srLabel:t(`chat.agent.billing.loading`)};if(p||!d)return{text:t(`chat.agent.billing.unavailable`)};if(!d.enabled)return{text:t(`chat.agent.freeNote`)};let e=Number.parseFloat(d.perMessageCost);return!Number.isFinite(e)||e<0?{text:t(`chat.agent.billing.unavailable`)}:e>0?{text:t(`chat.agent.creditsPerMessage`,{count:e})}:{text:t(`chat.agent.freeNote`)}},[d,p,f,t]),{messages:h,input"
+    },
+    {
+      "id": "N24",
+      "claim": "Generation finish invalidates memories/files/diaries/countdowns/capsules",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 200540,
+      "byte_length": 480,
+      "snippet": "onMemoryChanged:(0,F.useCallback)(()=>{n.invalidateQueries({queryKey:r.agent.memories.queryKey()}),n.invalidateQueries({queryKey:r.agent.memoryFile.pathKey()}),n.invalidateQueries({queryKey:r.agent.diaryEntries.queryKey()}),n.invalidateQueries({queryKey:r.agent.countdowns.queryKey()}),n.invalidateQueries({queryKey:r.agent.timeCapsules.queryKey()})},[n,r])}),de=(0,F.useRef)(null),[E,fe]=(0,F.useState)(null),pe=A(r.agent.uploadImage.mutationOptions({onSuccess:e=>{fe(t=>t?{...t,"
+    },
+    {
+      "id": "N25",
+      "claim": "Dedicated result renderers dispatch by tool name; not backend definitions",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 167288,
+      "byte_length": 3276,
+      "snippet": "Td=F.memo(({toolName:e,args:t,result:n,state:r,onChoiceSelect:i})=>{let a=r===`output-available`,o=e===`open_recharge`&&a&&(n==null?void 0:n.action)===`open_recharge`;if(!a||!n)return e===`open_recharge`?(0,$.jsx)(wd,{active:!1}):null;switch(e){case`fortune`:return(0,$.jsx)(ud,{data:n});case`whisper`:return(0,$.jsx)(dd,{data:n});case`user_choice`:return(0,$.jsx)(fd,{data:n,onSelect:i});case`diary`:return(0,$.jsx)(pd,{data:n,fallbackContent:t==null?void 0:t.content});case`time_capsule`:return(0,$.jsx)(md,{data:n});case`countdown`:return(0,$.jsx)(hd,{data:n});case`web_search`:return(0,$.jsx)(gd,{data:n});case`web_fetch`:return(0,$.jsx)(_d,{data:n});case`memory_save`:case`memory_edit`:case`memory_delete`:return(0,$.jsx)(yd,{data:n});case`open_recharge`:return(0,$.jsx)(wd,{active:o});case`open_task_center`:return(0,$.jsx)(Cd,{data:n});case`set_timeout`:{let e=n;return(0,$.jsxs)(`div`,{className:`flex items-center gap-2 rounded-xl border border-border/70 px-4 py-2.5`,children:[(0,$.jsx)(_,{className:`h-3.5 w-3.5 text-muted-foreground`}),(0,$.jsx)(`p`,{className:`text-sm text-muted-foreground`,children:e.timedOut?`冷处理${e.durationLabel?` ${e.durationLabel}`:``}${e.expiresAt?`，结束时间：${e.expiresAt}`:``}`:`未设置冷处理${e.reason?`：${e.reason}`:``}`})]})}case`summon_character`:return(0,$.jsx)(vd,{data:n});case`search_character_cards`:return(0,$.jsx)(bd,{data:n});case`recommend_cards`:case`recommend_games`:return(0,$.jsx)(ld,{toolName:e,result:n});case`search_ai_chats`:return(0,$.jsx)(xd,{data:n});case`submit_feedback`:return(0,$.jsx)(Sd,{data:n});case`generate_image`:case`draft_forum_post`:return(0,$.jsx)(od,{data:n});case`create_card_draft`:case`edit_card_draft`:return(0,$.jsx)($u,{data:n});default:return null}}),Ed={memory_save:{label:`记住了...`,icon:c},memory_search:{label:`翻记忆...`,icon:b},memory_list:{label:`想想...`,icon:c},memory_edit:{label:`修改记忆...`,icon:u},memory_write:{label:`整理记忆...`,icon:u},diary_write:{label:`写日记...`,icon:y},workspace_activity:{label:`处理中...`,icon:vt},memory_delete:{label:`忘掉...`,icon:i},search_conversations:{label:`翻聊天记录...`,icon:b},read_conversation:{label:`看上下文...`,icon:b},web_search:{label:`搜一下...`,icon:p},web_fetch:{label:`看链接...`,icon:p},switch_persona:{label:`调整状态...`,icon:g},set_timeout:{label:`冷处理...`,icon:_},check_credits:{label:`看看余额...`,icon:ee},open_recharge:{label:`打开充值...`,icon:s},task_status:{label:`看看任务...`,icon:re},open_task_center:{label:`打开任务中心...`,icon:re},award_share_task:{label:`看看你分享的图...`,icon:re},offline_task_reminders:{label:`设置离线任务提醒...`,icon:re},user_choice:{label:`出题中...`,icon:re},time_capsule:{label:`封存中...`,icon:ie},countdown:{label:`倒计时...`,icon:d},diary:{label:`写日记...`,icon:y},diary_list:{label:`翻日记...`,icon:y},diary_read:{label:`找日记...`,icon:b},whisper:{label:`...`,icon:c},fortune:{label:`算一卦...`,icon:v},summon_character:{label:`召唤角色...`,icon:v},search_character_cards:{label:`搜索角色卡...`,icon:b},search_ai_chats:{label:`搜聊天记录...`,icon:b},submit_feedback:{label:`提交反馈...`,icon:u},generate_image:{label:`准备画图.."
+    },
+    {
+      "id": "N26",
+      "claim": "Tool names have UI running labels, including workspace and shell",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 169046,
+      "byte_length": 3454,
+      "snippet": "Ed={memory_save:{label:`记住了...`,icon:c},memory_search:{label:`翻记忆...`,icon:b},memory_list:{label:`想想...`,icon:c},memory_edit:{label:`修改记忆...`,icon:u},memory_write:{label:`整理记忆...`,icon:u},diary_write:{label:`写日记...`,icon:y},workspace_activity:{label:`处理中...`,icon:vt},memory_delete:{label:`忘掉...`,icon:i},search_conversations:{label:`翻聊天记录...`,icon:b},read_conversation:{label:`看上下文...`,icon:b},web_search:{label:`搜一下...`,icon:p},web_fetch:{label:`看链接...`,icon:p},switch_persona:{label:`调整状态...`,icon:g},set_timeout:{label:`冷处理...`,icon:_},check_credits:{label:`看看余额...`,icon:ee},open_recharge:{label:`打开充值...`,icon:s},task_status:{label:`看看任务...`,icon:re},open_task_center:{label:`打开任务中心...`,icon:re},award_share_task:{label:`看看你分享的图...`,icon:re},offline_task_reminders:{label:`设置离线任务提醒...`,icon:re},user_choice:{label:`出题中...`,icon:re},time_capsule:{label:`封存中...`,icon:ie},countdown:{label:`倒计时...`,icon:d},diary:{label:`写日记...`,icon:y},diary_list:{label:`翻日记...`,icon:y},diary_read:{label:`找日记...`,icon:b},whisper:{label:`...`,icon:c},fortune:{label:`算一卦...`,icon:v},summon_character:{label:`召唤角色...`,icon:v},search_character_cards:{label:`搜索角色卡...`,icon:b},search_ai_chats:{label:`搜聊天记录...`,icon:b},submit_feedback:{label:`提交反馈...`,icon:u},generate_image:{label:`准备画图...`,icon:ae},draft_forum_post:{label:`起草帖子...`,icon:u},summon_status:{label:`看看召唤进度...`,icon:v},list_my_cards:{label:`翻你的作品...`,icon:y},read_my_card:{label:`读角色卡...`,icon:y},create_card_draft:{label:`整理新草稿...`,icon:u},edit_card_draft:{label:`整理改动...`,icon:u},workspace_status:{label:`看看工作区...`,icon:ie},workspace_read:{label:`翻工作区...`,icon:b},workspace_write:{label:`收进工作区...`,icon:u},shell_exec:{label:`在沙盒里试试...`,icon:v}},Dd={memory_write:`记忆整理操作已完成`,diary_write:`日记操作已完成`,workspace_activity:`操作已完成`},Od={memory_write:`整理了记忆`,diary_write:`写了日记`,workspace_activity:`在工作区里做了些操作`};function kd(e,t){let n=Od[e];if(!n)return null;let r=e===`workspace_activity`?Vu(t).map(e=>zu[e]):[];if(r.length===0)return{running:Ed[e].label,done:n,name:``};let i=r.join(`、`);return{running:`${i}...`,done:`用了工具：${i}`,name:i}}var Ad=F.memo(({toolName:e,state:t,input:n,isStreaming:r=!1,showCompleted:i=!1,trace:a=!1})=>{var o,s,c;let l=(o=Ed[e])==null?{label:e,icon:vt}:o,u=l.icon,d=t===`output-available`,f=a?kd(e,n):null,p=(s=f==null?void 0:f.done)==null?Dd[e]:s;if(d&&p&&!i&&!f)return null;let m=t===`output-error`||t===`output-denied`,h=!d&&!m&&r,g=m?`操作未完成`:`操作已中断`,v=d?p==null?l.label:p:h?(c=f==null?void 0:f.running)==null?l.label:c:f!=null&&f.name?`${f.name}：${g}`:g;return(0,$.jsxs)(`div`,{role:`status`,className:S(`flex items-center gap-2 rounded-lg border px-3 py-1.5 text-xs text-muted-foreground`,d&&`opacity-60`),children:[d?(0,$.jsx)(u,{className:`h-3.5 w-3.5`}):h?(0,$.jsx)(vt,{className:`h-3.5 w-3.5 animate-spin`}):(0,$.jsx)(_,{className:`h-3.5 w-3.5`}),(0,$.jsx)(`span`,{children:v})]})});function jd(e){var t;let n=e;return{toolCallId:n.toolCallId,name:Hl(e),input:(t=n.input)==null?{}:t,output:n.output,state:e.state}}funct"
+    },
+    {
+      "id": "N27",
+      "claim": "UI tool envelope reads toolCallId/name/input/output/state; preserves text/tool order",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 172364,
+      "byte_length": 700,
+      "snippet": "function jd(e){var t;let n=e;return{toolCallId:n.toolCallId,name:Hl(e),input:(t=n.input)==null?{}:t,output:n.output,state:e.state}}function Md(e){var t;let n=(t=e.parts)==null?[]:t,r=[],i=``;for(let e of n)if(e.type===`text`)i+=e.text;else if(Bl(e)){let t=i.trim();t&&r.push({kind:`text`,text:t,raw:i,isLast:!1}),i=``,r.push({kind:`tool`,toolPart:jd(e)})}let a=i.trim();a&&r.push({kind:`text`,text:a,raw:i,isLast:!0});for(let e=r.length-1;e>=0;e--)if(r[e].kind===`text`){r[e].isLast=!0;break}let o=e;return r.length===0&&typeof o.content==`string`&&o.content.trim()&&r.push({kind:`text`,text:o.content.trim(),raw:o.content,isLast:!0}),r}var Nd=new Set([`fortune`,`whisper`,`user_choice`,`diary`,`time"
+    },
+    {
+      "id": "N28",
+      "claim": "Offline task reminder UI schemas/defaults and feature gate",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 183024,
+      "byte_length": 920,
+      "snippet": "var Hd=Ee({enabled:le(),hour:k().int().min(8).max(21),telegram:le()}),Ud={enabled:!1,hour:18,telegram:!0};Ee({action:he([`status`,`enable`,`disable`,`update`]),hour:Hd.shape.hour.optional(),telegram:le().optional()}).strict().refine(e=>e.action===`enable`||(e.action===`update`?e.hour!==void 0||e.telegram!==void 0:e.hour===void 0&&e.telegram===void 0)),Hd.extend({conversationId:N().uuid(),locale:he(fe),client:he([`web`,`mobile`])}),Ee({day:N(),seen:be(N()),pending:Ee({title:N(),body:N(),conversationId:N().uuid(),messageId:N().uuid(),nextAt:N().datetime().optional()}).optional()});function Wd({conversationId:e}){return C(`nianbai.offline-task-reminders`)?(0,$.jsx)(Gd,{conversationId:e}):null}function Gd({conversationId:e}){var t;let{t:n}=De(),r=xe(),i=Oe(),a=ke(r.agent.offlineTaskReminderSettings.queryOptions({conversationId:e})),o=(t=a.data)==null?Ud:t,s=`conversationId`in o&&o.conversationId===e,c=o.enabled"
+    },
+    {
+      "id": "N29",
+      "claim": "Reminder settings RPC binding and save",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 183723,
+      "byte_length": 1020,
+      "snippet": "function Gd({conversationId:e}){var t;let{t:n}=De(),r=xe(),i=Oe(),a=ke(r.agent.offlineTaskReminderSettings.queryOptions({conversationId:e})),o=(t=a.data)==null?Ud:t,s=`conversationId`in o&&o.conversationId===e,c=o.enabled&&s,l=A(r.agent.setOfflineTaskReminderSettings.mutationOptions({onSuccess:()=>i.invalidateQueries({queryKey:r.agent.offlineTaskReminderSettings.queryKey()}),onError:()=>oe({title:n(`chat.agent.offlineReminders.saveFailed`),variant:`destructive`})})),u=a.isPending||a.isError||l.isPending,d=t=>l.mutate({...o,...t,conversationId:e});return(0,$.jsxs)(`section`,{className:`mb-4 rounded-lg border p-3`,children:[(0,$.jsxs)(`div`,{className:`flex items-center justify-between gap-3`,children:[(0,$.jsx)(`label`,{htmlFor:`nianbai-offline-reminders`,className:`text-sm font-medium`,children:n(`chat.agent.offlineReminders.title`)}),(0,$.jsx)(_t,{id:`nianbai-offline-reminders`,checked:c,disabled:u,onCheckedChange:e=>d({enabled:e})})]}),(0,$.jsx)(`p`,{className:`mt-2 text-xs text-muted-foreground`,childr"
+    },
+    {
+      "id": "N30",
+      "claim": "Memory RPCs list/remove/pin; capsule RPC",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 181997,
+      "byte_length": 1230,
+      "snippet": "function Bd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.memories.queryOptions()),i=A(t.agent.removeMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memories.queryKey()})}})),a=A(t.agent.pinMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memories.queryKey()})}}));return{memories:(e=r.data)==null?[]:e,isLoading:r.isLoading,isError:r.isError,error:r.error,refetch:r.refetch,remove:i.mutateAsync,togglePin:a.mutateAsync}}function Vd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.timeCapsules.queryOptions()),i=A(t.agent.openCapsule.mutationOptions({onSuccess:(e,r)=>{n.setQueryData(t.agent.timeCapsules.queryKey(),t=>t==null?void 0:t.map(t=>{var n;return t.id===r.capsuleId?{...t,openedAt:new Date().toISOString(),sealedMessage:(n=e.sealedMessage)==null?t.sealedMessage:n}:t})),n.invalidateQueries({queryKey:t.agent.timeCapsules.queryKey()})}}));return{capsules:(e=r.data)==null?[]:e,isLoading:r.isLoading,isError:r.isError,refetch:r.refetch,open:i.mutateAsync,isOpening:i.isPending}}var Hd=Ee({enabled:le(),hour:k().int().min(8).max(21),telegram:le()}),Ud={enabled:!1,hour:18,telegram:!0};Ee({action:he([`status`,`enable`,`disable`,`update`]),hour:Hd.shape.hour.optional(),telegram:le()"
+    },
+    {
+      "id": "N31",
+      "claim": "Lazy read memory file by path",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 188212,
+      "byte_length": 660,
+      "snippet": "let c=ke(i.agent.memoryFile.queryOptions({path:e},{enabled:o})),l=t?(n=/^diary\\/(\\d{4}-\\d{2}-\\d{2})(?=[ ._-]|$)/.exec(e))==null?void 0:n[1]:void 0;return(0,$.jsx)(`div`,{ref:a,className:c.isPending?`min-h-12`:void 0,children:c.isError?(0,$.jsx)(qd,{message:r(`chat.agent.memory.loadError`),retryLabel:r(`chat.agent.memory.retry`),onRetry:()=>void c.refetch()}):c.isPending?(0,$.jsx)(Jd,{text:r(`chat.agent.memory.loading`)}):(0,$.jsx)(Yd,{content:c.data.content,diary:t,date:l&&!Number.isNaN(Date.parse(l))?l:void 0})})},Zd=()=>{let{t:e}=De(),t=_e(),{memories:n,isLoading:r,isError:i,refetch:a}=Bd();return r?(0,$.jsx)(Jd,{text:e(`chat.agent.memory.loading`)})"
+    },
+    {
+      "id": "N32",
+      "claim": "Memory UI supports file-based and legacy row-based representations",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 189139,
+      "byte_length": 630,
+      "snippet": "n[0].id===`memory-file`?(0,$.jsxs)(`div`,{className:`flex flex-col gap-2`,children:[(0,$.jsx)(Yd,{content:n[0].content}),n.slice(1).map(e=>`workspacePath`in e&&typeof e.workspacePath==`string`&&(0,$.jsx)(Xd,{path:e.workspacePath},e.id))]}):(0,$.jsxs)(`div`,{className:`flex flex-col gap-2`,children:[(0,$.jsx)(`p`,{className:`px-1 text-xs text-muted-foreground/70`,children:e(`chat.agent.memory.description`,{count:n.length,max:30})}),n.map(e=>(0,$.jsxs)(`div`,{className:S(`rounded-lg border p-3`,e.pinned?`border-primary/30 bg-primary/5`:`border-border/70`),children:[(0,$.jsxs)(`div`,{className:`flex items-start gap-2`,childre"
+    },
+    {
+      "id": "N33",
+      "claim": "Memory parser accepts JSON with content/title/createdAt/mood/pinned",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 179581,
+      "byte_length": 560,
+      "snippet": "function Id(e){if(e.startsWith(`{`))try{let t=JSON.parse(e);if(!t||typeof t!=`object`||Array.isArray(t)||!(`content`in t)||typeof t.content!=`string`)return;let n=`title`in t&&typeof t.title==`string`?t.title.trim():``,r={content:t.content.trim()};return n&&(r.title=n),`createdAt`in t&&typeof t.createdAt==`string`&&!Number.isNaN(Date.parse(t.createdAt))&&(r.createdAt=t.createdAt),`mood`in t&&typeof t.mood==`string`&&(r.mood=t.mood),`pinned`in t&&typeof t.pinned==`boolean`&&(r.pinned=t.pinned),r}catch{}}function Ld(e){let t=e.replace(/\\r\\n/g,`\n`).split(`\n"
+    },
+    {
+      "id": "N34",
+      "claim": "Memory parser supports Markdown metadata and hides file references",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 180089,
+      "byte_length": 2202,
+      "snippet": "function Ld(e){let t=e.replace(/\\r\\n/g,`\n`).split(`\n`),n=[],r={},i=[],a,o=()=>{var e;let t=i.join(`\n`).trim(),a=(e=Id(t))==null?{content:t}:e;(a.content||a.title)&&n.push({...a,...r}),i=[],r={}};for(let e=0;e<t.length;e++){var s;let n=t[e],c=(s=/^ {0,3}(`{3,}|~{3,})/.exec(n))==null?void 0:s[1];if(a)(c==null?void 0:c[0])===a[0]&&c.length>=a.length&&n.trim()===c&&(a=void 0);else if(c)a=c;else if(n===`---`&&(e===0||t[e-1].trim()===``)){let n=e+1;for(;n<t.length&&/^(id|importance|pinned|createdAt|updatedAt|mood):/.test(t[n]);)n++;let i=t.slice(e+1,n);if(t[n]===`---`&&i.length>0&&i.some(e=>e.startsWith(`id:`))&&i.some(e=>e.startsWith(`createdAt:`))){o();for(let e of i){let t=e.indexOf(`:`),n=e.slice(0,t),i=e.slice(t+1).trim();if(i.startsWith(`\"`))try{i=JSON.parse(i)}catch{continue}typeof i==`string`&&(n===`createdAt`&&!Number.isNaN(Date.parse(i))&&(r.createdAt=i),n===`mood`&&(r.mood=i),n===`pinned`&&(r.pinned=i===`true`))}e=n;continue}}let l=a?n:n.replace(/\\[([^\\]]+)\\]\\((?:MEMORY\\.md|(?:memory|diary)\\/[^)]+)\\)/g,(e,t)=>/^(?:MEMORY\\.md|(?:memory|diary)\\/)/.test(t.replace(/^`|`$/g,``))?``:t);if(l!==n&&/^\\s*(?:[-*+]\\s*)?$/.test(l)||!a&&/^\\s*(?:(?:[-*+]|#{1,6})\\s+)?(?:`?(?:MEMORY\\.md|(?:memory|diary)\\/[^\\s`]+|(?:memory|diary)\\/[^`]+\\.(?:md|txt))`?)\\s*$/.test(l))continue;let u=!a&&/^(\\s*[-*+]\\s+)(\\{.*\\})\\s*$/.exec(l),d=u&&Id(u[2]);i.push(d?`${u[1]}${d.title?`${d.title}：`:``}${d.content}`:l)}return o(),n}function Rd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.countdowns.queryOptions()),i=A(t.agent.deleteCountdown.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.countdowns.queryKey()})}}));return{countdowns:(e=r.data)==null?[]:e,isLoading:r.isLoading,isError:r.isError,refetch:r.refetch,remove:i.mutateAsync}}function zd(){var e;let t=ke(xe().agent.diaryEntries.queryOptions());return{entries:(e=t.data)==null?[]:e,isLoading:t.isLoading,isError:t.isError,refetch:t.refetch}}function Bd(){var e;let t=xe(),n=Oe(),r=ke(t.agent.memories.queryOptions()),i=A(t.agent.removeMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memories.queryKey()})}})),a=A(t.agent.pinMemory.mutationOptions({onSuccess:()=>{n.invalidateQueries({queryKey:t.agent.memor"
+    },
+    {
+      "id": "N35",
+      "claim": "Proposed actions use ID, get/confirm/cancel APIs; feature-gated",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 153461,
+      "byte_length": 1362,
+      "snippet": "od=({data:e})=>{let t=xe(),n=Oe(),r=e.proposed&&e.actionId?e.actionId:``,i=C(`nianbai.image-gen`),a=C(`nianbai.forum`),{profile:o}=M(),s=(0,F.useRef)(o==null?void 0:o.id);s.current=o==null?void 0:o.id;let{open:c,composer:l}=it(),[u,d]=(0,F.useState)(null),f=t.agent.actions.get.queryKey({id:r}),p=ke(t.agent.actions.get.queryOptions({id:r},{enabled:r!==``,retry:1,staleTime:3e4})),m=A(t.agent.actions.confirm.mutationOptions({onSuccess:e=>{var t;n.setQueryData(f,e.view),d((t=ad[e.outcome])==null?null:t)},onError:e=>d(e.message||`操作失败，请稍后再试`)})),h=A(t.agent.actions.cancel.mutationOptions({onSuccess:e=>n.setQueryData(f,e),onError:e=>d(e.message||`操作失败，请稍后再试`)})),g=A({mutationFn:async({id:e,actorId:r})=>{let i=await n.fetchQuery(t.agent.actions.get.queryOptions({id:e},{staleTime:0}));if(!r||r!==s.current)return;if(!a||!(i!=null&&i.enabled)||i.status!==`pending`||i.kind!==`forum_post`||!i.forum){var o,l;d((o=ad[(l=i==null?void 0:i.status)==null?`expired`:l])==null?`这张草稿暂时无法编辑。`:o);return}let u=nt.safeParse(i.forum.board);if(!u.success)throw Error(`这张草稿的版块不可用。`);c({expectedUserId:r,initialCategory:u.data,initialTitle:i.forum.title,initialContent:i.forum.content,initialTags:i.forum.tags})},onError:e=>d(e.message||`暂时无法打开草稿，请稍后再试`)});if(!r)r"
+    },
+    {
+      "id": "N36",
+      "claim": "Forum draft rechecks actor and action status, opens editor, not directly publishes",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 154208,
+      "byte_length": 1022,
+      "snippet": "let i=await n.fetchQuery(t.agent.actions.get.queryOptions({id:e},{staleTime:0}));if(!r||r!==s.current)return;if(!a||!(i!=null&&i.enabled)||i.status!==`pending`||i.kind!==`forum_post`||!i.forum){var o,l;d((o=ad[(l=i==null?void 0:i.status)==null?`expired`:l])==null?`这张草稿暂时无法编辑。`:o);return}let u=nt.safeParse(i.forum.board);if(!u.success)throw Error(`这张草稿的版块不可用。`);c({expectedUserId:r,initialCategory:u.data,initialTitle:i.forum.title,initialContent:i.forum.content,initialTags:i.forum.tags})},onError:e=>d(e.message||`暂时无法打开草稿，请稍后再试`)});if(!r)return null;let _=p.data;return _?(0,$.jsxs)($.Fragment,{children:[(0,$.jsx)(id,{view:_,enabled:_.kind===`image`?i:a,busy:m.isPending||h.isPending||g.isPending,notice:u,onConfirm:()=>{var e,t;d(null),_.kind===`forum_post`?g.mutate({id:_.id,actorId:(e=o==null?void 0:o.id)==null?void 0:e}):m.mutate({id:_.id,expectedCreditsPerImage:(t=_.image)==null?void 0:t.creditsPerImage})},onCancel:()=>{d(null),h.mutate("
+    },
+    {
+      "id": "N37",
+      "claim": "Card draft tool previews require separate confirmation/cancel API",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 146264,
+      "byte_length": 720,
+      "snippet": "let s=C(`nianbai.studio-copilot`),c=xe(),l=Oe(),[u,d]=(0,F.useState)(!1),p=e.needsConfirmation?(t=e.previewId)==null?``:t:``,m=c.agent.studioCopilot.status.queryOptions({previewId:p}),h=ke({...m,enabled:s&&p!==``,staleTime:0}),g={onSuccess:e=>l.setQueryData(m.queryKey,e)},_=A(c.agent.studioCopilot.confirm.mutationOptions(g)),v=A(c.agent.studioCopilot.cancel.mutationOptions(g));if(!s||!p||!((n=e.changes)!=null&&n.length))return null;let y=h.data,ee=(r=y==null?void 0:y.status)==null?null:r,te=_.isPending||v.isPending,ne=u?e.changes:e.changes.slice(0,Zu),re=e.action===`create`?`新建草稿《${(i=e.name)==null?``:i}》`:`修改《${(a=e.name)==null?``:a}》`;return(0,$.jsxs)(`div`,{className:`overflow-hidden roun"
+    },
+    {
+      "id": "N38",
+      "claim": "Choice click submits selected label via callback",
+      "evidence_type": "static_application",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 158231,
+      "byte_length": 620,
+      "snippet": "let[r,i]=(0,F.useState)(null),a=(0,F.useCallback)(e=>{r||(i(e),t==null||t(e))},[r,t]);return(n=e.options)!=null&&n.length?(0,$.jsxs)(`div`,{className:`space-y-2 rounded-xl border border-border/70 px-4 py-3`,children:[(0,$.jsx)(`p`,{className:`text-sm font-medium text-foreground`,children:e.question}),(0,$.jsx)(`div`,{className:`flex flex-wrap gap-2`,children:e.options.map(e=>{var t;let n=r===e.label;return r&&!n?null:(0,$.jsxs)(T,{variant:n?`default`:`outline`,size:`sm`,className:D(`rounded-full`,n&&`pointer-events-none`),onClick:()=>a(e.label),children:[n&&(0,$.jsx)(Ce,{className:`mr-1 h-3 w-3`}),e.label]},(t=e."
+    },
+    {
+      "id": "N39",
+      "claim": "SDK default /api/chat is generic; app overrides with /api/agent/pod/chat",
+      "evidence_type": "static_sdk",
+      "source": "C58mxSVt2.js",
+      "sha256": "fd3d4c54629f56d0069e34f4d20f91df1297e7878e25a2e495bc0cba276c009f",
+      "byte_offset": 117193,
+      "byte_length": 370,
+      "snippet": "var Jl=class{constructor({api:e=`/api/chat`,credentials:t,headers:n,body:r,fetch:i,prepareSendMessagesRequest:a,prepareReconnectToStreamRequest:o}){this.api=e,this.credentials=t,this.headers=n,this.body=r,this.fetch=i,this.prepareSendMessagesRequest=a,this.prepareReconnectToStreamRequest=o}async sendMessages({abortSignal:e,...t}){var n,r,i,a,o;let s=await rl(this.body"
+    }
+  ],
+  "tool_ui_inventory": [
+    {
+      "name": "memory_save",
+      "ui_label": "记住了..."
+    },
+    {
+      "name": "memory_search",
+      "ui_label": "翻记忆..."
+    },
+    {
+      "name": "memory_list",
+      "ui_label": "想想..."
+    },
+    {
+      "name": "memory_edit",
+      "ui_label": "修改记忆..."
+    },
+    {
+      "name": "memory_write",
+      "ui_label": "整理记忆..."
+    },
+    {
+      "name": "diary_write",
+      "ui_label": "写日记..."
+    },
+    {
+      "name": "workspace_activity",
+      "ui_label": "处理中..."
+    },
+    {
+      "name": "memory_delete",
+      "ui_label": "忘掉..."
+    },
+    {
+      "name": "search_conversations",
+      "ui_label": "翻聊天记录..."
+    },
+    {
+      "name": "read_conversation",
+      "ui_label": "看上下文..."
+    },
+    {
+      "name": "web_search",
+      "ui_label": "搜一下..."
+    },
+    {
+      "name": "web_fetch",
+      "ui_label": "看链接..."
+    },
+    {
+      "name": "switch_persona",
+      "ui_label": "调整状态..."
+    },
+    {
+      "name": "set_timeout",
+      "ui_label": "冷处理..."
+    },
+    {
+      "name": "check_credits",
+      "ui_label": "看看余额..."
+    },
+    {
+      "name": "open_recharge",
+      "ui_label": "打开充值..."
+    },
+    {
+      "name": "task_status",
+      "ui_label": "看看任务..."
+    },
+    {
+      "name": "open_task_center",
+      "ui_label": "打开任务中心..."
+    },
+    {
+      "name": "award_share_task",
+      "ui_label": "看看你分享的图..."
+    },
+    {
+      "name": "offline_task_reminders",
+      "ui_label": "设置离线任务提醒..."
+    },
+    {
+      "name": "user_choice",
+      "ui_label": "出题中..."
+    },
+    {
+      "name": "time_capsule",
+      "ui_label": "封存中..."
+    },
+    {
+      "name": "countdown",
+      "ui_label": "倒计时..."
+    },
+    {
+      "name": "diary",
+      "ui_label": "写日记..."
+    },
+    {
+      "name": "diary_list",
+      "ui_label": "翻日记..."
+    },
+    {
+      "name": "diary_read",
+      "ui_label": "找日记..."
+    },
+    {
+      "name": "whisper",
+      "ui_label": "..."
+    },
+    {
+      "name": "fortune",
+      "ui_label": "算一卦..."
+    },
+    {
+      "name": "summon_character",
+      "ui_label": "召唤角色..."
+    },
+    {
+      "name": "search_character_cards",
+      "ui_label": "搜索角色卡..."
+    },
+    {
+      "name": "search_ai_chats",
+      "ui_label": "搜聊天记录..."
+    },
+    {
+      "name": "submit_feedback",
+      "ui_label": "提交反馈..."
+    },
+    {
+      "name": "generate_image",
+      "ui_label": "准备画图..."
+    },
+    {
+      "name": "draft_forum_post",
+      "ui_label": "起草帖子..."
+    },
+    {
+      "name": "summon_status",
+      "ui_label": "看看召唤进度..."
+    },
+    {
+      "name": "list_my_cards",
+      "ui_label": "翻你的作品..."
+    },
+    {
+      "name": "read_my_card",
+      "ui_label": "读角色卡..."
+    },
+    {
+      "name": "create_card_draft",
+      "ui_label": "整理新草稿..."
+    },
+    {
+      "name": "edit_card_draft",
+      "ui_label": "整理改动..."
+    },
+    {
+      "name": "workspace_status",
+      "ui_label": "看看工作区..."
+    },
+    {
+      "name": "workspace_read",
+      "ui_label": "翻工作区..."
+    },
+    {
+      "name": "workspace_write",
+      "ui_label": "收进工作区..."
+    },
+    {
+      "name": "shell_exec",
+      "ui_label": "在沙盒里试试..."
+    }
+  ],
+  "workspace_command_labels": [
+    {
+      "command": "chats list",
+      "ui_label": "翻聊天列表"
+    },
+    {
+      "command": "chats read",
+      "ui_label": "看聊天记录"
+    },
+    {
+      "command": "history search",
+      "ui_label": "翻我们的聊天记录"
+    },
+    {
+      "command": "history read",
+      "ui_label": "看聊天上下文"
+    },
+    {
+      "command": "cards search",
+      "ui_label": "搜索角色卡"
+    },
+    {
+      "command": "cards read",
+      "ui_label": "读角色卡"
+    },
+    {
+      "command": "cards recommend",
+      "ui_label": "推荐角色卡"
+    },
+    {
+      "command": "credits",
+      "ui_label": "查看余额"
+    },
+    {
+      "command": "recharge",
+      "ui_label": "打开充值"
+    },
+    {
+      "command": "summon",
+      "ui_label": "召唤角色"
+    },
+    {
+      "command": "summon status",
+      "ui_label": "看召唤进度"
+    },
+    {
+      "command": "feedback",
+      "ui_label": "提交反馈"
+    },
+    {
+      "command": "capsule seal",
+      "ui_label": "封存时间胶囊"
+    },
+    {
+      "command": "capsule list",
+      "ui_label": "查看时间胶囊"
+    },
+    {
+      "command": "countdown create",
+      "ui_label": "设置倒计时"
+    },
+    {
+      "command": "countdown list",
+      "ui_label": "查看倒计时"
+    },
+    {
+      "command": "countdown delete",
+      "ui_label": "取消倒计时"
+    },
+    {
+      "command": "timeout set",
+      "ui_label": "冷处理"
+    },
+    {
+      "command": "fortune",
+      "ui_label": "算一卦"
+    },
+    {
+      "command": "persona set",
+      "ui_label": "调整状态"
+    },
+    {
+      "command": "choice",
+      "ui_label": "出选择题"
+    },
+    {
+      "command": "search",
+      "ui_label": "联网搜索"
+    },
+    {
+      "command": "fetch",
+      "ui_label": "看链接"
+    },
+    {
+      "command": "whisper",
+      "ui_label": "说悄悄话"
+    },
+    {
+      "command": "guide",
+      "ui_label": "查平台说明"
+    },
+    {
+      "command": "mycards list",
+      "ui_label": "翻你的作品"
+    },
+    {
+      "command": "mycards read",
+      "ui_label": "读你的作品"
+    },
+    {
+      "command": "draft create",
+      "ui_label": "起草角色卡"
+    },
+    {
+      "command": "draft edit",
+      "ui_label": "修改角色卡草稿"
+    },
+    {
+      "command": "tasks",
+      "ui_label": "看看任务"
+    },
+    {
+      "command": "tasks open",
+      "ui_label": "打开任务中心"
+    },
+    {
+      "command": "tasks reminders",
+      "ui_label": "设置任务提醒"
+    },
+    {
+      "command": "tasks award",
+      "ui_label": "核对分享任务"
+    },
+    {
+      "command": "image",
+      "ui_label": "画图"
+    },
+    {
+      "command": "games",
+      "ui_label": "找小游戏"
+    },
+    {
+      "command": "forum hot",
+      "ui_label": "看论坛热帖"
+    },
+    {
+      "command": "forum post",
+      "ui_label": "起草论坛帖子"
+    }
+  ],
+  "application_rpc_references": [
+    "agent.actions.cancel.mutationOptions",
+    "agent.actions.confirm.mutationOptions",
+    "agent.actions.get.query",
+    "agent.activeRun.query",
+    "agent.billingConfig.query",
+    "agent.cancelRun.mutate",
+    "agent.countdowns.query",
+    "agent.create.mutate",
+    "agent.deleteCountdown.mutationOptions",
+    "agent.diaryEntries.query",
+    "agent.get.query",
+    "agent.memories.query",
+    "agent.memoryFile.query",
+    "agent.messages.query",
+    "agent.offlineTaskReminderSettings.query",
+    "agent.openCapsule.mutationOptions",
+    "agent.persona.set.mutationOptions",
+    "agent.pinMemory.mutationOptions",
+    "agent.remove.mutate",
+    "agent.removeMemory.mutationOptions",
+    "agent.setOfflineTaskReminderSettings.mutationOptions",
+    "agent.studioCopilot.cancel.mutationOptions",
+    "agent.studioCopilot.confirm.mutationOptions",
+    "agent.studioCopilot.status.query",
+    "agent.timeCapsules.query",
+    "agent.updateTitle.mutate",
+    "agent.uploadImage.mutationOptions"
+  ],
+  "limitations": [
+    "UI support does not prove a tool is enabled or called in a run.",
+    "Tool input JSON schemas and server tool implementations are not present in these extracted app sections.",
+    "No server prompt or model identity is inferred from SDK, UI labels, or endpoint names.",
+    "Memory file rendering does not independently prove filesystem storage or vector retrieval technology."
+  ]
+}

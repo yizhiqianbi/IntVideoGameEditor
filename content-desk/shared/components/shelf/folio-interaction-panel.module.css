@@ -1,0 +1,17 @@
+.panel { border: 1px solid var(--line, #e9e8ee); border-radius: 12px; background: var(--surface, #fff); color: var(--text, #242329); overflow: hidden; }
+.toggle { width: 100%; display: flex; align-items: center; gap: 10px; padding: 10px 14px; border: 0; background: transparent; color: inherit; font: inherit; font-size: 12px; text-align: left; cursor: pointer; }
+.toggle strong { color: var(--pink, #ed1763); font-weight: 600; flex-shrink: 0; }
+.toggle span { flex: 1; min-width: 0; color: var(--muted, #85858d); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.toggle i { font-style: normal; color: var(--muted, #85858d); font-size: 11px; flex-shrink: 0; }
+.body { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 4px 14px 14px; max-height: 45vh; overflow-y: auto; }
+.section h4 { margin: 0 0 8px; font-size: 12px; font-weight: 600; color: var(--pink, #ed1763); }
+.section dl { margin: 0; display: flex; flex-direction: column; gap: 7px; }
+.section dl > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: 12px; }
+.section dt { color: var(--muted, #85858d); flex-shrink: 0; }
+.section dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+.meterRow dd { display: flex; align-items: center; gap: 8px; flex: 1; justify-content: flex-end; }
+.meter { flex: 1; max-width: 110px; height: 6px; border-radius: 3px; background: var(--soft, #efeff2); overflow: hidden; }
+.meter > span { display: block; height: 100%; background: var(--pink, #ed1763); border-radius: 3px; }
+.meterRow b { font-weight: 500; font-size: 11px; font-variant-numeric: tabular-nums; }
+.items { display: inline-flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+.items > span { padding: 1px 7px; border-radius: 9px; background: var(--soft, #efeff2); font-size: 11px; }

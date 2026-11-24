@@ -5,6 +5,7 @@ import { findReference, handleGenerationReferences, referenceDataUrl, referenceS
 import { handleStudioStillBilling } from './studio-still-billing';
 import { handleCanvasGenerationBilling } from './canvas-generation-billing';
 import { generateSeedreamFlash } from '../../../src/lib/xumeng-seedream';
+import { optimizeGrokImagePrompt } from './grok-image-prompt';
 import { GENERATION_MODELS, OPENROUTER_ORIGIN, ProviderRejected, assetType, boundedBytes, freezeGenerationPolicy,
   generationCharge, generationFx, providerCost, providerJson, readGenerationPolicy,
   type FrozenGenerationPolicy, type GenerationFetch, type GenerationKind, type GenerationModel } from './generation-provider';
@@ -186,6 +187,17 @@ export async function handleGeneration(request:Request,env:GenerationEnv,user:Us
     if(request.method!=='GET')throw new ApiError(405,'此接口仅支持GET。');const fx=generationFx(env);
     return json({accountId:user.id,enabled:enabled(env),models:GENERATION_MODELS.map(model=>({id:model.id,label:model.label,kind:model.kind,aspectRatios:model.aspectRatios,resolutions:model.resolutions,durations:model.durations,supportsReferenceImage:model.supportsReferenceImage,
       ...(fx!==undefined?{estimatedCredits:freezeGenerationPolicy(model,model.kind==='video'?model.durations.includes(5)?5:model.durations[0]:undefined,fx).estimatedCredits}:{})})),costMultiplier:3});
+  }
+  if(path==='/v1/generation/optimize-prompt'){
+    if(request.method!=='POST')throw new ApiError(405,'此接口仅支持POST。');
+    const auth=await session(request,env,user,now);
+    if(auth.guest)throw new ApiError(403,'请注册或登录后再优化提示词。');
+    if(!env.GENERATION_OPENROUTER_API_KEY)throw new ApiError(503,'提示词优化还没配上。');
+    const body=await readJson(request,20000);
+    const text=typeof body.text==='string'?body.text:'';
+    const edit=body.edit===true;
+    const prompt=await optimizeGrokImagePrompt(text,edit,env.GENERATION_OPENROUTER_API_KEY,fetcher);
+    return json({accountId:user.id,prompt,model:'x-ai/grok-imagine-image-2.0'});
   }
   if(path==='/v1/generation/quote'){
     if(request.method!=='POST')throw new ApiError(405,'此接口仅支持POST。');const auth=await session(request,env,user,now),p=await input(await readJson(request,20000),user,false,env,now);

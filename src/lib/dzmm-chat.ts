@@ -128,6 +128,8 @@ export function xumengAdultWritingPrompt(): string {
 export const DZMM_REQUEST_LIMIT_BYTES = 180_000;
 export const DZMM_CONTEXT_LIMIT_CHARS = 80_000;
 export const DZMM_MAX_REPLY_TOKENS = 4096;
+/** Used only when a chat request omits maxTokens. A saved preference is sent as-is. */
+export const DZMM_DEFAULT_REPLY_TOKENS = 1024;
 export const DZMM_MAX_MESSAGE_CHARS = 12_000;
 
 export class DzmmValidationError extends Error {
@@ -237,7 +239,7 @@ export function validateDzmmChatInput(value: unknown): DzmmChatInput {
     || !Number.isInteger(value.maxTokens) || value.maxTokens < 128)) {
     throw new DzmmValidationError("回复长度应为不小于 128 的整数。");
   }
-  const maxTokens = Math.min(value.maxTokens as number | undefined ?? 2048, DZMM_MAX_REPLY_TOKENS);
+  const maxTokens = Math.min(value.maxTokens as number | undefined ?? DZMM_DEFAULT_REPLY_TOKENS, DZMM_MAX_REPLY_TOKENS);
   const locale = value.locale === undefined ? XUMENG_DEFAULT_LOCALE : value.locale;
   if (!isXumengLocale(locale)) throw new DzmmValidationError("请选择有效的回复语言。");
   const promptStyle = value.promptStyle === undefined ? undefined : value.promptStyle;

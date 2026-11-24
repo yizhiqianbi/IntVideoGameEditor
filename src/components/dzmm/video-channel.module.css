@@ -430,6 +430,9 @@
 }
 .hashes { display: flex; flex-wrap: wrap; gap: 8px; font-size: 14px; }
 .story .playCard {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   height: 30px;
   padding: 0 14px;
   border: 0;
@@ -441,6 +444,37 @@
   font-weight: 750;
   cursor: pointer;
 }
+.story .playCard:has(img) { padding-left: 4px; }
+.story .playCard img {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: top center;
+}
+.sheetCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0 0 12px;
+  padding: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sheetCard img {
+  width: 42px;
+  height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  object-position: top center;
+}
+.sheetCard span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.sheetCard small { color: var(--muted); font-size: 12px; }
 .story .watchAll {
   display: flex;
   align-items: center;
@@ -511,6 +545,7 @@
 }
 .payGate p, .payGate small { margin: 0; }
 .payGate p { font-size: 14px; }
+.payGate .payError { color: #ffb4c4; font-size: 13px; line-height: 1.5; }
 .payGate small { color: rgba(255, 255, 255, 0.72); font-size: 11px; line-height: 1.5; }
 .payGate button {
   height: 32px;
@@ -576,6 +611,12 @@
 }
 .sheet header strong { font-size: 16px; }
 .sheet > p { margin: 6px 0 12px; color: rgba(255, 255, 255, 0.62); font-size: 12px; }
+@media (max-width: 767px) {
+  .story { bottom: 16px; gap: 6px; }
+  .story h1 { font-size: 16px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .rail { bottom: calc(188px + env(safe-area-inset-bottom)); }
+  .sheet { max-height: 58%; margin-bottom: calc(60px + env(safe-area-inset-bottom)); }
+}
 .episodeGrid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -594,6 +635,8 @@
 .noteList { display: flex; flex-direction: column; gap: 12px; min-height: 120px; }
 .noteList p { margin: 24px 0; text-align: center; color: rgba(255, 255, 255, 0.62); }
 .noteList article { display: flex; flex-direction: column; gap: 4px; }
+.noteHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.noteHead button { color: rgba(255, 255, 255, 0.62); font-size: 12px; }
 .noteList b { font-size: 12px; color: var(--pink); }
 .noteList span { font-size: 14px; line-height: 1.5; }
 .composer {

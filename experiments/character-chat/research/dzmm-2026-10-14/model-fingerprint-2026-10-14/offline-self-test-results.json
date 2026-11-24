@@ -1,0 +1,48 @@
+{
+  "kind": "SYNTHETIC_OFFLINE_TESTS_NOT_DZMM_DATA",
+  "cases": [
+    {
+      "name": "synthetic_exact_family_plus_37",
+      "expected": "compatible_single_reference_family_NOT_model_identity",
+      "observed": "compatible_single_reference_family_NOT_model_identity",
+      "passed": true
+    },
+    {
+      "name": "synthetic_two_missing_counts",
+      "expected": "compatible_single_reference_family_NOT_model_identity",
+      "observed": "compatible_single_reference_family_NOT_model_identity",
+      "passed": true
+    },
+    {
+      "name": "synthetic_shared_tokenizer_tie",
+      "expected": "candidate_tie",
+      "observed": "candidate_tie",
+      "passed": true
+    },
+    {
+      "name": "synthetic_out_of_set_or_bad_pipeline",
+      "expected": "unknown_or_pipeline_mismatch",
+      "observed": "unknown_or_pipeline_mismatch",
+      "passed": true
+    },
+    {
+      "name": "all_missing",
+      "expected": "insufficient_data",
+      "observed": "insufficient_data",
+      "passed": true
+    },
+    {
+      "name": "synthetic_one_count",
+      "expected": "insufficient_data",
+      "observed": "insufficient_data",
+      "passed": true
+    },
+    {
+      "name": "missing_native_measurement_declaration",
+      "expected": "unvalidated_measurement_assumptions",
+      "observed": "unvalidated_measurement_assumptions",
+      "passed": true
+    }
+  ],
+  "all_passed": true
+}

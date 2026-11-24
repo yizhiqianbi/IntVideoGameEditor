@@ -1,3 +1,5 @@
+import { optimizeAigenPrompt } from "../../../src/lib/xumeng-aigen-prompt";
+import { rateLimit } from "./auth";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
 
@@ -168,8 +170,29 @@ async function pollTask(env: Env, taskId: string): Promise<Response> {
   return new Response(bytes, { headers: { "Content-Type": type === "png" ? "image/png" : type === "webp" ? "image/webp" : "image/jpeg", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
 }
 
+async function optimizeImagePrompt(request: Request, env: Env, user: UserRecord): Promise<Response> {
+  if (user.isGuest) throw new ApiError(403, "请先登录后再优化提示词。");
+  if (request.headers.get("x-adult-confirmed") !== "1") throw new ApiError(403, "需要先确认已满 18 岁。");
+  await rateLimit(request, env, "aigen-optimize", 30, user.id);
+  const body = await readJson(request, 20_000);
+  if (body.text != null && typeof body.text !== "string") throw new ApiError(400, "请求格式无效。");
+  const kind = body.kind == null ? "image" : body.kind;
+  if (kind !== "image" && kind !== "video") throw new ApiError(400, "优化类型无效。");
+  const result = await optimizeAigenPrompt(typeof body.text === "string" ? body.text : "", {
+    GENERATION_OPENROUTER_API_KEY: env.GENERATION_OPENROUTER_API_KEY,
+    SEALION_API_KEY: env.SEALION_API_KEY,
+    SEALION_BASE_URL: env.SEALION_BASE_URL,
+  }, kind);
+  if (!result.ok) throw new ApiError(result.status, result.error);
+  return json({ prompt: result.prompt });
+}
+
 export async function handleAigen(request: Request, env: Env, user: UserRecord): Promise<Response | null> {
   const path = new URL(request.url).pathname.replace(/\/$/, "");
+  if (path === "/v1/aigen/optimize-prompt") {
+    if (request.method !== "POST") throw new ApiError(405, "仅支持 POST。");
+    return optimizeImagePrompt(request, env, user);
+  }
   if (path === "/v1/aigen/image-task") {
     if (request.method !== "POST") throw new ApiError(405, "仅支持 POST。");
     return createTask(request, env, user);

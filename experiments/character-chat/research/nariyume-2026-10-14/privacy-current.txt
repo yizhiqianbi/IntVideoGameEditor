@@ -1,0 +1,415 @@
+Privacy Policy · NariYume
+← Back to NariYume
+Privacy Policy
+Last updated: October 8, 2026 (new §16 for users in the EU/EEA and §17 for users in Australia) · Effective September 24, 2026, except the product measurement update (September 27, 2026), the marketing email update below (September 28, 2026 at 00:00 UTC), the update describing service providers and advertising partners by category, content review, and advertising audiences (October 2, 2026), and the regional advertising defaults update, effective October 3, 2026.
+Your Privacy Choices
+To opt out of sale or sharing for targeted advertising, select Your Privacy Choices, then Essential only. No account is required. We honor Global Privacy Control.
+This Privacy Policy explains how
+Koro Interactive Pte. Ltd.
+(UEN 202525340Z), a private company limited by shares incorporated
+      in Singapore, with its registered office at 60 Paya Lebar Road, #06-28, Paya Lebar Square, Singapore 409051
+      (“Koro Interactive”, “we”, “our”, or “us”),
+      collects, uses, and discloses personal data in connection with the
+NariYume
+mobile application for iOS and the
+      NariYume web app at nariyume.com/app (together, the
+      “App”).
+We comply with the Singapore Personal Data Protection Act 2012
+      (“PDPA”). Where applicable, we also observe the EU
+      General Data Protection Regulation (“GDPR”) and the
+      California Consumer Privacy Act (“CCPA”) for users in
+      those jurisdictions.
+1. Summary
+We collect the personal data needed to run your account, provide AI replies, manage access and improve the App.
+We use service providers to run the App, and we share limited identifiers and events with advertising and social media partners as described below. This may constitute sale or sharing under applicable privacy laws. Select Your Privacy Choices to opt out.
+We do not sell your conversations, share them with advertising partners, or allow third-party AI providers to train on them.
+You can delete your account yourself at any time in the app: Settings → Data & deletion → Delete account (Delete Account in the iOS App).
+2. Personal data we collect
+2.1 Account information
+When you sign in using one of the methods we offer (for example Apple,
+      Google, X, or email and password), our authentication provider gives us a
+      stable account identifier. We store it alongside your chosen display name,
+      the birth date you enter during setup (used for the age gate and birthday
+      features; only the month/day and a coarse age range are sent to AI
+      providers, see §4), and your email address when you or your sign-in
+      provider supplies it. We do not receive or store your plaintext password.
+      We also use a per-device identifier to manage which sessions are signed in
+      to your account.
+2.2 Conversation content
+Your messages, the AI’s replies, saved memories (facts, entities and
+      relationships extracted from conversations), and metadata about your
+      character’s mood and affection state are saved so the App can
+      continue a conversation across launches and devices. This content may be
+      stored on your device, in your browser, and with our cloud storage
+      providers under your account identifier. Guest activity remains local.
+      Your account profile and subscription entitlement are stored with our
+      cloud providers. Section 5 describes how content may be reviewed.
+2.3 Microphone and speech data
+When you use voice features, audio is captured by your device’s
+      microphone and converted to text, either on your device or by our
+      speech-to-text service providers. We do not store these recordings in our
+      application database. Providers may retain limited data under their own
+      terms for reliability and abuse monitoring. The resulting transcript is
+      handled like a typed message (see §4). You can use typed input instead.
+2.4 Usage and diagnostics
+For signed-in accounts, we keep content-free service records of account
+      access, generation requests and outcomes, usage limits, checkout creation
+      and completion, and payment status. These records use protected account
+      references and help us reconcile usage, billing and service failures.
+      They do not depend on browser measurement. Retention depends on
+      the category and collection date, as described in section 8.
+      They contain no conversation text, audio, memories or raw account ID.
+      Recording a service event does not enable advertising or grant permission
+      to share it with advertising services.
+Our apps and website use first-party and service-provider analytics to
+      record bounded usage steps, errors and timings so we can keep the service
+      working and improve it. Product measurement is part of the service in every
+      region and is not an optional setting: by using the App you agree to it
+      under our Terms of Service. If you do not want it, please stop using the App
+      and request deletion. It excludes conversation text, voice recordings,
+      memories, names and email addresses. Random browser identifiers and
+      protected account references link permitted steps across sign-in and
+      checkout. Section 8 describes event storage and deletion. Our
+      infrastructure providers may create ordinary security, performance and
+      request logs. We do not fingerprint your device.
+Advertising and social media partners.
+A separate
+      advertising setting lets us share limited data with the advertising and
+      social media platforms we use to promote NariYume (“advertising
+      partners”). When advertising measurement is enabled, we may share:
+      events (visits, sign-ups, engagement milestones such as reaching the daily
+      free limit or opening our plans page, checkout starts, and purchases with
+      their value and currency); and identifiers (browser and device information,
+      network addresses, advertising click identifiers, protected account
+      references, and a one-way hashed version of your email address that
+      partners use only to match you with your account on their platform). A hash
+      is a matching identifier, not anonymous data. Partners use this data to
+      measure our advertising, improve which people see our ads, and build or
+      exclude audiences, including audiences of similar people. Some partners’
+      website scripts run on our site and may set advertising cookies; they
+      receive only the product events described here, not conversations or form
+      fields. We never share conversations, voice recordings, memories, or your
+      plain-text email address with advertising partners, and we do not build
+      audiences from your conversations. Advertising click identifiers are kept
+      in your browser for up to 30 days and are encrypted on our servers for the
+      same period. We receive campaign reports from our advertising partners. A
+      current list of our advertising partners is available on request (see §15). Our
+Data Usage Policy
+summarises this sharing.
+Advertising measurement is enabled by default, including before you sign
+      in, subject to opt-out and Global Privacy Control, except in the European
+      Economic Area, the United Kingdom (including Gibraltar and the Crown
+      Dependencies), Switzerland and Quebec. There, it is enabled only after you
+      choose to allow advertising, and we will ask again before relying on that
+      choice for a new kind of advertising use. Advertising measurement uses browser identifiers and is not anonymous.
+      Refusing it does not restrict app access. Use the Your Privacy Choices
+      button on this page, accessible from Settings or the site footer, and select
+      Essential only to opt out of all optional advertising. Opting out or
+      withdrawing consent stops our future advertising data sharing, removes
+      advertising scripts and clears known advertising cookies; audience lists
+      are updated on the next refresh. Financial records may be retained
+      separately where needed for billing and legal obligations.
+2.5 Purchase information
+Purchases are handled by app stores (for in-app purchases) and by our
+      payment processors (on the web). They share customer, subscription,
+      payment-status and transaction identifiers with us so we can grant access
+      and manage billing. We do not receive your full payment-card number.
+2.6 Optional device data
+The App can read from several optional sources on your device to
+      make your character feel more aware of your day. Each of these is
+off by default
+, requires the relevant iOS
+      permission, and is used only for the feature described below. You
+      can turn any of them on or off at any time in iOS Settings or from
+      within the App, and we do not store the underlying records on our
+      servers.
+Calendar (optional, read-only).
+If you grant
+        access, the App reads upcoming events so your character can
+        anticipate your day (for example, acknowledging a meeting or a
+        trip). A short, calendar-derived summary may be included in the
+        context sent to our AI inference provider (see §4) so replies can
+        reference what you have coming up. We do not upload your full
+        calendar.
+Approximate Location (optional).
+If you grant
+        access, the App uses your approximate location to provide local
+        context such as the weather. A short, location-derived summary
+        (for example, a city name or current conditions) may be included
+        in the context sent to our AI inference provider (see §4). We do
+        not continuously track or store your precise location.
+Photos (optional).
+Only a photo that you
+        explicitly choose to attach to a message is sent inline with that
+        single AI request so the character can respond to it. The App
+        does not browse, scan, or upload your photo library, and no other
+        photos are accessed.
+3. Purposes of use
+We collect and use personal data for the following purposes:
+To create and authenticate your account.
+To store your conversation history, character state, and preferences, and to sync them across your devices.
+To generate AI replies, voice and other features.
+To process purchases and subscription entitlements.
+To keep the App safe, detect and investigate abuse, and enforce our Terms (see §5).
+To operate, maintain, improve and develop the App, including its stability, performance, features and characters.
+To communicate with you, including service messages and, where permitted, marketing.
+To promote NariYume and to measure and improve our advertising, as described in §2.4.
+To comply with legal obligations.
+By using the App you consent, to the extent required under the
+      PDPA, to the collection, use, and disclosure of your personal
+      data for these purposes.
+4. AI providers
+AI responses, voice and related features are generated using third-party
+      AI model and voice providers, and in some cases our own servers. The App
+      does not contact these providers directly: requests pass through
+      infrastructure we operate or control, which routes them to the providers
+      we use from time to time. On first use the App asks you to agree to AI
+      processing before any of it happens, and nothing is sent until you do.
+      Because AI processing is what the App is, this is an agreement rather than
+      a switch. You can review the notice and acceptance date in the App’s
+      privacy settings.
+Depending on the feature you use, a request may include: the text of your
+      messages and the recent conversation context; a photo you have explicitly
+      attached; the first name you chose in the App and any saved name
+      pronunciation; your birthday
+day
+(month and day only) and a coarse
+      age range; things your character has learned about you in conversation
+      (memories) and notes you have saved; and, only if you have enabled them, a
+      short summary of optional device context such as weather or your next
+      calendar event. A technical identifier may accompany requests for rate
+      limiting, entitlement enforcement, security and cost measurement. We do
+not
+send your email address, sign-in identifiers, full
+      birth date, raw location coordinates or your calendar as a whole to these
+      providers.
+We configure our AI routing so that providers do not store or train on
+      your requests where that option is available. Providers process requests
+      to generate replies and may keep limited operational logs under their own
+      retention and security policies. Personalized reply text and generated
+      audio are not intentionally stored in our application cache; shared
+      scripted recordings may be cached for playback.
+5. Content review, safety and reports
+We and service providers acting on our behalf may review account data,
+      conversations, memories and related records, using automated tools and,
+      where needed, authorized personnel. We do this to keep the App safe,
+      prevent and investigate abuse and fraud, enforce our Terms, investigate
+      reports, bugs and errors, respond to support requests, comply with law, and
+      improve the quality of the App and its characters. Access is limited to
+      people who need it for these purposes.
+Every AI-generated message exposes a Report action. When you report a
+      message we keep the message identifier, a copy of the reported content,
+      your account identifier (if signed in) and a timestamp for review. When
+      you use the feedback form or email support, we keep what you send, related
+      account and app details, and your email address if you share it, to
+      investigate and reply.
+6. Disclosure of personal data
+We disclose personal data to the categories of recipients below. Sharing
+      identifiers and events with advertising partners for cross-context
+      behavioral or targeted advertising may constitute a sale or sharing under
+      applicable US state privacy laws. You can opt out through Your Privacy
+      Choices by selecting Essential only, or by enabling Global Privacy Control
+      in your browser.
+Service providers
+who process data on our behalf under
+        contract, such as cloud hosting, storage and networking; authentication;
+        app stores and payment processors; AI model, speech and voice providers
+        (see §4); email delivery; analytics and diagnostics; and customer
+        support tools.
+Advertising and social media partners
+, which receive the
+        advertising data described in §2.4 (events, browser/device/network
+        information, click identifiers, protected account references and hashed
+        email addresses) for measurement, ad delivery and audiences. They are
+        third parties for advertising purposes, not solely service providers. We
+        do not send them conversations, audio or memories.
+Regulators, courts, or law enforcement
+where
+        we are required to do so by law.
+Successors
+in connection with a merger,
+        acquisition, or sale of assets, subject to the same
+        protections described in this Policy.
+A current list of our service providers and advertising partners is available on request (see §15).
+7. International data transfers
+Our service providers and partners may store and process personal data in
+      the United States, the European Union, Singapore or other countries. Where
+      we transfer personal data out of Singapore, the EU, or the United Kingdom,
+      we rely on contractual protections (including Standard Contractual Clauses
+      where applicable) and on the security guarantees of our providers.
+8. Retention
+Web measurement policy v2 applies to observations collected after its
+      September 24, 2026 deployment. Earlier observations keep their original
+      expiry; this update does not extend them. No new mandatory consent screen
+      is required to continue using the app. From September 27, 2026, first-party
+      product measurement applies to all visits; advertising and email choices
+      remain separate.
+Data and purpose
+Retention
+Content-free web events: diagnose performance, reconcile usage and evaluate changes
+90 days in the active event store, then a private archive subject to the account or visitor period below
+Account-linked event archives, daily usage facts, experiment exposures and permitted ad-source labels: measure retention and product outcomes
+Until the later of 24 months after genuine app activity or 732 days after account creation, so we can measure two-year retention. Email delivery, billing renewals and background jobs do not restart this period. Account deletion still removes account-linked analytics.
+Visitors who never register: understand acquisition and first-session performance
+Up to 13 months after genuine activity
+Raw ad-click identifiers and advertising matching snapshots: match permitted conversions
+Up to 30 days
+Irreversibly anonymised cohort statistics: compare long-term product outcomes
+May be retained indefinitely; small groups are suppressed or merged before indefinite retention
+Billing and financial records: accounting and legal obligations
+For the legally required period; our payment processor’s records remain the payment source of truth
+Email preferences and consent evidence: honour choices and document eligibility
+While the account exists and for up to 24 months after genuine activity; minimal unsubscribe and suppression records remain to prevent unwanted mail
+Account deletion removes associated analytics from active storage, derived
+      account facts and private archives within 30 days. A minimal protected
+      deletion or suppression record prevents delayed jobs from restoring it.
+      Advertising opt-out stops future advertising delivery. Conversations and
+      memories are not copied into the analytics system.
+Cloud account and synced content: for the lifetime of your account, unless a shorter period is required by law or stated here.
+Browser-local chats and memories: until cleared in the web app or removed with the site’s browser data. Signed-in cloud backups follow the cloud retention period above. Clear Chat & Memories queues removal of the synced backup when connected; older iOS installations may retain local copies and re-upload them.
+Content reports: up to 12 months, then deleted.
+Crash / diagnostic logs: up to 90 days.
+On account deletion: we delete your account and associated cloud data. The iOS deletion flow also wipes its on-device database. Browser-local conversation data must be cleared in the web app or by removing the site’s browser data. Deletion is irreversible.
+Marketing email choices
+We send occasional NariYume feature updates and invitations to return.
+      Outside the United States, we send them only if you opt in. For accounts
+      in the United States, we may send them unless you opt out; each such email
+      identifies itself as promotional and includes a one-click unsubscribe, and
+      you can turn them off in Settings at any time. Creating an account or paying
+      for Premium never overrides an unsubscribe.
+Email choices are independent of Terms acceptance and advertising settings.
+      Outside the United States, the optional sign-up checkbox is unchecked by
+      default. In the United States no checkbox is shown; the Settings switch
+      starts on and you can turn it off at any time. You can
+      change your preference in Settings or unsubscribe from any marketing email.
+      We record the notice and wording version, time, source and country of the
+      choice. Marketing messages are capped at one per day and three in any
+      seven-day period. A randomly assigned comparison group receives none.
+      Account security and purchase receipts are service messages, not marketing.
+      Letters are linked inside the app; private chat or letter content is never
+      placed in marketing emails. We do not send daily allowance-reset emails.
+9. Children
+The web app is intended only for adults aged 18 or older. The iOS app
+      has a separate minimum age shown during iOS onboarding. We do not
+      knowingly collect personal data from anyone below the applicable
+      minimum age for the service they use. If we learn that we have, we
+      will delete it promptly.
+10. Your rights
+Depending on where you live, you have the following rights:
+Access.
+Request a copy of the personal data we hold about you.
+Correction.
+Ask us to correct inaccurate data. You can update your display name in the App directly.
+Deletion.
+Delete your account yourself in the app: Settings → Data & deletion → Delete account on the web, or “Delete Account” in the iOS App. Deletion takes effect right away. If you can no longer sign in, email
+[email protected]
+from the address on your account. Clear browser-local web conversations separately in the web app or your browser settings.
+Portability.
+Request a machine-readable export.
+Withdraw consent.
+NariYume’s core function requires AI processing, so there is no separate switch for it. To withdraw, stop using the App and delete your account in Settings → Data & deletion. Signing out stops new use on that session but preserves account data for a later sign-in.
+Object / restrict processing.
+Where GDPR applies, you may object to or restrict certain processing.
+Lodge a complaint.
+You may lodge a complaint with the Singapore Personal Data Protection Commission (
+pdpc.gov.sg
+) or your local supervisory authority.
+To exercise any of these rights, email our Data Protection
+      Officer at
+[email protected]
+.
+      We will respond within 30 days.
+11. Security
+We use platform secure storage on your device, managed authentication
+      sessions, access rules and server-side authorization for cloud data, and
+      encryption in transit (TLS) for network requests. To prevent abuse of free
+      allowances (fraud prevention), the web app stores a random device
+      identifier in your browser and sends it with requests to our servers; it
+      is kept for up to 30 days after its last use and is not used for
+      advertising. No system is perfectly secure; we
+      encourage you to use a unique, strong password and enable
+      two-factor authentication with your sign-in provider where available.
+If we become aware of a personal-data breach that is likely to
+      result in significant harm to you, we will notify you in
+      accordance with applicable law (including the PDPA’s data
+      breach notification obligation).
+12. Data Protection Officer
+We have designated a Data Protection Officer responsible for
+      overseeing compliance with this Policy and applicable data
+      protection laws. You may contact the DPO at
+[email protected]
+.
+13. YouTube and social media API services
+We operate brand and character social-media accounts and an automated
+      publishing service (the “NariYume Content Engine”) that post
+      NariYume marketing content — text, images, and videos of our
+      fictional characters — to
+our own
+accounts on
+      third-party platforms, including
+YouTube
+. This automated
+      video publishing uses
+YouTube API Services
+.
+By viewing or interacting with our YouTube channel and content delivered
+      through the YouTube API, you also agree to be bound by the
+YouTube Terms of Service
+.
+      Google’s handling of any data collected through these API Services is
+      described in the
+Google Privacy Policy
+.
+The NariYume Content Engine authenticates only to
+our own
+brand accounts in order to publish our own content, using the minimum API
+      scope required to upload videos to our channel. It does
+not
+access, request, collect, or store the personal data,
+      Google account data, or YouTube data of any App user or member of the
+      public. You can revoke this application’s access to our Google
+      account at any time via the Google
+security settings
+page.
+14. Changes to this Policy
+We may update this Policy from time to time. When we do, we will
+      post the new version here and update the date above. If the
+      change is material, we will notify you inside the App.
+15. Contact
+Privacy and data requests:
+[email protected]
+General support:
+[email protected]
+Data Controller: Koro Interactive Pte. Ltd. (UEN 202525340Z)
+Registered office: 60 Paya Lebar Road, #06-28, Paya Lebar Square, Singapore 409051.
+16. For users in the EU/EEA
+This section applies if you use NariYume from the European Union, Iceland, Liechtenstein or Norway.
+Controller.
+Koro Interactive Pte. Ltd. (details in §15). You can reach our Data Protection Officer as described in §12.
+Legal bases.
+Contract (GDPR Art. 6(1)(b)): your account, AI replies, voice, memory and billing.
+Explicit consent (Art. 9(2)(a)): any sensitive personal details you choose to share in chats. We ask for this consent once, after you sign in and before your first chat. You can withdraw it at any time by deleting the chats or your account.
+Legitimate interests (Art. 6(1)(f)): security, abuse and fraud prevention (including the device identifier), product measurement and service improvement. You may object.
+Consent (Art. 6(1)(a)): advertising cookies and advertising data sharing, through the consent bar. You can withdraw it at any time.
+Legal obligation (Art. 6(1)(c)): tax and accounting records.
+Sensitive details.
+We never ask for health, beliefs or similar sensitive information. If you mention any in a chat, we use it only to provide that conversation, with your consent, and never for advertising.
+Transfers.
+When your data leaves the EU/EEA, we rely on Standard Contractual Clauses or adequacy decisions.
+Automated decisions.
+We make none with legal or similarly significant effects.
+Complaints.
+You may complain to the data protection authority in the EU/EEA country where you live or work, or where the alleged infringement took place (
+list of authorities
+).
+17. For users in Australia
+This section applies if you use NariYume from Australia. We handle personal information in line with the Australian Privacy Principles as described in this Policy.
+Automated decisions.
+Some decisions are made by automated systems without a person reviewing each one: our payment processor's fraud screening may decline a payment; our abuse-prevention checks may limit free daily usage for a device, network or account that shows signs of misuse; and age eligibility is checked automatically from the birth date you enter. These use payment, device, network and account usage signals, never your conversations. To ask for a review, email
+[email protected]
+.
+Complaints.
+If you are not satisfied with our response, you can contact the Office of the Australian Information Commissioner (
+oaic.gov.au
+).
+← Back to NariYume

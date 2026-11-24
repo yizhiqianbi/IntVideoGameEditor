@@ -1,0 +1,75 @@
+{
+  "date": "2026-10-23",
+  "project": "尾语 PAWTALE",
+  "url": "http://127.0.0.1:3026",
+  "productionBuild": "passed",
+  "behaviorTests": {
+    "passed": 13,
+    "failed": 0,
+    "command": "npm test"
+  },
+  "originalFiles": {
+    "checked": 2886,
+    "changed": [],
+    "unrelatedParallelProjectChanges": [
+      "cloudflare/qingyu-web/README.md",
+      "cloudflare/qingyu-web/evidence/original-verification.json"
+    ]
+  },
+  "liveService": {
+    "status": "model",
+    "provider": "Explicit PAWTALE configuration pointing to existing configured provider account",
+    "realChatObserved": true,
+    "realCustomResidentReviewObserved": true,
+    "adultModeRequest": {
+      "blocked": true,
+      "mode": "boundary"
+    },
+    "semanticCoverage": "Not a comprehensive audit; malformed and unsafe input/output verdict paths verified with mocked provider"
+  },
+  "browser": {
+    "productionConsole": {
+      "errors": 0,
+      "warnings": 0
+    },
+    "verified": [
+      "favorite and favorite filter",
+      "free-form model reply via browser",
+      "reply saved to journal",
+      "new journal note",
+      "custom dog creation via server review",
+      "custom resident survives reload",
+      "conversation survives reload",
+      "download backup",
+      "upload backup and explicit confirmation",
+      "restore and reload: 1 conversation, 2 notes, 1 custom resident",
+      "desktop and mobile layout",
+      "mobile navigation and composer stay separate",
+      "search returns one matching resident",
+      "dog filter returns one resident",
+      "cat filter returns two residents",
+      "all three default residents and images render without horizontal overflow"
+    ],
+    "mobile": {
+      "width": 390,
+      "height": 844,
+      "horizontalOverflow": false,
+      "composerBottom": 747,
+      "navigationTop": 775
+    },
+    "screenshots": [
+      "/Users/pencil/Documents/IntVideoGameEditor/output/playwright/pawtale/desktop.png",
+      "/Users/pencil/Documents/IntVideoGameEditor/output/playwright/pawtale/mobile.png",
+      "/Users/pencil/Documents/IntVideoGameEditor/output/playwright/pawtale/chat-desktop.png",
+      "/Users/pencil/Documents/IntVideoGameEditor/output/playwright/pawtale/mobile-chat.png"
+    ]
+  },
+  "limits": [
+    "Local deployment only",
+    "Browser-local storage; no cloud sync",
+    "No account, billing, forum, voice or video parity with xumeng",
+    "Custom residents use shared illustrative portraits",
+    "No guarantee of exhaustive content moderation coverage",
+    "Native mobile keyboard behavior was not tested on a physical phone"
+  ]
+}

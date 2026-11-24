@@ -1,0 +1,22 @@
+{
+  "measurement_type": "native_completion_tokens",
+  "target": "NariYume /api/chat",
+  "observed": {
+    "raw_completion_text": "今天吃到了热乎乎的早餐，心情很好。🙂 [happy]",
+    "completion_tokens": 16
+  },
+  "reference_counts": {
+    "cl100k_base": 31,
+    "o200k_base": 17,
+    "qwen3": 16,
+    "deepseek_v3": 15
+  },
+  "compatible_at_zero_residual": ["qwen3"],
+  "interpretation": "weak tokenizer compatibility signal only; not a model identity",
+  "limitations": [
+    "one short completion only",
+    "EOS/special-token/provider counting semantics not independently verified",
+    "models may share a tokenizer",
+    "prompt_tokens cannot be compared without the hidden server prompt"
+  ]
+}

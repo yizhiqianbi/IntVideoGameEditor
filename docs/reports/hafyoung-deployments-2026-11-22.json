@@ -1,0 +1,1270 @@
+{
+  "result": [
+    {
+      "id": "5fafb0e2-2bee-434b-9889-586a7908e0b3",
+      "short_id": "5fafb0e2",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://5fafb0e2.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-02T06:04:26.550035Z",
+      "modified_on": "2026-11-02T06:04:27.995729Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-02T06:04:27.995729Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "9b9296c9355679403894993745b9dfe6a2271f69",
+          "commit_message": "Add specifications, factory facts, certifications and a buying guide\r\n\r\nGEO audit lost most points on missing hard facts. All figures come from the\r\nHAFYOUNG catalogue (HY产品目录 12.21), the 2026 Space Cool recommendation guide\r\nand the 2026 new-model sheet.\r\n\r\n- Spec table (#specs) and key specs on each product card; Product JSON-LD\r\n  gets additionalProperty and weight. COG-\n\n[commit_message truncated]",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-02T06:04:26.550035Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-02T06:04:27.995729Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": [
+        "https://www.hafyoung-cooling.com"
+      ],
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "4afa475a-88c1-4ab4-a931-684a7969dd4b",
+      "short_id": "4afa475a",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://4afa475a.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-02T06:03:33.17651Z",
+      "modified_on": "2026-11-02T06:03:34.816426Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-02T06:03:34.816426Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "9b9296c9355679403894993745b9dfe6a2271f69",
+          "commit_message": "Add specifications, factory facts, certifications and a buying guide\r\n\r\nGEO audit lost most points on missing hard facts. All figures come from the\r\nHAFYOUNG catalogue (HY产品目录 12.21), the 2026 Space Cool recommendation guide\r\nand the 2026 new-model sheet.\r\n\r\n- Spec table (#specs) and key specs on each product card; Product JSON-LD\r\n  gets additionalProperty and weight. COG-\n\n[commit_message truncated]",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-02T06:03:33.17651Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-02T06:03:34.816426Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "23bee2a2-445a-4638-b0fc-cf1cc59dc1a1",
+      "short_id": "23bee2a2",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://23bee2a2.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-01T20:23:02.829083Z",
+      "modified_on": "2026-11-01T20:23:04.66211Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-01T20:23:04.66211Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "9b9296c9355679403894993745b9dfe6a2271f69",
+          "commit_message": "Add specifications, factory facts, certifications and a buying guide\r\n\r\nGEO audit lost most points on missing hard facts. All figures come from the\r\nHAFYOUNG catalogue (HY产品目录 12.21), the 2026 Space Cool recommendation guide\r\nand the 2026 new-model sheet.\r\n\r\n- Spec table (#specs) and key specs on each product card; Product JSON-LD\r\n  gets additionalProperty and weight. COG-\n\n[commit_message truncated]",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-01T20:23:02.829083Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-01T20:23:04.66211Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "de4bf771-0218-4690-9ff2-bafc42d5413b",
+      "short_id": "de4bf771",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://de4bf771.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-01T20:03:02.076181Z",
+      "modified_on": "2026-11-01T20:03:03.805624Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-01T20:03:03.805624Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "9b9296c9355679403894993745b9dfe6a2271f69",
+          "commit_message": "Add specifications, factory facts, certifications and a buying guide\r\n\r\nGEO audit lost most points on missing hard facts. All figures come from the\r\nHAFYOUNG catalogue (HY产品目录 12.21), the 2026 Space Cool recommendation guide\r\nand the 2026 new-model sheet.\r\n\r\n- Spec table (#specs) and key specs on each product card; Product JSON-LD\r\n  gets additionalProperty and weight. COG-\n\n[commit_message truncated]",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-01T20:03:02.076181Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-01T20:03:03.805624Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "6d6e1da6-322a-4450-8040-ae61d097e2c2",
+      "short_id": "6d6e1da6",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://6d6e1da6.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-01T11:54:07.469091Z",
+      "modified_on": "2026-11-01T11:54:09.114278Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-01T11:54:09.114278Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "df387b5a83eb7d306c84e253b1a35bcb8b31bd33",
+          "commit_message": "HAFYOUNG SpaceCool site: Cloudflare Pages source as deployed on 2026-11-01\r\n\r\nCo-authored-by: Cursor \u003ccursoragent@cursor.com\u003e",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-01T11:54:07.469091Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-01T11:54:09.114278Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "f0c111cb-8df3-4849-af85-39b41cd72082",
+      "short_id": "f0c111cb",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://f0c111cb.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-01T11:52:25.582696Z",
+      "modified_on": "2026-11-01T11:52:27.964849Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-01T11:52:27.964849Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "df387b5a83eb7d306c84e253b1a35bcb8b31bd33",
+          "commit_message": "HAFYOUNG SpaceCool site: Cloudflare Pages source as deployed on 2026-11-01\r\n\r\nCo-authored-by: Cursor \u003ccursoragent@cursor.com\u003e",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-01T11:52:25.582696Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-01T11:52:27.964849Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "b194fc53-ba23-48c4-95ce-a96d51d94e5c",
+      "short_id": "b194fc53",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://b194fc53.hafyoung-cooling.pages.dev",
+      "created_on": "2026-11-01T06:59:59.792063Z",
+      "modified_on": "2026-11-01T07:00:02.007952Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-11-01T07:00:02.007952Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-11-01T06:59:59.792063Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-11-01T07:00:02.007952Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": "dist",
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {
+        "STATS_KEY": {
+          "type": "secret_text",
+          "value": ""
+        }
+      },
+      "d1_databases": {
+        "DB": {
+          "id": "d98c451a-5372-487a-b1a3-7454f50f377e"
+        }
+      },
+      "compatibility_date": "2025-09-01",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "53ba0a7a-397b-400e-90f0-cc88c497d794",
+      "short_id": "53ba0a7a",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://53ba0a7a.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-28T03:36:34.488314Z",
+      "modified_on": "2026-10-28T03:36:36.421209Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-28T03:36:36.421209Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-28T03:36:34.488314Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-28T03:36:36.421209Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "421a555b-c3fa-4827-8531-f0320e5d4d43",
+      "short_id": "421a555b",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://421a555b.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T10:58:44.00609Z",
+      "modified_on": "2026-10-27T10:58:45.573711Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T10:58:45.573711Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T10:58:44.00609Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T10:58:45.573711Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "33145c5a-ef03-46c4-ba80-4269ba0ed20d",
+      "short_id": "33145c5a",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://33145c5a.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T10:57:50.669281Z",
+      "modified_on": "2026-10-27T10:57:52.442229Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T10:57:52.442229Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T10:57:50.669281Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T10:57:52.442229Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "59ca23ad-65e2-4fff-8cc3-2a7469eb8869",
+      "short_id": "59ca23ad",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://59ca23ad.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T10:56:06.668224Z",
+      "modified_on": "2026-10-27T10:56:08.469017Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T10:56:08.469017Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T10:56:06.668224Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T10:56:08.469017Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "6c32a262-e673-4426-bcb2-b55375ba4aec",
+      "short_id": "6c32a262",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://6c32a262.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T09:41:36.985544Z",
+      "modified_on": "2026-10-27T09:41:38.773254Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T09:41:38.773254Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T09:41:36.985544Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T09:41:38.773254Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "566a0bf0-ae3a-421d-869d-378766b602b1",
+      "short_id": "566a0bf0",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://566a0bf0.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T09:35:22.398574Z",
+      "modified_on": "2026-10-27T09:35:24.505806Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T09:35:24.505806Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T09:35:22.398574Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T09:35:24.505806Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "178ae128-7ac3-4cc6-84f9-08adf8188cf6",
+      "short_id": "178ae128",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://178ae128.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T08:53:16.196254Z",
+      "modified_on": "2026-10-27T08:53:17.602868Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T08:53:17.602868Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T08:53:16.196254Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T08:53:17.602868Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "b43d066f-0348-4b5a-a105-b64619226ac1",
+      "short_id": "b43d066f",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://b43d066f.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T07:26:51.167845Z",
+      "modified_on": "2026-10-27T07:26:53.052732Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T07:26:53.052732Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T07:26:51.167845Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T07:26:53.052732Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": "standard",
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": true
+    },
+    {
+      "id": "2934fd25-1337-420d-b805-11a0f0a2d841",
+      "short_id": "2934fd25",
+      "project_id": "ec08c24b-29db-44e6-8202-17b3aec6c57d",
+      "project_name": "hafyoung-cooling",
+      "environment": "production",
+      "url": "https://2934fd25.hafyoung-cooling.pages.dev",
+      "created_on": "2026-10-27T07:25:14.967797Z",
+      "modified_on": "2026-10-27T07:25:16.118214Z",
+      "latest_stage": {
+        "name": "deploy",
+        "started_on": null,
+        "ended_on": "2026-10-27T07:25:16.118214Z",
+        "status": "success"
+      },
+      "deployment_trigger": {
+        "type": "ad_hoc",
+        "metadata": {
+          "branch": "main",
+          "commit_hash": "",
+          "commit_message": "",
+          "commit_dirty": true
+        }
+      },
+      "stages": [
+        {
+          "name": "queued",
+          "started_on": "2026-10-27T07:25:14.967797Z",
+          "ended_on": null,
+          "status": "active"
+        },
+        {
+          "name": "initialize",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "clone_repo",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "build",
+          "started_on": null,
+          "ended_on": null,
+          "status": "idle"
+        },
+        {
+          "name": "deploy",
+          "started_on": null,
+          "ended_on": "2026-10-27T07:25:16.118214Z",
+          "status": "success"
+        }
+      ],
+      "build_config": {
+        "build_command": null,
+        "destination_dir": null,
+        "build_caching": null,
+        "root_dir": null,
+        "web_analytics_tag": null,
+        "web_analytics_token": null
+      },
+      "env_vars": {},
+      "compatibility_date": "2026-10-27",
+      "compatibility_flags": [],
+      "build_image_major_version": 3,
+      "usage_model": null,
+      "aliases": null,
+      "is_skipped": false,
+      "production_branch": "main",
+      "uses_functions": false
+    }
+  ],
+  "success": true,
+  "errors": [],
+  "messages": [],
+  "result_info": {
+    "page": 1,
+    "per_page": 25,
+    "count": 16,
+    "total_count": 16,
+    "total_pages": 1
+  }
+}

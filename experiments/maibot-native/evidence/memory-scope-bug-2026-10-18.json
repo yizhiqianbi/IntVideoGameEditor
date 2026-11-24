@@ -1,0 +1,17 @@
+{
+  "scope": "Read-only source-function reproduction, not a substitute runtime test",
+  "synthetic_paragraph_hash": "13739341170fbf8951963a2ce50abb220ccf2fe6b770b605267e0495a7baa20b",
+  "raw_sql_metadata_type": "str",
+  "native_current_scope": [
+    "unknown",
+    []
+  ],
+  "same_native_function_with_decoded_metadata": [
+    "chat",
+    [
+      "6b506294825dff986b8694c00dc10312"
+    ]
+  ],
+  "effect": "Current person_fact scope resolves unknown; scoped search excludes the stored paragraph. Profile lookup separately succeeds.",
+  "core_modified": false
+}

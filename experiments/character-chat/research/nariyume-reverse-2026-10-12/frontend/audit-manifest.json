@@ -1,0 +1,25 @@
+{
+  "observed_client_date": "2026-10-12",
+  "timezone": "Asia/Shanghai",
+  "scope": "Public HTML and explicitly declared frontend static assets; core chat/state/memory/voice static paths reviewed",
+  "backend_recovered": false,
+  "live_chat_observed": false,
+  "paid_calls": 0,
+  "api_calls": 0,
+  "media_downloads": 0,
+  "asset_urls": 367,
+  "unique_files": 366,
+  "declared_not_downloaded": 187,
+  "source_map_policy": "No guessed map URLs; no external sourceMappingURL found in archived JS",
+  "source_hash_verification_failures": [],
+  "offline_parser_fixtures": {
+    "passed": 7,
+    "total": 7
+  },
+  "entry_urls": [
+    "https://nariyume.com/app/",
+    "https://www.nariyume.com/studio"
+  ],
+  "complete_core_static_review": true,
+  "complete_whole_product": false
+}

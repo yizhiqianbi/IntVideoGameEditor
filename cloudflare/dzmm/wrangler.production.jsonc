@@ -28,7 +28,7 @@
     "ZPAY_ENABLED": "false",
     "CREDIT_BILLING_ENABLED": "true",
     "CREDIT_BILLING_RATES_JSON": "{\"revision\":1,\"inputCreditsPer1000\":4.022753,\"outputCreditsPer1000\":12.068258}",
-    "CREDIT_BILLING_COST_POLICY_JSON": "{\"version\":1,\"multiplier\":3,\"usdToCny\":6.704588,\"creditsPerCny\":100,\"inputUsdPerMillion\":2,\"outputUsdPerMillion\":6,\"maxInputUsdPerMillion\":4.4,\"maxOutputUsdPerMillion\":13.2}",
+    "CREDIT_BILLING_COST_POLICY_JSON": "{\"version\":1,\"multiplier\":5,\"usdToCny\":6.704588,\"creditsPerCny\":100,\"inputUsdPerMillion\":2,\"outputUsdPerMillion\":6,\"maxInputUsdPerMillion\":4.4,\"maxOutputUsdPerMillion\":13.2}",
     "COMPANION_BILLING_ENABLED": "true",
     "CHAT_MEDIA_ENABLED": "true",
     "SUBSCRIPTION_ENABLED": "true",

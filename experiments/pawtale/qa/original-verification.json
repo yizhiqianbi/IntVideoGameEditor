@@ -1,0 +1,10 @@
+{
+  "root": "/Users/pencil/Documents/IntVideoGameEditor/",
+  "checked": 2886,
+  "changed": [],
+  "unrelatedChanges": [
+    "cloudflare/qingyu-web/README.md",
+    "cloudflare/qingyu-web/evidence/original-verification.json"
+  ],
+  "note": "qingyu-web is a separate parallel project, outside the original xumeng scope; it is observed but never written or reverted here."
+}

@@ -1,0 +1,13 @@
+{
+  "name": "character-chat-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test tests/*.test.mjs",
+    "test:ui": "node evaluations/frontend-smoke.mjs",
+    "benchmark": "node evaluations/companion-benchmark.mjs --fixture user-example"
+  },
+  "engines": { "node": ">=22" }
+}

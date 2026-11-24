@@ -1,0 +1,68 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-08-03T00:00:00+08:00",
+  "scope": {
+    "mode": "page",
+    "targets": [
+      "https://example.com/"
+    ],
+    "market": "SG",
+    "language": "en",
+    "device": "mobile",
+    "evidence_modes": [
+      "live"
+    ]
+  },
+  "coverage": {
+    "discovered": 1,
+    "selected": 1,
+    "fetched": 1,
+    "rendered": 1,
+    "data_backed": 0,
+    "failed": [],
+    "exclusions": [],
+    "limitations": [
+      "No Search Console access"
+    ]
+  },
+  "findings": [
+    {
+      "id": "F-001",
+      "category": "canonical",
+      "issue": "Canonical points to a different host",
+      "status": "fail",
+      "evidence_level": "observed",
+      "evidence_refs": [
+        {
+          "kind": "rendered_dom",
+          "ref": "https://example.com/",
+          "observed_at": "2026-08-03T00:00:00+08:00"
+        }
+      ],
+      "impact": "high",
+      "confidence": "high",
+      "recommended_fix": "Align the canonical host with the preferred production host.",
+      "effort": "s",
+      "dependencies": [
+        "deployment"
+      ],
+      "verification": "Re-fetch and inspect the rendered canonical after deployment."
+    }
+  ],
+  "action_plan": [
+    {
+      "id": "A-001",
+      "finding_ids": [
+        "F-001"
+      ],
+      "action": "Fix canonical host generation.",
+      "impact": "high",
+      "effort": "s",
+      "owner": "web team",
+      "verification": "Rendered canonical matches the preferred host."
+    }
+  ],
+  "missing_evidence": [
+    "Search Console canonical selection"
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "name": "NariYume",
+  "short_name": "NariYume",
+  "description": "Your AI anime penpal.",
+  "start_url": "/app/",
+  "scope": "/app/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF7EC",
+  "theme_color": "#FFF7EC",
+  "icons": [
+    { "src": "/app/icons/app-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }
+  ]
+}

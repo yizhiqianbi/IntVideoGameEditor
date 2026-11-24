@@ -1,7 +1,7 @@
 import { digest, tokenFrom } from "./auth";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
-import { CANVAS_IMAGE_CREDITS, CANVAS_WAN_CREDITS_PER_SECOND, canvasResolutionVideo, canvasTokenImage, canvasTokenImageCredits, canvasTokenVideo, canvasTokenVideoCreditsFor, canvasVideoCreditsFor, canvasVideoDuration, canvasWanResolution, canvasWanVideoCreditsFor, canvasWanVideoDuration } from "../../../src/lib/xumeng-canvas-billing";
+import { CANVAS_IMAGE_CREDITS, CANVAS_WAN_CREDITS_PER_SECOND, CHAT_SEGMENT_VIDEO_CREDITS, CHAT_SEGMENT_VIDEO_SECONDS, canvasResolutionVideo, canvasTokenImage, canvasTokenImageCredits, canvasTokenVideo, canvasTokenVideoCreditsFor, canvasVideoCreditsFor, canvasVideoDuration, canvasWanResolution, canvasWanVideoCreditsFor, canvasWanVideoDuration } from "../../../src/lib/xumeng-canvas-billing";
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
 const SQL_NOW = "CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
@@ -33,6 +33,10 @@ function wanSeconds(value: unknown): number {
 }
 
 function price(kind: unknown, seconds: unknown, model: unknown, resolution: unknown): { kind: "image" | "video"; seconds: number; credits: number } {
+  if (kind === "chat-segment") {
+    if (seconds !== undefined || model !== undefined || resolution !== undefined) throw new ApiError(400, "生成扣费只能由服务端确定。");
+    return { kind: "video", seconds: CHAT_SEGMENT_VIDEO_SECONDS, credits: CHAT_SEGMENT_VIDEO_CREDITS };
+  }
   if (kind === "image") {
     if (seconds !== undefined || resolution !== undefined) throw new ApiError(400, "生成扣费只能由服务端确定。");
     if (model === undefined) return { kind, seconds: 0, credits: CANVAS_IMAGE_CREDITS };

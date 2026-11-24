@@ -1,0 +1,12 @@
+{
+  "base_commit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "baseline_new_tests": "1 failed (real SQLite person_fact scope), 8 passed",
+  "patched_command": [
+    "pytests/A_memorix_test/test_person_fact_json_scope.py",
+    "pytests/A_memorix_test/test_memory_graph_search_kernel.py",
+    "pytests/A_memorix_test/test_host_service_shared_memory_groups.py"
+  ],
+  "patched_exit_code": 0,
+  "patched_output": "................................................                         [100%]\n=============================== warnings summary ===============================\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute\n\n<frozen importlib._bootstrap>:488\n  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type swigvarlink has no __module__ attribute\n\nsrc/services/service_task_resolver.py:25\n  /Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/upstream/src/services/service_task_resolver.py:25: PydanticDeprecatedSince211: Accessing the 'model_computed_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    attr_value = getattr(models, attr_name)\n\nsrc/services/service_task_resolver.py:25\n  /Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/upstream/src/services/service_task_resolver.py:25: PydanticDeprecatedSince211: Accessing the 'model_fields' attribute on the instance is deprecated. Instead, you should access this attribute from the model class. Deprecated in Pydantic V2.11 to be removed in V3.0.\n    attr_value = getattr(models, attr_name)\n\n-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html\n48 passed, 5 warnings in 2.60s\n",
+  "scope": "Targeted tests with isolated temporary instance; running production native process not restarted"
+}

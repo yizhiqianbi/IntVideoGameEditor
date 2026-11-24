@@ -2,10 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import type { XumengLocale } from "../../lib/xumeng-i18n";
+import { prepareReferenceImage } from "../../lib/xumeng-reference-file";
 import "./aigen-vercel.css";
 
 type View = "home" | "video" | "image" | "face" | "coat" | "novel";
-type Props = { locale?: XumengLocale; onRoute: (route: string) => void; onBack: () => void };
+type Props = { locale?: XumengLocale; userId?: string; isGuest?: boolean; onRequireAccount?: () => void; onRoute: (route: string) => void; onBack: () => void };
 
 const MODULE_ART: Record<string, string> = {
   video: "/assets/xumeng/content-covers/create-generate.webp",
@@ -29,21 +30,19 @@ const COMMON_NOTES = [
   "参考图要清晰，主体明确。",
 ];
 
-function dataUrl(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
-    reader.onerror = () => reject(new Error("图片读不了。"));
-    reader.readAsDataURL(file);
-  });
+async function packedImage(file: File): Promise<string> {
+  const prepared = await prepareReferenceImage(file);
+  return prepared.dataUrl;
+}
+
+function shownError(failure: unknown, fallback: string): string {
+  const message = failure instanceof Error ? failure.message : "";
+  if (message.includes("请求过大")) return "图片太大，已经没法再压。请换一张较小的 JPG。";
+  return message || fallback;
 }
 
 function Lead({ title, line }: { title: string; line: string }) {
   return <p className="lead"><strong>{title}</strong><span>{line}</span></p>;
-}
-
-function Guide({ steps }: { steps: string[] }) {
-  return <aside className="guide"><p className="guide-kicker">新手教程</p><p className="guide-title">三步轻创作</p><ol>{steps.map(step => <li key={step}>{step}</li>)}</ol></aside>;
 }
 
 function Notes({ items }: { items: string[] }) {
@@ -58,9 +57,9 @@ function Upload({ title, hint, preview, onFile, disabled }: { title: string; hin
   </label>;
 }
 
-function Prompt({ value, onChange, placeholder, disabled }: { value: string; onChange: (value: string) => void; placeholder: string; disabled: boolean }) {
+function Prompt({ value, onChange, placeholder, disabled, polishing, onPolish }: { value: string; onChange: (value: string) => void; placeholder: string; disabled: boolean; polishing?: boolean; onPolish?: () => void }) {
   return <div className="prompt-box">
-    <div className="field-head"><p className="meta">画面描述 <em>必填</em></p><span className="meta">{value.trim().length} / 800</span></div>
+    <div className="field-head"><p className="meta">画面描述 <em>必填</em></p><span className="meta">{value.trim().length} / 800</span>{onPolish ? <button type="button" disabled={disabled || polishing} onClick={onPolish}>{polishing ? "优化中…" : "提示词优化"}</button> : null}</div>
     <textarea value={value} maxLength={800} rows={4} disabled={disabled} placeholder={placeholder} onChange={event => onChange(event.target.value)} />
   </div>;
 }
@@ -97,10 +96,11 @@ function Result({ url, kind, busy }: { url: string; kind: "image" | "video"; bus
   </aside>;
 }
 
-function ImageForm({ mode }: { mode: "image" | "face" | "coat" }) {
+function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" | "face" | "coat"; userId?: string; isGuest?: boolean; onRequireAccount?: () => void }) {
   const [files, setFiles] = useState<Array<{ data: string; preview: string } | null>>(mode === "face" ? [null, null] : [null]);
   const [prompt, setPrompt] = useState(mode === "face" ? "把第二张图的人脸换到第一张图的人物脸上，保持画面、服装、光线和背景不变，只替换面部，自然真实。" : mode === "coat" ? "把人物身上的衣服脱掉，保留面部、发型、姿势和背景，自然真实。" : "");
   const [busy, setBusy] = useState(false);
+  const [polishing, setPolishing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const poll = useTaskPoll();
@@ -111,10 +111,32 @@ function ImageForm({ mode }: { mode: "image" | "face" | "coat" }) {
   async function pick(index: number, file: File | undefined) {
     if (!file) return;
     try {
-      const data = await dataUrl(file);
+      const data = await packedImage(file);
       setFiles(current => current.map((item, position) => position === index ? { data, preview: data } : item));
       setError("");
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "图片读不了。"); }
+    } catch (failure) { setError(shownError(failure, "图片读不了。")); }
+  }
+
+  async function polish() {
+    if (busy || polishing) return;
+    setPolishing(true);
+    setError("");
+    try {
+      const response = await fetch("/api/aigen/optimize-prompt", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Adult-Confirmed": "1" },
+        body: JSON.stringify({ text: prompt, kind: "image" }),
+      });
+      const payload = await response.json().catch(() => null) as { prompt?: string; error?: string } | null;
+      if ((response.status === 401 || response.status === 403) && (isGuest || !userId)) onRequireAccount?.();
+      if (!response.ok || typeof payload?.prompt !== "string") throw new Error(payload?.error || "提示词没有优化完。");
+      setPrompt(payload.prompt);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "提示词没有优化完。");
+    } finally {
+      setPolishing(false);
+    }
   }
 
   async function submit(event: React.FormEvent) {
@@ -130,7 +152,7 @@ function ImageForm({ mode }: { mode: "image" | "face" | "coat" }) {
       if (!response.ok || !payload?.taskId) throw new Error(payload?.error || "提交失败，请稍后重试。");
       const blob = await poll(payload.taskId);
       if (blob) setResult(URL.createObjectURL(blob));
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "生成失败，请重试。"); }
+    } catch (failure) { setError(shownError(failure, "生成失败，请重试。")); }
     finally { setBusy(false); }
   }
 
@@ -141,22 +163,22 @@ function ImageForm({ mode }: { mode: "image" | "face" | "coat" }) {
         <div className="upload-row">
           {Array.from({ length: mode === "face" ? 2 : 1 }, (_, index) => <Upload key={index} title={index === 1 ? "上传脸部图" : mode === "coat" ? "上传人物图" : mode === "face" ? "上传画面图" : "上传参考图（选填）"} hint="JPG、PNG、WEBP" preview={files[index]?.preview ?? ""} disabled={busy} onFile={file => void pick(index, file)} />)}
         </div>
-        <Guide steps={mode === "face" ? ["上传画面图", "再上传一张脸部图", "开始换脸"] : mode === "coat" ? ["上传一张人物图", "一键去掉衣服", "开始生成"] : ["参考图可选", "输入想生成的画面", "开始生成"]} />
       </div>
-      <Prompt value={prompt} onChange={setPrompt} disabled={busy} placeholder={mode === "face" ? "只替换面部，保持原画面" : mode === "coat" ? "脱掉衣服，自然真实" : "例如：月光下的樱花树旁，电影质感"} />
+      <Prompt value={prompt} onChange={setPrompt} disabled={busy || polishing} polishing={polishing} onPolish={() => void polish()} placeholder={mode === "face" ? "只替换面部，保持原画面" : mode === "coat" ? "脱掉衣服，自然真实" : "例如：月光下的樱花树旁，电影质感"} />
       <Notes items={COMMON_NOTES} />
       {error ? <p className="alert" role="alert">{error}</p> : null}
-      <button className="primary wide" type="submit" disabled={busy || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
+      <button className="primary wide" type="submit" disabled={busy || polishing || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
     </form>
     <Result url={result} kind="image" busy={busy} />
   </>;
 }
 
-function VideoForm() {
+function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isGuest?: boolean; onRequireAccount?: () => void }) {
   const [file, setFile] = useState<{ data: string; preview: string } | null>(null);
   const [prompt, setPrompt] = useState("");
   const [seconds, setSeconds] = useState("5");
   const [busy, setBusy] = useState(false);
+  const [polishing, setPolishing] = useState(false);
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const alive = useRef(true);
@@ -164,8 +186,30 @@ function VideoForm() {
 
   async function pick(selected: File | undefined) {
     if (!selected) return;
-    try { const data = await dataUrl(selected); setFile({ data, preview: data }); setError(""); }
-    catch (failure) { setError(failure instanceof Error ? failure.message : "图片读不了。"); }
+    try { const data = await packedImage(selected); setFile({ data, preview: data }); setError(""); }
+    catch (failure) { setError(shownError(failure, "图片读不了。")); }
+  }
+
+  async function polish() {
+    if (busy || polishing) return;
+    setPolishing(true);
+    setError("");
+    try {
+      const response = await fetch("/api/aigen/optimize-prompt", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Adult-Confirmed": "1" },
+        body: JSON.stringify({ text: prompt, kind: "video" }),
+      });
+      const payload = await response.json().catch(() => null) as { prompt?: string; error?: string } | null;
+      if ((response.status === 401 || response.status === 403) && (isGuest || !userId)) onRequireAccount?.();
+      if (!response.ok || typeof payload?.prompt !== "string") throw new Error(payload?.error || "提示词没有优化完。");
+      setPrompt(payload.prompt);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : "提示词没有优化完。");
+    } finally {
+      setPolishing(false);
+    }
   }
 
   async function submit(event: React.FormEvent) {
@@ -190,7 +234,7 @@ function VideoForm() {
         return;
       }
       throw new Error("生成超时，请重试。");
-    } catch (failure) { setError(failure instanceof Error ? failure.message : "视频生成失败。"); }
+    } catch (failure) { setError(shownError(failure, "视频生成失败。")); }
     finally { if (alive.current) setBusy(false); }
   }
 
@@ -199,13 +243,12 @@ function VideoForm() {
       <Lead title="上传一张图，让它动起来" line="描述动作和镜头，选择时长" />
       <div className="stage">
         <Upload title="点击上传图片" hint="支持 JPG、PNG" preview={file?.preview ?? ""} disabled={busy} onFile={selected => void pick(selected)} />
-        <Guide steps={["上传一张清晰图片", "输入想生成的视频内容", "选择时长，开始生成"]} />
       </div>
-      <Prompt value={prompt} onChange={setPrompt} disabled={busy} placeholder="例如：人物微笑着缓缓转身，微风吹动头发，镜头逐渐拉近。" />
-      <Choices label="视频时长" value={seconds} options={[{ id: "5", label: "5 秒" }, { id: "10", label: "10 秒" }]} onChange={setSeconds} disabled={busy} />
+      <Prompt value={prompt} onChange={setPrompt} disabled={busy || polishing} polishing={polishing} onPolish={() => void polish()} placeholder="例如：人物微笑着缓缓转身，微风吹动头发，镜头逐渐拉近。" />
+      <Choices label="视频时长" value={seconds} options={[{ id: "5", label: "5 秒" }, { id: "10", label: "10 秒" }]} onChange={setSeconds} disabled={busy || polishing} />
       <Notes items={["上传图片需清晰，主体明确。", "描述人物动作、场景变化或镜头效果。", ...COMMON_NOTES]} />
       {error ? <p className="alert" role="alert">{error}</p> : null}
-      <button className="primary wide" type="submit" disabled={busy || !file || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
+      <button className="primary wide" type="submit" disabled={busy || polishing || !file || prompt.trim().length < 5}>{busy ? "处理中…" : "开始生成"}</button>
     </form>
     <Result url={result} kind="video" busy={busy} />
   </>;
@@ -213,10 +256,7 @@ function VideoForm() {
 
 function NovelIntro({ onCreate }: { onCreate: () => void }) {
   return <form className="form" onSubmit={event => { event.preventDefault(); onCreate(); }}>
-    <Lead title="让灵感成为故事" line="进入站内小说工作台，写人物、写情节、连续创作" />
-    <div className="stage">
-      <Guide steps={["写下人物设定", "描述想要的情节", "进入小说工作台生成"]} />
-    </div>
+    <Lead title="让灵感成为故事" line="写下人物和情节，进入小说工作台生成" />
     <div className="notes">
       <ul>
         <li>支持人物设定、剧情大纲与章节生成</li>
@@ -228,16 +268,26 @@ function NovelIntro({ onCreate }: { onCreate: () => void }) {
   </form>;
 }
 
+const MODULE_MOTION: Record<string, string> = {
+  video: "/assets/xumeng/content-covers/motion/create-generate.mp4",
+  image: "/assets/xumeng/content-covers/motion/create-girlfriend.mp4",
+  face: "/assets/xumeng/content-covers/motion/create-role.mp4",
+  coat: "/assets/xumeng/content-covers/motion/create-scenario.mp4",
+  novel: "/assets/xumeng/content-covers/motion/create-novel.mp4",
+};
+
 function HubCard({ id, feature, onOpen }: { id: View; feature?: boolean; onOpen: (view: View) => void }) {
   const item = MODULES.find(module => module.id === id)!;
+  const [motion, setMotion] = useState(true);
   return <button type="button" className={feature ? "tech-feature" : "tech-card"} data-id={id} onClick={() => onOpen(id)}>
-    <img className="tech-art" src={MODULE_ART[id]} alt="" loading="lazy" />
+    <img className="tech-art" src={MODULE_ART[id]} alt="" />
+    {motion ? <video className="tech-art tech-motion" src={MODULE_MOTION[id]} poster={MODULE_ART[id]} muted loop playsInline autoPlay preload="metadata" onError={() => setMotion(false)} /> : null}
     <span className="tech-art-shade" aria-hidden="true" />
     <span className="banner-copy"><strong>{item.label}</strong><small>{item.line}</small></span>
   </button>;
 }
 
-export function AigenVercel({ onRoute, onBack }: Props) {
+export function AigenVercel({ onRoute, onBack, userId, isGuest, onRequireAccount }: Props) {
   const [view, setView] = useState<View>("home");
   const title = view === "home" ? "AI生成" : MODULES.find(module => module.id === view)?.label ?? "AI生成";
   const back = () => view === "home" ? onBack() : setView("home");
@@ -248,11 +298,10 @@ export function AigenVercel({ onRoute, onBack }: Props) {
       <span />
     </header>
     {view === "home" ? <section className="home" aria-label="创作模块">
-      <header className="tech-hero"><p className="tech-kicker">AI科技</p><h1>把想象变成作品</h1><p>影像 · 故事 · 创意</p></header>
       <HubCard id="video" feature onOpen={setView} />
       <div className="tech-grid">{(["image", "face", "coat", "novel"] as const).map(id => <HubCard id={id} key={id} onOpen={setView} />)}</div>
     </section> : <section className="studio">
-      {view === "video" ? <VideoForm /> : view === "novel" ? <NovelIntro onCreate={() => onRoute("novels/new/novel")} /> : <ImageForm mode={view} />}
+      {view === "video" ? <VideoForm userId={userId} isGuest={isGuest} onRequireAccount={onRequireAccount} /> : view === "novel" ? <NovelIntro onCreate={() => onRoute("novels/new/novel")} /> : <ImageForm mode={view} userId={userId} isGuest={isGuest} onRequireAccount={onRequireAccount} />}
     </section>}
   </div>;
 }

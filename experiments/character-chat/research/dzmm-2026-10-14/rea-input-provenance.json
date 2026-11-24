@@ -1,0 +1,34 @@
+{
+  "scope": "Four actually retrieved public route bundles only; missing shared imports are unresolved, not private server inspection.",
+  "sourceManifest": "public/focused-script-manifest.json",
+  "records": [
+    {
+      "url": "https://www.dzmm.ai/assets/B28hEJCi.js",
+      "file": "scripts/B28hEJCi.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "bytes": 91387,
+      "sha256": "96ce4d844266606a9b0d182f5e3a8d146477bdf654351af1f7ab92a11fb3eab7"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/CT6ZjuS1.js",
+      "file": "scripts/CT6ZjuS1.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "bytes": 107311,
+      "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DMQz7Ydq.js",
+      "file": "scripts/DMQz7Ydq.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "bytes": 872,
+      "sha256": "906607dbe5c5d86532c0c19a5a8b63dd1317757a2011375c5bdc6aa0637e31a2"
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DR9_dqLP.js",
+      "file": "scripts/DR9_dqLP.js",
+      "declaredBy": "https://www.dzmm.ai/assets/D12SqV8q.js",
+      "bytes": 5479,
+      "sha256": "1a85ad698b79957131570f550017da65ed43a331d5fe2695594dc753be9f4f09"
+    }
+  ]
+}

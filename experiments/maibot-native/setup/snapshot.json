@@ -1,0 +1,27 @@
+{
+  "upstreamCommit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "upstreamVersion": "1.3.9",
+  "runtime": "native MaiBot Runner + Worker",
+  "instance": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance",
+  "provider": "OpenRouter",
+  "chatModel": "deepseek/deepseek-v4.1-flash",
+  "embeddingModel": "qwen/qwen3-embedding-8b",
+  "embeddingDimension": 4096,
+  "webui": "http://127.0.0.1:18001",
+  "messageWsPort": 8095,
+  "messageApiPort": 8096,
+  "aMemorixEnabled": true,
+  "pluginRuntimeEnabled": true,
+  "telemetryEnabled": false,
+  "externalMcpEnabled": false,
+  "agreements": {
+    "EULA.md": {
+      "md5": "8e6e7d647f7f82d6ea98456b73908656",
+      "confirmed": true
+    },
+    "PRIVACY.md": {
+      "md5": "91e5db7659c560bc3545e63859b6ebc0",
+      "confirmed": true
+    }
+  }
+}

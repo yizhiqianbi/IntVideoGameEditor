@@ -1,0 +1,15 @@
+叙梦 · 角色引擎（SillyTavern 兼容实现）
+=====================================
+
+本仓库的 src/lib/tavern/ 及其集成点（角色卡、世界书、提示词拼装、采样参数、
+群聊、分支版本、生图预设、记忆配置）按 GNU Affero General Public License
+v3.0（AGPL-3.0）发布。网络服务用户可通过以下地址获取对应源代码：
+
+  https://github.com/yizhiqianbi/IntVideoGameEditor
+  （src/lib/tavern/；线上披露页 https://xumengchat.top/legal/tavern-engine）
+
+上游项目 SillyTavern（https://github.com/SillyTavern/SillyTavern，AGPL-3.0）
+提供了角色卡 v2/v3 数据格式、世界书条目语义、提示词管理器顺序、采样档、
+群聊与分支等公开规格与文档。本仓库未复制其源代码，按公开规格独立实现。
+
+AGPL-3.0 全文：https://www.gnu.org/licenses/agpl-3.0.txt

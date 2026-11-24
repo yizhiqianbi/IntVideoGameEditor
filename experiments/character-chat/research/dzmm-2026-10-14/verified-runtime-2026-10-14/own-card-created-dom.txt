@@ -1,0 +1,109 @@
+- banner:
+  - navigation:
+    - link:
+      - /url: /
+    - link:
+      - /url: /
+      - text: 角色
+    - link:
+      - /url: /chat
+      - text: 消息
+    - link:
+      - /url: /explore
+      - text: 论坛
+    - link:
+      - /url: /user/0d7532bd-67a4-4cb6-8466-c01e41cef145
+      - text: 我的
+    - textbox:
+      - /placeholder: 搜索全站
+    - button:
+    - button:
+      - generic: "2"
+- main:
+  - group "1 / 2":
+    - img "提示组装核验·未公开测试"
+  - group "2 / 2":
+    - img "提示组装核验·未公开测试"
+  - button
+  - button
+  - generic: "0"
+  - button:
+  - heading [level=1]: 提示组装核验·未公开测试
+  - generic: "#3766050"
+  - generic: ·
+  - generic: 8 秒前
+  - link:
+    - /url: /user/0d7532bd-67a4-4cb6-8466-c01e41cef145
+    - generic: 游客
+    - generic: 0 粉丝
+  - button:
+    - generic: 点赞
+  - button:
+    - generic: 点踩
+  - button:
+    - generic: 收藏
+  - button:
+    - generic: 分享
+  - button:
+    - text: 上架
+  - button:
+    - text: 编辑
+  - button:
+    - text: 永久隐藏
+  - button:
+    - text: 开始对话
+  - heading [level=2]: 角色介绍
+  - paragraph: 仅供本人核验提示组装的中性测试角色，不上架公开。
+  - heading [level=2]: 评论区
+  - paragraph: 游客账号无法评论，请使用邮箱注册正式账号
+  - button: 注册账号
+  - generic: 暂无评论
+  - generic: 快来发表你的看法吧
+- generic: 广告
+- button:
+- link:
+  - /url: /advertise?slot=footer_leaderboard
+  - text: 广告位招租
+  - generic: 页脚上方通栏
+  - generic: 970×250 / 336×280
+  - generic: 查看广告位 →
+- contentinfo:
+  - generic: © 2026 DZMM. 保留所有权利。
+  - link:
+    - /url: /app
+    - text: App 下载
+  - separator
+  - link:
+    - /url: /community-guidelines
+    - text: 社区公约
+  - separator
+  - link:
+    - /url: /legal/tos
+    - text: 服务协议
+  - separator
+  - link:
+    - /url: /legal/privacy-policy
+    - text: 隐私权政策
+  - separator
+  - link:
+    - /url: /advertise
+    - text: 广告合作
+  - separator
+  - link:
+    - /url: https://telegram.me/ai_xiaoshuo
+    - text: 联系我们
+- region "Notifications alt+T"
+- button:
+- dialog "提示组装核验·未公开测试 提示组装核验·未公开测试":
+  - heading "提示组装核验·未公开测试 提示组装核验·未公开测试" [level=2]:
+    - img "提示组装核验·未公开测试"
+    - generic: 提示组装核验·未公开测试
+  - paragraph: "✨ 提示组装核验·未公开测试: 在吗？想认识一下~"
+  - img "提示组装核验·未公开测试"
+  - generic: 提示组装核验·未公开测试
+  - paragraph: 我刚把书店收拾好，正准备回家。你今天过得怎么样？
+  - button [active]:
+  - textbox "输入消息..."
+  - button [disabled]:
+  - button "Close":
+    - generic: Close

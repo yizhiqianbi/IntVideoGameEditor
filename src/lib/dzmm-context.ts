@@ -1,5 +1,6 @@
 import {
   DZMM_CONTEXT_LIMIT_CHARS,
+  DZMM_DEFAULT_REPLY_TOKENS,
   DZMM_REQUEST_LIMIT_BYTES,
   DzmmValidationError,
   buildDzmmPromptPlan,
@@ -144,7 +145,7 @@ export function prepareDzmmRequest(
       + (request.userPersona?.length || 0) + countDzmmContextText(request.storyMemory) + countDzmmContextText(request.world)
       + request.messages.reduce((sum, message) => sum + message.content.length, 0);
     if (chars > DZMM_CONTEXT_LIMIT_CHARS || encoder.encode(JSON.stringify(request)).byteLength > DZMM_REQUEST_LIMIT_BYTES) return false;
-    try { buildDzmmPromptPlan({ ...request, maxTokens: request.maxTokens ?? 2048 }); return true; }
+    try { buildDzmmPromptPlan({ ...request, maxTokens: request.maxTokens ?? DZMM_DEFAULT_REPLY_TOKENS }); return true; }
     catch (error) { if (error instanceof DzmmValidationError) return false; throw error; }
   }
   while (!fits()) {

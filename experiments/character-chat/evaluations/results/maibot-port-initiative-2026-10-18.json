@@ -1,0 +1,25 @@
+{
+  "messages": [
+    "想了想，大概是番茄牛腩。天凉了，想吃点炖得软烂的，配米饭。",
+    "其实是因为上周在旧书里翻到一段写番茄的，说炖久了会变成很温柔的颜色，就一直记着。"
+  ],
+  "control": {
+    "mode": "planner-replyer",
+    "action": "reply",
+    "focus": "把想学的新菜具体化，分享一点自己的日常",
+    "tone": "轻柔、自然、带点分享的亲近感",
+    "plannerModel": "deepseek/deepseek-v4.1-flash",
+    "replyerModel": "deepseek/deepseek-v4.1-flash",
+    "durationMs": 2677,
+    "fallback": false
+  },
+  "pending": {
+    "id": "0dc6d0d2-908b-42bc-8780-057983615769",
+    "kind": "reconsider",
+    "intent": "考虑先找菜谱还是直接去买食材",
+    "createdAt": "2026-10-18T04:08:18.546Z",
+    "notBefore": "2026-10-18T04:09:03.546Z",
+    "expiresAt": "2026-10-18T04:13:18.546Z"
+  },
+  "userMessages": 1
+}

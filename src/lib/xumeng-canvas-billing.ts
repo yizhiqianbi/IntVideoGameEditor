@@ -67,6 +67,9 @@ export const CANVAS_VIDEO_FPS = 24;
 export const CANVAS_VIDEO_SECONDS_MIN = 1;
 export const CANVAS_VIDEO_SECONDS_MAX = 15;
 export const CANVAS_VIDEO_SECONDS_DEFAULT = 5;
+/** Chat clip of the previous message: one fixed MiniMax H3 charge, not the per-second retail rate. */
+export const CHAT_SEGMENT_VIDEO_SECONDS = 5;
+export const CHAT_SEGMENT_VIDEO_CREDITS = 300;
 export const CANVAS_VIDEO_FRAMES = CANVAS_VIDEO_SECONDS_DEFAULT * CANVAS_VIDEO_FPS + 2;
 
 export function canvasVideoDuration(value: unknown = CANVAS_VIDEO_SECONDS_DEFAULT): number {

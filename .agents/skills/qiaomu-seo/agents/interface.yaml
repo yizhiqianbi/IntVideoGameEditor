@@ -1,0 +1,69 @@
+interface:
+  display_name: "Qiaomu SEO"
+  short_description: "Current-source SEO research, audits, experiments, fixes, and verification"
+  default_prompt: "Use $qiaomu-seo to audit or improve my website across the relevant search engines and surfaces. Define the work mode, provider, surface, coverage, and evidence; verify mutable rules against the official source registry; separate facts, inference, and hypotheses; preserve rerun inputs; and edit files or live systems only when I explicitly ask for implementation."
+  examples:
+    - "审计这个网站的 SEO，给我按影响和证据排序的问题清单"
+    - "为什么这些页面没有被 Google 收录？"
+    - "分析这份 Search Console 导出，找流量下降的原因"
+    - "给这个产品做关键词研究和页面映射，不要编造搜索量"
+    - "修复这个 Next.js 项目的 canonical、sitemap 和结构化数据"
+    - "检查网站进入 AI Overviews 或 AI Mode 的基础条件，不要承诺引用"
+    - "审计大规模网站时按模板抽样，并说明实际覆盖范围"
+    - "IndexNow 返回 200 但 Bing 没有收录，按证据链诊断"
+    - "审计多语言电商网站的 hreflang、商品变体和分页"
+    - "设计一个有对照组和停止规则的 SEO 实验"
+    - "判断零流量内容应该保留、改进、合并还是删除"
+compatibility:
+  canonical_format: "agent-skills"
+  adapter_targets:
+    - "openai"
+    - "claude"
+    - "generic"
+    - "agent-skills-compatible"
+    - "vscode"
+  activation:
+    mode: "manual"
+    paths: []
+  trust:
+    source_tier: "local"
+    remote_inline_execution: "forbid"
+    public_claims: "evidence-bound"
+  permissions:
+    network: "read-only public URL and official documentation research; authenticated analytics only when explicitly connected"
+    file_write: "local website or report files only when implementation is explicitly requested"
+    live_mutation: "forbid by default"
+  degradation:
+    no_browser: "use code, exports, and user-provided artifacts; mark live rendering missing evidence"
+    no_search_console: "do not infer coverage or query performance from site search alone"
+    no_keyword_tool: "use qualitative discovery and keep volume/difficulty unknown"
+gates:
+  advisory:
+    - "scope and evidence limits"
+    - "no unsupported site-specific claims"
+  audit:
+    - "observed/inferred/missing-evidence labels"
+    - "impact and confidence separated"
+    - "coverage ledger and rerun inputs"
+    - "reproducible verification"
+  implementation:
+    - "explicit write authorization"
+    - "changed files and validation"
+    - "rollback notes for risky changes"
+    - "implemented/deployed/platform-processed/outcome milestones separated"
+  migration:
+    - "URL inventory and redirect map"
+    - "canonical/hreflang/sitemap consistency"
+    - "post-launch monitoring and rollback boundary"
+  ai_search:
+    - "normal Search eligibility remains the foundation"
+    - "provider-specific dated evidence"
+    - "no special-file or citation guarantees"
+  knowledge_freshness:
+    - "official source registry reviewed for mutable claims"
+    - "feature lifecycle and conflicting documentation disclosed"
+    - "no deprecated claim patterns"
+  measurement:
+    - "field and lab performance evidence separated"
+    - "Search Console dimensions, filters, omissions, and aggregation recorded"
+    - "hypothesis, observation, and causality kept distinct"

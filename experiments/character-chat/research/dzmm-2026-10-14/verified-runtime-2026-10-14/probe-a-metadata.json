@@ -1,0 +1,31 @@
+{
+  "config": {
+    "token_count": 2,
+    "prompt_tokens": 2022,
+    "completion_tokens": 1,
+    "cached_tokens": 1920,
+    "repeat_comparison_available": true,
+    "exact_previous_assistant_repeat": false,
+    "current_output_chars": 2,
+    "previous_assistant_output_chars": 24,
+    "message_count": 4,
+    "ttft": 1698,
+    "latency_ms": 1707,
+    "success": true,
+    "error": null,
+    "enable_think": false
+  },
+  "generation_config": {
+    "temperature": 0.8,
+    "top_p": 0.8,
+    "max_tokens": 2500,
+    "repetition_penalty": 1.1,
+    "stop": [
+      "</s>",
+      "<|endoftext|>"
+    ]
+  },
+  "header": "generationId: 73c771f7-82b9-44a5-8fb3-84197aed58ba\n[hidden]\n[hidden]",
+  "chatUrl": "https://www.dzmm.ai/chat?c=8fe9e9d7-888c-4a1f-9ada-77d63f9c4ff7",
+  "input": "文本测试，只回复“收到”：\n臺灣圖書館裡的貓咪正在觀察窗外飄落的楓葉。"
+}

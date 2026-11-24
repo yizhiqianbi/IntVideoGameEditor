@@ -1,0 +1,10 @@
+.presentation { min-width: 0; }
+.body { white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.85; }
+.notes { margin-top: 16px; border: 1px solid var(--line, #e6e6ea); border-radius: 12px; background: var(--soft, #f7f7fa); color: var(--muted, #777781); font-size: 13px; }
+.notes summary { padding: 12px 14px; cursor: pointer; color: var(--text, #24242a); font-weight: 600; }
+.notes summary span { margin-left: 12px; color: var(--muted, #777781); font-size: 11px; font-weight: 400; }
+.notes summary:focus-visible { outline: 2px solid var(--pink, #ec1870); outline-offset: 2px; border-radius: 10px; }
+.noteBody { padding: 0 14px 12px; }
+.noteBody p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; line-height: 1.8; font: inherit; }
+.noteBody p + p { margin-top: 12px; }
+@media (max-width: 540px) { .notes summary span { display: block; margin: 5px 0 0 16px; } }

@@ -1,0 +1,90 @@
+[
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/public/BuXTsyiw2.js",
+    "sha256": "80edb45e7c1dacb533aaa76b64735acd27d71862eb7cdd851cb5c6aba379f7fa",
+    "needle": "function Ee()",
+    "byte_start": 13390,
+    "line": 1,
+    "excerpt": "function Ee(){let{profile:e,isLoading:t}=N(),n=ce();return(0,K.useEffect)(()=>{!t&&!(e!=null&&e.isLoggedIn)&&n.navigate({to:`/sign-in`,search:{next:window.location.pathname+window.location.search+window.location.hash},replace:!0})},[t,e==null?void 0:e.isLoggedIn,n]),t||!(e!=null&&e.isLoggedIn)?(0,q.jsx)(`div`,{className:`flex min-h-screen items-center justify-center bg-background`,children:(0,q.jsx)(V,{size:24,className:`text-muted-foreground`})}):(0,q.jsx)(ve,{namespaces:Te,children:(0,q.jsx)(we,{children:(0,q.jsx)(y,{})})})}export{Ee as component};"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/public/BuXTsyiw2.js",
+    "sha256": "80edb45e7c1dacb533aaa76b64735acd27d71862eb7cdd851cb5c6aba379f7fa",
+    "needle": "href:`/studio/edit`",
+    "byte_start": 1707,
+    "line": 1,
+    "excerpt": "href:`/studio/edit`,icon:te,label:t(`components.sidebar.createCharacter`),inkWeight:3.2},{href:`/studio/summon`,icon:ne,label:t(`components.dashboard.quickActions.summon`),exactMatch:!0},{href:`/studio/summon/history`,icon:f,label:t(`summon.history`),exactMatch:!0,childOf:`/studio/summon`},{href:`/studio/import`,icon:ee,label:t(`components.dashboard.quickActions.import`)},{href:`/studio/game-creation`,icon:S,label:t(`components.dashboard.quickActions.game`)},{href:`/studio/game-creation/dev-keys`,icon:re,label:t(`gameCreation.devKeys.navLabel`),exactMatch:!0,childOf:`/studio/game-creation`},{href:`/studio/game-creation/upload`,icon:r,label:t(`gameCreation.folderUpload.navLabel`),exactMatch:!0,childOf:`/studio/game-creation`},{href:`/studio/game-creation/workbench/help`,icon:d,label:t(`gameCreation.docsLink`),childOf:`/studio/game-creation`},...i?[]:[{href:`/studio/scenario`,icon:l,label:t(`components.dashboard.quickActions.scenario`),inkWeight:1.55}]],s=[{href:`/studio/presets`,icon:d,"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/public/Bwt0DeR8.js",
+    "sha256": "f4401597cf9e0512ab287eecfdb24e85195a74853fc8a003f86a56d1d11d723d",
+    "needle": "studio.uploadOrUpdate",
+    "byte_start": 950,
+    "line": 1,
+    "excerpt": "studio.uploadOrUpdate.mutationOptions()),s=(t,n)=>{a.removeQueries({queryKey:e.card.getForChat.queryKey({cardId:t.id})}),a.removeQueries({queryKey:e.card.getQuickChatPreview.queryKey({cardId:t.id})}),a.removeQueries({queryKey:e.studio.getCharacterCard.queryKey({id:t.id})}),n&&a.invalidateQueries({queryKey:e.studio.getDraft.queryKey({id:n})}),a.invalidateQueries({queryKey:e.tasks.list.queryKey()})},c=(e,t)=>{var n;o.mutate({rawData:e.rawData,db_id:e.dbId&&e.dbId!==-1?e.dbId:void 0,draft_id:(n=e.draftId)==null?void 0:n},{...t,onSuccess:(n,r,i)=>{var a;s(n,e.draftId),t==null||(a=t.onSuccess)==null||a.call(t,n,r,i)}})},l=async e=>{var t;let n=await o.mutateAsync({rawData:e.rawData,db_id:e.dbId&&e.dbId!==-1?e.dbId:void 0,draft_id:(t=e.draftId)==null?void 0:t});return s(n,e.draftId),n};return{...o,mutate:c,mutateAsync:l}}function s(){let i=n(),a=r();return t({...i.studio.hideCharacterCard.mutationOptions(),onSuccess:(t,n)=>{a.invalidateQueries({queryKey:e.studio.getCharacters.infiniteQueryKe"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/public/Bwt0DeR8.js",
+    "sha256": "f4401597cf9e0512ab287eecfdb24e85195a74853fc8a003f86a56d1d11d723d",
+    "needle": "o.mutateAsync({rawData:",
+    "byte_start": 1603,
+    "line": 1,
+    "excerpt": "o.mutateAsync({rawData:e.rawData,db_id:e.dbId&&e.dbId!==-1?e.dbId:void 0,draft_id:(t=e.draftId)==null?void 0:t});return s(n,e.draftId),n};return{...o,mutate:c,mutateAsync:l}}function s(){let i=n(),a=r();return t({...i.studio.hideCharacterCard.mutationOptions(),onSuccess:(t,n)=>{a.invalidateQueries({queryKey:e.studio.getCharacters.infiniteQueryKey({})}),a.invalidateQueries({queryKey:e.studio.getGameStats.queryKey()}),a.removeQueries({queryKey:e.studio.getCharacterCard.queryKey({id:n.id})})}})}export{s as n,o as r,a as t};"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/public/BBRVsSwV2.js",
+    "sha256": "bb6243dba24d7986076d41eebcfd23a7ccc17e94e8194006baee1da4df982e5d",
+    "needle": "to:`/studio/edit`,className:",
+    "byte_start": 4743,
+    "line": 1,
+    "excerpt": "to:`/studio/edit`,className:`group relative flex items-center overflow-hidden rounded-[20px] border border-primary/15 bg-secondary p-7 transition-colors duration-200 hover:border-primary/30 active:scale-[0.995]`,children:[(0,F.jsx)(k,{\"aria-hidden\":!0,className:`pointer-events-none absolute -right-8 top-1/2 h-[190%] w-auto -translate-y-1/2 opacity-90`}),(0,F.jsx)(`div`,{\"aria-hidden\":!0,className:`pointer-events-none absolute -right-16 -top-20 size-64 rounded-full bg-[radial-gradient(circle,hsl(var(--primary)/0.14),transparent_65%)]`}),(0,F.jsxs)(`div`,{className:`relative z-10 min-w-0 flex-1`,children:[(0,F.jsx)(`p`,{className:`text-[19px] font-semibold tracking-tight text-foreground`,children:e(`components.sidebar.createCharacter`)}),(0,F.jsx)(`p`,{className:`mt-1.5 max-w-[24rem] text-[13px] leading-relaxed text-foreground/70`,children:e(`components.dashboard.startCreating.createWhen`)}),(0,F.jsxs)(`span`,{className:`mt-5 inline-flex h-10 items-center gap-1.5 rounded-full bg-primary "
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/D12SqV8q.js",
+    "sha256": "5dfcb47b825471d5aa49e26333aeef04826ce688702874631f223c794938f420",
+    "needle": "YN=()=>",
+    "byte_start": 786309,
+    "line": 13,
+    "excerpt": "YN=()=>{let e=Dm(GN().user.getMe.queryOptions(void 0,wM));return{...e,profile:e.data}};function XN(e,t){e.invalidateQueries({queryKey:t.chat.listAll.queryKey()}),e.invalidateQueries({queryKey:t.user.getChatroomUser.queryKey()}),e.invalidateQueries({queryKey:t.user.getProfilePage.queryKey()})}var rxe=()=>{let e=fm(),t=GN();return(0,U.useCallback)(n=>{e.setQueryData(t.user.getMe.queryKey(),e=>e!=null&&e.isLoggedIn?{...e,...n}:e),`avatarUrl`in n&&e.setQueriesData({queryKey:t.user.getProfilePage.pathKey()},e=>e!=null&&e.isOwnProfile?{...e,profile:{...e.profile,avatarUrl:n.avatarUrl}}:e),e.invalidateQueries({queryKey:t.user.getMe.queryKey()}),XN(e,t)},[e,t])},ZN=({onSuccess:e,onError:t}={})=>{let n=fm(),r=GN();return Am({mutationFn:e=>{let t=new FormData;return e.avatar&&t.append(`avatar`,e.avatar),typeof e.fullName==`string`&&t.append(`full_name`,e.fullName),typeof e.bio==`string`&&t.append(`bio`,e.bio),typeof e.blurNsfw==`boolean`&&t.append(`blur_nsfw_images`,e.blurNsfw.toString()),typeof"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/D12SqV8q.js",
+    "sha256": "5dfcb47b825471d5aa49e26333aeef04826ce688702874631f223c794938f420",
+    "needle": "eZ=e=>",
+    "byte_start": 1254436,
+    "line": 16,
+    "excerpt": "eZ=e=>typeof e==`string`&&e.endsWith(`@anon.com`),RMe=e=>typeof e==`string`&&e.endsWith(`@mgwan.com`);function tZ(){let{profile:e,isLoading:t}=YN();return{isGuest:eZ(e==null?void 0:e.email),isPending:t}}var nZ=`guest_recharge_attr`,zMe=1800*1e3;function BMe(){if(typeof crypto<`u`&&typeof crypto.randomUUID==`function`)try{return crypto.randomUUID()}catch{}return`lnk_${Date.now().toString(36)}_${Math.random().toString(36).slice(2,10)}`}function VMe(e){let t={guest_uuid:e.guest_uuid,link_id:BMe(),experiment_key:ITe,experiment_group:e.experiment_group,source_entry:e.source_entry,return_to:e.return_to,exposed_at:new Date().toISOString()};if(typeof window<`u`)try{let e={...t,ts:Date.now()};localStorage.setItem(nZ,JSON.stringify(e))}catch{}return t}function rZ(){if(typeof window>`u`)return null;try{let e=localStorage.getItem(nZ);if(!e)return null;let t=JSON.parse(e);if(!t.ts||Date.now()-t.ts>zMe||!t.guest_uuid||!t.link_id)return null;let{ts:n,...r}=t;return r}catch{return null}}function iZ(e)"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/CT6ZjuS1.js",
+    "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641",
+    "needle": "function un(",
+    "byte_start": 17022,
+    "line": 1,
+    "excerpt": "function un(e){let t=[];return e.name.trim()||t.push({key:`validation.characterInfo.nameRequired`}),Array.from(e.name).length>255&&t.push({key:`validation.characterInfo.nameTooLong`,params:{max:255}}),e.avatar_url||t.push({key:`validation.characterInfo.avatarRequired`}),e.image_info.length===0&&t.push({key:`validation.characterInfo.imageRequired`}),{isValid:t.length===0,errors:t}}function dn(e){let t=[];return!e||e.length===0?(t.push({key:`validation.chatHistory.atLeastOne`}),{isValid:!1,errors:t}):(e.filter(e=>!e.messages||e.messages.length===0||!e.messages.some(e=>e.role!==`user`)).length>0&&t.push({key:`validation.chatHistory.atLeastOneAiMessage`}),e.forEach((e,n)=>{e.messages&&e.messages.length>0&&e.messages[e.messages.length-1].role===`user`&&t.push({key:`validation.chatHistory.lastMessageMustBeAi`,params:{name:e.name||`Unnamed ${n+1}`}})}),{isValid:t.length===0,errors:t})}function fn(e){let t=[];return e&&e.entries&&e.entries.length>0&&e.entries.forEach((e,n)=>{!e.constant&&(!e.k"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/CT6ZjuS1.js",
+    "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641",
+    "needle": "function dn(",
+    "byte_start": 17405,
+    "line": 1,
+    "excerpt": "function dn(e){let t=[];return!e||e.length===0?(t.push({key:`validation.chatHistory.atLeastOne`}),{isValid:!1,errors:t}):(e.filter(e=>!e.messages||e.messages.length===0||!e.messages.some(e=>e.role!==`user`)).length>0&&t.push({key:`validation.chatHistory.atLeastOneAiMessage`}),e.forEach((e,n)=>{e.messages&&e.messages.length>0&&e.messages[e.messages.length-1].role===`user`&&t.push({key:`validation.chatHistory.lastMessageMustBeAi`,params:{name:e.name||`Unnamed ${n+1}`}})}),{isValid:t.length===0,errors:t})}function fn(e){let t=[];return e&&e.entries&&e.entries.length>0&&e.entries.forEach((e,n)=>{!e.constant&&(!e.keys||e.keys.length===0)&&t.push({key:`validation.worldBook.entryMissingKeywords`,params:{index:n+1}}),(!e.content||e.content.trim()===``)&&t.push({key:`validation.worldBook.entryMissingContent`,params:{index:n+1}})}),{isValid:t.length===0,errors:t}}function pn(e){let t=[];return e&&e.length>5&&t.push({key:`validation.suggestedReplies.maxExceeded`}),{isValid:t.length===0,errors:t}}"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/CT6ZjuS1.js",
+    "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641",
+    "needle": "function fn(",
+    "byte_start": 17913,
+    "line": 1,
+    "excerpt": "function fn(e){let t=[];return e&&e.entries&&e.entries.length>0&&e.entries.forEach((e,n)=>{!e.constant&&(!e.keys||e.keys.length===0)&&t.push({key:`validation.worldBook.entryMissingKeywords`,params:{index:n+1}}),(!e.content||e.content.trim()===``)&&t.push({key:`validation.worldBook.entryMissingContent`,params:{index:n+1}})}),{isValid:t.length===0,errors:t}}function pn(e){let t=[];return e&&e.length>5&&t.push({key:`validation.suggestedReplies.maxExceeded`}),{isValid:t.length===0,errors:t}}function mn({className:e,labelPlacement:t=`before`,labelClassName:n=`mb-2 block text-sm text-muted-foreground`}){let{t:r}=B(`studio`),[i,a]=Z(`name`),o=(0,K.useId)(),s=Array.from(i).length,c=s>255;return(0,X.jsxs)(`div`,{children:[t===`before`&&(0,X.jsx)(`label`,{htmlFor:o,className:n,children:r(`components.characterName.label`)}),(0,X.jsx)(`input`,{id:o,type:`text`,value:i,onChange:e=>a(e.target.value),placeholder:r(`components.characterName.placeholder`),maxLength:255,\"aria-describedby\":`${o}-hint${c?"
+  },
+  {
+    "file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/scripts/CT6ZjuS1.js",
+    "sha256": "815b298adf38ec7d37361ddc4cf25ed1d3564d03db24edf366365adf570cd641",
+    "needle": "function pn(",
+    "byte_start": 18271,
+    "line": 1,
+    "excerpt": "function pn(e){let t=[];return e&&e.length>5&&t.push({key:`validation.suggestedReplies.maxExceeded`}),{isValid:t.length===0,errors:t}}function mn({className:e,labelPlacement:t=`before`,labelClassName:n=`mb-2 block text-sm text-muted-foreground`}){let{t:r}=B(`studio`),[i,a]=Z(`name`),o=(0,K.useId)(),s=Array.from(i).length,c=s>255;return(0,X.jsxs)(`div`,{children:[t===`before`&&(0,X.jsx)(`label`,{htmlFor:o,className:n,children:r(`components.characterName.label`)}),(0,X.jsx)(`input`,{id:o,type:`text`,value:i,onChange:e=>a(e.target.value),placeholder:r(`components.characterName.placeholder`),maxLength:255,\"aria-describedby\":`${o}-hint${c?` ${o}-error`:``}`,\"aria-invalid\":c||void 0,className:e}),t===`after`&&(0,X.jsx)(`label`,{htmlFor:o,className:n,children:r(`components.characterName.label`)}),(0,X.jsxs)(`div`,{id:`${o}-hint`,className:`mt-2 flex flex-wrap justify-between gap-x-3 gap-y-1 text-xs text-muted-foreground`,children:[(0,X.jsx)(`span`,{children:r(`components.characterName.maxLeng"
+  }
+]

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NariYume · 公开实现取证</title>
+<style>
+:root{--paper:#fbfaf8;--ink:#29272a;--muted:#777178;--line:#e7e2e4;--accent:#875b79;--wash:#f1eaf0;--mono:ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font:15px/1.65 -apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif}a{color:var(--accent);text-underline-offset:4px}button,input,textarea,select{font:inherit}button{cursor:pointer;background:transparent;border:1px solid var(--line);border-radius:6px;padding:7px 13px;color:var(--ink)}button:hover{border-color:var(--accent)}button:focus-visible,a:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:4px}button[aria-pressed=true],button.primary{background:var(--accent);color:white;border-color:var(--accent)}header{padding:28px 36px 22px;border-bottom:1px solid var(--line);display:flex;align-items:flex-end;justify-content:space-between;gap:20px}.eyebrow{letter-spacing:.15em;font:11px/1.6 var(--mono);color:var(--accent)}h1{margin:8px 0 4px;font-weight:550;letter-spacing:-.04em;font-size:32px;line-height:1.2}header p{margin:0;color:var(--muted);font-size:13px}.links{display:flex;gap:20px;font-size:13px}main{max-width:1480px;margin:auto;padding:24px 36px 40px}.toolbar{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:20px}.filters{display:flex;gap:8px}.legend{display:flex;gap:18px;color:var(--muted);font-size:12px}.dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);margin-right:6px}.dot.official{background:transparent;border:1px solid var(--accent)}.dot.unknown{background:transparent;border:1px dashed var(--muted);border-radius:0}.workspace{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:28px;padding-bottom:26px;border-bottom:1px solid var(--line)}.map{overflow-x:auto}svg{display:block;width:100%;min-width:710px;height:auto}.edge{fill:none;stroke:#c8bbc4;stroke-width:1.6}.edge.uncertain{stroke-dasharray:5 5}.node{cursor:pointer;transition:opacity .2s}.node rect{fill:#f8f4f7;stroke:#ded1d9;stroke-width:1;rx:7;transition:fill .18s,stroke .18s}.node text{fill:var(--ink);font-size:13px}.node .small{fill:var(--muted);font-size:10.5px}.node:hover rect,.node.active rect{stroke:var(--accent);fill:#eee2eb}.node.official rect{fill:transparent;stroke:#875b79}.node.unknown rect{fill:transparent;stroke:#aaa0a9;stroke-dasharray:5 4}.node.dim{opacity:.23}.column-label{fill:#82747e;font-size:10px;letter-spacing:1.5px}.detail{padding:4px 0 0 24px;border-left:1px solid var(--line)}.detail h2{font-size:21px;line-height:1.4;margin:10px 0 13px;font-weight:550}.badge{display:inline-block;font-size:11px;color:var(--accent);letter-spacing:.08em}.detail p{font-size:13px;line-height:1.9}.detail ul{padding-left:17px;font-size:13px;line-height:1.9}.code{font:11px/1.8 var(--mono);white-space:pre-wrap;overflow-wrap:anywhere;padding:12px 0;border-top:1px solid var(--line);color:#676169}.detail-foot{font-size:11px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px}.detail.changed{animation:appear .25s ease-out}.section-head{display:flex;align-items:baseline;justify-content:space-between;gap:20px;margin:24px 0 14px}h2{font-size:19px;font-weight:550;margin:0}.sub{color:var(--muted);font-size:12px}.replay{display:grid;grid-template-columns:1fr 1fr;gap:32px}.input-label{font-size:12px;color:var(--muted)}textarea{resize:vertical;width:100%;min-height:145px;display:block;margin:8px 0 12px;border:1px solid var(--line);border-radius:7px;padding:13px;background:#fff;color:var(--ink);font-size:13px;line-height:1.8}.replay-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}select{padding:6px 10px;border:1px solid var(--line);border-radius:5px;background:white}#timeline{min-height:186px;border-left:1px solid var(--line);padding-left:24px}.bubble{width:fit-content;max-width:100%;margin:0 0 12px;padding:10px 14px;border-radius:8px 8px 8px 2px;background:var(--wash);font-size:13px;white-space:pre-wrap;animation:appear .22s ease-out}.time{color:var(--muted);font:10px var(--mono);margin:4px 0 6px}#replay-status{font-size:12px;color:var(--muted);margin-top:10px}.footnote{font-size:11px;color:var(--muted);line-height:1.8;margin-top:12px}.evidence{margin-top:30px;border-top:1px solid var(--line)}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;color:var(--muted);font-size:11px;letter-spacing:.05em;font-weight:500}td,th{padding:11px 10px 11px 0;border-bottom:1px solid var(--line);vertical-align:top}td:first-child{width:160px}footer{padding-top:25px;color:var(--muted);font-size:11px}code{font-family:var(--mono);font-size:.9em}@keyframes appear{from{opacity:.4;transform:translateY(4px)}to{opacity:1;transform:none}}@media(max-width:950px){header{align-items:flex-start;flex-direction:column;padding:23px 20px}main{padding:20px}.workspace{grid-template-columns:1fr}.detail{border-left:0;border-top:1px solid var(--line);padding:18px 0 0}.toolbar{align-items:flex-start;flex-direction:column}.replay{grid-template-columns:1fr}#timeline{border-left:0;border-top:1px solid var(--line);padding:20px 0 0}.legend{gap:13px}}@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header><div><div class="eyebrow">PUBLIC IMPLEMENTATION · 2026.10.12</div><h1>NariYume 公开实现取证</h1><p>点击模块查看证据。公开客户端、官方声明和不可见的服务端分开呈现。</p></div><nav class="links"><a href="report.md">综合报告</a><a href="frontend/extracts.md">源码记录</a><a href="prompt-contract.md">Prompt 契约</a><a href="live-observations.md">两位实测</a></nav></header>
+<main>
+<div class="toolbar"><div class="filters" aria-label="证据筛选"><button aria-pressed="true" data-filter="all">全部链路</button><button aria-pressed="false" data-filter="code">源码可见</button><button aria-pressed="false" data-filter="unknown">尚待验证</button></div><div class="legend"><span><i class="dot"></i>公开源码</span><span><i class="dot official"></i>官方说明</span><span><i class="dot unknown"></i>不可见 / 待验证</span></div></div>
+<div class="workspace"><div class="map"><svg viewBox="0 0 1030 444" role="group" aria-label="NariYume 系统架构图"><defs><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#baa6b4"/></marker></defs>
+<text x="15" y="18" class="column-label">01 / 输入与状态</text><text x="270" y="18" class="column-label">02 / 上下文与路由</text><text x="525" y="18" class="column-label">03 / 生成边界</text><text x="780" y="18" class="column-label">04 / 呈现与回写</text>
+<g marker-end="url(#arrow)"><path class="edge" d="M230 78H269"/><path class="edge" d="M230 174H250V106H269"/><path class="edge" d="M230 270H255V112H269"/><path class="edge" d="M230 366H261V119H269"/><path class="edge" d="M485 78H524"/><path class="edge" d="M485 174H506V98H524"/><path class="edge uncertain" d="M632 108V143"/><path class="edge uncertain" d="M740 174H758V78H779"/><path class="edge" d="M888 108V143"/><path class="edge" d="M888 204V239"/><path class="edge" d="M888 300V335"/><path class="edge uncertain" d="M740 270H779"/><path class="edge" d="M780 366H765V410H510V270H485"/><path class="edge" d="M230 366H524"/><path class="edge" d="M740 366H754V277H779"/><path class="edge" d="M269 270H250V204H230"/></g>
+<g id="nodes"></g><text x="15" y="423" class="small" fill="#847981" font-size="11">实线：客户端可见数据流　虚线：服务端内部或未实测的边界</text>
+</svg></div><aside class="detail" id="detail" aria-live="polite"></aside></div>
+<div class="section-head"><h2>一条回复，先分块再拆气泡</h2><span class="sub">离线机制演示 · 自行编写 · 不调用模型</span></div>
+<div class="replay"><div><label class="input-label" for="reply">假设完整回复已经返回</label><textarea id="reply">诶。先别笑我。我有一个主意。开一家夜里也卖早餐的店。早起太难了，早饭可不能也跟着消失。就这么决定啦。</textarea><div class="replay-controls"><select id="who" aria-label="角色阅读速度"><option>Yume</option><option>Nari</option></select><button class="primary" id="play">按阅读速度回放</button><button id="instant">直接看分组</button><button id="stop">停止</button></div><div id="replay-status" aria-live="polite"></div><p class="footnote">这里仅演示第一层 PE 分块：首块至少四个词单位，后续每两句一块；汉字和假名逐字计。最终 ChatLayer 还会按句子与换行再拆，部分后续块由回复 ID 的稳定哈希选为单句行，最终气泡可能更多。无语音示意速度为 Yume 21 / Nari 19.1 字符每秒。句子识别与时间轴已简化，未复制完整缩写／引号词法器，也未接 TTS；不能把演示当原站实测或完整复刻。</p></div><div id="timeline" aria-label="分条呈现回放"></div></div>
+<section class="evidence"><div class="section-head"><h2>能确认到哪里</h2><span class="sub">“引用里出现”与“生产正在用”分开</span></div><table><thead><tr><th>问题</th><th>当前证据</th><th>确认范围</th></tr></thead><tbody><tr><td>主聊天模型</td><td>代理返回支持 model/provider 字段；代码含 OpenRouter 路由头与 Grok 入口标签</td><td>具体模型 ID、版本、当前路由未确认</td></tr><tr><td>主 System Prompt</td><td>主聊天只发送角色、历史与动态上下文；辅助功能存在客户端 prompt</td><td>服务端主角色 prompt 没有公开，辅助 prompt 不能替代它</td></tr><tr><td>“连发几条”</td><td>一条存档消息 → 派生 UI 分块 → 语音事件或阅读节奏</td><td>源码 + 登录 DOM 已核；精确时序未测</td></tr><tr><td>记忆与人物状态</td><td>五类记忆、来源校验、检索、情绪、关系和提醒规则</td><td>前端规则可复查；不能保证模型始终遵守</td></tr><tr><td>训练 / 微调</td><td>未找到可验证训练配方、权重或专用后训练声明</td><td>不能从口吻推断训练方法</td></tr></tbody></table></section>
+<footer>来源：当前公开主文件 main-BHN5IlOI.js、官方 Support / Privacy / Koro 文档。公开源码出现某分支，不代表所有账户和平台都启用。原始快照及哈希保存在本地取证目录。</footer>
+</main>
+<script type="module">
+// Independently written, offline illustration of observed presentation rules.
+// No downloaded application code is executed. Sentence recognition is simplified:
+// English abbreviations/URLs/quoted punctuation differ from the full site lexer.
+const cjk = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/u;
+const cjkGlobal = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}]/gu;
+
+function wordUnits(text) {
+  return text.split(/\s+/u).filter(part => /[\p{L}\p{N}]/u.test(part))
+    .reduce((sum, part) => sum + Math.max(1, (part.match(cjkGlobal) || []).length), 0);
+}
+
+function detectSimpleSentences(text) {
+  // Illustration input supports Chinese/Japanese and ordinary English sentences.
+  return String(text).split(/(?<=[。！？!?])\s*|(?<=\.)\s+|\n+/u).map(part => part.trim()).filter(Boolean);
+}
+
+function joinSentences(parts) {
+  return parts.reduce((result, part) => {
+    if (!result) return part;
+    const end = result.at(-1);
+    const adjacent = /[。！？」』）〉》]/u.test(end) || cjk.test(end)
+      || cjk.test(part[0] || '') && /[!?]$/u.test(result);
+    return result + (adjacent ? '' : ' ') + part;
+  }, '');
+}
+
+function groupReplySentences(sentences) {
+  if (sentences.length <= 1) return [...sentences];
+  let boundary = 1;
+  while (boundary < sentences.length && wordUnits(joinSentences(sentences.slice(0, boundary))) < 4) boundary += 1;
+  const chunks = [joinSentences(sentences.slice(0, boundary))];
+  for (let index = boundary; index < sentences.length; index += 2) chunks.push(joinSentences(sentences.slice(index, index + 2)));
+  return chunks;
+}
+
+function replayPlan(text, character = 'Yume') {
+  const chunks = groupReplySentences(detectSimpleSentences(text));
+  const cps = character === 'Nari' ? 19.1 : 21;
+  let elapsed = 0;
+  return { character, cps, simplifiedSentenceLexer: true, chunks: chunks.map((chunk, pieceIndex) => {
+    const startMs = elapsed;
+    // Timing demonstration only: real TTS start/end may replace text-only timing.
+    elapsed += chunk.length / cps * 1000;
+    return { pieceIndex, text: chunk, startMs: Math.round(startMs), endMs: Math.round(elapsed) };
+  }), durationMs: Math.round(elapsed) };
+}
+
+const primary='https://nariyume.com/app/assets/main-BHN5IlOI.js';
+const data=[
+{id:'input',x:15,y:48,label:'文本 / 图片 / 通话',sub:'输入被转成一个逻辑用户轮',level:'code',symbol:'send · clientTurnId · pendingTurns',body:'发送前冻结逻辑用户轮，重试复用 clientTurnId。语音转写进入文字对话路径；图片描述可回写对应消息。',points:['当前公开入口要求登录与成年条款确认。','此次没有创建账户或代签条款。'],source:primary},
+{id:'memory',x:15,y:144,label:'用户与角色记忆',sub:'slots · facts · plans · story · self',level:'code',symbol:'kind: memory · v: 2',body:'用户事实、日期计划、共同故事和角色自我记忆有不同用途，不能全部压成一个无来源摘要。',points:['满 8 对触发批提取，单批最多 16 对。','facts 最多 60；plans 12；story / self 各 14。','检索词表依赖英文，中文相关度有边界。','提取器服务端 prompt 未公开。'],source:primary},
+{id:'state',x:15,y:240,label:'情绪 / 关系 / 人设提醒',sub:'数值状态与回复 emotion 分开',level:'code',symbol:'valence · arousal · confidence · momentum\nreminder.next',body:'运行时情绪有独立更新与回落；模型输出的 emotion 消费于表情动作。关系进度和阶段也由应用规则计算。',points:['主 affection、UI bond、moment tier 是三种不同指标。','情绪有 momentum 惯性和每分钟基线恢复。','提醒通常每 5 轮或随状态改变触发，至少隔 2 轮。'],source:primary},
+{id:'trigger',x:15,y:336,label:'前台主动与场景事件',sub:'问候 · 礼物 · 梦 · 活动反馈',level:'code',symbol:'dynamic.proactive { kind, key, theme }',body:'按事件选择候选主题，主动生成仍走聊天链。退出、切角色与过期状态有取消与版本检查。',points:['前台每 60 秒检查候选，发送需输入框为空且界面空闲。','quiet 22–7；礼物按等级和 2 / 5 / 14 日冷却。','点击、胜负、学习鼓励可能播放预写内容。','每日信件是另一条辅助链。'],source:primary},
+{id:'context',x:270,y:48,label:'本轮上下文装配',sub:'真实历史 + summary + dynamic',level:'code',symbol:'buildTurnRequest · gy\ncharacterId / history / userMessage / dynamic',body:'近期历史、摘要、相关记忆、人物状态、称呼和时间等构成本轮信封。没有把主 system prompt 全文交给客户端。',points:['locale 来自界面语言，不根据当前输入语种自动切换。','本次中文 UI 下，两位都未遵从英语指令。','辅助活动可以直接传 system/user。','主聊天、记忆提取和摘要使用不同 kind。'],source:primary},
+{id:'retry',x:270,y:144,label:'重试 / 额度 / 降级',sub:'逻辑轮冻结，不重造用户消息',level:'code',symbol:'rungIndex · clientTurnId · gated\nchat_cheap_lane_v1',body:'请求失败可以沿 rungs 重试；存在预算门控和较低成本通路的实验分支。',points:['存在 OpenRouter 路由头检测。','具体 rung→模型映射在服务端，不可见。'],source:primary},
+{id:'merge',x:270,y:240,label:'异步提取与合并',sub:'原话来源 · 到期计划 · 去重',level:'code',symbol:'kind: memory / kind: summary',body:'回复之后记录实际用户/助手轮，再在满足条件时做批量提取。摘要不是未经验证的用户事实来源。',points:['本地存储与云同步分支要按平台、账户验证。','支持文档与总隐私声明的同步描述存在差异。'],source:primary},
+{id:'proxy',x:525,y:48,label:'自家推理代理',sub:'/api/chat · response.json()',level:'code',symbol:'choices[0].message.content\nmodel / provider / usage',body:'主聊天客户端等待完整 JSON 响应后才解析内容，没有从这一主路径看到逐 token SSE。',points:['前端声明接口不等于此次已调用或验证服务。','语音流和活动入口不能与主聊天流式混为一谈。'],source:primary},
+{id:'backend',x:525,y:144,label:'服务端角色生成',sub:'主 prompt / 当前模型仍不可见',level:'unknown',symbol:'UNKNOWN\nsystem / routing / decoding / training',body:'正常 UI 已两位各测五轮，模型元数据未在界面显示。可以提出兼容实现，但没有恢复服务端私有数据。',points:['精确模型、主 prompt、采样参数未知；不能由自报或风格猜。','birthdayISO 到自家代理与供应商的信任边界不同。','没有可验证的训练权重或数据配方。','官方明确模型可以变化。'],source:'https://www.nariyume.com/support'},
+{id:'device',x:525,y:240,label:'平台与神经语音',sub:'端侧 runtime 为厂家声明',level:'official',symbol:'Koro · 67 MB / ~150 ms (claimed)',body:'Koro 宣称有端侧神经语音和实时角色运行时，不能将该指标当此次测量或扩大到所有 web 分支。',points:['web STT 为在线转写。','native 预制音频 voice 字段出现 af_heart。','不能据此认定当前 web TTS 的精确基座。'],source:'https://www.korointeractive.com/'},
+{id:'authored',x:525,y:336,label:'预写台词 / 录音库',sub:'点击 · 开场 · 学习 · 活动反应',level:'code',symbol:'scripted / reactionPool / native voice bank',body:'部分迅速的小反应由作者写好的内容池和录音匹配产生，也有其他活动通过 oneShot 即时生成。',points:['已下载子集含 9,423 条 native 语音元数据。','元数据不是音频文件，此次没有下载媒体。','不能把全部角色表现归因于主 LLM 的 prompt。'],source:primary},
+{id:'parse',x:780,y:48,label:'正文与情绪解析',sub:'XML-like / emotion suffix / fallback',level:'code',symbol:'xf · reply / text / emotion\nphoto_description',body:'解析正文、情绪和可选图片描述。双换行的 parser.bubbles 是中间产物，不是首选显示分组。',points:['清除非对白包装。','末尾情绪标记也可被接受。'],source:primary},
+{id:'present',x:780,y:144,label:'一条存档，多个气泡',sub:'PE 分块 → ChatLayer 再拆行',level:'code',symbol:'presentReply → BE → replyBubbleChunks → ChatLayer\nsourceMessage / pieceIndex / sentence UTF-16 offset',body:'整条正文先存档，PE 派生呈现块，ChatLayer 再拆成最终气泡行。多泡不是额外模型轮次。',points:['首块 ≥4 单位是 PE 规则；最终 DOM 可再次拆开短反应。','ChatLayer 再拆句 / 换行，ID 哈希让部分后续块单句显示。'],source:primary},
+{id:'voice',x:780,y:240,label:'语音与显示同步',sub:'TTS start/end · text-only reveal',level:'code',symbol:'Nari: 19.1 cps · Yume: 21 cps',body:'音频事件控制显示分块，缺音频时按阅读速度展开；嘴型、表情和动作消费同一角色结果。',points:['预制语音用于快速场景反应。','主文本请求和语音播放可以有不同传输方式。'],source:primary},
+{id:'feedback',x:780,y:336,label:'真实对话回写',sub:'历史 · 情绪 · 活动与记忆',level:'code',symbol:'harness.memory.record\nappendHistoryBatch / ensureWire',body:'保存一条实际助手消息和用户轮，角色活动事件亦能影响后续上下文。派生气泡不重复增加用户记忆或关系。',points:['sourceMessage 为临时呈现信息，不写入历史 / 同步。','历史重建保留原换行，回放边界可与即时不同。','模型行为质量仍需要完整多轮体验验证。'],source:primary}
+];
+const nodes=document.querySelector('#nodes');
+for(const item of data){const ns='http://www.w3.org/2000/svg';const g=document.createElementNS(ns,'g');g.classList.add('node');if(item.level!='code')g.classList.add(item.level);g.dataset.id=item.id;g.dataset.level=item.level;g.setAttribute('role','button');g.setAttribute('tabindex','0');g.setAttribute('aria-label',item.label);g.innerHTML=`<rect x="${item.x}" y="${item.y}" width="215" height="60"/><text x="${item.x+13}" y="${item.y+24}">${item.label}</text><text class="small" x="${item.x+13}" y="${item.y+44}">${item.sub}</text>`;g.addEventListener('click',()=>select(item.id));g.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();select(item.id)}});nodes.append(g)}
+function select(id){const item=data.find(v=>v.id===id);for(const node of nodes.children){node.classList.toggle('active',node.dataset.id===id);node.setAttribute('aria-pressed',String(node.dataset.id===id))}const detail=document.querySelector('#detail');detail.innerHTML='';detail.classList.remove('changed');const badge=document.createElement('span');badge.className='badge';badge.textContent={code:'公开源码可见',official:'官方声明 · 非本次测量',unknown:'待验证 · 不能恢复为事实'}[item.level];const heading=document.createElement('h2');heading.textContent=item.label;const para=document.createElement('p');para.textContent=item.body;const list=document.createElement('ul');for(const point of item.points){const li=document.createElement('li');li.textContent=point;list.append(li)}const code=document.createElement('div');code.className='code';code.textContent=item.symbol;const foot=document.createElement('div');foot.className='detail-foot';const link=document.createElement('a');link.href=item.source;link.target='_blank';link.rel='noopener';link.textContent='查看原始来源 ↗';foot.append(link);detail.append(badge,heading,para,list,code,foot);requestAnimationFrame(()=>detail.classList.add('changed'))}
+for(const button of document.querySelectorAll('[data-filter]'))button.addEventListener('click',()=>{for(const other of document.querySelectorAll('[data-filter]'))other.setAttribute('aria-pressed',String(other===button));for(const node of nodes.children)node.classList.toggle('dim',button.dataset.filter!=='all'&&node.dataset.level!==button.dataset.filter)});
+select('present');
+let frame=null;function stop(){if(frame!==null)cancelAnimationFrame(frame);frame=null}
+function plan(){return replayPlan(document.querySelector('#reply').value,document.querySelector('#who').value)}
+let mountedPlan=null;let renderedChunks=[];
+function draw(p,time=Infinity){
+  const timeline=document.querySelector('#timeline');
+  if(mountedPlan!==p){timeline.replaceChildren();mountedPlan=p;renderedChunks=[];document.querySelector('#replay-status').textContent=`1 条存档消息 → ${p.chunks.length} 个呈现块 · ${p.cps} cps · 示意总长 ${(p.durationMs/1000).toFixed(1)} 秒`}
+  for(const chunk of p.chunks){
+    if(time<chunk.startMs)break;
+    if(!renderedChunks[chunk.pieceIndex]){const label=document.createElement('div');label.className='time';label.textContent=`piece ${chunk.pieceIndex+1} · ${(chunk.startMs/1000).toFixed(2)}–${(chunk.endMs/1000).toFixed(2)} s`;const bubble=document.createElement('div');bubble.className='bubble';timeline.append(label,bubble);renderedChunks[chunk.pieceIndex]=bubble}
+    const progress=Math.min(1,(time-chunk.startMs)/Math.max(1,chunk.endMs-chunk.startMs));const text=chunk.text.slice(0,Math.ceil(chunk.text.length*progress))||'…';const bubble=renderedChunks[chunk.pieceIndex];if(bubble.textContent!==text)bubble.textContent=text;
+  }
+}
+document.querySelector('#play').addEventListener('click',()=>{stop();const p=plan();const begin=performance.now();const step=now=>{draw(p,now-begin);if(now-begin<p.durationMs)frame=requestAnimationFrame(step);else frame=null};frame=requestAnimationFrame(step)});
+document.querySelector('#instant').addEventListener('click',()=>{stop();draw(plan())});
+document.querySelector('#stop').addEventListener('click',()=>{stop();document.querySelector('#replay-status').textContent+=' · 已停止'});
+draw(plan());
+</script>
+</body></html>

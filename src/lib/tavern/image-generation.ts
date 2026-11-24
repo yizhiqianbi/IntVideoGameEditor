@@ -25,6 +25,8 @@ export type TavernImageGeneration = {
   negativePrompt: string;
   injectCharacter: boolean;
   injectScenario: boolean;
+  /** Set when the user turns automatic chat images off. Absent means provide them. */
+  autoOptOut?: boolean;
 };
 
 export const TAVERN_IMAGE_GENERATION_LIMITS = Object.freeze({
@@ -78,7 +80,15 @@ export function parseTavernImageGeneration(value: unknown): TavernImageGeneratio
     negativePrompt: clean(source.negativePrompt, TAVERN_IMAGE_GENERATION_LIMITS.negativePrompt),
     injectCharacter: source.injectCharacter !== false,
     injectScenario: source.injectScenario === true,
+    ...(source.autoOptOut === true ? { autoOptOut: true } : {}),
   };
+}
+
+/** New replies get an image. A stored "off" from before this default does not count as a choice. */
+export function chatImageAutoMode(settings?: TavernImageGeneration | null): TavernImageAutoMode {
+  if (settings?.autoOptOut) return settings.autoMode === "interval" ? "interval" : settings.autoMode === "each" ? "each" : "off";
+  if (settings?.autoMode === "interval") return "interval";
+  return "each";
 }
 
 /** The subset of card/user data injected into templates. */

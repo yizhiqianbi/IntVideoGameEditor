@@ -135,13 +135,22 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
       return;
     }
     if (mode === "register") {
+      const address = email.trim().toLowerCase();
+      if (email.length > 254 || !address || address.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(address) || address.includes("\0")) {
+        setLocalError(copy.invalidEmail);
+        return;
+      }
+      if (password.length < 12 || password.length > 256 || password.includes("\0")) {
+        setLocalError(copy.registerPasswordRule);
+        return;
+      }
       const name = nickname.normalize("NFKC").trim().replace(/\s+/g, " ");
       if (!name || name.length > 30 || nickname.includes("\0") || /[\u0000-\u001f\u007f]/.test(nickname) || name === "游客") {
         setLocalError(name === "游客" ? copy.nameBlocked : copy.nameLength);
         return;
       }
       setLocalError(""); onClearError();
-      try { await onSubmit({ nickname: name, ...(referralCode.trim() ? { referralCode: referralCode.trim().toUpperCase() } : {}) }); }
+      try { await onSubmit({ email: address, password, nickname: name, ...(referralCode.trim() ? { referralCode: referralCode.trim().toUpperCase() } : {}) }); }
       catch { /* The parent displays the actual account API error. */ }
       return;
     }
@@ -191,7 +200,7 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
   }
   function selectMethod(value: "password" | "email") {
     if (submitting || verifying.current) return;
-    invalidateChallenge(); setMethod(value); setPassword(""); setShowPassword(false);
+    invalidateChallenge(); setMethod(value); setPassword(""); setShowPassword(false); setLocalError(""); onClearError();
     if (value === "email") onModeChange("login");
   }
   async function sendCode() {
@@ -250,6 +259,8 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
     if (clickedBackdrop && startedOnBackdrop && !submitting) onClose();
   }
 
+  const shownError = method === "password" && error && /验证码|verification code|認証コード|인증/i.test(error) ? "" : error;
+
   return (
     <div className={s.overlay} onPointerDown={handleOverlayPointerDown} onClick={handleOverlayClick}>
       <div className={s.dialogShell}>
@@ -272,9 +283,11 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
         {!forgotPassword && <p className={s.divider}>{copy.orEmail}</p>}
         {!forgotPassword && mode !== "register" && <div className={s.methods} role="group" aria-label={copy.signInMethod}><button type="button" aria-pressed={method === "email"} disabled={submitting} onClick={() => selectMethod("email")}>{copy.emailCode}</button><button type="button" aria-pressed={method === "password"} disabled={submitting} onClick={() => selectMethod("password")}>{copy.emailPassword}</button></div>}
         <p className={s.hint}>{forgotPassword ? copy.resetByCode : mode === "register" ? copy.registerKeepsGuest : copy.loginSyncs}</p>
-        {mode !== "register" && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? copy.checkingCodeService : configError || configuration?.note || copy.codeNotConfigured}</p>}
+        {mode !== "register" && (method === "email" || forgotPassword) && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? copy.checkingCodeService : configError || configuration?.note || copy.codeNotConfigured}</p>}
         <form className={s.form} onSubmit={submit}>
           {mode === "register" ? <>
+            <label>{copy.email}<input autoComplete="email" name="email" type="email" placeholder="you@example.com" required maxLength={254} value={email} onChange={(event) => updateEmail(event.target.value)} disabled={submitting} /></label>
+            <label>{copy.password}<span className={s.passwordField}><input autoComplete="new-password" name="password" type={showPassword ? "text" : "password"} placeholder={copy.passwordPlaceholder} required minLength={12} maxLength={256} value={password} onChange={(event) => { setPassword(event.target.value); setLocalError(""); onClearError(); }} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? copy.hide : copy.show}</button></span><small>{copy.atLeast12}</small></label>
             <label>{copy.name}<input autoComplete="nickname" name="nickname" required maxLength={30} value={nickname} onChange={(event) => setNickname(event.target.value)} disabled={submitting} /><small>{copy.nameHint}</small></label>
             <label>{copy.inviteOptional}<input name="referralCode" placeholder={copy.pasteCode} inputMode="text" maxLength={32} autoCapitalize="characters" value={referralCode} onChange={(event) => setReferralCode(event.target.value.replace(/[^a-zA-Z0-9]/g, "").toUpperCase().slice(0, 32))} disabled={submitting} /><small>{copy.inviteSmall}</small></label>
           </> : <>
@@ -295,7 +308,7 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
             <label>{copy.password}<span className={s.passwordField}><input autoComplete="current-password" name="password" type={showPassword ? "text" : "password"} placeholder={copy.passwordPlaceholder} required minLength={1} maxLength={256} value={password} onChange={(event) => setPassword(event.target.value)} disabled={submitting} /><button type="button" className={s.passwordToggle} onClick={() => setShowPassword(value => !value)} disabled={submitting}>{showPassword ? copy.hide : copy.show}</button></span>{!forgotPassword && <button type="button" className={s.forgotInline} onClick={enterForgotPassword} disabled={submitting}>{copy.forgotPassword}</button>}</label>
           </>}
           </>}
-          {(localError || error) && <p className={s.error} role="alert">{localError || error}</p>}
+          {(localError || shownError) && <p className={s.error} role="alert">{localError || shownError}</p>}
           <button className={s.submit} type="submit" disabled={submitting || (mode !== "register" && ((forgotPassword && (sending || unavailable || !validChallenge || code.length !== 6 || password.length < 12 || password !== confirmPassword)) || (!forgotPassword && method === "email" && (sending || unavailable || !validChallenge || code.length !== 6))))}>{submitting ? copy.connecting : forgotPassword ? copy.resetPassword : mode === "register" ? copy.registerKeep : method === "email" ? copy.verifyLogin : copy.login}</button>
         </form>
         {forgotPassword ? <footer><button type="button" onClick={leaveForgotPassword} disabled={submitting}>{copy.backToLogin}<Icon name="chevron" size={13} /></button></footer> : (mode === "register" || method === "password") && <footer><span>{mode === "register" ? copy.haveAccountQ : copy.noAccountQ}</span><button type="button" onClick={switchMode} disabled={submitting}>{mode === "register" ? copy.goLogin : copy.registerAccountShort}<Icon name="chevron" size={13} /></button></footer>}

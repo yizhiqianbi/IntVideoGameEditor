@@ -1,0 +1,46 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>我的页充值 banner 预览</title>
+<style>
+:root{--surface:#1e1018;--soft:#2a1621;--text:#f8e8eb;--muted:#c79aa9;--line:#3a2230;--pink:#d94c77;--pink-soft:#4a1d31}
+*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--text);font:14px/1.5 -apple-system,"PingFang SC","Microsoft YaHei",sans-serif;padding:20px 18px 40px;max-width:720px;margin:0 auto}
+.mineHead{display:flex;align-items:center;gap:14px;padding:4px 0 2px}
+.avatar{width:64px;height:64px;flex:none;border:1px solid color-mix(in srgb,var(--pink) 30%,transparent);border-radius:50%;background:radial-gradient(circle at 30% 25%,color-mix(in srgb,var(--pink) 26%,var(--surface)),var(--surface) 70%);display:grid;place-items:center;color:var(--pink)}
+.profileInfo{min-width:0;flex:1}.profileInfo h1{margin:0;font-size:21px;font-weight:650;letter-spacing:-.02em}
+.mineMeta{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px}.mineEmail{color:var(--muted);font-size:12px}.mineIdChip{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border:1px solid var(--line);border-radius:999px;background:color-mix(in srgb,var(--surface) 70%,transparent);color:var(--muted);font-size:11px}
+.mineGear{display:grid;place-items:center;width:36px;height:36px;border:1px solid var(--line);border-radius:50%;color:var(--muted);background:color-mix(in srgb,var(--surface) 70%,transparent)}
+.mineOverview{position:relative;margin-top:20px;padding:16px;border:1px solid var(--line);border-radius:18px;background:color-mix(in srgb,var(--surface) 82%,transparent);box-shadow:0 10px 30px -22px #0008}
+.mineRechargeBanner{position:relative;display:block;width:calc(100% + 32px);min-height:150px;margin:-16px -16px 14px;padding:18px 18px 16px;border:0;border-radius:18px 18px 0 0;background:#170b12 url("../public/dzmm/recharge-banner.webp") right center/cover no-repeat;color:#fff;text-align:left;font:inherit;overflow:hidden;cursor:pointer}
+.mineRechargeBanner::before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(18,8,13,.96) 0%,rgba(18,8,13,.78) 38%,rgba(18,8,13,.2) 72%,rgba(18,8,13,.06) 100%);pointer-events:none}
+.mineRechargeBanner::after{content:"";position:absolute;left:18px;bottom:0;width:72px;height:2px;border-radius:2px;background:linear-gradient(90deg,var(--pink),transparent);opacity:.9}
+.mineRechargeText{position:relative;z-index:1;display:flex;max-width:68%;flex-direction:column;gap:4px}
+.mineRechargeEyebrow{color:rgba(255,255,255,.58);font-size:10px;font-weight:700;letter-spacing:.16em}
+.mineRechargeTitle{font-size:22px;font-weight:700;line-height:1.2;letter-spacing:-.02em}
+.mineRechargeBody{color:rgba(255,255,255,.74);font-size:11.5px;line-height:1.5}
+.mineRechargeCta{position:absolute;right:14px;bottom:14px;z-index:1;display:inline-flex;align-items:center;gap:2px;padding:8px 10px 8px 13px;border-radius:999px;background:#fff;color:#a32350;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 8px 20px -12px #000}
+.mineRechargeCta svg{width:14px;height:14px}
+.mineOverviewHead{display:flex;align-items:center;justify-content:space-between;gap:12px}.mineLabel{color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.08em}.mineTextLink{color:var(--pink);font-size:12px}
+.mineBalances{display:grid;grid-template-columns:1fr 1fr;margin:12px 0 14px;border:1px solid var(--line);border-radius:14px;overflow:hidden;background:var(--line);gap:1px}
+.mineBalance{display:flex;flex-direction:column;gap:4px;padding:16px;background:var(--surface);text-align:center;border:0;color:inherit;font:inherit}
+.mineBalanceLabel{color:var(--muted);font-size:11px}.mineBalanceValue{font-size:30px;font-weight:650;letter-spacing:-.03em}.mineBalance small{color:var(--muted);font-size:11px}
+@media(max-width:520px){.mineRechargeBanner{min-height:140px;padding:16px 15px 14px}.mineRechargeTitle{font-size:20px}.mineRechargeBody{font-size:11px}.mineRechargeCta{right:12px;bottom:12px;padding:7px 9px 7px 12px;font-size:11.5px}}
+@media(max-width:380px){.mineRechargeBanner{min-height:132px}.mineRechargeText{max-width:72%}.mineRechargeTitle{font-size:19px}}
+</style></head><body>
+<header class="mineHead">
+  <span class="avatar"><svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.6-4 4.6-6 8-6s6.4 2 8 6"/></svg></span>
+  <div class="profileInfo"><h1>楚曦</h1><div class="mineMeta"><span class="mineEmail">super@xumengchat.top</span><span class="mineIdChip">ID 6cced4a9</span></div></div>
+  <span class="mineGear"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 6h16M8 12h8M11 18h2"/></svg></span>
+</header>
+<section class="mineOverview">
+  <button class="mineRechargeBanner" type="button" aria-label="充值金币 / Gem，金币和 Gem 可用于短剧解锁、游戏/角色卡、陪聊">
+    <span class="mineRechargeText">
+      <span class="mineRechargeEyebrow">账户信息</span>
+      <strong class="mineRechargeTitle">充值金币 / Gem</strong>
+      <span class="mineRechargeBody">金币和 Gem 可用于短剧解锁、游戏/角色卡、陪聊。</span>
+    </span>
+    <span class="mineRechargeCta">充值<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></span>
+  </button>
+  <div class="mineBalances">
+    <div class="mineBalance"><span class="mineBalanceLabel">金币</span><strong class="mineBalanceValue">9.9 亿</strong><small>聊天 · 语音 · 生图</small></div>
+    <div class="mineBalance"><span class="mineBalanceLabel">Gem</span><strong class="mineBalanceValue">0.00</strong><small>可兑换金币</small></div>
+  </div>
+</section>
+</body></html>

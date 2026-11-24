@@ -1,0 +1,11 @@
+/frontend/*
+!/frontend/*.md
+!/frontend/asset-index.json
+!/frontend/entry-index.json
+!/frontend/contracts.json
+!/frontend/code-index.json
+!/frontend/bubble-contract.json
+!/frontend/offline-parser-audit.json
+!/frontend/audit-manifest.json
+!/frontend/declarations.json
+!/frontend/declared-not-downloaded.json

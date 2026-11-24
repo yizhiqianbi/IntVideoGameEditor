@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "jsx": "react-jsx",
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "resolveJsonModule": true,
+    "allowImportingTsExtensions": true,
+    "types": ["vite/client", "node"],
+    "paths": { "@/*": ["../shared/*"] }
+  },
+  "include": [
+    "src/main.tsx",
+    "src/ops-main.tsx",
+    "src/env.d.ts",
+    "vite.config.ts",
+    "../shared/components/shelf/**/*.tsx",
+    "../shared/lib/shelf-characters.ts",
+    "../shared/lib/shelf-context.ts",
+    "../shared/lib/shelf-cloud.ts",
+    "../shared/lib/shelf-storage.ts"
+  ],
+  "exclude": ["node_modules", "dist", ".wrangler", "**/*.test.mts"]
+}

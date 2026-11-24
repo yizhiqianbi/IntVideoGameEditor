@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { DzmmAdminError, fetchDzmmAdminBanners, saveDzmmAdminBanner, updateDzmmAdminBanner, deleteDzmmAdminBanner, type DzmmAdminBanner } from "@/lib/dzmm-admin-client";
+import { DzmmAdminError, fetchDzmmAdminBanners, saveDzmmAdminBanner, updateDzmmAdminBanner, deleteDzmmAdminBanner, fetchStudioCovers, uploadStudioCover, resetStudioCover, type DzmmAdminBanner, type StudioCoverRow } from "@/lib/dzmm-admin-client";
+import { STUDIO_COVER_FALLBACKS, STUDIO_COVER_LABELS, STUDIO_COVER_SLOTS } from "@/lib/xumeng-studio-covers";
 import {
   actOpsCharacter, deleteOpsOrientation, deleteOpsSubtag, fetchOpsAnalytics, fetchOpsCharacters, fetchOpsModelPrices,
   fetchOpsOrientations, fetchOpsPackages, fetchOpsRecharges, fetchOpsRejectReasons, fetchOpsReviews, fetchOpsScenePrices,
@@ -12,12 +13,12 @@ import {
 import { reviewDzmmSubmission, unpublishDzmmCharacter } from "@/lib/dzmm-publishing";
 import s from "./admin-dashboard.module.css";
 
-type View = "packages" | "prices" | "orientations" | "subtags" | "voices" | "characters" | "recharges" | "analytics" | "reviews" | "banners";
+type View = "packages" | "prices" | "orientations" | "subtags" | "voices" | "characters" | "recharges" | "analytics" | "reviews" | "banners" | "covers";
 const VIEWS: { id: View; label: string }[] = [
   { id: "packages", label: "充值套餐" }, { id: "prices", label: "积分单价" }, { id: "orientations", label: "性向" },
   { id: "subtags", label: "子标签" }, { id: "voices", label: "语音" }, { id: "characters", label: "官方角色" },
   { id: "recharges", label: "充值记录" }, { id: "analytics", label: "数据看板" }, { id: "reviews", label: "审核队列" },
-  { id: "banners", label: "横幅" },
+  { id: "banners", label: "横幅" }, { id: "covers", label: "创作封面" },
 ];
 const SCENE_LABEL: Record<string, string> = { suggestion: "建议回复（每千 token）", image: "图片（每次）", video: "视频（每次）", character: "创建角色（每次）", voice: "语音（每次）" };
 const number = (value: number) => value.toLocaleString("zh-CN");
@@ -55,6 +56,7 @@ export default function OpsConsole({ accountId, view: forced, onUnauthorized }: 
     {current === "analytics" ? <Analytics accountId={accountId} /> : null}
     {current === "reviews" ? <Reviews accountId={accountId} /> : null}
     {current === "banners" ? <Banners accountId={accountId} /> : null}
+    {current === "covers" ? <StudioCovers accountId={accountId} /> : null}
   </div>;
 }
 
@@ -374,6 +376,39 @@ function Reviews({ accountId }: { accountId: string }) {
     </form>
     <Notice value={notice} />
     <ul>{items.map(item => <li key={item.id}><strong>{item.name || "未命名"}</strong> {item.label} · {item.author} <span className={s.secondaryLine}>{when(item.createdAt)}</span> {item.status === "pending" ? <><button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "approved")}>通过</button> <button className={s.text} type="button" onClick={() => void decide(item.id, item.publicationVersion, "rejected")}>拒绝</button></> : item.reason ? <span>原因：{item.reason}</span> : null} {item.listed ? <button className={s.text} type="button" onClick={() => void unlist(item)}>下架</button> : null}</li>)}</ul>
+  </Panel>;
+}
+
+function StudioCovers({ accountId }: { accountId: string }) {
+  const [rows, setRows] = useState<StudioCoverRow[]>([]);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState("");
+  const load = useCallback(() => { void fetchStudioCovers(accountId).then(setRows).catch(error => setNotice(report(error))); }, [accountId]);
+  useEffect(() => { load(); }, [load]);
+  const custom = new Map(rows.map(row => [row.slot, row]));
+  async function upload(slot: string, file: File | undefined) {
+    if (!file) return;
+    setBusy(slot);
+    try { await uploadStudioCover(accountId, slot, file); setNotice("封面已换上"); load(); }
+    catch (error) { setNotice(report(error)); }
+    finally { setBusy(""); }
+  }
+  async function reset(slot: string) {
+    setBusy(slot);
+    try { await resetStudioCover(accountId, slot); setNotice("已回到内置封面"); load(); }
+    catch (error) { setNotice(report(error)); }
+    finally { setBusy(""); }
+  }
+  return <Panel title="创作封面" note="只给 Super 换创作台的入口图。没上传时用站内那张。接受 JPG、PNG、WebP，不超过 5 MB。人物要成年。">
+    <Notice value={notice} />
+    <ul>{STUDIO_COVER_SLOTS.map(slot => {
+      const row = custom.get(slot);
+      const src = row?.url ?? STUDIO_COVER_FALLBACKS[slot];
+      return <li key={slot}><img src={src} alt="" width={96} height={64} style={{ objectFit: "cover", borderRadius: 8, verticalAlign: "middle" }} /> <strong>{STUDIO_COVER_LABELS[slot]}</strong> {row ? "已自定义" : "内置"}
+        <label className={s.text}>上传<input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy === slot} style={{ display: "none" }} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; void upload(slot, file); }} /></label>
+        {row ? <button className={s.text} type="button" disabled={busy === slot} onClick={() => void reset(slot)}>恢复内置</button> : null}
+      </li>;
+    })}</ul>
   </Panel>;
 }
 

@@ -17,7 +17,7 @@ export type TavernImagePreset = {
 };
 
 export const TAVERN_IMAGE_PRESETS: readonly TavernImagePreset[] = Object.freeze([
-  { id: "xumeng", name: "叙梦写实", description: "默认电影感写实，和现在一致的出图风格", prefix: "", suffix: "", negative: "" },
+  { id: "xumeng", name: "叙梦写实", description: "跟着角色封面出图", prefix: "", suffix: "", negative: "" },
   { id: "cinematic", name: "电影剧照", description: "强影视光比、浅景深、胶片质感", prefix: "电影剧照质感，影视级布光，浅景深，35mm 胶片颗粒，", suffix: "，画面叙事感强，构图完整。", negative: "二次元，卡通，平涂，塑料皮肤，低清晰度" },
   { id: "anime", name: "二次元赛璐璐", description: "日系动画赛璐璐上色，线条干净", prefix: "日系动画赛璐璐风格，干净线稿，平涂上色，", suffix: "，色彩明亮，人物比例协调。", negative: "照片质感，写实皮肤，3D 渲染，脏污线稿" },
   { id: "watercolor", name: "水彩插画", description: "纸面水彩晕染，柔和边缘", prefix: "手绘水彩插画，纸面纹理，柔和晕染，", suffix: "，留白自然，笔触可见。", negative: "照片，3D 渲染，过度清晰，塑料感" },

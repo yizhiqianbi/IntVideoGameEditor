@@ -1,0 +1,26 @@
+{
+  "date": "2026-10-12",
+  "backendRecovered": false,
+  "scope": "public static client review plus authorized normal UI synthetic chat tests",
+  "publicStaticAudit": "frontend/audit-manifest.json",
+  "syntheticUserTurns": 10,
+  "rawResponseOrModelCaptured": false,
+  "paidUpgradePurchases": 0,
+  "inferenceQuotaCost": "unknown",
+  "privateExistingHistoryExported": false,
+  "originalPromptRecovered": false,
+  "UItests": "live-ui-evidence.json",
+  "interfaceVerification": [
+    "node selection",
+    "evidence filter",
+    "text replay",
+    "stop replay",
+    "role reading speed",
+    "more than 3 PE pieces"
+  ],
+  "offlineTests": {
+    "PEpureOriginalFixtures": "7/7",
+    "independentlyAuthoredIllustration": "4/4",
+    "fullChatLayerParityTested": false
+  }
+}

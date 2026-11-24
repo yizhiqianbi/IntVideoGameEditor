@@ -1,0 +1,1984 @@
+{
+  "verifiedAt": "2026-10-13T22:21:17.386Z",
+  "transport": "stdio",
+  "serverInfo": {
+    "name": "rea",
+    "version": "6.4.0"
+  },
+  "protocolVersion": "2025-06-18",
+  "toolCount": 170,
+  "tools": [
+    {
+      "name": "annotate_native_function"
+    },
+    {
+      "name": "inspect_native_load_image"
+    },
+    {
+      "name": "inspect_native_data_type"
+    },
+    {
+      "name": "inspect_native_instruction"
+    },
+    {
+      "name": "resolve_native_call_targets"
+    },
+    {
+      "name": "address_name"
+    },
+    {
+      "name": "comment"
+    },
+    {
+      "name": "current_address"
+    },
+    {
+      "name": "current_procedure"
+    },
+    {
+      "name": "current_document"
+    },
+    {
+      "name": "goto_address"
+    },
+    {
+      "name": "inline_comment"
+    },
+    {
+      "name": "list_bookmarks"
+    },
+    {
+      "name": "list_documents"
+    },
+    {
+      "name": "list_names"
+    },
+    {
+      "name": "list_procedures"
+    },
+    {
+      "name": "list_segments"
+    },
+    {
+      "name": "list_strings"
+    },
+    {
+      "name": "next_address"
+    },
+    {
+      "name": "prev_address"
+    },
+    {
+      "name": "procedure_address"
+    },
+    {
+      "name": "procedure_assembly"
+    },
+    {
+      "name": "procedure_callees"
+    },
+    {
+      "name": "procedure_callers"
+    },
+    {
+      "name": "procedure_info"
+    },
+    {
+      "name": "read_function_instructions"
+    },
+    {
+      "name": "read_bytes"
+    },
+    {
+      "name": "address_to_file_offset"
+    },
+    {
+      "name": "procedure_references"
+    },
+    {
+      "name": "procedure_pseudo_code"
+    },
+    {
+      "name": "resolve_containing_procedure"
+    },
+    {
+      "name": "search_procedures"
+    },
+    {
+      "name": "search_strings"
+    },
+    {
+      "name": "set_address_name"
+    },
+    {
+      "name": "set_addresses_names"
+    },
+    {
+      "name": "set_bookmark"
+    },
+    {
+      "name": "set_comment"
+    },
+    {
+      "name": "set_inline_comment"
+    },
+    {
+      "name": "unset_bookmark"
+    },
+    {
+      "name": "xrefs"
+    },
+    {
+      "name": "trace_native_values"
+    },
+    {
+      "name": "inspect_native_dispatch_metadata"
+    },
+    {
+      "name": "get_objc_classes"
+    },
+    {
+      "name": "get_objc_protocols"
+    },
+    {
+      "name": "batch_decompile"
+    },
+    {
+      "name": "get_call_graph"
+    },
+    {
+      "name": "analyze_swift_types"
+    },
+    {
+      "name": "find_xrefs_to_name"
+    },
+    {
+      "name": "binary_overview"
+    },
+    {
+      "name": "analyze_function"
+    },
+    {
+      "name": "inspect_native_api"
+    },
+    {
+      "name": "trace_feature"
+    },
+    {
+      "name": "trace_call_path"
+    },
+    {
+      "name": "trace_native_ui_action"
+    },
+    {
+      "name": "observe_native_ui"
+    },
+    {
+      "name": "capture_native_ui_scenario"
+    },
+    {
+      "name": "observe_native_calls"
+    },
+    {
+      "name": "inspect_macho"
+    },
+    {
+      "name": "inspect_signature"
+    },
+    {
+      "name": "inspect_plist"
+    },
+    {
+      "name": "list_architectures"
+    },
+    {
+      "name": "demangle_swift"
+    },
+    {
+      "name": "inspect_artifact"
+    },
+    {
+      "name": "extract_artifact"
+    },
+    {
+      "name": "decode_interface_builder"
+    },
+    {
+      "name": "inspect_keyed_archive"
+    },
+    {
+      "name": "inspect_asset_catalog"
+    },
+    {
+      "name": "trace_dylib_resolution"
+    },
+    {
+      "name": "inspect_managed_artifact"
+    },
+    {
+      "name": "inspect_managed_members"
+    },
+    {
+      "name": "inspect_managed_native_boundaries"
+    },
+    {
+      "name": "compare_managed_members"
+    },
+    {
+      "name": "verify_managed_native_boundaries"
+    },
+    {
+      "name": "import_managed_reconstruction"
+    },
+    {
+      "name": "project_managed_application_graph"
+    },
+    {
+      "name": "inspect_android_package"
+    },
+    {
+      "name": "search_android_classes"
+    },
+    {
+      "name": "inspect_android_class"
+    },
+    {
+      "name": "inspect_android_method"
+    },
+    {
+      "name": "trace_android_references"
+    },
+    {
+      "name": "inspect_jeb_client"
+    },
+    {
+      "name": "open_jeb_project"
+    },
+    {
+      "name": "list_jeb_units"
+    },
+    {
+      "name": "decompile_jeb_item"
+    },
+    {
+      "name": "inspect_binary_layout"
+    },
+    {
+      "name": "inspect_analysis_view",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "source": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "view": {
+            "$ref": "#/$defs/__schema18"
+          }
+        },
+        "required": [
+          "source",
+          "view"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "retained-evidence"
+                  },
+                  "evidence_id": {
+                    "type": "string",
+                    "pattern": "^ev_[a-f0-9]{64}$",
+                    "description": "Stable identifier of the recorded Evidence observation."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "evidence_id"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "inline"
+                  },
+                  "evidence": {
+                    "type": "object",
+                    "properties": {
+                      "evidence_id": {
+                        "$ref": "#/$defs/__schema1",
+                        "description": "Stable identifier of the recorded Evidence observation."
+                      },
+                      "subject": {
+                        "$ref": "#/$defs/__schema2"
+                      },
+                      "provider": {
+                        "$ref": "#/$defs/__schema4"
+                      },
+                      "analysis_profile": {
+                        "$ref": "#/$defs/__schema5"
+                      },
+                      "predicate_type": {
+                        "$ref": "#/$defs/__schema8"
+                      },
+                      "operation": {
+                        "$ref": "#/$defs/__schema9"
+                      },
+                      "parameters": {
+                        "$ref": "#/$defs/__schema7"
+                      },
+                      "raw_result": {
+                        "$ref": "#/$defs/__schema10"
+                      },
+                      "normalized_result": {
+                        "$ref": "#/$defs/__schema11"
+                      },
+                      "confidence": {
+                        "$ref": "#/$defs/__schema12"
+                      },
+                      "authority": {
+                        "$ref": "#/$defs/__schema13"
+                      },
+                      "environment": {
+                        "$ref": "#/$defs/__schema14"
+                      },
+                      "limitations": {
+                        "$ref": "#/$defs/__schema15"
+                      },
+                      "locations": {
+                        "$ref": "#/$defs/__schema16"
+                      },
+                      "evidence_links": {
+                        "$ref": "#/$defs/__schema17"
+                      }
+                    },
+                    "required": [
+                      "evidence_id",
+                      "subject",
+                      "provider",
+                      "analysis_profile",
+                      "predicate_type",
+                      "operation",
+                      "parameters",
+                      "raw_result",
+                      "normalized_result",
+                      "confidence",
+                      "authority",
+                      "environment",
+                      "limitations",
+                      "locations",
+                      "evidence_links"
+                    ],
+                    "additionalProperties": false,
+                    "description": "Evidence record produced by this operation."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "evidence"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "__schema1": {
+            "type": "string",
+            "pattern": "^ev_[a-f0-9]{64}$"
+          },
+          "__schema2": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Exact name used by this operation."
+                  },
+                  "digest": {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "$ref": "#/$defs/__schema3"
+                      }
+                    },
+                    "required": [
+                      "sha256"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "hopper",
+                      "analysis-database",
+                      "mach-o",
+                      "elf",
+                      "pe",
+                      "dos-mz",
+                      "dos-com",
+                      "zip",
+                      "ipa",
+                      "apk",
+                      "msix",
+                      "appx",
+                      "asar",
+                      "dmg",
+                      "pkg",
+                      "plist",
+                      "javascript",
+                      "source-map",
+                      "directory",
+                      "file",
+                      "unknown",
+                      "mach-o-universal",
+                      "javascript-bundle",
+                      "entitlements"
+                    ],
+                    "description": "Declared input artifact format."
+                  },
+                  "architecture": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "x86",
+                          "x86_64",
+                          "arm",
+                          "arm64",
+                          "mips"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "local_path": {
+                    "type": "string",
+                    "description": "Local filesystem path for local."
+                  }
+                },
+                "required": [
+                  "name",
+                  "digest",
+                  "format",
+                  "architecture",
+                  "local_path"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema3": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "__schema4": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact name used by this operation."
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version"
+            ]
+          },
+          "__schema5": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "$ref": "#/$defs/__schema6"
+                  },
+                  "parameters": {
+                    "$ref": "#/$defs/__schema7"
+                  },
+                  "digest": {
+                    "$ref": "#/$defs/__schema3"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "parameters",
+                  "digest"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema6": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact name used by this operation."
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version"
+            ]
+          },
+          "__schema7": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "__schema8": {
+            "type": "string",
+            "minLength": 1
+          },
+          "__schema9": {
+            "type": "string",
+            "minLength": 1
+          },
+          "__schema10": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema11"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema11": {},
+          "__schema12": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "derived",
+              "inferred"
+            ]
+          },
+          "__schema13": {
+            "type": "string",
+            "enum": [
+              "shipped-artifact",
+              "controlled-replay",
+              "historical-reference",
+              "external-service",
+              "analyst-inference"
+            ]
+          },
+          "__schema14": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "platform": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "isolation": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "process",
+                      "container",
+                      "virtual-machine"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "platform",
+                  "architecture",
+                  "isolation"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema15": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "__schema16": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "address"
+                    },
+                    "address": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "address"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "address-range"
+                    },
+                    "start": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "end": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "start",
+                    "end"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "artifact-path"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Local filesystem path used by this operation."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "file-offset"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "offset"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "file-offset-range"
+                    },
+                    "start": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "end": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "start",
+                    "end"
+                  ]
+                }
+              ]
+            }
+          },
+          "__schema17": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^ev_[a-f0-9]{64}$"
+            }
+          },
+          "__schema18": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "summary"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "facet"
+                  },
+                  "facet": {
+                    "type": "string",
+                    "enum": [
+                      "mitigations",
+                      "linkage"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "facet"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "$ref": "#/$defs/__schema19"
+                  },
+                  "collection": {
+                    "$ref": "#/$defs/__schema20"
+                  },
+                  "selector": {
+                    "$ref": "#/$defs/__schema21"
+                  }
+                },
+                "required": [
+                  "kind",
+                  "collection",
+                  "selector"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "page"
+                  },
+                  "collection": {
+                    "type": "string",
+                    "enum": [
+                      "sections",
+                      "symbols",
+                      "modules"
+                    ]
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "limit": {
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "kind",
+                  "collection",
+                  "offset",
+                  "limit"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "native"
+                  },
+                  "facet": {
+                    "type": "string",
+                    "enum": [
+                      "procedure",
+                      "pseudocode",
+                      "assembly",
+                      "basic_blocks",
+                      "comments",
+                      "callers",
+                      "callees",
+                      "incoming_references",
+                      "outgoing_references",
+                      "unresolved_calls",
+                      "referenced_strings",
+                      "referenced_names",
+                      "native_api",
+                      "value_flow_summary",
+                      "value_flow_operations",
+                      "value_flow_def_use",
+                      "value_flow_effects",
+                      "value_flow_parameters",
+                      "value_flow_parameter_uses"
+                    ]
+                  },
+                  "offset": {
+                    "default": 0,
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  },
+                  "limit": {
+                    "default": 64,
+                    "type": "integer",
+                    "exclusiveMinimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "kind",
+                  "facet"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "__schema19": {
+            "type": "string",
+            "const": "item"
+          },
+          "__schema20": {
+            "type": "string",
+            "enum": [
+              "sections",
+              "symbols",
+              "modules"
+            ]
+          },
+          "__schema21": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "index"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "description": "Exact name used by this operation."
+                  }
+                },
+                "required": [
+                  "name"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "path": {
+                    "type": "string",
+                    "description": "Exact observed module path or original source-map reference from a module page; an empty reference is valid."
+                  }
+                },
+                "required": [
+                  "path"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "node_id": {
+                    "type": "string",
+                    "pattern": "^jag_node_[a-f0-9]{64}$"
+                  }
+                },
+                "required": [
+                  "node_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "examples": [
+          {
+            "source": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "view": {
+              "kind": "summary"
+            }
+          },
+          {
+            "source": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "view": {
+              "kind": "item",
+              "collection": "sections",
+              "selector": {
+                "name": ".text"
+              }
+            }
+          },
+          {
+            "source": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "view": {
+              "kind": "native",
+              "facet": "value_flow_operations",
+              "offset": 0,
+              "limit": 32
+            }
+          },
+          {
+            "source": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            },
+            "view": {
+              "kind": "page",
+              "collection": "modules",
+              "offset": 0,
+              "limit": 32
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "inspect_pe_resources"
+    },
+    {
+      "name": "inspect_evm_interface"
+    },
+    {
+      "name": "inspect_recorded_crash"
+    },
+    {
+      "name": "inspect_firmware_regions"
+    },
+    {
+      "name": "extract_firmware"
+    },
+    {
+      "name": "trace_web_module_imports"
+    },
+    {
+      "name": "trace_web_source_location"
+    },
+    {
+      "name": "observe_web_execution"
+    },
+    {
+      "name": "inspect_web_event_listeners"
+    },
+    {
+      "name": "inspect_web_network_capture"
+    },
+    {
+      "name": "recover_javascript_sources"
+    },
+    {
+      "name": "inspect_adb_client"
+    },
+    {
+      "name": "list_adb_devices"
+    },
+    {
+      "name": "inspect_adb_device"
+    },
+    {
+      "name": "list_adb_packages"
+    },
+    {
+      "name": "pull_adb_package"
+    },
+    {
+      "name": "read_adb_logcat"
+    },
+    {
+      "name": "inspect_adb_package"
+    },
+    {
+      "name": "pull_adb_file"
+    },
+    {
+      "name": "push_adb_file"
+    },
+    {
+      "name": "capture_adb_screen"
+    },
+    {
+      "name": "list_adb_processes"
+    },
+    {
+      "name": "list_adb_directory"
+    },
+    {
+      "name": "list_adb_features"
+    },
+    {
+      "name": "list_adb_services"
+    },
+    {
+      "name": "inspect_adb_display"
+    },
+    {
+      "name": "inspect_adb_window"
+    },
+    {
+      "name": "read_adb_setting"
+    },
+    {
+      "name": "collect_adb_bugreport"
+    },
+    {
+      "name": "resolve_adb_packages"
+    },
+    {
+      "name": "install_adb_package"
+    },
+    {
+      "name": "uninstall_adb_package"
+    },
+    {
+      "name": "start_adb_app"
+    },
+    {
+      "name": "start_adb_activity"
+    },
+    {
+      "name": "stop_adb_app"
+    },
+    {
+      "name": "inspect_apktool_client"
+    },
+    {
+      "name": "decode_android_resources"
+    },
+    {
+      "name": "export_web_scripts"
+    },
+    {
+      "name": "list_browser_targets"
+    },
+    {
+      "name": "inspect_web_page"
+    },
+    {
+      "name": "analyze_web_bundle"
+    },
+    {
+      "name": "observe_web_session"
+    },
+    {
+      "name": "discover_webmcp_tools"
+    },
+    {
+      "name": "compare_web_captures"
+    },
+    {
+      "name": "capture_web_screenshot"
+    },
+    {
+      "name": "compare_web_screenshots"
+    },
+    {
+      "name": "capture_browser_scenario"
+    },
+    {
+      "name": "list_electron_targets"
+    },
+    {
+      "name": "inspect_electron_page"
+    },
+    {
+      "name": "analyze_javascript_application",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "input_path": {
+            "$ref": "#/$defs/__schema0",
+            "description": "Local filesystem path for input."
+          },
+          "format": {
+            "$ref": "#/$defs/__schema1",
+            "description": "Declared input artifact format."
+          },
+          "integrity_policy": {
+            "$ref": "#/$defs/__schema2"
+          },
+          "max_heap_mb": {
+            "$ref": "#/$defs/__schema3",
+            "description": "Maximum V8 old-space heap in MiB for the isolated JavaScript source analyzer; defaults to 1024. This does not change the CLI/MCP process heap."
+          },
+          "analysis_timeout_ms": {
+            "$ref": "#/$defs/__schema5",
+            "description": "Maximum startup, analysis and transfer time per JavaScript source, in milliseconds; defaults to 300000. On timeout, return collected partial Evidence and stop the analysis."
+          },
+          "detail": {
+            "$ref": "#/$defs/__schema7",
+            "description": "complete returns the complete analysis Evidence inline. summary retains that complete Evidence in this session and returns its inspect_analysis_view summary; inspect pages, items or facets through normalized_result.parent_evidence_id."
+          }
+        },
+        "required": [
+          "input_path"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[^\\x00]*$"
+          },
+          "__schema1": {
+            "default": "auto",
+            "type": "string",
+            "enum": [
+              "auto",
+              "asar",
+              "directory"
+            ]
+          },
+          "__schema2": {
+            "default": "fail",
+            "type": "string",
+            "enum": [
+              "fail",
+              "record-and-continue"
+            ]
+          },
+          "__schema3": {
+            "description": "Maximum V8 old-space heap in MiB for the isolated JavaScript source analyzer; defaults to 1024. This does not change the CLI/MCP process heap.",
+            "$ref": "#/$defs/__schema4"
+          },
+          "__schema4": {
+            "type": "integer",
+            "minimum": 128,
+            "maximum": 16384
+          },
+          "__schema5": {
+            "description": "Maximum startup, analysis and transfer time per JavaScript source, in milliseconds; defaults to 300000. On timeout, return collected partial Evidence and stop the analysis.",
+            "$ref": "#/$defs/__schema6"
+          },
+          "__schema6": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 2147483647
+          },
+          "__schema7": {
+            "default": "complete",
+            "description": "complete returns the complete analysis Evidence inline. summary retains that complete Evidence in this session and returns its inspect_analysis_view summary; inspect pages, items or facets through normalized_result.parent_evidence_id.",
+            "$ref": "#/$defs/__schema8"
+          },
+          "__schema8": {
+            "type": "string",
+            "enum": [
+              "complete",
+              "summary"
+            ]
+          }
+        },
+        "examples": [
+          {
+            "input_path": "/Applications/Example.app/Contents/Resources/app.asar",
+            "format": "auto",
+            "integrity_policy": "fail"
+          },
+          {
+            "input_path": "/Applications/Example.app/Contents/Resources/app.asar",
+            "detail": "summary"
+          }
+        ]
+      }
+    },
+    {
+      "name": "reconcile_javascript_runtime"
+    },
+    {
+      "name": "capture_electron_scenario"
+    },
+    {
+      "name": "list_javascript_runtime_targets"
+    },
+    {
+      "name": "observe_javascript_runtime"
+    },
+    {
+      "name": "trace_application_feature",
+      "inputSchema": {
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "properties": {
+          "native_observations": {
+            "$ref": "#/$defs/__schema0"
+          },
+          "seed": {
+            "$ref": "#/$defs/__schema19"
+          },
+          "direction": {
+            "$ref": "#/$defs/__schema20",
+            "description": "Direction in which to traverse or compare relationships."
+          },
+          "application": {
+            "$ref": "#/$defs/__schema21"
+          }
+        },
+        "required": [
+          "seed",
+          "application"
+        ],
+        "additionalProperties": false,
+        "$defs": {
+          "__schema0": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/__schema1"
+            }
+          },
+          "__schema1": {
+            "type": "object",
+            "properties": {
+              "evidence_id": {
+                "$ref": "#/$defs/__schema2",
+                "description": "Stable identifier of the recorded Evidence observation."
+              },
+              "subject": {
+                "$ref": "#/$defs/__schema3"
+              },
+              "provider": {
+                "$ref": "#/$defs/__schema5"
+              },
+              "analysis_profile": {
+                "$ref": "#/$defs/__schema6"
+              },
+              "predicate_type": {
+                "$ref": "#/$defs/__schema9"
+              },
+              "operation": {
+                "$ref": "#/$defs/__schema10"
+              },
+              "parameters": {
+                "$ref": "#/$defs/__schema8"
+              },
+              "raw_result": {
+                "$ref": "#/$defs/__schema11"
+              },
+              "normalized_result": {
+                "$ref": "#/$defs/__schema12"
+              },
+              "confidence": {
+                "$ref": "#/$defs/__schema13"
+              },
+              "authority": {
+                "$ref": "#/$defs/__schema14"
+              },
+              "environment": {
+                "$ref": "#/$defs/__schema15"
+              },
+              "limitations": {
+                "$ref": "#/$defs/__schema16"
+              },
+              "locations": {
+                "$ref": "#/$defs/__schema17"
+              },
+              "evidence_links": {
+                "$ref": "#/$defs/__schema18"
+              }
+            },
+            "required": [
+              "evidence_id",
+              "subject",
+              "provider",
+              "analysis_profile",
+              "predicate_type",
+              "operation",
+              "parameters",
+              "raw_result",
+              "normalized_result",
+              "confidence",
+              "authority",
+              "environment",
+              "limitations",
+              "locations",
+              "evidence_links"
+            ],
+            "additionalProperties": false
+          },
+          "__schema2": {
+            "type": "string",
+            "pattern": "^ev_[a-f0-9]{64}$"
+          },
+          "__schema3": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Exact name used by this operation."
+                  },
+                  "digest": {
+                    "type": "object",
+                    "properties": {
+                      "sha256": {
+                        "$ref": "#/$defs/__schema4"
+                      }
+                    },
+                    "required": [
+                      "sha256"
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "hopper",
+                      "analysis-database",
+                      "mach-o",
+                      "elf",
+                      "pe",
+                      "dos-mz",
+                      "dos-com",
+                      "zip",
+                      "ipa",
+                      "apk",
+                      "msix",
+                      "appx",
+                      "asar",
+                      "dmg",
+                      "pkg",
+                      "plist",
+                      "javascript",
+                      "source-map",
+                      "directory",
+                      "file",
+                      "unknown",
+                      "mach-o-universal",
+                      "javascript-bundle",
+                      "entitlements"
+                    ],
+                    "description": "Declared input artifact format."
+                  },
+                  "architecture": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "x86",
+                          "x86_64",
+                          "arm",
+                          "arm64",
+                          "mips"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "local_path": {
+                    "type": "string",
+                    "description": "Local filesystem path for local."
+                  }
+                },
+                "required": [
+                  "name",
+                  "digest",
+                  "format",
+                  "architecture",
+                  "local_path"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema4": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "__schema5": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact name used by this operation."
+              },
+              "version": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version"
+            ]
+          },
+          "__schema6": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "$ref": "#/$defs/__schema7"
+                  },
+                  "parameters": {
+                    "$ref": "#/$defs/__schema8"
+                  },
+                  "digest": {
+                    "$ref": "#/$defs/__schema4"
+                  }
+                },
+                "required": [
+                  "provider",
+                  "parameters",
+                  "digest"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema7": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Exact name used by this operation."
+              },
+              "version": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "version"
+            ]
+          },
+          "__schema8": {
+            "type": "object",
+            "additionalProperties": {}
+          },
+          "__schema9": {
+            "type": "string",
+            "minLength": 1
+          },
+          "__schema10": {
+            "type": "string",
+            "minLength": 1
+          },
+          "__schema11": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema12"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema12": {},
+          "__schema13": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "derived",
+              "inferred"
+            ]
+          },
+          "__schema14": {
+            "type": "string",
+            "enum": [
+              "shipped-artifact",
+              "controlled-replay",
+              "historical-reference",
+              "external-service",
+              "analyst-inference"
+            ]
+          },
+          "__schema15": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "platform": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "architecture": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "isolation": {
+                    "type": "string",
+                    "enum": [
+                      "none",
+                      "process",
+                      "container",
+                      "virtual-machine"
+                    ]
+                  }
+                },
+                "required": [
+                  "id",
+                  "platform",
+                  "architecture",
+                  "isolation"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "__schema16": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "__schema17": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "address"
+                    },
+                    "address": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "address"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "address-range"
+                    },
+                    "start": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "end": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "start",
+                    "end"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "artifact-path"
+                    },
+                    "path": {
+                      "type": "string",
+                      "minLength": 1,
+                      "description": "Local filesystem path used by this operation."
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "path"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "file-offset"
+                    },
+                    "offset": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "offset"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "kind": {
+                      "type": "string",
+                      "const": "file-offset-range"
+                    },
+                    "start": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "end": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "kind",
+                    "start",
+                    "end"
+                  ]
+                }
+              ]
+            }
+          },
+          "__schema18": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^ev_[a-f0-9]{64}$"
+            }
+          },
+          "__schema19": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "node-id",
+                      "route",
+                      "string",
+                      "api",
+                      "channel",
+                      "module",
+                      "native-export"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "match": {
+                    "default": null,
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "enum": [
+                          "exact",
+                          "contains"
+                        ]
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "case_sensitive": {
+                    "default": false,
+                    "type": "boolean",
+                    "description": "Whether text matching distinguishes uppercase and lowercase."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "route",
+                      "string",
+                      "api",
+                      "channel",
+                      "module",
+                      "native-export"
+                    ]
+                  },
+                  "value": {
+                    "type": "string",
+                    "const": ""
+                  },
+                  "match": {
+                    "type": "string",
+                    "const": "exact"
+                  },
+                  "case_sensitive": {
+                    "default": false,
+                    "type": "boolean",
+                    "description": "Whether text matching distinguishes uppercase and lowercase."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "value",
+                  "match"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          },
+          "__schema20": {
+            "default": "both",
+            "type": "string",
+            "enum": [
+              "outgoing",
+              "incoming",
+              "both"
+            ]
+          },
+          "__schema21": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/__schema1"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "retained-evidence"
+                  },
+                  "evidence_id": {
+                    "type": "string",
+                    "pattern": "^ev_[a-f0-9]{64}$",
+                    "description": "Stable identifier of the recorded Evidence observation."
+                  }
+                },
+                "required": [
+                  "kind",
+                  "evidence_id"
+                ],
+                "additionalProperties": false
+              }
+            ]
+          }
+        },
+        "examples": [
+          {
+            "application": {
+              "kind": "retained-evidence",
+              "evidence_id": "ev_2a6371cd2a7665bdad6d37d9b3a69da558e9882a0696d195f1f1a7707f14b5e5"
+            },
+            "seed": {
+              "kind": "module",
+              "value": "renderer.js",
+              "match": "exact",
+              "case_sensitive": false
+            },
+            "direction": "both"
+          }
+        ]
+      }
+    },
+    {
+      "name": "trace_javascript_semantics"
+    },
+    {
+      "name": "compare_application_versions"
+    },
+    {
+      "name": "compare_source_to_bundle"
+    },
+    {
+      "name": "compare_javascript_export_shapes"
+    },
+    {
+      "name": "build_reconstruction_obligation_ledger"
+    },
+    {
+      "name": "evaluate_reconstruction_coverage"
+    },
+    {
+      "name": "project_android_application_graph"
+    },
+    {
+      "name": "project_apple_application_graph"
+    },
+    {
+      "name": "open_binary"
+    },
+    {
+      "name": "close_binary"
+    },
+    {
+      "name": "binary_session"
+    },
+    {
+      "name": "export_evidence_bundle"
+    },
+    {
+      "name": "import_evidence_bundle"
+    },
+    {
+      "name": "get_evidence_bundle"
+    },
+    {
+      "name": "capture_process_scenario"
+    },
+    {
+      "name": "compare_process_captures"
+    },
+    {
+      "name": "compare_artifacts"
+    },
+    {
+      "name": "compare_functions"
+    },
+    {
+      "name": "compare_bundles"
+    },
+    {
+      "name": "find_changed_behavior"
+    },
+    {
+      "name": "build_call_path"
+    },
+    {
+      "name": "correlate_static_and_runtime"
+    },
+    {
+      "name": "verify_reconstruction"
+    },
+    {
+      "name": "list_unknowns"
+    },
+    {
+      "name": "record_unknown"
+    },
+    {
+      "name": "update_unknown"
+    },
+    {
+      "name": "verify_unknown_resolution"
+    },
+    {
+      "name": "get_navigation_context"
+    },
+    {
+      "name": "inspect_address_context"
+    }
+  ],
+  "scope": "initialize and tools/list only; no targets or private data"
+}

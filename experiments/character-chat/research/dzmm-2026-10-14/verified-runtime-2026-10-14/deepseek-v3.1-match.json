@@ -1,0 +1,62 @@
+[
+  {
+    "input": "assembly-final-input.json",
+    "observed_prompt_tokens": 2011,
+    "counts": [
+      1677,
+      299,
+      13,
+      12
+    ],
+    "content_sum": 2001,
+    "observed_minus_content_sum": 10
+  },
+  {
+    "input": "probe-a-input.json",
+    "observed_prompt_tokens": 2022,
+    "counts": [
+      1677,
+      299,
+      13,
+      23
+    ],
+    "content_sum": 2012,
+    "observed_minus_content_sum": 10
+  },
+  {
+    "input": "probe-b-input.json",
+    "observed_prompt_tokens": 2052,
+    "counts": [
+      1677,
+      299,
+      13,
+      54
+    ],
+    "content_sum": 2043,
+    "observed_minus_content_sum": 9
+  },
+  {
+    "input": "probe-c-input.json",
+    "observed_prompt_tokens": 2050,
+    "counts": [
+      1677,
+      299,
+      13,
+      52
+    ],
+    "content_sum": 2041,
+    "observed_minus_content_sum": 9
+  },
+  {
+    "input": "probe-a-repeat-input.json",
+    "observed_prompt_tokens": 2022,
+    "counts": [
+      1677,
+      299,
+      13,
+      23
+    ],
+    "content_sum": 2012,
+    "observed_minus_content_sum": 10
+  }
+]

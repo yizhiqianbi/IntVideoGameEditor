@@ -1,0 +1,1422 @@
+{
+ "source": "Cloudflare D1 hafyoung-stats.hits",
+ "generated_at": "2026-11-22T16:10+08:00",
+ "stats": {
+  "span": [
+   {
+    "n": 2776,
+    "visitors": 121,
+    "mn": 1793516657094,
+    "mx": 1795334681800
+   }
+  ],
+  "by_k": [
+   {
+    "k": "bot",
+    "n": 2447
+   },
+   {
+    "k": "pv",
+    "n": 165
+   },
+   {
+    "k": "end",
+    "n": 135
+   },
+   {
+    "k": "ev",
+    "n": 29
+   }
+  ],
+  "daily": [
+   {
+    "d": "2026-11-01",
+    "pv": 7,
+    "uv": 3,
+    "ev": 0,
+    "bot": 66
+   },
+   {
+    "d": "2026-11-02",
+    "pv": 20,
+    "uv": 10,
+    "ev": 11,
+    "bot": 247
+   },
+   {
+    "d": "2026-11-03",
+    "pv": 8,
+    "uv": 6,
+    "ev": 0,
+    "bot": 130
+   },
+   {
+    "d": "2026-11-04",
+    "pv": 13,
+    "uv": 10,
+    "ev": 3,
+    "bot": 166
+   },
+   {
+    "d": "2026-11-05",
+    "pv": 7,
+    "uv": 4,
+    "ev": 0,
+    "bot": 150
+   },
+   {
+    "d": "2026-11-06",
+    "pv": 8,
+    "uv": 8,
+    "ev": 0,
+    "bot": 81
+   },
+   {
+    "d": "2026-11-07",
+    "pv": 2,
+    "uv": 2,
+    "ev": 0,
+    "bot": 78
+   },
+   {
+    "d": "2026-11-08",
+    "pv": 0,
+    "uv": 0,
+    "ev": 0,
+    "bot": 92
+   },
+   {
+    "d": "2026-11-09",
+    "pv": 8,
+    "uv": 5,
+    "ev": 3,
+    "bot": 266
+   },
+   {
+    "d": "2026-11-10",
+    "pv": 11,
+    "uv": 8,
+    "ev": 0,
+    "bot": 92
+   },
+   {
+    "d": "2026-11-11",
+    "pv": 14,
+    "uv": 8,
+    "ev": 0,
+    "bot": 133
+   },
+   {
+    "d": "2026-11-12",
+    "pv": 8,
+    "uv": 8,
+    "ev": 0,
+    "bot": 110
+   },
+   {
+    "d": "2026-11-13",
+    "pv": 11,
+    "uv": 7,
+    "ev": 9,
+    "bot": 71
+   },
+   {
+    "d": "2026-11-14",
+    "pv": 5,
+    "uv": 4,
+    "ev": 0,
+    "bot": 82
+   },
+   {
+    "d": "2026-11-15",
+    "pv": 3,
+    "uv": 3,
+    "ev": 0,
+    "bot": 69
+   },
+   {
+    "d": "2026-11-16",
+    "pv": 7,
+    "uv": 5,
+    "ev": 0,
+    "bot": 108
+   },
+   {
+    "d": "2026-11-17",
+    "pv": 13,
+    "uv": 9,
+    "ev": 1,
+    "bot": 69
+   },
+   {
+    "d": "2026-11-18",
+    "pv": 3,
+    "uv": 3,
+    "ev": 0,
+    "bot": 102
+   },
+   {
+    "d": "2026-11-19",
+    "pv": 4,
+    "uv": 3,
+    "ev": 1,
+    "bot": 110
+   },
+   {
+    "d": "2026-11-20",
+    "pv": 8,
+    "uv": 8,
+    "ev": 0,
+    "bot": 83
+   },
+   {
+    "d": "2026-11-21",
+    "pv": 2,
+    "uv": 2,
+    "ev": 1,
+    "bot": 81
+   },
+   {
+    "d": "2026-11-22",
+    "pv": 3,
+    "uv": 1,
+    "ev": 0,
+    "bot": 61
+   }
+  ],
+  "paths": [
+   {
+    "path": "/",
+    "pv": 82,
+    "uv": 63,
+    "avg_secs": null
+   },
+   {
+    "path": "/zh/",
+    "pv": 45,
+    "uv": 37,
+    "avg_secs": null
+   },
+   {
+    "path": "/guides/oem-portable-air-conditioner-manufacturer/",
+    "pv": 7,
+    "uv": 6,
+    "avg_secs": null
+   },
+   {
+    "path": "/models/cog-2/",
+    "pv": 6,
+    "uv": 6,
+    "avg_secs": null
+   },
+   {
+    "path": "/models/pog-2/",
+    "pv": 5,
+    "uv": 4,
+    "avg_secs": null
+   },
+   {
+    "path": "/models/pog-1/",
+    "pv": 3,
+    "uv": 2,
+    "avg_secs": null
+   },
+   {
+    "path": "/models/c18/",
+    "pv": 3,
+    "uv": 3,
+    "avg_secs": null
+   },
+   {
+    "path": "/ja/",
+    "pv": 3,
+    "uv": 3,
+    "avg_secs": null
+   },
+   {
+    "path": "/guides/portable-air-conditioner-buying-guide/",
+    "pv": 3,
+    "uv": 3,
+    "avg_secs": null
+   },
+   {
+    "path": "/guides/tent-air-conditioner-setup/",
+    "pv": 2,
+    "uv": 2,
+    "avg_secs": null
+   },
+   {
+    "path": "/de/",
+    "pv": 2,
+    "uv": 2,
+    "avg_secs": null
+   },
+   {
+    "path": "/ar/",
+    "pv": 2,
+    "uv": 1,
+    "avg_secs": null
+   },
+   {
+    "path": "/ru/",
+    "pv": 1,
+    "uv": 1,
+    "avg_secs": null
+   },
+   {
+    "path": "/fr/",
+    "pv": 1,
+    "uv": 1,
+    "avg_secs": null
+   }
+  ],
+  "events": [
+   {
+    "name": "inquiry",
+    "n": 9,
+    "uv": 2
+   },
+   {
+    "name": "film",
+    "n": 8,
+    "uv": 2
+   },
+   {
+    "name": "play:film",
+    "n": 7,
+    "uv": 7
+   },
+   {
+    "name": "quote",
+    "n": 4,
+    "uv": 3
+   },
+   {
+    "name": "email",
+    "n": 1,
+    "uv": 1
+   }
+  ],
+  "refs": [
+   {
+    "r": "(direct)",
+    "n": 124
+   },
+   {
+    "r": "www.google.com",
+    "n": 15
+   },
+   {
+    "r": "weixin110.qq.com",
+    "n": 7
+   },
+   {
+    "r": "www.bing.com",
+    "n": 5
+   },
+   {
+    "r": "cn.bing.com",
+    "n": 5
+   },
+   {
+    "r": "www.google.com.hk",
+    "n": 3
+   },
+   {
+    "r": "kml-dtmachine-100002882-prod-vscode-service.kce-aip-wlf1-hb2az1.corp.kuaishou.com",
+    "n": 3
+   },
+   {
+    "r": "m.baidu.com",
+    "n": 2
+   },
+   {
+    "r": "teams.public.onecdn.static.microsoft",
+    "n": 1
+   }
+  ],
+  "countries": [
+   {
+    "cc": "US",
+    "n": 32
+   },
+   {
+    "cc": "CN",
+    "n": 30
+   },
+   {
+    "cc": "SG",
+    "n": 21
+   },
+   {
+    "cc": "FR",
+    "n": 12
+   },
+   {
+    "cc": "HK",
+    "n": 11
+   },
+   {
+    "cc": "PL",
+    "n": 10
+   },
+   {
+    "cc": "GB",
+    "n": 10
+   },
+   {
+    "cc": "DE",
+    "n": 8
+   },
+   {
+    "cc": "NL",
+    "n": 7
+   },
+   {
+    "cc": "JP",
+    "n": 5
+   },
+   {
+    "cc": "AU",
+    "n": 3
+   },
+   {
+    "cc": "MY",
+    "n": 2
+   },
+   {
+    "cc": "IL",
+    "n": 2
+   },
+   {
+    "cc": "AR",
+    "n": 2
+   },
+   {
+    "cc": "UA",
+    "n": 1
+   }
+  ],
+  "devices": [
+   {
+    "dev": "desktop",
+    "n": 114
+   },
+   {
+    "dev": "mobile",
+    "n": 49
+   },
+   {
+    "dev": "tablet",
+    "n": 2
+   }
+  ],
+  "langs": [
+   {
+    "lang": "en",
+    "n": 111
+   },
+   {
+    "lang": "zh-Hans",
+    "n": 45
+   },
+   {
+    "lang": "ja",
+    "n": 3
+   },
+   {
+    "lang": "de",
+    "n": 2
+   },
+   {
+    "lang": "ar",
+    "n": 2
+   },
+   {
+    "lang": "ru",
+    "n": 1
+   },
+   {
+    "lang": "fr",
+    "n": 1
+   }
+  ],
+  "utms": [
+   {
+    "utm": "chatgpt.com",
+    "n": 30
+   }
+  ],
+  "bots": [
+   {
+    "name": "other",
+    "n": 562,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "bingbot",
+    "n": 506,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "PetalBot",
+    "n": 300,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "Googlebot",
+    "n": 277,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "OAI-SearchBot",
+    "n": 123,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "Amazonbot",
+    "n": 118,
+    "f": "2026-11-01",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "curl",
+    "n": 100,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "ClaudeBot",
+    "n": 92,
+    "f": "2026-11-01",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "ChatGPT-User",
+    "n": 69,
+    "f": "2026-11-03",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "GPTBot",
+    "n": 55,
+    "f": "2026-11-01",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "SemrushBot",
+    "n": 42,
+    "f": "2026-11-07",
+    "l": "2026-11-12"
+   },
+   {
+    "name": "AhrefsBot",
+    "n": 42,
+    "f": "2026-11-04",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "YandexBot",
+    "n": 30,
+    "f": "2026-11-07",
+    "l": "2026-11-19"
+   },
+   {
+    "name": "facebookexternalhit",
+    "n": 28,
+    "f": "2026-11-02",
+    "l": "2026-11-22"
+   },
+   {
+    "name": "Applebot",
+    "n": 24,
+    "f": "2026-11-08",
+    "l": "2026-11-16"
+   },
+   {
+    "name": "MJ12bot",
+    "n": 16,
+    "f": "2026-11-16",
+    "l": "2026-11-16"
+   },
+   {
+    "name": "PerplexityBot",
+    "n": 14,
+    "f": "2026-11-01",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "python",
+    "n": 11,
+    "f": "2026-11-02",
+    "l": "2026-11-15"
+   },
+   {
+    "name": "Baiduspider",
+    "n": 9,
+    "f": "2026-11-01",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "meta-externalagent",
+    "n": 8,
+    "f": "2026-11-14",
+    "l": "2026-11-15"
+   },
+   {
+    "name": "HeadlessChrome",
+    "n": 8,
+    "f": "2026-11-02",
+    "l": "2026-11-18"
+   },
+   {
+    "name": "DuckDuckBot",
+    "n": 5,
+    "f": "2026-11-01",
+    "l": "2026-11-18"
+   },
+   {
+    "name": "Go-http-client",
+    "n": 4,
+    "f": "2026-11-02",
+    "l": "2026-11-13"
+   },
+   {
+    "name": "DotBot",
+    "n": 2,
+    "f": "2026-11-20",
+    "l": "2026-11-21"
+   },
+   {
+    "name": "WhatsApp",
+    "n": 1,
+    "f": "2026-11-10",
+    "l": "2026-11-10"
+   },
+   {
+    "name": "CCBot",
+    "n": 1,
+    "f": "2026-11-11",
+    "l": "2026-11-11"
+   }
+  ],
+  "secs": [
+   {
+    "n": 135,
+    "avg": 87.9,
+    "mn": 0,
+    "mx": 3600
+   }
+  ],
+  "pv_per_visitor": [
+   {
+    "pv": 165,
+    "uv": 116,
+    "ppv": 1.42
+   }
+  ],
+  "status": [
+   {
+    "status": null,
+    "n": 329
+   },
+   {
+    "status": 200,
+    "n": 1970
+   },
+   {
+    "status": 301,
+    "n": 266
+   },
+   {
+    "status": 304,
+    "n": 32
+   },
+   {
+    "status": 308,
+    "n": 56
+   },
+   {
+    "status": 404,
+    "n": 122
+   },
+   {
+    "status": 405,
+    "n": 1
+   }
+  ],
+  "hourly": [
+   {
+    "h": 0,
+    "pv": 8
+   },
+   {
+    "h": 1,
+    "pv": 10
+   },
+   {
+    "h": 2,
+    "pv": 7
+   },
+   {
+    "h": 3,
+    "pv": 2
+   },
+   {
+    "h": 4,
+    "pv": 3
+   },
+   {
+    "h": 5,
+    "pv": 8
+   },
+   {
+    "h": 6,
+    "pv": 3
+   },
+   {
+    "h": 7,
+    "pv": 3
+   },
+   {
+    "h": 8,
+    "pv": 7
+   },
+   {
+    "h": 9,
+    "pv": 3
+   },
+   {
+    "h": 10,
+    "pv": 10
+   },
+   {
+    "h": 11,
+    "pv": 7
+   },
+   {
+    "h": 12,
+    "pv": 2
+   },
+   {
+    "h": 13,
+    "pv": 7
+   },
+   {
+    "h": 14,
+    "pv": 10
+   },
+   {
+    "h": 15,
+    "pv": 14
+   },
+   {
+    "h": 16,
+    "pv": 12
+   },
+   {
+    "h": 17,
+    "pv": 14
+   },
+   {
+    "h": 18,
+    "pv": 10
+   },
+   {
+    "h": 19,
+    "pv": 7
+   },
+   {
+    "h": 20,
+    "pv": 5
+   },
+   {
+    "h": 21,
+    "pv": 5
+   },
+   {
+    "h": 22,
+    "pv": 2
+   },
+   {
+    "h": 23,
+    "pv": 6
+   }
+  ]
+ },
+ "stats2": {
+  "p404": [
+   {
+    "path": "/pt/image_generated_20260512_150154_841_0_f24029ca-651a-4cb3-bdf1-305d3fbc055f.jpg",
+    "n": 5
+   },
+   {
+    "path": "/es/%E4%BA%A7%E5%93%811.png",
+    "n": 5
+   },
+   {
+    "path": "/ru/Icon-28.png",
+    "n": 4
+   },
+   {
+    "path": "/pt/hy%E8%8B%B1%E6%96%87%E4%B8%9D%E5%8D%B0(1).png",
+    "n": 4
+   },
+   {
+    "path": "/pt/Icon-28.png",
+    "n": 4
+   },
+   {
+    "path": "/es/Icon-22.png",
+    "n": 4
+   },
+   {
+    "path": "/es/Icon-1102.png",
+    "n": 4
+   },
+   {
+    "path": "/es/%E6%8B%B7%E8%B4%9D.jpg",
+    "n": 4
+   },
+   {
+    "path": "/ar/image_generated_20260512_150154_841_0_f24029ca-651a-4cb3-bdf1-305d3fbc055f.jpg",
+    "n": 4
+   },
+   {
+    "path": "/ar/%D9%85%D9%86%D8%AA%D8%AC1.png",
+    "n": 4
+   },
+   {
+    "path": "/ru/image_generated_20260512_150154_841_0_f24029ca-651a-4cb3-bdf1-305d3fbc055f.jpg",
+    "n": 3
+   },
+   {
+    "path": "/pt/Icon-1114.png",
+    "n": 3
+   },
+   {
+    "path": "/fr/produit1.png",
+    "n": 3
+   },
+   {
+    "path": "/es/image_generated_20260512_150154_841_0_f24029ca-651a-4cb3-bdf1-305d3fbc055f.jpg",
+    "n": 3
+   },
+   {
+    "path": "/es/Icon-16.png",
+    "n": 3
+   }
+  ],
+  "p3xx": [
+   {
+    "status": 301,
+    "path": "/zh/productList.html",
+    "n": 21
+   },
+   {
+    "status": 301,
+    "path": "/ar/category/K7.html",
+    "n": 11
+   },
+   {
+    "status": 301,
+    "path": "/de/productList.html",
+    "n": 11
+   },
+   {
+    "status": 301,
+    "path": "/zh/about-us.html",
+    "n": 9
+   },
+   {
+    "status": 301,
+    "path": "/zh/category/Space-Cool-C18.html",
+    "n": 9
+   },
+   {
+    "status": 301,
+    "path": "/ru/news.html",
+    "n": 8
+   },
+   {
+    "status": 308,
+    "path": "/pt",
+    "n": 8
+   },
+   {
+    "status": 301,
+    "path": "/ja/category/K5.html",
+    "n": 7
+   },
+   {
+    "status": 301,
+    "path": "/ru/products/Portable-Air-Conditioner-7.html",
+    "n": 7
+   },
+   {
+    "status": 308,
+    "path": "/es",
+    "n": 7
+   },
+   {
+    "status": 301,
+    "path": "/de/products/Portable-Air-Conditioner-11.html",
+    "n": 6
+   },
+   {
+    "status": 301,
+    "path": "/zh/products/Portable-Air-Conditioner-7.html",
+    "n": 6
+   }
+  ],
+  "botpaths": [
+   {
+    "path": "/robots.txt",
+    "n": 525
+   },
+   {
+    "path": "/",
+    "n": 450
+   },
+   {
+    "path": "/zh/",
+    "n": 176
+   },
+   {
+    "path": "/sitemap.xml",
+    "n": 132
+   },
+   {
+    "path": "/guides/tent-air-conditioner-setup/",
+    "n": 68
+   },
+   {
+    "path": "/guides/portable-air-conditioner-buying-guide/",
+    "n": 64
+   },
+   {
+    "path": "/es/",
+    "n": 56
+   },
+   {
+    "path": "/guides/oem-portable-air-conditioner-manufacturer/",
+    "n": 54
+   },
+   {
+    "path": "/ar/",
+    "n": 54
+   },
+   {
+    "path": "/de/",
+    "n": 52
+   },
+   {
+    "path": "/ja/",
+    "n": 51
+   },
+   {
+    "path": "/ru/",
+    "n": 49
+   },
+   {
+    "path": "/models/pog-2/",
+    "n": 49
+   },
+   {
+    "path": "/models/cog-2/",
+    "n": 47
+   },
+   {
+    "path": "/models/pog-1/",
+    "n": 45
+   }
+  ],
+  "ev_pages": [
+   {
+    "path": "/",
+    "name": "inquiry",
+    "n": 9
+   },
+   {
+    "path": "/zh/",
+    "name": "film",
+    "n": 8
+   },
+   {
+    "path": "/zh/",
+    "name": "play:film",
+    "n": 5
+   },
+   {
+    "path": "/zh/",
+    "name": "quote",
+    "n": 2
+   },
+   {
+    "path": "/",
+    "name": "play:film",
+    "n": 1
+   },
+   {
+    "path": "/",
+    "name": "quote",
+    "n": 1
+   },
+   {
+    "path": "/ar/",
+    "name": "quote",
+    "n": 1
+   },
+   {
+    "path": "/fr/",
+    "name": "play:film",
+    "n": 1
+   },
+   {
+    "path": "/zh/",
+    "name": "email",
+    "n": 1
+   }
+  ],
+  "median_secs": [
+   {
+    "secs": 0,
+    "n": 6
+   },
+   {
+    "secs": 1,
+    "n": 11
+   },
+   {
+    "secs": 2,
+    "n": 12
+   },
+   {
+    "secs": 3,
+    "n": 5
+   },
+   {
+    "secs": 4,
+    "n": 4
+   },
+   {
+    "secs": 5,
+    "n": 7
+   },
+   {
+    "secs": 6,
+    "n": 1
+   },
+   {
+    "secs": 7,
+    "n": 4
+   },
+   {
+    "secs": 8,
+    "n": 8
+   },
+   {
+    "secs": 9,
+    "n": 3
+   },
+   {
+    "secs": 10,
+    "n": 4
+   },
+   {
+    "secs": 11,
+    "n": 3
+   },
+   {
+    "secs": 12,
+    "n": 4
+   },
+   {
+    "secs": 14,
+    "n": 2
+   },
+   {
+    "secs": 15,
+    "n": 3
+   },
+   {
+    "secs": 16,
+    "n": 1
+   },
+   {
+    "secs": 17,
+    "n": 1
+   },
+   {
+    "secs": 18,
+    "n": 1
+   },
+   {
+    "secs": 19,
+    "n": 1
+   },
+   {
+    "secs": 20,
+    "n": 1
+   },
+   {
+    "secs": 21,
+    "n": 4
+   },
+   {
+    "secs": 22,
+    "n": 2
+   },
+   {
+    "secs": 25,
+    "n": 1
+   },
+   {
+    "secs": 28,
+    "n": 1
+   },
+   {
+    "secs": 30,
+    "n": 1
+   },
+   {
+    "secs": 31,
+    "n": 2
+   },
+   {
+    "secs": 35,
+    "n": 1
+   },
+   {
+    "secs": 37,
+    "n": 2
+   },
+   {
+    "secs": 38,
+    "n": 1
+   },
+   {
+    "secs": 41,
+    "n": 1
+   },
+   {
+    "secs": 42,
+    "n": 1
+   },
+   {
+    "secs": 43,
+    "n": 2
+   },
+   {
+    "secs": 45,
+    "n": 1
+   },
+   {
+    "secs": 46,
+    "n": 1
+   },
+   {
+    "secs": 50,
+    "n": 1
+   },
+   {
+    "secs": 51,
+    "n": 1
+   },
+   {
+    "secs": 59,
+    "n": 1
+   },
+   {
+    "secs": 63,
+    "n": 2
+   },
+   {
+    "secs": 74,
+    "n": 1
+   },
+   {
+    "secs": 75,
+    "n": 1
+   },
+   {
+    "secs": 79,
+    "n": 1
+   },
+   {
+    "secs": 90,
+    "n": 2
+   },
+   {
+    "secs": 104,
+    "n": 1
+   },
+   {
+    "secs": 116,
+    "n": 1
+   },
+   {
+    "secs": 120,
+    "n": 1
+   },
+   {
+    "secs": 123,
+    "n": 1
+   },
+   {
+    "secs": 134,
+    "n": 1
+   },
+   {
+    "secs": 143,
+    "n": 1
+   },
+   {
+    "secs": 175,
+    "n": 1
+   },
+   {
+    "secs": 183,
+    "n": 1
+   },
+   {
+    "secs": 219,
+    "n": 1
+   },
+   {
+    "secs": 223,
+    "n": 1
+   },
+   {
+    "secs": 228,
+    "n": 1
+   },
+   {
+    "secs": 272,
+    "n": 1
+   },
+   {
+    "secs": 292,
+    "n": 1
+   },
+   {
+    "secs": 306,
+    "n": 1
+   },
+   {
+    "secs": 315,
+    "n": 1
+   },
+   {
+    "secs": 363,
+    "n": 1
+   },
+   {
+    "secs": 384,
+    "n": 1
+   },
+   {
+    "secs": 449,
+    "n": 1
+   }
+  ],
+  "return_v": [
+   {
+    "c": 1,
+    "v": 87
+   },
+   {
+    "c": 2,
+    "v": 15
+   },
+   {
+    "c": 3,
+    "v": 10
+   },
+   {
+    "c": 4,
+    "v": 2
+   },
+   {
+    "c": 5,
+    "v": 2
+   }
+  ],
+  "days_active": [
+   {
+    "days": 21
+   }
+  ],
+  "last7": [
+   {
+    "pv": 40,
+    "uv": 30,
+    "ev": 3,
+    "bot": 614
+   }
+  ],
+  "prev7": [
+   {
+    "pv": 60,
+    "uv": 43,
+    "ev": 12,
+    "bot": 823
+   }
+  ],
+  "ai_bots": [
+   {
+    "name": "OAI-SearchBot",
+    "n": 123
+   },
+   {
+    "name": "ClaudeBot",
+    "n": 92
+   },
+   {
+    "name": "ChatGPT-User",
+    "n": 69
+   },
+   {
+    "name": "GPTBot",
+    "n": 55
+   },
+   {
+    "name": "Applebot",
+    "n": 24
+   },
+   {
+    "name": "PerplexityBot",
+    "n": 14
+   },
+   {
+    "name": "meta-externalagent",
+    "n": 8
+   },
+   {
+    "name": "CCBot",
+    "n": 1
+   }
+  ],
+  "search_bots": [
+   {
+    "name": "bingbot",
+    "n": 506
+   },
+   {
+    "name": "PetalBot",
+    "n": 300
+   },
+   {
+    "name": "Googlebot",
+    "n": 277
+   },
+   {
+    "name": "YandexBot",
+    "n": 30
+   },
+   {
+    "name": "Applebot",
+    "n": 24
+   },
+   {
+    "name": "Baiduspider",
+    "n": 9
+   },
+   {
+    "name": "DuckDuckBot",
+    "n": 5
+   }
+  ],
+  "first_pv": [
+   {
+    "d": "2026-11-01",
+    "pv": 165
+   }
+  ],
+  "status_bot": [
+   {
+    "k": "bot",
+    "status": 200,
+    "n": 1970
+   },
+   {
+    "k": "bot",
+    "status": 301,
+    "n": 266
+   },
+   {
+    "k": "pv",
+    "status": null,
+    "n": 165
+   },
+   {
+    "k": "end",
+    "status": null,
+    "n": 135
+   },
+   {
+    "k": "bot",
+    "status": 404,
+    "n": 122
+   },
+   {
+    "k": "bot",
+    "status": 308,
+    "n": 56
+   },
+   {
+    "k": "bot",
+    "status": 304,
+    "n": 32
+   },
+   {
+    "k": "ev",
+    "status": null,
+    "n": 29
+   },
+   {
+    "k": "bot",
+    "status": 405,
+    "n": 1
+   }
+  ],
+  "visitors_by_day_max": [
+   {
+    "d": "2026-11-01",
+    "uv": 116
+   }
+  ],
+  "refs_events": [
+   {
+    "ref": "",
+    "name": "inquiry",
+    "n": 9
+   },
+   {
+    "ref": "",
+    "name": "film",
+    "n": 8
+   },
+   {
+    "ref": "",
+    "name": "play:film",
+    "n": 7
+   },
+   {
+    "ref": "",
+    "name": "quote",
+    "n": 4
+   },
+   {
+    "ref": "",
+    "name": "email",
+    "n": 1
+   }
+  ]
+ }
+}

@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "qiaomu-seo": {
+      "source": "joeseesun/qiaomu-seo",
+      "sourceType": "github",
+      "skillPath": "SKILL.md",
+      "computedHash": "30930b0184594a735d1ddb08442ed921d0d7c04f4ed0234a5b261e17caa73f30"
+    }
+  }
+}

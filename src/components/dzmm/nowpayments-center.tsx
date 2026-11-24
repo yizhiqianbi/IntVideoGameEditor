@@ -212,7 +212,7 @@ export function NowPaymentsCenter({ userId, isGuest, refreshKey = 0, onRequireAc
       <span className={ready ? s.open : s.closed}>{configLoading ? "读取中" : ready ? "可购买" : "暂未开放"}</span></div>
     {!ready && !configLoading && <p className={s.note}>USDT 购买暂未开放，已有会员权益与余额继续保留。</p>}
     {configError && <p className={s.error} role="status">{configError}</p>}
-    <p className={s.rules}>确认付款金额、币种和网络后，用自己的钱包手动转账。链上确认后由服务器开通会员；提前续订会接续当前有效期，不会自动扣款。</p>
+    <details className={s.fold}><summary>转账说明</summary><p className={s.rules}>确认付款金额、币种和网络后，用自己的钱包手动转账。链上确认后由服务器开通会员；提前续订会接续当前有效期，不会自动扣款。</p></details>
     <button type="button" className={s.primary} disabled={!ready || configLoading || working || !intentReady || !!storageError || hasUnresolved} onClick={() => void purchase()}>
       {working ? "正在核对…" : !ready ? "购买暂未开放" : isGuest ? "登录后购买 VIP" : hasUnresolved ? "先核对原购买记录" : `购买 / 续订 · ${plan ? formatDzmmNowPaymentsAmount(plan.amountAtomic, plan.decimals) : ""} USDT`}</button>
     {storageError && <div className={s.error} role="alert"><p>{storageError}</p><button type="button" className={s.outline} disabled={working} onClick={retryStorage}>恢复购买记录</button></div>}

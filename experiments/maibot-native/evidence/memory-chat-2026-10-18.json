@@ -1,0 +1,220 @@
+{
+  "startedAt": "2026-10-18T04:54:54.345Z",
+  "sessionId": "ab72174d-2c71-4621-bd87-fc8fb9a1fa59",
+  "turns": [
+    {
+      "input": "你好，我叫阿舟。我平时最喜欢喝桂花乌龙，不加糖。这个小习惯帮我记一下呀。",
+      "startedAt": "2026-10-18T04:55:03.717Z",
+      "latencyMs": 14033,
+      "status": 202,
+      "ack": {
+        "accepted": true,
+        "requestId": "7f78479b-d0ea-4d6c-ae8b-09b71726c51f"
+      },
+      "newMessages": [
+        {
+          "id": "78a2b7e2-e11d-4046-ba27-db7ae5d883cb",
+          "role": "user",
+          "text": "你好，我叫阿舟。我平时最喜欢喝桂花乌龙，不加糖。这个小习惯帮我记一下呀。",
+          "createdAt": "2026-10-18T04:55:03.721Z",
+          "requestId": "7f78479b-d0ea-4d6c-ae8b-09b71726c51f"
+        },
+        {
+          "id": "6185791d-d363-404c-9689-f3c00e742e0c",
+          "role": "assistant",
+          "text": "你好，我叫阿舟。我平时最喜欢喝桂花乌龙，不加糖。这个小习惯帮我记一下呀。 记住了",
+          "createdAt": "2026-10-18T04:55:14.712Z"
+        }
+      ],
+      "statusAfter": "idle"
+    },
+    {
+      "input": "/clear",
+      "startedAt": "2026-10-18T04:56:13.036Z",
+      "latencyMs": 4011,
+      "status": 202,
+      "ack": {
+        "accepted": true,
+        "requestId": "3d1d3777-0cb1-4303-9f90-bdcb6519ff88"
+      },
+      "newMessages": [
+        {
+          "id": "6ed7fcd0-572c-4681-8023-1b104a2440d9",
+          "role": "user",
+          "text": "/clear",
+          "createdAt": "2026-10-18T04:56:13.040Z",
+          "requestId": "3d1d3777-0cb1-4303-9f90-bdcb6519ff88"
+        },
+        {
+          "id": "6b7500ba-a2d9-4d92-a29c-e2045b64a4cc",
+          "role": "assistant",
+          "text": "你没有权限使用此命令。",
+          "createdAt": "2026-10-18T04:56:13.042Z"
+        }
+      ],
+      "statusAfter": "idle"
+    },
+    {
+      "input": "帮我查一下你的长期记忆里，有没有记下我平时喜欢的茶和糖量？查到再告诉我。",
+      "startedAt": "2026-10-18T04:56:45.957Z",
+      "latencyMs": 20047,
+      "status": 202,
+      "ack": {
+        "accepted": true,
+        "requestId": "d77769f4-0d6e-41ac-8022-4dd30a662538"
+      },
+      "newMessages": [
+        {
+          "id": "d7160d09-e9c2-494a-a934-b8d6306f1998",
+          "role": "user",
+          "text": "帮我查一下你的长期记忆里，有没有记下我平时喜欢的茶和糖量？查到再告诉我。",
+          "createdAt": "2026-10-18T04:56:45.960Z",
+          "requestId": "d77769f4-0d6e-41ac-8022-4dd30a662538"
+        },
+        {
+          "id": "8aa06b06-299a-4018-ab3c-5fd6ef687a62",
+          "role": "assistant",
+          "text": "帮我查一下你的长期记忆里，有没有记下我平时喜欢的茶和糖量？查到再告诉我。 查过了",
+          "createdAt": "2026-10-18T04:57:03.844Z"
+        },
+        {
+          "id": "e6bdc44c-9e94-4a7a-879b-a344662034c1",
+          "role": "assistant",
+          "text": "桂花乌龙不加糖",
+          "createdAt": "2026-10-18T04:57:05.947Z"
+        }
+      ],
+      "statusAfter": "idle"
+    },
+    {
+      "input": "你从长期记忆里帮我查一遍，我平时最喜欢喝什么茶，糖量呢？",
+      "startedAt": "2026-10-18T05:46:16.343Z",
+      "latencyMs": 14025,
+      "status": 202,
+      "ack": {
+        "accepted": true,
+        "requestId": "e9dc94c1-943b-42e1-8031-94bb7d435740"
+      },
+      "newMessages": [
+        {
+          "id": "a0a80682-d1e6-4105-9955-449ada025c17",
+          "role": "user",
+          "text": "你从长期记忆里帮我查一遍，我平时最喜欢喝什么茶，糖量呢？",
+          "createdAt": "2026-10-18T05:46:16.345Z",
+          "requestId": "e9dc94c1-943b-42e1-8031-94bb7d435740"
+        },
+        {
+          "id": "b4cc0f48-0d74-4144-9dd3-7d31ca6f309a",
+          "role": "assistant",
+          "text": "桂花乌龙不加糖，我都快背下来了",
+          "createdAt": "2026-10-18T05:46:27.717Z"
+        }
+      ],
+      "statusAfter": "idle"
+    }
+  ],
+  "session": {
+    "id": "ab72174d-2c71-4621-bd87-fc8fb9a1fa59",
+    "title": "/clear",
+    "characterId": "yume",
+    "createdAt": "2026-10-18T04:54:54.338Z",
+    "updatedAt": "2026-10-18T05:46:27.717Z",
+    "messages": [
+      {
+        "id": "78a2b7e2-e11d-4046-ba27-db7ae5d883cb",
+        "role": "user",
+        "text": "你好，我叫阿舟。我平时最喜欢喝桂花乌龙，不加糖。这个小习惯帮我记一下呀。",
+        "createdAt": "2026-10-18T04:55:03.721Z",
+        "requestId": "7f78479b-d0ea-4d6c-ae8b-09b71726c51f"
+      },
+      {
+        "id": "send_api_1792299314711",
+        "role": "assistant",
+        "text": "记住了",
+        "createdAt": "2026-10-18T04:55:14.711Z"
+      },
+      {
+        "id": "send_api_1792299314714",
+        "role": "assistant",
+        "text": "桂花乌龙不加糖。你那边桂花乌龙是不是特别香啊",
+        "createdAt": "2026-10-18T04:55:14.714Z"
+      },
+      {
+        "id": "6ed7fcd0-572c-4681-8023-1b104a2440d9",
+        "role": "user",
+        "text": "/clear",
+        "createdAt": "2026-10-18T04:56:13.040Z",
+        "requestId": "3d1d3777-0cb1-4303-9f90-bdcb6519ff88"
+      },
+      {
+        "id": "6b7500ba-a2d9-4d92-a29c-e2045b64a4cc",
+        "role": "assistant",
+        "text": "你没有权限使用此命令。",
+        "createdAt": "2026-10-18T04:56:13.042Z"
+      },
+      {
+        "id": "d7160d09-e9c2-494a-a934-b8d6306f1998",
+        "role": "user",
+        "text": "帮我查一下你的长期记忆里，有没有记下我平时喜欢的茶和糖量？查到再告诉我。",
+        "createdAt": "2026-10-18T04:56:45.960Z",
+        "requestId": "d77769f4-0d6e-41ac-8022-4dd30a662538"
+      },
+      {
+        "id": "send_api_1792299423844",
+        "role": "assistant",
+        "text": "查过了",
+        "createdAt": "2026-10-18T04:57:03.844Z"
+      },
+      {
+        "id": "send_api_1792299423845",
+        "role": "assistant",
+        "text": "桂花乌龙不加糖",
+        "createdAt": "2026-10-18T04:57:03.845Z"
+      },
+      {
+        "id": "send_api_1792299425953",
+        "role": "assistant",
+        "text": "记得牢牢的",
+        "createdAt": "2026-10-18T04:57:05.953Z"
+      },
+      {
+        "id": "a0a80682-d1e6-4105-9955-449ada025c17",
+        "role": "user",
+        "text": "你从长期记忆里帮我查一遍，我平时最喜欢喝什么茶，糖量呢？",
+        "createdAt": "2026-10-18T05:46:16.345Z",
+        "requestId": "e9dc94c1-943b-42e1-8031-94bb7d435740"
+      },
+      {
+        "id": "b4cc0f48-0d74-4144-9dd3-7d31ca6f309a",
+        "role": "assistant",
+        "text": "桂花乌龙不加糖，我都快背下来了",
+        "createdAt": "2026-10-18T05:46:27.717Z"
+      }
+    ],
+    "receipts": [
+      {
+        "requestId": "7f78479b-d0ea-4d6c-ae8b-09b71726c51f",
+        "status": "accepted",
+        "confirmed": true
+      },
+      {
+        "requestId": "3d1d3777-0cb1-4303-9f90-bdcb6519ff88",
+        "status": "accepted",
+        "confirmed": true
+      },
+      {
+        "requestId": "d77769f4-0d6e-41ac-8022-4dd30a662538",
+        "status": "accepted",
+        "confirmed": true
+      },
+      {
+        "requestId": "e9dc94c1-943b-42e1-8031-94bb7d435740",
+        "status": "accepted",
+        "confirmed": true
+      }
+    ],
+    "connection": "connected",
+    "status": "idle"
+  },
+  "scope": "Isolated synthetic native-memory test; not user conversation"
+}

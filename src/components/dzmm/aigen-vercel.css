@@ -77,40 +77,19 @@
   display: grid;
   gap: 12px;
 }
-.xmgen .tech-hero, .xmgen .tech-feature, .xmgen .tech-card {
+.xmgen .tech-feature, .xmgen .tech-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid rgba(245, 196, 81, 0.22);
-  color: inherit;
-  text-align: left;
-}
-.xmgen .tech-hero {
-  min-height: 168px;
-  padding: 22px 20px 18px;
-  border-radius: 22px;
-  background:
-    radial-gradient(90px 90px at 78% 58%, rgba(255, 196, 92, 0.95), transparent 68%),
-    radial-gradient(140px 80px at 18% 110%, rgba(120, 48, 24, 0.7), transparent 70%),
-    linear-gradient(155deg, #3a1d0c 0%, #140d16 46%, #07060a 100%);
-}
-.xmgen .tech-kicker { margin: 0; color: #f5c451; font-size: 12px; letter-spacing: 0.22em; }
-.xmgen .tech-hero h1 {
-  margin: 10px 0 0;
-  max-width: 8em;
-  font-size: 34px;
-  font-weight: 720;
-  letter-spacing: -0.045em;
-  line-height: 1.12;
-}
-.xmgen .tech-hero p:last-child { margin: 10px 0 0; color: rgba(246, 243, 236, 0.78); }
-.xmgen .tech-feature, .xmgen .tech-card {
   display: block;
   width: 100%;
   margin: 0;
   padding: 0;
+  border: 1px solid rgba(245, 196, 81, 0.22);
   border-radius: 18px;
+  color: inherit;
+  text-align: left;
 }
-.xmgen .tech-feature { min-height: 148px; }
+.xmgen .tech-feature { min-height: 228px; }
 .xmgen .tech-card { aspect-ratio: 3 / 4; }
 .xmgen .tech-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .xmgen .tech-feature[data-id="video"] {
@@ -352,7 +331,6 @@
   .xmgen .intro { grid-column: 1; }
   .xmgen .preview { position: static; }
   .xmgen .drop.solo { min-height: 280px; }
-  .xmgen .tech-hero h1 { font-size: 30px; }
   .xmgen .banner-copy strong { font-size: 18px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -393,6 +371,7 @@
 .xmgen .field-head .meta { margin: 0; }
 .xmgen .field-head em { color: #f5c451; font-style: normal; font-size: 12px; }
 .xmgen .field-head button { margin-left: auto; border: 0; background: transparent; color: #f5c451; font-size: 12px; }
+.xmgen .field-head button:disabled { opacity: 0.45; cursor: default; }
 .xmgen .prompt-box { display: grid; gap: 8px; }
 .xmgen .count { justify-self: end; color: var(--muted); font-size: 12px; }
 .xmgen .warn { margin: 0; color: #ffb4c4; font-size: 12px; }
@@ -542,17 +521,7 @@
 .xmgen .top-title { color: #f8e8eb; }
 .xmgen .brand { color: #c79aa9; }
 .xmgen .brand:hover { color: #f8e8eb; }
-.xmgen .tech-hero {
-  border-color: rgba(215, 173, 120, 0.34);
-  background:
-    radial-gradient(90px 90px at 78% 58%, rgba(217, 76, 119, 0.5), transparent 68%),
-    radial-gradient(150px 86px at 16% 112%, rgba(117, 43, 62, 0.7), transparent 70%),
-    linear-gradient(150deg, #2c1420, #1a0c14 62%, #14090f);
-}
-.xmgen .tech-kicker { color: #d7ad78; }
-.xmgen .tech-hero h1 { font-family: inherit; letter-spacing: -0.03em; }
-.xmgen .tech-hero p:last-child { color: rgba(248, 232, 235, 0.72); }
-.xmgen .tech-hero, .xmgen .tech-feature, .xmgen .tech-card { border-color: rgba(217, 76, 119, 0.24); }
+.xmgen .tech-feature, .xmgen .tech-card { border-color: rgba(217, 76, 119, 0.24); }
 .xmgen .tech-feature:hover, .xmgen .tech-card:hover { border-color: rgba(217, 76, 119, 0.7); }
 .xmgen .tech-feature[data-id="video"] {
   background:
@@ -675,6 +644,7 @@
   opacity: .9;
   transition: transform .5s ease, opacity .3s ease;
 }
+.xmgen video.tech-motion { opacity: 1; }
 .xmgen .tech-feature:hover .tech-art, .xmgen .tech-card:hover .tech-art { transform: scale(1.04); opacity: 1; }
 .xmgen .tech-art-shade {
   position: absolute;
@@ -683,7 +653,9 @@
   background: linear-gradient(180deg, rgba(12, 5, 9, .1) 0%, rgba(12, 5, 9, .05) 38%, rgba(12, 5, 9, .82) 100%);
 }
 .xmgen .banner-copy { z-index: 2; }
-.xmgen .tech-hero { z-index: 0; }
+@media (prefers-reduced-motion: reduce) {
+  .xmgen video.tech-motion { display: none; }
+}
 
 /* 宽屏：更宽的容器 + 两栏工作台 */
 @media (min-width: 900px) {
@@ -692,8 +664,7 @@
   .xmgen .studio .preview { position: sticky; top: 78px; }
   .xmgen .tech-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .xmgen .tech-card { aspect-ratio: 3 / 4; }
-  .xmgen .tech-hero { min-height: 190px; padding: 24px 26px; }
-  .xmgen .tech-feature { min-height: 190px; }
+  .xmgen .tech-feature { min-height: 280px; }
   .xmgen .banner-copy { padding: 22px 24px; }
   .xmgen .tech-feature .banner-copy strong { font-size: 26px; }
   .xmgen .tech-card .banner-copy strong { font-size: 18px; }

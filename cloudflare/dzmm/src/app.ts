@@ -1,5 +1,6 @@
 import { handleAdmin } from "./admin";
 import { listPublicHomeBanners } from "./home-banners";
+import { listPublicStudioCovers, publicStudioCover } from "./studio-covers";
 import { handleProductEvent, publicCatalogFilters, publicScenePrices } from "./ops-console";
 import { handleTelegramFeedback } from "./telegram-feedback";
 import { handleAuth, requireUser } from "./auth";
@@ -84,6 +85,10 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         response = await listShelfTags(env);
       } else if (request.method === "GET" && path === "/v1/home/banners") {
         response = await listPublicHomeBanners(request, env);
+      } else if (request.method === "GET" && path === "/v1/studio/covers") {
+        response = await listPublicStudioCovers(env);
+      } else if (request.method === "GET" && /^\/v1\/studio\/covers\/[a-z]+$/.test(path)) {
+        response = await publicStudioCover(env, path.slice("/v1/studio/covers/".length)) ?? new Response("not found", { status: 404 });
       } else if (request.method === "GET" && path === "/v1/billing/scene-prices") {
         response = await publicScenePrices(env);
       } else if (request.method === "GET" && path === "/v1/catalog/filters") {

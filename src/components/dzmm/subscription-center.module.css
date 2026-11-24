@@ -134,3 +134,23 @@
   .outline,.primary,.plan,.methods label { transition:none; }
   .primary:hover:not(:disabled) { transform:none; }
 }
+
+.embedded { margin-top: 0; padding-top: 0; border-top: 0; animation: none; }
+.purchaseHeading > div { min-width: 0; }
+.mediaBenefits { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 14px; }
+.mediaBenefits li { flex-direction: column; align-items: flex-start; gap: 6px; min-width: 0; padding: 12px; border-radius: 14px; background: color-mix(in srgb, var(--text) 6%, transparent); }
+.mediaBenefits strong { font-size: 13px; }
+.plan { border-radius: 18px; padding: 18px; background: linear-gradient(145deg, color-mix(in srgb, var(--pink) 14%, var(--surface)), var(--surface)); }
+.plan input { opacity: 0; }
+.price { font-size: 32px; }
+.purchase { margin-top: 12px; padding: 10px 10px 10px 16px; border: 1px solid var(--line); border-radius: 18px; border-bottom: 1px solid var(--line); background: color-mix(in srgb, var(--surface) 94%, #000); }
+.purchase .primary { min-height: 48px; border-radius: 14px; font-size: 15px; font-weight: 650; }
+.rulesFold { margin-top: 8px; }
+.rulesFold summary { width: fit-content; color: var(--muted); font-size: 12px; cursor: pointer; }
+.rulesFold .mediaNote, .rulesFold .rulesList { margin-top: 8px; }
+@media (max-width: 650px) {
+  .mediaBenefits { gap: 6px; }
+  .mediaBenefits li { padding: 10px 8px; }
+  .purchase { flex-direction: column; align-items: stretch; padding: 12px; }
+  .purchase .primary { width: 100%; }
+}

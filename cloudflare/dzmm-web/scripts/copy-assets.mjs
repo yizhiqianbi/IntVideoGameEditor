@@ -325,6 +325,48 @@ export async function copyVerifiedAssets({
     "home/hero-1.webp",
     "home/hero-2.webp",
     "home/hero-3.webp",
+    "home/cover-su-peizhen.webp",
+    "home/cover-shanghai.webp",
+    "home/cover-weakness.webp",
+    "home/cover-tiangong.webp",
+    "home/cover-linshuang.webp",
+    "home/cover-miveth.webp",
+    "home/cover-qin.webp",
+    "home/motion/shelf-linshuang.mp4",
+    "home/motion/shelf-miveth.mp4",
+    "home/motion/shelf-qin.mp4",
+    "home/motion/shelf-mom.mp4",
+    "home/motion/shelf-nun.mp4",
+    "home/motion/shelf-ballet.mp4",
+    "home/motion/shelf-clerk.mp4",
+    "home/motion/shelf-guan.mp4",
+    "home/motion/shelf-you.mp4",
+    "home/motion/shelf-mizuko.mp4",
+    "home/motion/shelf-yu.mp4",
+    "home/motion/shelf-su.mp4",
+    "home/motion/shelf-limei.mp4",
+    "home/motion/shelf-spring.mp4",
+    "home/motion/shelf-baixue.mp4",
+    "home/motion/shelf-sisters.mp4",
+    "home/motion/shelf-megan.mp4",
+    "home/motion/shelf-top003.mp4",
+    "home/motion/shelf-top008.mp4",
+    "home/motion/shelf-top009.mp4",
+    "home/motion/shelf-top011.mp4",
+    "home/motion/shelf-top013.mp4",
+    "home/motion/shelf-top015.mp4",
+    "home/motion/shelf-top016.mp4",
+    "home/motion/shelf-top018.mp4",
+    "home/motion/shelf-top019.mp4",
+    "home/motion/shelf-top020.mp4",
+    "home/motion/shelf-top021.mp4",
+    "home/motion/shelf-top022.mp4",
+    "home/motion/shelf-top024.mp4",
+    "home/motion/shelf-top025.mp4",
+    "home/motion/shelf-top026.mp4",
+    "home/motion/shelf-top028.mp4",
+    "home/motion/shelf-top029.mp4",
+    "home/motion/shelf-top030.mp4",
     "home/great-vibes-latin.woff2",
     "home/great-vibes-OFL.txt",
     "manifest.webmanifest",
@@ -338,6 +380,11 @@ export async function copyVerifiedAssets({
     "content-covers/create-game.webp",
     "content-covers/create-scenario.webp",
     "content-covers/create-generate.webp",
+    "content-covers/motion/create-generate.mp4",
+    "content-covers/motion/create-girlfriend.mp4",
+    "content-covers/motion/create-role.mp4",
+    "content-covers/motion/create-scenario.mp4",
+    "content-covers/motion/create-novel.mp4",
     "content-covers/yume.jpg",
     "content-covers/tangtang.jpg",
     "content-covers/wanning.jpg",
@@ -398,12 +445,19 @@ export async function copyVerifiedAssets({
   }
 
   for (const relativeFile of files) {
-    if (relativeFile.startsWith("content-covers/")) {
+    if (relativeFile.startsWith("content-covers/") || (relativeFile.startsWith("home/") && relativeFile.endsWith(".mp4"))) {
       const cover = await readFile(join(sourceRoot, relativeFile));
-      const jpeg = cover[0] === 0xff && cover[1] === 0xd8 && cover[2] === 0xff && cover.at(-2) === 0xff && cover.at(-1) === 0xd9;
-      const webp = cover.subarray(0, 4).toString("ascii") === "RIFF" && cover.subarray(8, 12).toString("ascii") === "WEBP";
-      if (cover.length < 20_000 || cover.length > 2_000_000 || (!jpeg && !webp)) {
-        throw new Error(`内容封面必须是完整 JPEG 或 WebP：${relativeFile}`);
+      if (relativeFile.endsWith(".mp4")) {
+        const ftyp = cover.length > 12 && cover.subarray(4, 8).toString("ascii") === "ftyp";
+        if (cover.length < 20_000 || cover.length > 1_500_000 || !ftyp) {
+          throw new Error(`封面动效必须是完整 MP4：${relativeFile}`);
+        }
+      } else {
+        const jpeg = cover[0] === 0xff && cover[1] === 0xd8 && cover[2] === 0xff && cover.at(-2) === 0xff && cover.at(-1) === 0xd9;
+        const webp = cover.subarray(0, 4).toString("ascii") === "RIFF" && cover.subarray(8, 12).toString("ascii") === "WEBP";
+        if (cover.length < 20_000 || cover.length > 2_000_000 || (!jpeg && !webp)) {
+          throw new Error(`内容封面必须是完整 JPEG 或 WebP：${relativeFile}`);
+        }
       }
     }
     const source = join(sourceRoot, relativeFile);

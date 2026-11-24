@@ -1,0 +1,38 @@
+{
+  "checkedAt": "2026-10-18T05:46:15.167580+00:00",
+  "base_commit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "case_origin": "Fact was written by native conversation at 12:55 then native runtime gracefully restarted at 13:45; no data seeding for this check.",
+  "query": "桂花乌龙",
+  "cases": [
+    {
+      "label": "own-session",
+      "chat_id": "6b506294825dff986b8694c00dc10312",
+      "http_status": 200,
+      "success": true,
+      "hit_count": 3,
+      "expected_fact_found": true,
+      "expected": true,
+      "passed": true,
+      "hit_hashes": [
+        "13739341170fbf8951963a2ce50abb220ccf2fe6b770b605267e0495a7baa20b",
+        "44e6539a4a6c12b8c8c53bff30aed27ea6187dafeba6c68a5ed4a7873c15ab04",
+        "f3d3853a7d674ed1a9fde8abf94af957e24658651172c3ff0b77cae485e9daf4"
+      ]
+    },
+    {
+      "label": "other-existing-session",
+      "chat_id": "0cc26da45bd12d72d79dabb9f773dfd6",
+      "http_status": 200,
+      "success": true,
+      "hit_count": 3,
+      "expected_fact_found": false,
+      "expected": false,
+      "passed": true,
+      "hit_hashes": [
+        "464d27e869399ffb364fd56dba438d98f34b9434ffbcd5085a97b37665fb310e",
+        "f3d3853a7d674ed1a9fde8abf94af957e24658651172c3ff0b77cae485e9daf4",
+        "c26d78b47cdafd02db673de7e65aefb611596297e9eb18f3ac92a5aff698be30"
+      ]
+    }
+  ]
+}

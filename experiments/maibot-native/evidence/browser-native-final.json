@@ -1,0 +1,276 @@
+{
+  "capturedAt": "2026-10-18T05:48:49.120007+00:00",
+  "sourceCommit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "upstreamVersion": "1.3.9",
+  "patches": [
+    {
+      "file": "patches/0001-metadata-json-scope.patch",
+      "sha256": "cd33f733cbb7afdc26495d3c452021a1f2940d104c59d601aef4965d4aaaa840"
+    }
+  ],
+  "health": {
+    "runtime": "maibot-native",
+    "ready": true,
+    "transportReady": true,
+    "readinessScope": "native-webui-transport",
+    "version": "1.3.9",
+    "provider": {
+      "configured": true,
+      "model": "deepseek/deepseek-v4.1-flash"
+    },
+    "memory": {
+      "implementation": "A_Memorix",
+      "enabled": true
+    },
+    "plugins": {
+      "implementation": "MaiBot native plugin runtime",
+      "enabled": true
+    }
+  },
+  "scope": "real model conversation via XUMENG UI -> transport gateway -> official native WebUI -> native cognition",
+  "sessionId": "300da27b-9134-4139-8359-0ed5f42333cc",
+  "messages": [
+    {
+      "id": "7b062dc1-2411-49bd-becf-c00601fda1d4",
+      "role": "user",
+      "text": "你好呀，我是阿舟",
+      "createdAt": "2026-10-18T04:55:31.288Z"
+    },
+    {
+      "id": "send_api_1792299339857",
+      "role": "assistant",
+      "text": "阿舟你好呀～这名字听着就像要划船去哪儿似的",
+      "createdAt": "2026-10-18T04:55:39.857Z"
+    },
+    {
+      "id": "send_api_1792299339863",
+      "role": "assistant",
+      "text": "中午也在摸鱼吗",
+      "createdAt": "2026-10-18T04:55:39.863Z"
+    },
+    {
+      "id": "4668a17a-ca7a-40b4-8633-3646d1277b42",
+      "role": "user",
+      "text": "嗯，偷偷摸会儿鱼，想听你撒个娇",
+      "createdAt": "2026-10-18T04:56:06.310Z"
+    },
+    {
+      "id": "send_api_1792299376123",
+      "role": "assistant",
+      "text": "一上来就要我撒娇",
+      "createdAt": "2026-10-18T04:56:16.123Z"
+    },
+    {
+      "id": "send_api_1792299376125",
+      "role": "assistant",
+      "text": "你倒是很会啊～那先夸我一句",
+      "createdAt": "2026-10-18T04:56:16.125Z"
+    },
+    {
+      "id": "send_api_1792299379878",
+      "role": "assistant",
+      "text": "夸得好听我再考虑考虑",
+      "createdAt": "2026-10-18T04:56:19.878Z"
+    },
+    {
+      "id": "840b97a6-713e-4cf3-ab31-42242448c290",
+      "role": "user",
+      "text": "你明明凶巴巴的，但是好可爱",
+      "createdAt": "2026-10-18T04:56:42.225Z"
+    },
+    {
+      "id": "send_api_1792299413479",
+      "role": "assistant",
+      "text": "凶巴巴也是被你气的嘛，哼，不过这夸法还算过关",
+      "createdAt": "2026-10-18T04:56:53.479Z"
+    },
+    {
+      "id": "send_api_1792299413485",
+      "role": "assistant",
+      "text": "那就……阿舟最好啦，中午摸鱼还想着我",
+      "createdAt": "2026-10-18T04:56:53.485Z"
+    },
+    {
+      "id": "send_api_1792299418439",
+      "role": "assistant",
+      "text": "开心一点点",
+      "createdAt": "2026-10-18T04:56:58.439Z"
+    },
+    {
+      "id": "43514670-2828-4327-a4be-e42e63c22a91",
+      "role": "user",
+      "text": "其实今天有点烦",
+      "createdAt": "2026-10-18T04:57:34.680Z"
+    },
+    {
+      "id": "f8345346-aeb0-421c-9a34-78fab4476bc0",
+      "role": "user",
+      "text": "但不想聊工作的事，讲讲你吧",
+      "createdAt": "2026-10-18T04:57:38.291Z"
+    },
+    {
+      "id": "send_api_1792299467349",
+      "role": "assistant",
+      "text": "不晓得",
+      "createdAt": "2026-10-18T04:57:47.349Z"
+    },
+    {
+      "id": "send_api_1792299474540",
+      "role": "assistant",
+      "text": "那就不聊那个啦，抱抱你一下～",
+      "createdAt": "2026-10-18T04:57:54.540Z"
+    },
+    {
+      "id": "send_api_1792299474544",
+      "role": "assistant",
+      "text": "我今天中午吃了碗面然后就瘫床上了，撑得不想动",
+      "createdAt": "2026-10-18T04:57:54.544Z"
+    },
+    {
+      "id": "send_api_1792299481004",
+      "role": "assistant",
+      "text": "现在还有点困。你呢，吃过了没",
+      "createdAt": "2026-10-18T04:58:01.004Z"
+    },
+    {
+      "id": "f2bb1d31-f900-420c-a387-f37e3607297e",
+      "role": "user",
+      "text": "吃的啥面呀，怎么能把自己吃瘫啦",
+      "createdAt": "2026-10-18T04:58:38.549Z"
+    },
+    {
+      "id": "send_api_1792299523585",
+      "role": "assistant",
+      "text": "牛肉面还加了颗溏心蛋",
+      "createdAt": "2026-10-18T04:58:43.585Z"
+    },
+    {
+      "id": "send_api_1792299523588",
+      "role": "assistant",
+      "text": "汤都喝了大半，你说这不撑嘛",
+      "createdAt": "2026-10-18T04:58:43.588Z"
+    },
+    {
+      "id": "send_api_1792299527341",
+      "role": "assistant",
+      "text": "现在躺着刷手机呢，翻个身都嫌累",
+      "createdAt": "2026-10-18T04:58:47.341Z"
+    },
+    {
+      "id": "21698723-ac78-4128-93de-5849a33efd8e",
+      "role": "user",
+      "text": "本来想说讨厌你，结果你一撒娇我就没脾气了",
+      "createdAt": "2026-10-18T04:58:57.041Z"
+    },
+    {
+      "id": "send_api_1792299544834",
+      "role": "assistant",
+      "text": "我就知道你这人吃软不吃硬，凶你两句就没脾气啦",
+      "createdAt": "2026-10-18T04:59:04.834Z"
+    },
+    {
+      "id": "send_api_1792299544842",
+      "role": "assistant",
+      "text": "哼",
+      "createdAt": "2026-10-18T04:59:04.842Z"
+    },
+    {
+      "id": "send_api_1792299546048",
+      "role": "assistant",
+      "text": "别真的讨厌我哦",
+      "createdAt": "2026-10-18T04:59:06.048Z"
+    },
+    {
+      "id": "8bfdccda-f168-40c3-9086-ef53c721da14",
+      "role": "user",
+      "text": "不讨厌，刚刚就是逗你呀，抱抱",
+      "createdAt": "2026-10-18T04:59:33.919Z"
+    },
+    {
+      "id": "send_api_1792299581913",
+      "role": "assistant",
+      "text": "那就乖乖接住这个抱抱～哼下次再逗我我可真生气啦也就三秒钟吧，还是有点喜欢你的",
+      "createdAt": "2026-10-18T04:59:41.913Z"
+    },
+    {
+      "id": "6d0575f7-0539-4c8d-84b5-aebc83e1ae46",
+      "role": "user",
+      "text": "回来啦，你那三秒钟的生气结束了没",
+      "createdAt": "2026-10-18T05:46:18.628Z"
+    },
+    {
+      "id": "7cd008ba-a55d-4c5d-bdbb-f77b75aace04",
+      "role": "assistant",
+      "text": "早结束啦，都过去快一小时了才来问",
+      "createdAt": "2026-10-18T05:46:27.147Z"
+    },
+    {
+      "id": "c20b30d4-9881-4d12-899c-b61ded9e3d7f",
+      "role": "assistant",
+      "text": "你掐着表的啊",
+      "createdAt": "2026-10-18T05:46:28.994Z"
+    },
+    {
+      "id": "b5d50914-ce9d-4750-8289-c601c9be04aa",
+      "role": "assistant",
+      "text": "忙完了？",
+      "createdAt": "2026-10-18T05:46:30.051Z"
+    },
+    {
+      "id": "25deb2ca-d1c1-4bbd-8700-213e353fbe73",
+      "role": "user",
+      "text": "忙完啦，不想打游戏也不聊工作，你选件小事我们一起做",
+      "createdAt": "2026-10-18T05:46:46.245Z"
+    },
+    {
+      "id": "ea5963a2-dfeb-4e91-883a-0ace8a4478bb",
+      "role": "assistant",
+      "text": "那我出个题吧，猜猜我中午吃的是什么面",
+      "createdAt": "2026-10-18T05:46:52.981Z"
+    },
+    {
+      "id": "9fff8f24-b85d-4c32-95ce-87efc1367cca",
+      "role": "assistant",
+      "text": "猜对了有奖励",
+      "createdAt": "2026-10-18T05:46:54.790Z"
+    },
+    {
+      "id": "1e05c2e6-a938-4a36-963b-4732646c898d",
+      "role": "assistant",
+      "text": "猜错了请我喝奶茶敢不敢接",
+      "createdAt": "2026-10-18T05:46:58.562Z"
+    },
+    {
+      "id": "9d134c06-c729-4ba6-9a6d-c342e2f09c21",
+      "role": "user",
+      "text": "牛肉面加溏心蛋，你刚刚告诉过我啦。换一个没聊过的嘛",
+      "createdAt": "2026-10-18T05:47:28.430Z"
+    },
+    {
+      "id": "69b6fea2-0d89-4bcd-acef-3206c5a2afea",
+      "role": "assistant",
+      "text": "被你抓到了",
+      "createdAt": "2026-10-18T05:47:35.961Z"
+    },
+    {
+      "id": "eb3c5d95-f6f4-4f44-8324-f8d517ab99b8",
+      "role": "assistant",
+      "text": "好丢脸啊行吧换个难点的，猜猜我现在最想要的一样小东西是什么猜中我答应你一个要求",
+      "createdAt": "2026-10-18T05:47:47.518Z"
+    }
+  ],
+  "summary": {
+    "userMessages": 11,
+    "assistantMessages": 27,
+    "restartHistoryVerified": true,
+    "continuousInputVerified": true,
+    "quotePresentationFixed": true,
+    "qualityFailures": [
+      "One irrelevant reply: 不晓得",
+      "Asked the user to guess a noodle type that had already been stated",
+      "After correction, still proposed another guessing game",
+      "No unsolicited new topic in the recorded silent window"
+    ]
+  },
+  "qualityJudgment": "Native integration works; conversational naturalness and autonomous initiation are not fully solved."
+}

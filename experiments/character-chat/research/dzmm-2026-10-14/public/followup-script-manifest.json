@@ -1,0 +1,56 @@
+{
+  "scope": "five exact publicly declared dependencies; ordinary credential-free GET using existing system proxy; target JavaScript not executed",
+  "records": [
+    {
+      "url": "https://www.dzmm.ai/assets/DQpo-2Vv.js",
+      "localFile": "scripts/DQpo-2Vv.js",
+      "bytes": 1218,
+      "sha256": "885ae5b5b14dc36fbab8b7e3b518cd885b42386a3d16b8e86d77580f9b0a9d07",
+      "downloadedAt": "2026-10-13T23:46:22.715069+00:00",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Du6L78y2.js",
+      "localFile": "scripts/Du6L78y2.js",
+      "bytes": 17951,
+      "sha256": "89524d1508bbb5d54904447ffa03ac13e909d6026d01d880ef733e82747accdf",
+      "downloadedAt": "2026-10-13T23:46:22.704375+00:00",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/DGlS3pRw2.js",
+      "localFile": "scripts/DGlS3pRw2.js",
+      "bytes": 2517,
+      "sha256": "7ee1569a41411cdb927e2a1d127122599bbc28c8c7229b9af94aaf76151bff08",
+      "downloadedAt": "2026-10-13T23:48:33.946738+00:00",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/Dm7jYsLH.js"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/Cyr5iadJ.js",
+      "localFile": "scripts/Cyr5iadJ.js",
+      "bytes": 5330,
+      "sha256": "bde0aab8582040dca19ae97880eb8d41979f750fdf3dbd345d9417c98706af00",
+      "downloadedAt": "2026-10-13T23:50:46.173665+00:00",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/1OYk4JId.js",
+        "https://www.dzmm.ai/assets/CT6ZjuS1.js"
+      ]
+    },
+    {
+      "url": "https://www.dzmm.ai/assets/B2vKkOtb2.js",
+      "localFile": "scripts/B2vKkOtb2.js",
+      "bytes": 4539,
+      "sha256": "204713f81c705f020a5ec25a84cbd8d0414018222875666f8395a2253b7877fc",
+      "downloadedAt": "2026-10-13T23:50:46.158185+00:00",
+      "declaredBy": [
+        "https://www.dzmm.ai/assets/DGlS3pRw2.js"
+      ]
+    }
+  ]
+}

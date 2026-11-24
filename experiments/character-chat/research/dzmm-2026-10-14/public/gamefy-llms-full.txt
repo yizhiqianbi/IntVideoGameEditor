@@ -1,0 +1,5727 @@
+# DZMM Gamefy 开发者文档
+
+> 在 DZMM 平台上开发 H5 小游戏的完整参考：浏览器 SDK、服务端函数、本地开发 CLI、
+> 限制与错误码。面向 AI coding agent，可整份读入上下文。
+
+文档版本 50dd12a6ec4b。链接均相对本站根目录。
+
+本文件是上述全部页面按导航顺序拼接而成。
+
+========================================================================
+
+# 欢迎
+
+# Gamefy Workbench 开发者文档
+
+欢迎使用 Gamefy Workbench。这是一份给游戏作者看的完整开发指南：从「我刚打开工作台不知道点哪里」到「我要用服务端函数算分数 + 写全游戏排行榜」，都能在这里找到对应章节。
+
+> 本页是文档地图。左侧导航把内容分成了「开始」「浏览器 SDK」「Recipes」「服务端函数」「参考」几块。第一次来建议先读快速入门、运行环境和发布与上架，再按需查阅 API。本页与 AI 可读版本由同一份文档生成；功能是否可用仍以当前宿主的能力旗标为准。
+
+核对日期：2026-10-05。范围为 Gamefy 游戏工坊、游戏浏览器 SDK、服务端函数和本地开发 CLI；可选 API 的可用性请检查当前宿主的 `capabilities`。
+
+---
+
+## 这份文档适合谁？
+
+- 会一点 JavaScript / HTML 的人 —— 能写按钮点击事件、看得懂 `async/await` 就够了。每个 API 都有最短可跑示例可以照抄。
+- 完全没写过代码的人 —— 推荐先在 Workbench 内把需求告诉 Agent，由 Agent 帮你生成代码。这份文档你也能跟读，所有专业词（SSE、KV、iframe 沙箱）第一次出现都会用大白话解释。
+- 想看具体限制 / 错误码 —— 直接跳「参考」分组。
+
+---
+
+## 文档地图
+
+### 开始
+
+| 章节 | 适合 |
+|---|---|
+| [快速入门](/gamefy/docs/getting-started.md) | 第一次进 Workbench，先看这里：目录、保存、发布 |
+| [游戏运行环境](/gamefy/docs/runtime.md) | 想理解「为什么 `parent.document` 用不了」「dev 和 prod 有什么区别」 |
+| [本地开发 CLI](/gamefy/docs/connected-dev.md) | 在自己的编辑器开发、连接平台预览、同步与部署 |
+| [发布与上架](/gamefy/docs/publishing.md) | 区分保存代码、发布版本和提交审核 |
+
+### 浏览器 SDK
+
+`dzmm.*` 是注入到游戏页面里的全局对象，让游戏代码能调用平台能力。
+
+| API | 用来做什么 |
+|---|---|
+| [SDK 总览](/gamefy/docs/sdk.md) | 全部公开 API 与错误处理方式 |
+| [`dzmm.completions()`](/gamefy/docs/sdk/completions.md) | 让 AI 说话（剧情生成、NPC 对白） |
+| [`dzmm.draw.*`](/gamefy/docs/sdk/draw.md) | 让 AI 画图（角色立绘、场景图、图片编辑） |
+| [`dzmm.audio.*`](/gamefy/docs/sdk/audio.md) | 播放 BGM / 音效，处理浏览器手势解锁 |
+| [`dzmm.loading.*`](/gamefy/docs/sdk/loading.md) | 告诉平台游戏启动进度 / ready / error |
+| [`dzmm.capabilities.get()`](/gamefy/docs/sdk/capabilities.md) | 查询宿主是否支持某类静态能力 |
+| [`dzmm.chat.*`](/gamefy/docs/sdk/chat.md) | 存对话历史（Galgame 存档 / 分支） |
+| [`dzmm.kv.*`](/gamefy/docs/sdk/kv.md) | 存任意键值数据（分数、关卡进度、多存档槽） |
+| [`dzmm.save.onAction()`](/gamefy/docs/sdk/save-actions.md) | 接住宿主发起的重置／删除存档请求 |
+| [`dzmm.toast.*`](/gamefy/docs/sdk/toast.md) | 给玩家弹提示（"保存成功"） |
+| [`dzmm.log.*`](/gamefy/docs/sdk/log.md) | 给作者记录运行日志与排错线索 |
+| [`dzmm.user.*`](/gamefy/docs/sdk/user.md) | 拿到当前玩家的 ID / 昵称 / 头像 |
+| [`dzmm.models.list()`](/gamefy/docs/sdk/models.md) | 查当前可用的 AI 模型 |
+| [`dzmm.share()` / `getLaunchParams()`](/gamefy/docs/sdk/share.md) | 分享游戏、读取并校验启动参数 |
+| [`dzmm.workshop.*`](/gamefy/docs/sdk/workshop.md) | 发布、浏览和收藏玩家生成的作品 |
+| [`dzmm.rt.*` / `dzmm.voice.*`](/gamefy/docs/sdk/realtime.md) | 联机房间、事件同步和房间语音 |
+
+### Recipes
+
+给模板作者和 AI 编码助手使用的复用做法：
+
+| Recipe | 用来做什么 |
+|---|---|
+| [save-slots](/gamefy/docs/recipes/save-slots.md) | 多存档槽、自动存档、读档列表 |
+| [completions-safe](/gamefy/docs/recipes/completions-safe.md) | AI 调用防重复、超时、竞态 |
+| [ai-json](/gamefy/docs/recipes/ai-json.md) | 让 AI 返回结构化 JSON |
+| [model-picker](/gamefy/docs/recipes/model-picker.md) | 动态选择或默认使用 AI 模型 |
+
+### 服务端函数
+
+让游戏跑一段"玩家看不到源码"的服务端代码。适合：
+
+- 避免 AI 指令直接随前端源码下发（但不保证 prompt 不被模型复述）
+- 服务端验证玩家分数（防作弊后写入排行榜）
+- 跨玩家共享数据（全游戏排行榜、公共聊天室）
+- 复杂的多步 AI 流程（多次调用 AI、合并结果再返回）
+
+跳到 [服务端函数：是什么 & 何时用](/gamefy/docs/serverless.md) 开始。
+
+### 参考
+
+| 章节 | 内容 |
+|---|---|
+| [命令行与发布错误码](/gamefy/docs/cli-errors.md) | CLI、目录上传、版本冲突的排错方法 |
+| [错误处理大全](/gamefy/docs/errors.md) | `DzmmError` / `RPCError` 所有错误码 + 处理建议 |
+| [平台限制总表](/gamefy/docs/limits.md) | 所有大小 / 时长 / 配额上限一处看 |
+| [常见问题](/gamefy/docs/faq.md) | 常见错误的快速排错 |
+
+---
+
+## 三件事先记住
+
+1. 只支持纯前端静态网站：HTML + CSS + JavaScript。不能起 Node.js 服务、不能监听端口。需要服务端逻辑请用[服务端函数](/gamefy/docs/serverless.md)。
+2. `publish/` 目录里的文件才会上线：玩家最终看到的就是这里的内容。其它目录（`functions/` 除外）只是开发用的工作区。
+3. 保存代码、发布、上架是三件事：保存把工作区记录为 Git 版本；「发布」更新线上游戏文件；「上架」提交角色卡审核，通过后才公开。详见[发布与上架](/gamefy/docs/publishing.md)。
+
+========================================================================
+
+# 快速入门
+
+# 快速入门
+
+> 新手提示：Workbench 是一个跑在浏览器里的"在线游戏编辑器"。你写的代码会自动同步到一个云端容器里跑起来，预览面板看到的就是真实运行效果。
+
+---
+
+## 1. Workbench 是什么
+
+一个在线游戏开发环境：
+
+- 左侧 Chat —— 跟 Agent 对话，让它帮你写代码 / 改 bug。
+- Chat / Preview / Files / Editor 等面板 —— 切换对话、预览、文件和编辑器；手机上的「···」可展开更多工具。
+- 右上角「发布」按钮 —— 更新线上游戏版本；角色卡还需要单独上架审核，通过后玩家才可进入。
+
+平台只支持纯前端静态网站（HTML + CSS + JavaScript）。不能起 Node.js / Python 服务、不能监听端口、不能用 Express / Flask。
+
+需要服务端逻辑（避免 prompt 直接随前端下发、防作弊、跨玩家共享）？看 [服务端函数](/gamefy/docs/serverless.md)。注意：服务端 prompt 仍可能通过模型输出泄露，不是 secrets 存储。
+
+---
+
+## 2. 目录结构
+
+打开 Files 面板看到的目录：
+
+```
+/workspace/
+├── publish/             ← 发布目录（玩家看到的就是这里）
+│   ├── index.html       ← 入口文件（必需）
+│   ├── style.css
+│   ├── game.js
+│   └── assets/
+├── functions/           ← 服务端函数（可选）
+│   ├── score.ts
+│   └── leaderboard.ts
+└── ... 其它都是工作目录
+```
+
+### 关于 `publish/`
+
+- 必须包含 `index.html` 作为入口。
+- 所有资源（图片、脚本、样式）都放在这里。
+- 资源路径用相对路径（`./assets/img.png`），不要用 `/assets/img.png`。
+- 只有这里的文件会保存到线上。
+
+### 关于 `functions/`（可选）
+
+- 这里放你的[服务端函数](/gamefy/docs/serverless.md)源码（`.ts` 或 `.js` 单文件）。
+- 发布时会上传函数；注意发布结果里的函数警告，工坊可能保留上一次成功发布的函数。
+- 不需要服务端函数的话，这个目录可以不存在。
+
+### ⚠️ 文件名规则：只能用英文字符
+
+`publish/` 和 `functions/` 下所有路径的每一段都必须只包含：
+
+- ASCII 英文字母（a-z, A-Z）
+- 数字（0-9）
+- 下划线 `_`、连字符 `-`、点 `.`
+
+不允许：
+
+| 不能用 | 改成 |
+|---|---|
+| 中文（`角色外貌/`、`音效.mp3`） | `portraits/`、`bgm.mp3` |
+| 日文 / 韩文 / 其它非拉丁字母 | 翻译成英文 |
+| Emoji（`🎵sounds/`） | `sounds/` |
+| 带音符的拉丁字母（`café/`） | `cafe/` |
+| 空格（`my game.js`） | `my-game.js` 或 `my_game.js` |
+
+路径不能含空段、`.` / `..` 段；`publish/` 内的相对路径最长 1024 字符，顶层 `__v` 加数字的名字留给平台版本目录。
+函数只支持 `functions/` 的直接子文件，名字须匹配 `[A-Za-z0-9_-]+.ts` 或 `.js`；同名的 `.ts` / `.js` 不能同时发布。
+
+为什么严格？线上发布走对象存储（CDN），非法静态路径会拒绝发布。工坊会跳过非法函数并给警告；CLI 会拒绝整次部署。
+
+怎么检查？ 在 Terminal 面板跑：
+
+```bash
+node <<'NODE'
+const { existsSync, readdirSync } = require('node:fs');
+const { join } = require('node:path');
+const invalid = [];
+function scan(dir, prefix = '') {
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = prefix + entry.name;
+    if (path.length > 1024 || (!prefix && /^__v\d+$/.test(entry.name))
+      || !/^[A-Za-z0-9._-]+$/.test(entry.name)
+      || ['.', '..'].includes(entry.name)) invalid.push('publish/' + path);
+    if (entry.isDirectory()) scan(join(dir, entry.name), path + '/');
+  }
+}
+if (existsSync('publish')) scan('publish');
+if (existsSync('functions')) {
+  const names = new Set();
+  for (const entry of readdirSync('functions', { withFileTypes: true })) {
+    if (!entry.isFile() || !/\.(ts|js)$/.test(entry.name)) continue;
+    const match = /^([A-Za-z0-9_-]+)\.(ts|js)$/.exec(entry.name);
+    if (!match || names.has(match[1])) {
+      invalid.push('functions/' + entry.name);
+    }
+    if (match) names.add(match[1]);
+  }
+}
+console.log(invalid.length ? invalid.join('\n') : '✓ 文件名合规');
+process.exitCode = invalid.length ? 1 : 0;
+NODE
+```
+
+这段文件名预检不依赖 `grep -P`，可在 Workbench Terminal、macOS / Linux 或 Windows 的 Bash 中运行。发布仍会检查入口、体积、HTML、函数源码等条件。
+
+---
+
+## 3. 保存代码、发布与上架
+
+这三个动作经常被混淆，这是开发中最容易踩的坑。
+
+### 保存代码（开发时同步）
+
+编辑器保存文件只更新工作区；「保存版本」才把工作区记录为容器里的 Git commit。Agent 可能帮你保存版本，但不要假设每次改动都会自动提交，先查看 Git 面板和未保存提示。这些操作都不改变玩家看到的线上版本。
+
+### 发布（更新线上代码）
+
+点击右上角「发布」按钮：
+
+1. 有未保存改动时，在确认框选择「保存后发布」，等待保存成功
+2. `publish/` 目录上传到线上 CDN
+3. `functions/` 下的服务端函数打包上传（如果有）
+4. 检查发布结果和函数警告；已公开的游戏会使用新版本
+
+没发布时，玩家看到的仍是上一次发布的版本。还没上架的游戏，发布成功也不会自动公开；到角色详情页提交「上架」，审核通过后才可被玩家进入。详见[发布与上架](/gamefy/docs/publishing.md)。
+
+---
+
+## 4. 工作台界面速查
+
+手机底部有 4 个主面板，「···」展开更多工具；桌面在侧栏切换：
+
+| 面板 | 主要用途 |
+|---|---|
+| Chat | 跟 Agent 对话（默认面板）。可以 `@` 提及文件、附带控制台日志、上传图片 |
+| Preview | 游戏预览。改了代码后点这里的刷新按钮才能看到最新效果 |
+| Files | 文件树管理，可拖拽上传 |
+| Editor | VS Code 风格的代码编辑器 |
+| Git（···） | 查 commit 历史 / 回滚 |
+| Terminal（···） | 命令行 |
+| Settings（···） | 改游戏信息 / 从线上恢复文件 |
+
+---
+
+## 5. 改代码后看不到效果？
+
+先手动刷新 Preview，确认当前工作区的文件已经加载。
+
+> 切到底部 Preview 面板 → 点刷新按钮。
+
+如果还是不行：
+
+- 看 Preview 面板下方的「控制台」，有红色错误吗？把内容发给 Agent，它能帮你定位。
+- 看 [常见问题](/gamefy/docs/faq.md)。
+
+========================================================================
+
+# 游戏运行环境
+
+# 游戏运行环境
+
+> 新手提示：你的游戏在玩家浏览器里跑，但是被装在一个完全隔离的小盒子（iframe 沙箱）里。这一页讲清楚这个盒子的边界，能省下你以后一半的调试时间。
+
+---
+
+## 1. 总体架构
+
+游戏运行时的样子：
+
+```
+玩家浏览器
+└── DZMM 页面（顶层）
+    └── <iframe sandbox="allow-scripts ...">   ← 你的游戏在这里
+        ├── 你的 publish/index.html
+        ├── 你的 JS / CSS / 图片
+        └── window.dzmm                        ← SDK 自动注入
+```
+
+- `iframe sandbox` 让你的游戏代码没法访问 DZMM 主站的页面、Cookie、localStorage。
+- 但 `dzmm.*` 这个 SDK 全局对象能跨过这道墙通信，让游戏调到平台能力（AI、画图、存档）。
+- 跨墙通信用的是浏览器的 `postMessage` —— 这也是为什么 SDK 调用都是 `async`（要等消息走一个来回）。
+
+---
+
+## 2. 沙箱限制：哪些代码会失败
+
+游戏 iframe 没有 `allow-same-origin`，所以下面这些常见操作会直接抛 `SecurityError`：
+
+```javascript
+// ❌ 全部禁止
+parent.document.getElementById('...')   // 访问父页面 DOM
+top.window.location                     // 访问顶层窗口
+window.opener                           // 访问打开者
+localStorage.setItem('key', 'value')    // localStorage 不可用
+sessionStorage.setItem('key', 'value')  // sessionStorage 不可用
+document.cookie = 'key=value'           // Cookie 不可用
+indexedDB.open('db')                    // IndexedDB 不可用
+
+// ✅ 这些可以
+window.dzmm.kv.put('key', 'value')      // 用 dzmm.kv 存数据
+window.dzmm.completions(config, onContent) // 调 AI，文本通过回调提供
+alert('hello')                          // ✔ allow-modals
+window.open(url)                        // ✔ allow-popups
+document.forms[0].submit()              // ✔ allow-forms
+```
+
+> 怎么持久化数据？ 不能用 `localStorage`，要用 [`dzmm.kv.*`](/gamefy/docs/sdk/kv.md)。它通过 SDK 走到云端数据库，玩家下次打开游戏数据还在。
+
+---
+
+## 3. 控制台日志
+
+`console.log / warn / error / info` 在沙箱里被拦截：
+
+- 开发模式：日志被转发到 Workbench 底部 Preview 面板的控制台，方便你调试。
+- 生产模式：日志只有浏览器 DevTools 看得到（玩家自己按 F12）。
+
+调试时，在 Chat 面板可以选择「附带控制台日志」一起发给 Agent，它能直接看到错误堆栈。
+
+### 看到 `Script error at :0` 怎么办
+
+这是浏览器对跨域错误的标准模糊化提示。通常原因是游戏代码尝试了被禁止的操作（比如 `parent.document`）。
+
+排查：
+
+1. 按 F12 打开浏览器 DevTools → Console
+2. 找 `SecurityError` 开头的错误，能看到完整堆栈
+3. 把违规代码改成 `dzmm.*` API
+
+---
+
+## 4. 开发模式 vs 生产模式
+
+游戏在两种模式下都会跑。两种模式走的是同一套 SDK、同一套真实后端链路，差别只在数据落在哪个命名空间：开发模式的所有数据（存档、聊天、服务端函数 KV）都在**你自己的开发数据**里，与生产隔离，也与其他开发者的开发数据隔离——同一个游戏若有多人参与开发，每人一份，互不覆盖也互相看不见。
+
+| 特性 | 开发模式（Workbench 预览） | 生产模式（玩家游玩） |
+|---|---|---|
+| 触发方式 | 你在 Workbench 里点 Preview 刷新 | 玩家在 DZMM 里打开你的游戏 |
+| KV 存储 | 数据库持久化（你自己的开发数据，刷新/重开都在） | 数据库持久化 |
+| 聊天存档 | 数据库持久化（你自己的开发会话） | 数据库持久化，跟当前聊天绑定 |
+| AI 对话 / 画图 | 正常工作，消耗你自己的积分 | 正常工作，消耗玩家的积分 |
+| `dzmm.user.info()` | 返回你自己的信息 | 返回当前玩家的信息 |
+| `token`（JWT） | 真实的 RS256 JWT（你的身份） | 真实的 RS256 JWT |
+| `environment` | `'dev'` | `'prod'` |
+| 控制台 | 转发到 Workbench Preview 控制台 | 仅浏览器 DevTools 可见 |
+| 服务端函数 | 实时编译容器里的 `functions/*.ts` / `*.js`，改完无需重启；容器未运行会明确报错 | 必须先「发布」函数快照才能用 |
+
+正式游戏中，作者指定的可用模型会优先使用；`model: 'default'` 或作者模型已不可用时，会使用玩家在当前 GameFy Chat 设置中选择的模型。浏览器调用和服务端函数调用共用这项设置。Workbench 预览走同样的解析逻辑（挂在预览专用的开发会话上），与玩家看到的模型行为一致。
+
+### 怎么知道当前是哪个模式？
+
+- 代码里通常不需要分支处理 —— 两种模式行为一致，写一份代码两边都跑。
+- 如果一定要判断，用 `dzmm.capabilities.get()` 或 `dzmm.user.info()` 返回的 `environment` 字段（`'dev'` / `'prod'`）。
+- 不要再用 `token === null` 判断开发模式：开发模式现在也签发真实 token，`null` 只代表"未登录或签发失败"。
+
+> 提示：预览的开发数据独立于生产，也不会随发布带到线上。想从干净状态重测，用 Preview 工具栏的「清除存储」按钮——它只清你自己在本游戏的开发数据（存档、聊天、服务端函数 KV），不会动生产数据，也不会动其他开发者的数据。
+
+---
+
+## 5. 资源加载（`<base>` 注入）
+
+SDK 在游戏 HTML 加载前，会注入一个 `<base href="...">` 标签，让你的相对路径（`./assets/img.png`）能解析到正确位置：
+
+- 开发模式：`<base>` 指向容器代理地址。
+- 生产模式：`<base>` 指向线上 CDN。
+
+对你来说只要遵守一条规则：所有资源用相对路径（`./assets/...`），别用绝对路径（`/assets/...`）。其它的 SDK 替你搞定。
+
+### 资源多时要上报启动进度
+
+如果游戏启动期要下载较多图片、音频、字体、关卡 JSON、WASM 或大 JS bundle，不要让 iframe 长时间完全静默。请在主脚本顶部开始调用 [`dzmm.loading.progress()`](/gamefy/docs/sdk/loading.md)，每个阶段或资源完成时更新进度，首个可交互画面渲染后调用 `dzmm.loading.ready()`。
+
+这样平台就知道游戏只是还在加载资源，而不是卡死或白屏。启动失败时调用 `dzmm.loading.error(code, message)`，同时在游戏内显示失败/重试 UI。Web 和移动 WebView 都会处理这些 loading 信号。
+
+调用过 `progress()` 后，宿主会忽略普通 `load` / blank 探测，直到收到 `ready()` 或 `error()`。30 秒没有握手或新进度会进入可重试失败，启动总时长还有 120 秒硬上限。
+
+---
+
+## 6. 网络请求
+
+iframe 里可以直接 `fetch()` 外部 URL（沙箱不限制网络）。但有两个建议：
+
+- 优先用 `dzmm.*` API。直接 `fetch` DZMM 后端是行不通的（跨域 + 没鉴权）。
+- 用第三方 API 时，提示词审核、内容合规仍然要你自己负责。
+
+---
+
+## 7. 游戏方向（横屏 / 竖屏）
+
+iframe 容器的形状是按你声明的方向画的，不是按玩家手机当前的方向自动适配。所以**发布前一定要在 Workbench 里把方向选对**，否则玩家会进游戏后看到一个被挤扁/拉长的画面，再被提示转屏才能继续。
+
+### 在哪里设置
+
+Workbench 右侧 **设置面板 → 游戏信息 → 游戏方向**，二选一：
+
+- **横屏（landscape）**：iframe 按 16:9 渲染，适合横向布局的游戏（卡牌战斗、横版动作、宽 UI 的视觉小说等）。
+- **竖屏（portrait）**：iframe 按 9:16 渲染，适合上下布局（聊天式互动小说、纵向操作、手机直读小说等）。
+
+> 老卡片如果没声明方向，平台一律按 **竖屏** 渲染 —— DZMM 历史上的 gamefy 大多是竖屏，把未声明的当横屏会让大量旧卡 letterbox。新作品请显式选择，不要依赖这个默认值。
+
+设置改完点保存即生效，预览面板的设备框会立即按新方向旋转，方便你检查布局。
+
+### 这个设置会影响什么
+
+| 场景 | 行为 |
+|---|---|
+| 玩家进入游戏 | iframe 按声明方向的比例渲染（不会因手机当前方向旋转） |
+| 移动端 / Android APP 进入全屏 | 平台尝试调用 `screen.orientation.lock(...)` 或原生桥把屏幕锁到目标方向 |
+| 玩家方向与游戏方向不一致 | 启动前弹方向提示对话框；进入游戏后还不一致则在顶部显示横幅，玩家转屏后自动消失 |
+| iOS / iPadOS | Apple 没实现 Screen Orientation Lock，平台无法强制旋转，提示文案会额外告诉玩家**关掉控制中心的"方向锁定"** |
+| PC 桌面浏览器 | 无方向锁定，iframe 在窗口内按声明比例 letterbox |
+| Workbench 预览面板 | 设备框按当前 `orientation` 设置旋转，可点旋转按钮临时切换查看 |
+
+### 怎么选
+
+选 **你 UI 设计的实际画面比例**，不是"玩家可能怎么拿手机"。规则只有一条：**画面横得多就选横屏，竖得多就选竖屏**。不要试图写"自适应任意方向"的游戏 —— 平台会按你声明的方向锁屏，自适应代码大概率跑不到。
+
+如果你的游戏 UI 是用 CSS 自适应布局画的，依然要选一个主方向，让平台帮你锁屏；否则在 Android 上玩家随手一转，画面会跟着系统旋转，体验会很乱。
+
+---
+
+## 8. 画布尺寸 — 高度、滚动、全屏
+
+iframe 的尺寸**不是玩家的整个屏幕**，而是平台按你声明的方向锁定的一块画布：横屏 16:9 / 竖屏 9:16。桌面端 letterbox，移动端 fit-contain。玩家进入/退出全屏会让 iframe 实际像素尺寸瞬间变化（移动端全屏还可能解锁到真实手机比例如 19.5:9）。
+
+> **核心心智**：iframe 里的 `100vh` / `100dvh` / `100vw` 是 **iframe 自己的可视尺寸**，不是物理屏幕。下面这一节解决 80% 的「在我电脑上看着挺好，玩家手机上一塌糊涂」类问题。
+
+### 8.1 用 `100dvh`，不要单写 `100vh`
+
+iOS Safari 14- 把 `100vh` 当成"含地址栏的最大高度"，导致底部一行内容被遮挡。
+
+```css
+/* ✓ 推荐 */
+body { height: 100dvh; }
+
+/* ✓ 向下兼容（旧浏览器吃 vh，新浏览器覆盖为 dvh） */
+.full-screen { height: 100vh; height: 100dvh; }
+
+/* ❌ 不要单写 100vh */
+body { height: 100vh; }
+```
+
+### 8.2 别让 body 出现滚动条
+
+游戏不是文档，绝大多数 gamefy 应该「一屏装下、内部局部滚动」。让 body 自身滚动会让玩家上下滑动时把 HUD、固定按钮、背景一起拖走。
+
+```css
+/* ✓ 根布局锁死视口，子区域自己滚 */
+html, body { margin: 0; height: 100dvh; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+
+.scroll-area {
+  flex: 1;
+  min-height: 0;      /* 必须！否则 flex 子项默认 min-height: auto，内容多了会撑爆 */
+  overflow-y: auto;
+  overscroll-behavior: contain;  /* 滚到顶/底不带动 parent */
+}
+```
+
+`min-height: 0` 是 flex 列布局最高频的坑。漏写后，内容超过可视高度时不会在子容器内滚动，而是把整个 body 撑出滚动条。
+
+文字阅读类游戏（互动小说、长 Galgame）是少数允许 body 滚动的例外，但这种情况下 HUD 要用 `position: sticky` 而不是 `fixed`，否则全屏切换 / 键盘弹出时位置会漂。
+
+### 8.3 iframe 尺寸会变 — 监听 resize
+
+会触发 iframe 尺寸变化的事件：进入/退出全屏、玩家旋转手机、浏览器地址栏收起、虚拟键盘弹出/收起。不能只在 `DOMContentLoaded` 算一次。
+
+```javascript
+// Canvas 游戏：尺寸变化要重置 canvas + 重绘
+function fitCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width  = canvas.clientWidth  * dpr;
+  canvas.height = canvas.clientHeight * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  redraw();
+}
+window.addEventListener('resize', fitCanvas);
+fitCanvas();
+
+// DOM 游戏推荐用 ResizeObserver
+new ResizeObserver(() => layout()).observe(document.body);
+```
+
+### 8.4 安全区 + 输入框
+
+全屏后 iframe 顶到屏幕边缘（刘海、底部 home indicator）。HUD 务必加 safe-area 内边距：
+
+```html
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover,
+               interactive-widget=resizes-content">
+```
+
+```css
+.hud-top    { padding-top:    env(safe-area-inset-top); }
+.hud-bottom { padding-bottom: env(safe-area-inset-bottom); }
+```
+
+- `viewport-fit=cover` 必须写，否则 `env(safe-area-inset-*)` 全是 0。
+- `interactive-widget=resizes-content` 让虚拟键盘弹出时 `100dvh` 自动收缩，输入框不被键盘挡住。
+
+### 8.5 推荐的根布局起手式
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover,
+               interactive-widget=resizes-content, user-scalable=no">
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100vh;           /* 旧浏览器兜底 */
+    height: 100dvh;          /* 新浏览器覆盖为 dynamic viewport */
+    overflow: hidden;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .scroll-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+</style>
+</head>
+<body>
+  <header class="hud-top">…</header>
+  <main class="scroll-area">…</main>
+  <footer class="hud-bottom">…</footer>
+</body>
+</html>
+```
+
+### 8.6 自检清单
+
+写完一个布局后过一遍：
+
+- Workbench 预览面板拉到最小 / 最大，body 都不出滚动条
+- 长内容（消息列表 / 背包）只在内部容器里滚，HUD 不跟着滚
+- 点预览顶部「全屏」按钮，UI 不错位、内容不被截断、HUD 不压在刘海下
+- 切到 iPhone 14 预设，竖屏 / 横屏旋转布局都不破
+- Canvas 游戏 resize 后还能正确渲染（不模糊、不拉伸、不被裁切）
+- 有输入框时，模拟移动端把键盘抬起来，输入框能保持可见
+
+---
+
+## 9. 心智模型一句话
+
+> "游戏跑在一个沙箱里。要碰平台的东西，全走 `dzmm.*` SDK；自己写的代码该怎么写还是怎么写。"
+
+========================================================================
+
+# 本地开发 CLI
+
+# Connected Dev CLI（本地开发）
+
+用 `gamefy` 命令行在本地开发和测试游戏——wrangler 式体验，但跑的是真实平台：
+KV、聊天存档、AI 对话、画图、服务端函数全部打到生产同款端点，数据落在你的
+开发命名空间（和工坊预览共用同一份 dev 存档），模型调用消耗你自己的积分。
+
+## 快速开始
+
+> **前置条件**：和工坊一样，需要 VIP1 及以上会员才能开发游戏。密钥本身只要
+> 登录就能创建，但会员到期后 CLI 的拉取、开发和发布都会返回 `VIP_REQUIRED`。
+
+1. **安装**：命令行不在 npm 仓库上，从平台下载安装包再安装（`<站点>` 换成你正在用的站点地址，
+   比如 `https://www.dzmm.ai`；[开发者密钥](/studio/game-creation/dev-keys) 页的「上手指南」里有替换好的命令）：
+
+   ```bash
+   curl -fL -o dzmm-gamefy-cli.tgz <站点>/api/app/cli/download/latest && npm install -g ./dzmm-gamefy-cli.tgz
+   ```
+2. **登录**：
+
+   ```bash
+   gamefy auth login --base-url <站点>   # 打印一个网址和一串验证码
+   ```
+
+   在任意浏览器打开这个网址（登录你的网页账号），输入验证码确认，命令行就会拿到一把新授权的密钥。
+   不需要在终端里输入，没有交互终端（比如 AI 助手的命令行）也能用；`--no-open` 只是不自动打开浏览器，
+   流程不变。已经在「开发者密钥」页手动建过密钥的话，可以用 `--key-stdin` 从标准输入传入。
+   （每个账号最多 3 把，可随时吊销、吊销即时生效；密钥是账号级的，对你名下所有游戏都有效。）
+
+3. **选定游戏**（选择已有游戏，或 `--new` 在网页新建后自动接走；也可以 `--game` 粘贴游戏页 / 工坊链接。
+   会拉取代码、写好 AGENTS.md 并安装 AI 指引；从未发布过的新游戏从空白模板开始）：
+
+   ```bash
+   mkdir my-game && cd my-game
+   gamefy init
+   ```
+
+   链接所属站点和登录的站点不一致时，命令行会直接说明并停下，不会把密钥发到别的站点。
+
+4. **本地开发**：
+
+   ```bash
+   gamefy dev               # 打开 http://127.0.0.1:<port>/
+   ```
+
+   本地页面用生产同款 iframe 沙箱与 SDK 注入方式，`functions/` 里的函数
+   每次调用读取本地最新源码，无需容器。
+
+5. **发布**：
+
+   ```bash
+   gamefy deploy
+   ```
+
+   走与工坊发布相同的校验与管线，但更严格：任何文件或函数失败都会让整个
+   发布失败。若平台上的版本比你上次 pull 时更新，deploy 会拒绝（`revision_conflict`），
+   处理办法见 [命令行与发布错误码](/gamefy/docs/cli-errors.md)；`--force`
+   会直接用本地覆盖线上版本，只在确认本地为准时使用。
+
+   deploy 只发布代码：封面、简介在创作者中心的游戏页面设置，上架在角色详情页。
+
+## 同步文档、检查和验收
+
+| 命令 | 用途 |
+|---|---|
+| `gamefy docs` | 把平台当前文档拉到项目，供本地 AI 助手使用；`--stdout` 只输出正文 |
+| `gamefy skills` | 安装随当前 CLI 提供的游戏开发 skill；不会替代线上 SDK 契约 |
+| `gamefy status` | 比较本地 baseline、线上 revision 和上架状态 |
+| `gamefy check --reload --slow` | 在手机视口检查启动、刷新后的存档与慢网络表现 |
+| `gamefy deploy --dry-run` | 检查发布条件与版本冲突，不发布文件 |
+| `gamefy deploy --verify` | 发布后读回线上版本，逐文件核对 |
+| `gamefy health` / `gamefy logs` | 查看平台体检、空间占用与真实玩家的运行问题 |
+| `gamefy upgrade` | 从当前站点下载并安装最新 CLI |
+
+发布前先保住本地改动，运行 `check` 与 `deploy --dry-run`；确认后再部署。`check` 验证启动和指定交互，不代替完整游戏流程测试。`docs` 拉取的是该站点当前已部署的文档，更新游戏依赖前仍要核对能力旗标。各命令与选项以你安装版本的 `gamefy --help` 为准。
+
+## 注意事项
+
+- **同一时间选一边编辑**：本地 checkout 和工坊容器不会自动同步。CLI
+  deploy 之后回工坊时，用设置里的「从线上恢复」把容器代码同步到最新
+  （静态文件和函数都会恢复）。
+- **能力差异**：本地环境不提供 `draw.edit`、画图 download/nav 展示和
+  workshop（`capabilities.get()` 相应字段为 `false`，调用会被拒绝）；
+  积分不足时游戏收到 `QUOTA_EXHAUSTED` 错误，没有充值弹窗。
+- **清存档**：`gamefy reset-data` 清空你的 dev 命名空间数据（等价工坊设置
+  里的「清空开发数据」），生产玩家数据不受影响。
+- **密钥安全**：密钥只存在本机 `~/.config/dzmm/credentials.json`
+  （0600），浏览器和游戏代码永远接触不到；泄露时去「开发者密钥」页面吊销。
+
+========================================================================
+
+# 发布与上架
+
+# 发布与上架
+
+保存代码、**发布游戏版本**和**上架角色卡**是三个动作。发布与上架互相独立，发布完成还不会自动对玩家公开。
+这一页把两者讲清楚。
+
+## 两个动作
+
+| | 发布（游戏代码） | 上架（角色卡） |
+|---|---|---|
+| 在哪做 | 工坊右上角「发布」，或 CLI `gamefy deploy` | 角色详情页的「上架」按钮 |
+| 做了什么 | 把 `publish/` 和 `functions/` 推到线上 | 把这张卡提交审核 |
+| 改变可见性吗 | **不改变** | 审核通过后才公开 |
+| 可以重复做吗 | 可以，每次覆盖线上版本 | 可以，但有每日配额 |
+
+**先发布，后上架**。没有成功发布过的游戏无法上架——上架时会去取线上的 `index.html`，
+取不到就拒绝，报「请先在 Workbench 中保存游戏后再上架」。
+
+## 发布做了什么
+
+先完成代码保存，再发布。按顺序：校验这张卡属于你且是游戏卡 → 铸一个新版本号 → 收集 `publish/` 下的文件 →
+校验 `index.html` 存在且是合法 HTML → 上传静态文件到新版本目录 → 上传 `functions/` 源码 →
+**在一个事务里把线上指针切到新版本**。
+
+几个后果值得记住：
+
+- **静态版本指针的切换是原子的**。静态文件上传失败时保留旧版本，玩家不会看到半套静态文件。工坊的函数上传是另一条流程：某个函数失败或文件名非法时会发出警告，新静态版本仍可能发布，线上函数会保留此前的版本或清单。看到警告必须修复后重新发布，不能把静态发布成功当成函数也已更新。
+- **文件名必须是 ASCII**。含中文或其它非 ASCII 字符的路径会被直接拒绝，并列出需要改名的文件。
+- 只有 `publish/` 目录下的文件会给玩家。`functions/` 是服务端代码，玩家拿不到。
+- 发布**不会**改变游戏对玩家的可见性。
+
+## 上架做了什么
+
+把这张卡的状态置为「等待审核」，并生成一条列表记录。审核是**异步**的，由平台的审核服务在后台进行，
+不是点完按钮立刻出结果。
+
+审核通过之后，卡才会被置为公开，此时玩家才能：在角色列表里看到它、搜到它、打开它的详情页、进入游戏。
+
+## 没上架的时候，谁能看到
+
+| 入口 | 结果 |
+|---|---|
+| 玩家打开角色详情页直链 | 看不到（404） |
+| 玩家加载游戏入口 | 看不到（403） |
+| 列表页、搜索 | 不出现 |
+| 你自己 | 都能看、能玩 |
+
+⚠️ **一个例外**：游戏的静态文件（图片、脚本等）走的是「知道地址即可访问」的链接，不检查上架状态。
+知道完整地址的人可以直接拉到这些文件的字节。所以**未上架不等于内容保密**——不要把不能外泄的东西
+放进 `publish/`。服务端逻辑可以放在 `functions/`，避免源码直接下发；模型仍可能复述提示词，不要把密码、API key 或个人数据写进 prompt。
+
+## 发布的前置条件
+
+- 登录，且会员等级 ≥ VIP1
+- 是你自己的游戏卡
+- **代码必须先保存**。工坊发现未保存改动时，在发布确认框选择「保存后发布」；保存失败或冲突时先解决，再发布
+- `publish/index.html` 存在，且是合法 HTML
+- 所有文件路径是 ASCII、无重复
+- 同一张卡同时只能有一个发布在跑
+
+屏幕方向**不是**发布的前置条件，它是设置项，缺省为竖屏。但它决定玩家看到的画布比例，发布前最好确认。
+
+## 上架的前置条件
+
+- 不是游客账号
+- 会员等级 ≥ VIP1
+- 当日上架配额未用完（VIP1 每天 2 次、VIP2 每天 5 次、VIP3 每天 10 次；当天已提交和已通过的都计入）
+- 游戏名不为空，且不是默认的「未命名游戏」
+- 头像不是默认占位图
+- 填写了作者说明
+- 线上能取到有效的 `index.html`（即至少成功发布过一次）
+
+## 审核状态
+
+| 状态 | 含义 |
+|---|---|
+| 未上架 | 从未上架，或已下架 |
+| 等待审核 | 已提交，审核进行中。这期间不能重复提交 |
+| 审核未通过 | 被拒。详情页会显示红框和具体理由 |
+| 审核通过 | 已公开，玩家可见 |
+
+被拒时的理由只有你自己看得到，玩家看不到。老卡如果没有保留具体理由，会显示一句兜底说明。
+
+## 被拒之后
+
+改内容，然后点「重新上架」重新提交。同一张卡可以反复修改重提。
+
+> **待补充**：审核的具体判定标准，以及被拒后除了修改重提之外是否有申诉通道，
+> 这两项不在本仓库代码内，需要产品侧补充说明。本页其余内容均依据平台代码的实际行为写成。
+
+## CLI 与工坊的差异
+
+两者最终走同一套核心逻辑、同一个存储布局，并且共用同一把发布锁（所以不会互相打架）。差异在于：
+
+CLI 更严格：
+
+- 函数上传只要有一个失败，整次发布就失败。工坊只会给一条警告
+- 带版本冲突检测：如果线上版本比你上次 `gamefy pull` 时新，会拒绝发布（`revision_conflict`）。
+  先保住本地改动，再到另一个空目录 `gamefy pull` 对比合并后重新发布；`--force` 会直接覆盖线上版本，
+  只在确认本地为准时使用
+- 上传前会一次性检查所有函数（重名、超长、不支持的 import）
+
+CLI 少做的：
+
+- 不会提醒「`index.html` 引用了某个本次没有上传的资源」，工坊会
+- 不会提示重复路径（重复项会被自动排除，不会传坏，但你拿不到提示）
+- 没有流式进度，只返回一个结果
+
+还有一点容易踩：CLI 发布的是你本地的文件，不会和工坊容器里的内容自动同步。
+用 CLI 发布之后再回工坊继续编辑，需要先用设置里的「从线上恢复」把线上版本拉回容器。
+
+========================================================================
+
+# SDK 总览
+
+# SDK 总览
+
+> 新手提示：游戏 HTML 加载时，平台会自动把一个叫做 `dzmm` 的对象塞进 `window` 里。你可以在游戏 JS 的任何地方写 `window.dzmm.xxx()` 或者直接 `dzmm.xxx()` 来调用平台能力 —— 不需要 import、不需要安装。
+
+---
+
+## 全部 API 一览
+
+| API | 作用 | 章节 |
+|---|---|---|
+| `dzmm.completions(cfg, cb?)` | AI 文本对话；返回 `Promise<void>`，累计全文通过回调提供 | [AI 对话](/gamefy/docs/sdk/completions.md) |
+| `dzmm.draw.generate(cfg)` | AI 生成图片（anime / iroha） | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.draw.edit(cfg)` | AI 基于参考图编辑（lite / pro） | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.draw.generateModels()` / `editModels()` | 列出可用绘图模型 | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.draw.status(taskId)` | 用 taskId 取重新签名的图片地址（图片 URL 一小时过期，存档只存 taskId） | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.draw.download(taskId)` | 下载生成的图片到玩家设备 | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.draw.nav(taskId)` | 新标签页打开绘图详情 | [AI 画图与编辑](/gamefy/docs/sdk/draw.md) |
+| `dzmm.audio.play(key, opts?)` | 播放 BGM / 音效（自动处理手势解锁与音量） | [音频播放](/gamefy/docs/sdk/audio.md) |
+| `dzmm.audio.stop / stopAll / preload` | 停止播放、预加载音效 | [音频播放](/gamefy/docs/sdk/audio.md) |
+| `dzmm.audio.setVolume / getVolume` | 游戏侧 BGM / SFX 频道音量 | [音频播放](/gamefy/docs/sdk/audio.md) |
+| `dzmm.loading.progress(payload?)` | 上报启动期加载进度 | [启动加载状态](/gamefy/docs/sdk/loading.md) |
+| `dzmm.loading.ready()` | 首个可交互画面已经渲染 | [启动加载状态](/gamefy/docs/sdk/loading.md) |
+| `dzmm.loading.error(code, message?)` | 上报启动失败 | [启动加载状态](/gamefy/docs/sdk/loading.md) |
+| `dzmm.capabilities.get()` | 查询当前宿主静态能力 | [能力检查](/gamefy/docs/sdk/capabilities.md) |
+| `dzmm.chat.list(ids?)` | 读取聊天消息 | [聊天存档](/gamefy/docs/sdk/chat.md) |
+| `dzmm.chat.insert(parentId, messages)` | 插入新消息 | [聊天存档](/gamefy/docs/sdk/chat.md) |
+| `dzmm.chat.timeline(messageId)` | 取一条消息的完整时间线 | [聊天存档](/gamefy/docs/sdk/chat.md) |
+| `dzmm.kv.get / put / delete` | 键值存储 | [KV 存储](/gamefy/docs/sdk/kv.md) |
+| `dzmm.kv.putIfAbsent(key, value)` | key 不存在时原子创建并确认落盘；需检查能力 | [KV 存储](/gamefy/docs/sdk/kv.md) |
+| `dzmm.kv.batchGet / batchPut / list / namespace` | 批量 KV、列 key、命名空间 | [KV 存储](/gamefy/docs/sdk/kv.md) |
+| `dzmm.save.onAction(handler)` | 处理宿主发起的重置/删除存档请求 | [存档生命周期](/gamefy/docs/sdk/save-actions.md) |
+| `dzmm.toast.success / error / warning / info` | 给玩家弹 toast 提示 | [玩家提示](/gamefy/docs/sdk/toast.md) |
+| `dzmm.log.info / warn / error` | 记录作者可查的游戏运行日志 | [游戏日志](/gamefy/docs/sdk/log.md) |
+| `dzmm.user.info()` | 当前玩家的 ID / 昵称 / 头像 / token | [玩家信息](/gamefy/docs/sdk/user.md) |
+| `dzmm.user.jwks()` | 拿 JWKS 公钥（后端验签用） | [玩家信息](/gamefy/docs/sdk/user.md) |
+| `dzmm.models.list()` | 当前可用的 AI 对话模型 | [模型列表](/gamefy/docs/sdk/models.md) |
+| `dzmm.getLaunchParams()` | 读取分享/邀请链接带的 `from` / `gp` 参数 | [分享 & 启动参数](/gamefy/docs/sdk/share.md) |
+| `dzmm.share(cfg?)` | 生成回到本游戏的分享链接 | [分享 & 启动参数](/gamefy/docs/sdk/share.md) |
+| `dzmm.workshop.publish / list / setLiked / unpublish` | 分享、浏览与收藏玩家作品 | [作品工坊](/gamefy/docs/sdk/workshop.md) |
+| `dzmm.rt.create / join / leave / start / state / send / on` | 联机房间与玩家事件 | [联机房间与语音](/gamefy/docs/sdk/realtime.md) |
+| `dzmm.voice.join / leave / setMic / on` | 房间语音与麦克风状态 | [联机房间与语音](/gamefy/docs/sdk/realtime.md) |
+| `dzmm.fn.invoke(name, body)` | 调用服务端函数（一次性） | [服务端函数](/gamefy/docs/serverless.md) |
+| `dzmm.fn.invokeStream(name, body)` | 调用服务端函数（流式） | [服务端函数](/gamefy/docs/serverless.md) |
+| `dzmm.errors.isDzmmError(e)` | 错误类型守卫 | [错误处理](/gamefy/docs/errors.md) |
+
+---
+
+## 核心心智模型
+
+### 1. 网络调用要等待 Promise
+
+KV、Chat、AI、函数等调用要跨 iframe `postMessage` 发到平台，再等响应回来：
+
+```javascript
+// ✓ 正确
+const data = await dzmm.kv.get('score');
+
+// ❌ 错误：dzmm.kv.get() 返回 Promise，不是数据
+const data = dzmm.kv.get('score');
+console.log(data.value); // undefined，data 是个 Promise
+```
+
+`dzmm.completions()` 的结果传递方式不同：`await` 只等待生成结束，Promise 本身没有文本返回值；每次回调拿到的是截至当前的完整文本。省略回调会丢弃生成文本，不能再读取 `result.text`。
+
+`loading.*`、事件订阅 `rt.on / voice.on / save.onAction` 和部分本地音频方法是同步 API，以对应章节的签名为准。高级能力不能靠对象存在来判断，先读 [`dzmm.capabilities.get()`](/gamefy/docs/sdk/capabilities.md)。
+
+### 2. 失败时抛稳定的错误对象
+
+常规 SDK 能力（completions / draw / chat / kv / user / models 等）失败时抛
+`DzmmError`。`dzmm.fn.invoke()` / `invokeStream()` 失败时抛 `RPCError`，它额外带有
+`source`、`retryable` 和可选的 `retryAfterMs`。两种错误都应使用稳定的 `code`
+分支，不要匹配消息文案。
+
+```javascript
+try {
+  const r = await dzmm.draw.generate({ prompt: 'cat', dimension: '1:1' });
+} catch (e) {
+  if (e.code === 'QUOTA_EXHAUSTED') {
+    // 玩家积分不够
+  } else if (e.code === 'SENSITIVE_CONTENT_DETECTED') {
+    // 提示词命中审查
+  } else {
+    // 兜底
+  }
+}
+```
+
+关键规则：用 `error.code` 分支，不要 `error.message.includes('...')` —— message 文案会按玩家语言本地化，不稳定。
+
+完整错误码列表见 [错误处理大全](/gamefy/docs/errors.md)。
+
+> 新手提示：错误的 `message` 字段 SDK 已经按玩家的语言（zh-CN / zh-HK / zh-TW / ja）本地化好了。即使你 `catch` 了什么都没做，平台还会自动弹 toast 把这个 message 显示给玩家。你的 `catch` 块只负责"决定要不要重试 / 要不要引导玩家做下一步"，不用自己再调 `dzmm.toast.error(e.message)`（会出现两条相同提示）。
+
+### 3. 长任务要防止重复点击
+
+`completions` / `draw.generate` / `draw.edit` 都是 10-60 秒的长任务。玩家会反复点按钮，每点一次都扣一次积分。
+
+每个长任务按钮都要做：
+
+1. 触发时 `disabled = true` + 显示 loading 文案
+2. 完成 / 失败时 `disabled = false`
+3. 用一个 `latestRequestId` 防止旧请求晚到覆盖新结果
+
+详细模板见各 API 章节。
+
+AI 对话的模型规则在浏览器和服务端函数中一致：作者传入的具体可用模型优先；`default` 或已不可用的作者模型使用玩家当前 GameFy Chat 的模型设置。玩家可在游戏设置中修改该模型。Workbench 预览挂在隐藏的开发会话上，`default` 同样读取该会话的模型设置，与玩家链路一致。
+
+### 4. 启动加载状态要主动上报
+
+平台会自动用 iframe `load`、SDK ready、首帧探测判断游戏是否成功启动。但资源多的游戏下载慢时，如果完全没有任何信号，仍然可能被误判成卡死。
+
+只要游戏启动期会预加载图片、音频、字体、WASM、引擎 bundle 或较多 JSON，就要在主脚本顶部开始调用 [`dzmm.loading.progress()`](/gamefy/docs/sdk/loading.md)，首个可交互画面渲染后调用 `dzmm.loading.ready()`，启动失败时调用 `dzmm.loading.error()`。
+
+这只负责平台宿主的启动 loading；游戏内部仍然要自己渲染进度条、失败重试按钮等 UI。
+
+### 5. 浏览器 SDK ≠ 服务端函数
+
+容易混淆的两个概念：
+
+| 概念 | 在哪里 | 例子 |
+|---|---|---|
+| 浏览器 SDK = `dzmm.*` | 你的游戏 JS 里 | `await dzmm.completions(cfg, onContent)` |
+| 服务端函数 = `functions/*.ts` / `*.js` | `/workspace/functions/` 下的文件 | `export default async function (req, ctx) { ... }` |
+| 服务端函数里调用 = `ctx.*` | 服务端函数代码里 | `const { text } = await ctx.completions(cfg)` |
+| 浏览器调用服务端函数 | 你的游戏 JS 里 | `await dzmm.fn.invoke('myFn', { ... })` |
+
+何时用浏览器 SDK： 大部分情况。玩家点按钮 → 直接调 AI / 画图，最简单。
+
+何时用服务端函数： 想藏 prompt、想服务端算分防作弊、想多个玩家共享数据。详见 [服务端函数](/gamefy/docs/serverless.md)。
+
+---
+
+## 下一步
+
+从最常用的 [AI 对话](/gamefy/docs/sdk/completions.md) 开始读，按左侧顺序往下。
+
+========================================================================
+
+# AI 对话
+
+# AI 对话 — `dzmm.completions()`
+
+> 新手提示：让 AI 像 ChatGPT 一样回答问题。回答通过回调持续更新；每次回调拿到的是截至当前的完整文本，`done === true` 表示生成结束。
+
+---
+
+## 1. 最简单的用法
+
+```javascript
+let answer = '';
+await dzmm.completions(
+  {
+    model: 'default',                              // 使用当前 GameFy Chat 的模型设置
+    messages: [{ role: 'user', content: '你好' }], // 问题
+  },
+  (content, done) => {
+    answer = content;
+    if (done) console.log(answer); // AI 的完整回答
+  },
+);
+```
+
+`messages` 数组的 `role` 只支持两种：
+
+| role | 含义 |
+|---|---|
+| `user` | 玩家说的话 |
+| `assistant` | AI 之前说过的话（用于多轮对话） |
+
+不要传 `system`，平台会拒绝该请求。角色设定、语气和输出规则也放在 `user` 消息中；需要隐藏规则时改用服务端函数。
+
+---
+
+## 2. 流式响应（推荐）
+
+让 AI 一边生成你一边显示，玩家不用干等几秒看一个长段落"啪"地出现。
+
+```javascript
+await dzmm.completions(
+  {
+    model: 'default',
+    messages: [{ role: 'user', content: '讲个三国故事' }],
+    maxTokens: 1500,
+  },
+  (content, done) => {
+    document.getElementById('output').textContent = content;
+    if (done) {
+      console.log('完成，总长度:', content.length);
+    }
+  },
+);
+```
+
+回调参数：
+
+- `content` —— 截至当前已经生成的完整文本，不是增量片段；直接覆盖旧文本，不要用 `+=` 拼接
+- `done` —— 是否结束。`done === true` 时，当前 `content` 是最终完整内容
+
+---
+
+## 3. 参数详解
+
+<table>
+  <thead>
+    <tr><th>参数</th><th>类型</th><th>必需</th><th>说明</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><code>model</code></td>
+      <td><code>string</code></td>
+      <td>✅</td>
+      <td>模型 id。传具体且可用的 id 时优先使用；传 <code>'default'</code> 或传入已不可用的 id 时，使用玩家当前 GameFy Chat 的模型设置</td>
+    </tr>
+    <tr>
+      <td><code>messages</code></td>
+      <td><code>Array&lt;Message&gt;</code></td>
+      <td>✅</td>
+      <td>消息数组，至少 1 条；整个请求（JSON，按 UTF-8 字节计）最多 8 MiB。<code>Message = {`{ role, content }`}</code></td>
+    </tr>
+    <tr>
+      <td><code>maxTokens</code></td>
+      <td><code>number</code></td>
+      <td>❌</td>
+      <td>最多生成多少 token，范围 200-3000，默认 1000。1 个中文字大概 1-2 token</td>
+    </tr>
+  </tbody>
+</table>
+
+### 关于 `model` 的最佳实践
+
+- 简单游戏：写 `model: 'default'`，由玩家在当前 GameFy Chat 设置中选择实际使用的模型。
+- 需要固定体验：传 [`dzmm.models.list()`](/gamefy/docs/sdk/models.md) 返回的具体模型 id；只要该模型仍可用，就优先于玩家的 Chat 设置。
+- 遗留代码里写死的模型如果下线，服务端会回退到该玩家当前 Chat 的模型设置，无需重新发布游戏。
+
+`dzmm.models.list().defaultModel` 是模型目录的推荐元数据，适合游戏自己展示模型列表时预选；它不是玩家的 fallback 设置。
+
+Workbench 预览挂在一个隐藏的开发会话（dev chat）上，模型解析与玩家链路完全一致：预览里的 `default` 同样读取该会话的模型设置，发布后读取玩家当前 Chat 的设置。
+
+---
+
+## 4. 返回值
+
+`dzmm.completions()` 返回 `Promise<void>`。文本只通过回调提供，不能读取 `result.text`。
+
+省略回调只会让生成文本无人接收，不会切换成返回 `{ text }` 的“非流式模式”。
+
+```javascript
+let finalText = '';
+await dzmm.completions(cfg, (content, done) => {
+  finalText = content;
+});
+console.log(finalText);
+```
+
+---
+
+## 5. 生产级最佳实践
+
+### 防重复点击 + 显示进度
+
+```javascript
+let inflight = false;
+
+async function onClickAsk() {
+  if (inflight) return;
+  inflight = true;
+  setButton({ disabled: true, label: 'AI 思考中…' });
+  try {
+    await dzmm.completions(
+      { model: 'default', messages: [{ role: 'user', content: prompt }] },
+      (content, done) => {
+        outputEl.textContent = content;
+      },
+    );
+  } catch (e) {
+    handleError(e);
+  } finally {
+    inflight = false;
+    setButton({ disabled: false, label: '提问' });
+  }
+}
+```
+
+### 解析 AI 返回的 JSON（必须兜底）
+
+很多游戏让 AI 返回 JSON 用于驱动剧情。AI 偶尔会返回不合法 JSON，必须兜底：
+
+```javascript
+let buf = '';
+await dzmm.completions(cfg, (c, done) => {
+  buf = c;
+  if (!done) return;
+
+  let parsed;
+  try {
+    parsed = JSON.parse(buf);
+  } catch {
+    return useTextFallback(buf); // 用纯文本展示
+  }
+  if (!parsed?.choices?.length) {
+    return useTextFallback(buf); // 字段缺失也降级
+  }
+  applyChoices(parsed.choices);
+});
+```
+
+不能因为 AI 一次返非 JSON 就让游戏白屏。
+
+### Race condition：守卫 stale update
+
+玩家点"再来一次"会再发一个请求。旧请求的回调更新可能晚到，必须用请求 id 守卫：
+
+```javascript
+let latestReq = 0;
+
+async function regen() {
+  const reqId = ++latestReq;
+  await dzmm.completions(cfg, (c, done) => {
+    if (reqId !== latestReq) return; // 旧请求，丢弃
+    outputEl.textContent = c;
+  });
+}
+```
+
+### 网络瞬时错误：本次动作直接收口
+
+```javascript
+try {
+  await dzmm.completions(cfg, (content) => {
+    outputEl.textContent = content;
+  });
+} catch (e) {
+  if (dzmm.errors.isDzmmError(e) && e.retryable) {
+    outputEl.textContent = '连接暂时不稳定，请稍后再试。';
+    retryButton.hidden = false;
+  }
+}
+```
+
+`retryable: true` 表示以后再次请求可能成功，不表示当前这次点击应自动重复调用。一次用户动作最多调用一次 AI；网络错误或超时后先用本地结果收口，只有玩家再次明确点击时才开始新的动作。
+
+### 配额耗尽要引导充值
+
+```javascript
+catch (e) {
+  if (e.code === 'QUOTA_EXHAUSTED') {
+    showVipUpsell(); // 提示玩家充值 / 开通 VIP
+    return;          // 不要重试
+  }
+  if (e.code === 'RATE_LIMITED') {
+    showCooldown('请求太频繁，请稍后再次点击');
+    return; // 当前动作到此结束，不自动再次调用 AI
+  }
+  // 其它错误：catch 不处理，平台已自动 toast 本地化的 message
+}
+```
+
+> ⚠️ `QUOTA_EXHAUSTED` 不要重试，玩家钱包真的空了，重试也是同样错误。
+
+---
+
+## 6. 常见错误码
+
+| Code | 含义 | 怎么处理 |
+|---|---|---|
+| `RATE_LIMITED` | 调用太频繁 | 显示冷却提示，等待玩家稍后明确再试 |
+| `QUOTA_EXHAUSTED` | 玩家积分 / 额度耗尽 | 引导充值，不要重试 |
+| `VIP_REQUIRED` | 此模型需要 VIP | 引导开通 VIP |
+| `UNAUTHORIZED` / `TOKEN_EXPIRED` | 登录态失效 | 提示"请重新进入游戏"，停止后续请求 |
+| `SENSITIVE_CONTENT_DETECTED` | 提示词命中审查 | 提示玩家换一种表达 |
+| `UNSUPPORTED_MODEL` | model 字段不在白名单 | 改用 `'default'` 或 `dzmm.models.list()` |
+| `NETWORK_ERROR` / `TIMEOUT` | 网络瞬时 | 本地降级并结束当前动作，提供显式重试入口 |
+
+完整错误码字典见 [错误处理大全](/gamefy/docs/errors.md)。
+
+---
+
+## 7. 关于隐藏提示词
+
+`dzmm.completions()` 不支持 `system` role。放在 `user` 消息里的角色设定和输出规则也写在浏览器代码中，玩家可以通过开发者工具看到。
+
+如果不想让玩家直接从浏览器代码或 Network 读取剧情设定，可以用[服务端函数](/gamefy/docs/serverless.md)，在函数内部调用 `ctx.completions()`，浏览器只接收最小结果。服务端 prompt 仍可能被 prompt injection 间接提取，因此不能存放密钥或安全关键规则；防作弊与权限判断必须由确定性服务端代码执行。
+
+========================================================================
+
+# AI 画图与编辑
+
+# AI 画图与编辑 — `dzmm.draw.*`
+
+> 新手提示：用 AI 生成图片（`generate`）或者基于已有图编辑（`edit`）。两个 API 配额是分开的。生成 / 编辑都需要 5-60 秒，做好 loading UI。
+
+---
+
+## 1. 生成图片 — `draw.generate()`
+
+```javascript
+const result = await dzmm.draw.generate({
+  prompt: 'a cute pink-haired catgirl, anime style',
+  dimension: '1:1',
+});
+
+img.src = result.images[0];             // 立刻渲染可以直接用
+await dzmm.kv.put('avatar', { taskId: result.taskId, index: 0 }); // 存档只存 taskId
+```
+
+> ⚠️ 图片 URL **一小时后失效**。存档里存 `taskId`，渲染时用 `draw.status(taskId)`
+> 现取新地址（见下面第 4 节）。把 URL 写进存档，玩家第二天回来看到的就是裂图。
+
+### 参数
+
+<table>
+  <thead><tr><th>参数</th><th>类型</th><th>必需</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>prompt</code></td>
+      <td><code>string</code></td><td>✅</td>
+      <td>图片描述，最长 2000 字符</td>
+    </tr>
+    <tr>
+      <td><code>dimension</code></td>
+      <td><code>'1:1' | '2:3' | '3:2'</code></td><td>✅</td>
+      <td>generate 模型只支持这 3 种比例（上游 SDXL 训练约束）</td>
+    </tr>
+    <tr>
+      <td><code>model</code></td>
+      <td><code>'anime' | 'iroha'</code></td><td>❌</td>
+      <td>默认 <code>'anime'</code>（二次元）；<code>'iroha'</code> 也是二次元风格</td>
+    </tr>
+    <tr>
+      <td><code>negativePrompt</code></td>
+      <td><code>string</code></td><td>❌</td>
+      <td>负面提示词，最长 2000 字符</td>
+    </tr>
+  </tbody>
+</table>
+
+### 返回值
+
+```typescript
+{
+  taskId: string;        // 任务 ID，可传给 status / download / nav；这个才是要存的
+  status: string;        // 通常是 'completed'
+  images: string[];      // 图片 URL 数组，带签名，签发后 1 小时失效
+  createdAt: string;     // ISO 时间
+  errorMessage?: string; // 如有上游错误
+}
+```
+
+`images` 里的地址带访问签名，**签发后一小时过期**，只适合当次渲染用，不能持久化。
+`taskId` 长期有效（除非任务被删除），存它。
+
+### 配额与计费
+
+- 每日有配额限制（随负载调整）
+- 配额用完后按所选模型价格扣玩家积分（Kagami Web 入口为 1 积分/张；本 SDK 现有模型为 5 积分/张）
+- 单次生成耗时 10-60 秒
+
+### 提示词技巧
+
+```javascript
+// ✓ 好：具体、有风格关键词
+prompt: '1girl, long pink hair, blue eyes, white dress, ' +
+        'flower field, sunlight, high quality, detailed'
+
+// ✗ 差：太笼统，AI 没方向
+prompt: 'a girl'
+
+// 推荐的负面提示词（贴上就行，避免常见崩坏）
+negativePrompt: 'lowres, bad anatomy, bad hands, text, error, ' +
+                'missing fingers, worst quality, low quality, ' +
+                'jpeg artifacts, watermark, blurry'
+```
+
+---
+
+## 2. 编辑图片 — `draw.edit()`
+
+基于一张或多张参考图做 AI 编辑。可以编辑 `generate()` 的结果，也可以编辑 canvas 截图 / 玩家上传的图。
+
+```javascript
+// 用 generate 出来的图继续编辑
+const generated = await dzmm.draw.generate({ prompt: '猫娘', dimension: '1:1' });
+const edited = await dzmm.draw.edit({
+  prompt: '换成蓝色头发',
+  images: [generated.images[0]],
+});
+
+// 编辑 canvas 截图（指定 pro 模型 + 16:9 比例）
+const dataUrl = canvas.toDataURL('image/png');
+const editedWide = await dzmm.draw.edit({
+  prompt: '添加魔法光效',
+  images: [dataUrl],
+  dimension: '16:9',
+  model: 'pro',
+});
+```
+
+### 参数
+
+<table>
+  <thead><tr><th>参数</th><th>类型</th><th>必需</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>prompt</code></td><td><code>string</code></td><td>✅</td>
+      <td>编辑描述，最长 2000 字符</td>
+    </tr>
+    <tr>
+      <td><code>images</code></td><td><code>string[]</code></td><td>✅</td>
+      <td>1-4 张参考图。支持 URL（如 generate 结果）或 base64 data URL（canvas / FileReader）</td>
+    </tr>
+    <tr>
+      <td><code>dimension</code></td>
+      <td><code>'1:1' | '2:3' | '3:2' | '4:3' | '3:4' | '16:9' | '9:16'</code></td>
+      <td>❌</td>
+      <td>默认 <code>'1:1'</code>。edit 支持 7 种比例（比 generate 多 4 种）</td>
+    </tr>
+    <tr>
+      <td><code>model</code></td>
+      <td><code>'lite' | 'pro'</code></td><td>❌</td>
+      <td>默认 <code>'lite'</code>。<code>'pro'</code> 质量更高、速度较慢</td>
+    </tr>
+  </tbody>
+</table>
+
+### 参考图限制（Web 完整前置校验，Mobile 分层校验）
+
+| 限制 | 数值 | 触发错误 |
+|---|---|---|
+| 单图大小 | ≤ 10 MB | `IMAGE_TOO_LARGE` |
+| 单边像素 | ≤ 8192 px | `IMAGE_DIMENSION_EXCEEDED` |
+| 格式 | 仅 `jpg` / `png` / `webp` | `UNSUPPORTED_IMAGE_FORMAT` |
+
+`gif` / `avif` / `tiff` 不支持，需要用 canvas 转格式后再传。
+
+> 新手提示：Web Host 会在上传前校验格式、大小和解码后的尺寸。Mobile Host 会先校验数量、MIME 和编码大小，尺寸由认证上传端点解码后校验，因此不合规图片可能发生一次校验上传，但不会进入付费 Draw 提交。写文件选择 UI 时记得同步把限制写进 `<input accept="...">` 和提示文字，别让玩家选完 50MB 大图再被拒绝。
+
+### 多图编辑：`images` 数组顺序 = prompt 里的"图1 / 图2"
+
+`images` 数组顺序就是 prompt 里"图1 / 图2 / ..."的引用顺序。多图（≥ 2 张）时推荐用「图1 / 图2」（中文）或 `image 1 / image 2`（英文）对齐数组下标，比"那张人物图"这种描述更稳定。
+
+```javascript
+await dzmm.draw.edit({
+  prompt: '把图1的角色放进图2的场景里',
+  images: [characterRef, sceneRef], // 顺序对应 prompt 里"图1 / 图2"
+});
+```
+
+常用场景模板：
+
+| 场景 | 推荐模板 |
+|---|---|
+| 场景合成 | `把图1的角色放进图2的场景里` |
+| 换装 | `把图1的衣服穿在图2身上` |
+| 换脸 | `把图1的脸换到图2上` |
+| 姿势迁移 | `让图1的人物摆出图2的姿势` |
+| 风格融合 | `用图2的画风重画图1` |
+
+业务代码可以保留语义命名（`characterImage / sceneImage`），调用 SDK 前显式映射成数组顺序，避免顺序错乱。
+
+### 返回值
+
+同 `draw.generate()`。
+
+### 配额与计费
+
+- edit 使用独立配额，与 generate 分开计算。
+- 配额用完后扣玩家积分。
+
+---
+
+## 3. 列出可用模型 — `draw.generateModels()` / `draw.editModels()`
+
+可选：动态获取当前可用的绘图模型。硬编码 `'anime'` / `'iroha'` / `'lite'` / `'pro'` 也完全可以；list API 适合需要在 UI 里展示模型选择菜单的场景。
+
+```javascript
+const { models, defaultModel } = await dzmm.draw.generateModels();
+console.log(models);
+// [{ id: 'anime', displayName: '🎨 anime', description: '...', isDefault: true }, ...]
+
+// 推荐用法：用 defaultModel 兜底，模型名变了也不挂
+await dzmm.draw.generate({
+  prompt: '猫娘',
+  dimension: '1:1',
+  model: defaultModel ?? 'anime',
+});
+```
+
+### 返回值
+
+```typescript
+{
+  models: Array<{
+    id: string;            // 传给 draw.generate() / edit() 的 model id
+    displayName: string;   // UI 显示名（含 emoji）
+    description: string;   // 简短说明
+    isDefault: boolean;
+  }>;
+  defaultModel: string | null;
+}
+```
+
+### 注意事项
+
+- HTTP 响应缓存 5 分钟（`Cache-Control: max-age=300`），不用游戏侧再做缓存。
+- generate / edit 的模型列表独立，分别调对应方法。
+- `model` 字段不传时服务端会用 default 兜底，所以硬编码也行。
+
+---
+
+## 4. 取新图片地址 — `draw.status(taskId)`
+
+用 `taskId` 重新读取一个绘图任务，拿到**重新签名**的图片地址。这是存档里图片能长期显示的唯一正确做法。
+
+### 为什么需要它
+
+`generate()` / `edit()` 返回的 `images` 是带签名的临时地址，签发后一小时失效。游戏把它当永久地址写进 KV 存档，玩家一小时后回来，图片请求就是 404 —— 而且游戏 iframe 是沙箱 + 匿名源，`<img>` 请求不带 Cookie，没有任何兜底，只会显示裂图。
+
+```javascript
+// ❌ 错误：把会过期的 URL 存进存档
+await dzmm.kv.put('gallery', { url: result.images[0] });
+
+// ✅ 正确：存 taskId，渲染时现取
+await dzmm.kv.put('gallery', { taskId: result.taskId, index: 0 });
+
+const saved = (await dzmm.kv.get('gallery')).value;
+const task = await dzmm.draw.status(saved.taskId);
+const url = task.images[saved.index];
+if (url) img.src = url;
+else showPlaceholder();   // 任务失败或已被删除
+```
+
+### 用法
+
+```javascript
+const task = await dzmm.draw.status(taskId);
+// task 的结构与 draw.generate() 返回值完全一致
+if (task.images[0]) img.src = task.images[0];
+```
+
+参数：`taskId`（string）—— `generate` / `edit` 返回的那个。
+
+返回值：同 `draw.generate()`（`{ taskId, status, images, createdAt, errorMessage? }`），
+`images` 每次调用都是新签发的地址。
+
+### 注意事项
+
+- 只能读当前玩家自己的任务，别人的任务读不到。
+- 不消耗画图配额、不扣积分，是一次普通读取，不是重新生图。
+- 不轮询，也不抛"任务失败"：任务还在生成中时 `status` 是 `'pending'` / `'processing'`，
+  失败的任务返回 `status: 'failed'`，这两种情况 `images` 都可能是空数组。
+  **取图前一定判空**，不要把 `undefined` 赋给 `img.src`（会打出一次必然 404 的请求）。
+- 任务不存在或不属于当前玩家会抛 `KEY_NOT_FOUND`：当作"这张图已丢失"，渲染占位图，不要重试。
+- 建议在渲染时才调用，不要在启动时把整个图库一次性刷新 —— 每张图一次请求。
+  同一张图在一小时内可以复用上次拿到的地址，进程内缓存即可。
+- 宿主不支持时（`(await dzmm.capabilities.get()).drawStatus !== true`，例如尚未支持此能力的旧宿主）：
+  本次会话里 `generate` / `edit` 刚拿到的地址照常能用；但存档里只有 taskId 的老图换不到新地址，
+  渲染占位图并提示玩家重新生成，不要因此改回存 URL。
+
+---
+
+## 5. 下载图片 — `draw.download(taskId)`
+
+通过任务 ID 把图片下载到玩家设备。委托父窗口走服务端 API，下载时会重新校验当前登录用户，并为私密图片签发短期链接，同时绕过 iframe 沙箱的 CORS 限制（直接 `fetch + blob` 在沙箱里行不通）。
+
+```javascript
+const r = await dzmm.draw.generate({ prompt: '猫娘', dimension: '1:1' });
+dzmm.draw.download(r.taskId); // 玩家收到下载提示
+```
+
+参数：`id`（string）—— `taskId`，`generate` / `edit` 返回的那个。
+
+---
+
+## 6. 打开绘图详情 — `draw.nav(taskId)`
+
+在新标签页打开 `/draw/:id`，玩家可以收藏、分享。
+
+```javascript
+const r = await dzmm.draw.generate({ prompt: '猫娘', dimension: '1:1' });
+dzmm.draw.nav(r.taskId);
+```
+
+---
+
+## 7. 生产级最佳实践
+
+### 防重复点击（10-60 秒长任务必备）
+
+```javascript
+let drawing = false;
+
+async function onClickGenerate() {
+  if (drawing) return;
+  drawing = true;
+  setBtn({ disabled: true, label: '生成中…约 30 秒' });
+  try {
+    const r = await dzmm.draw.generate({ prompt, dimension: '1:1' });
+    showImage(r.images[0]);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    drawing = false;
+    setBtn({ disabled: false, label: '生成图片' });
+  }
+}
+```
+
+进度提示必须有可见的视觉变化（spinner、骨架），不要只 disable 按钮。
+
+### Race condition 守卫
+
+```javascript
+let latest = 0;
+async function regen() {
+  const id = ++latest;
+  const r = await dzmm.draw.generate({ prompt, dimension: '1:1' });
+  if (id !== latest) return; // 已被新请求顶替，丢弃旧结果
+  setImage(r.images[0]);
+}
+```
+
+### 三种"额度类"错误区别处理
+
+| Code | UX |
+|---|---|
+| `RATE_LIMITED` | 提示"稍等"，结束当前动作并提供显式重试入口 |
+| `QUOTA_EXHAUSTED` | 弹充值 / VIP 引导，绝不重试 |
+| `VIP_REQUIRED` | 弹 VIP CTA |
+
+千万别把三种当一类，玩家会困惑。
+
+### 移动端首屏 ≤ 2 MB
+
+参考图 + 封面 + bgm 加起来不要超过 2 MB —— 4G 网络 5 秒没出图玩家就走了。critical（首屏）和 lazy（按需 fetch）分清。
+
+---
+
+## 8. 常见错误码
+
+| Code | 触发 | 建议 |
+|---|---|---|
+| `IMAGE_TOO_LARGE` | 参考图 > 10MB | 让玩家换图 |
+| `IMAGE_DIMENSION_EXCEEDED` | 参考图任一边 > 8192px | 让玩家缩小 |
+| `UNSUPPORTED_IMAGE_FORMAT` | 非 jpg / png / webp | 让玩家换格式 |
+| `INVALID_IMAGE_DATA` | data URL 解析失败 | 让玩家重新选图 |
+| `IMAGE_NOT_FOUND` | edit 传入的图片 URL 失效 | 让玩家重新生成或选择 |
+| `KEY_NOT_FOUND` | `draw.status` 的 taskId 不存在或不属于当前玩家 | 把这张图当作已丢失，渲染占位图 |
+| `SENSITIVE_CONTENT_DETECTED` | 提示词命中审查 | 让玩家改 prompt |
+| `NON_ANIME_IMAGE_DETECTED` | edit 仅支持动漫风格 | 让玩家换图 |
+| `UNSUPPORTED_MODEL` | model 字段不在白名单 | 检查 model 字符串 |
+| `QUOTA_EXHAUSTED` | 积分 / 额度耗尽 | 引导充值，不重试 |
+| `DRAW_TIMEOUT` | 单次生成超过 2 分钟 | 当前动作收口，等待玩家显式再次触发 |
+
+完整字典见 [错误处理大全](/gamefy/docs/errors.md)。
+
+---
+
+## 9. 想"运行时按玩家输入生成图"？
+
+`dzmm.draw.*` 就是为这个场景设计的（消耗玩家积分）。
+
+注意区分：如果是开发时让 Agent 帮你生成游戏素材（背景、按钮、立绘），那是 Agent 在容器内调 Relay API，走开发者你自己的额度，跟玩家无关。让 Agent 主动用就行，不用你写代码。
+
+========================================================================
+
+# 音频播放
+
+# 音频播放
+
+> 新手提示：游戏里播 BGM 和音效，一律用 `dzmm.audio.*`，**不要自己 `new Audio()`**。移动端浏览器（尤其 iOS Safari）会因为自动播放策略把裸 `<audio>` 静音，而且玩家在平台设置里调的音量对它不生效。SDK 统一处理首次手势解锁、BGM 交叉淡入淡出、切后台暂停和双轨音量。
+
+---
+
+## 快速上手
+
+```javascript
+// BGM：切场景时调用。SDK 自动做单例管理和交叉淡入淡出，
+// 重复调用同一首不会重头播放。
+await dzmm.audio.play('bgm/daily/warm');
+
+// 音效：即发即忘，内部有并发池。
+dzmm.audio.play('sfx/ui/click');
+
+// 环境循环音（雨、风）
+dzmm.audio.play('sfx/env/rain-loop', { loop: true });
+dzmm.audio.stop('sfx/env/rain-loop');
+
+// 预加载关键音效，首次播放更跟手（可选）
+dzmm.audio.preload(['sfx/ui/click', 'sfx/combat/hit']);
+```
+
+## key 与素材清单
+
+`play()` 的参数是素材 key，来自游戏的 `assets/audio/manifest.json`（发布时随游戏打包）：
+
+- `sfx/ui/click` —— 一个「概念」（family），SDK 会在它的多个变体里**随机挑一条**播放，高频音（脚步、点击、打击）不容易听腻
+- `sfx/ui/click#02` —— 指定具体变体
+- 前缀 `bgm/` 的 key 走 BGM 轨（单例 + 淡入淡出），`sfx/` 走音效轨（并发池）
+
+manifest 由开发助手（coding agent）在配音时自动维护，格式：
+
+```json
+{
+  "version": 1,
+  "assets": {
+    "sfx/ui/click": { "source": "library", "variants": [{ "id": "01" }, { "id": "03" }] },
+    "sfx/special/magic-burst": {
+      "source": "local",
+      "variants": [{ "id": "01", "path": "assets/audio/magic-burst-01.mp3" }]
+    }
+  }
+}
+```
+
+`library` 条目引用平台公共素材库（全体游戏共享、跨游戏 CDN 缓存）；`local` 条目是本游戏专属文件。
+
+## API 参考
+
+| 方法 | 说明 |
+|---|---|
+| `dzmm.audio.play(key, opts?)` | 播放。`opts.loop`（BGM 默认 true，音效默认 false）、`opts.volume`（0–1，本次播放增益）。返回 `Promise<{ok, reason?}>` |
+| `dzmm.audio.stop(key?)` | 不传 key 停当前 BGM 和循环音效；传 key 停对应 BGM 或该 family 的循环音效 |
+| `dzmm.audio.stopAll()` | 停下所有声音 |
+| `dzmm.audio.preload(keys)` | 提前拉取并解码音效（仅 `sfx/`） |
+| `dzmm.audio.setVolume(channel, v)` | 游戏侧频道音量，`channel` 为 `'bgm'` 或 `'sfx'`，与玩家平台音量相乘生效 |
+| `dzmm.audio.getVolume(channel)` | 读游戏侧频道音量 |
+
+## 错误处理：不用 try/catch
+
+`play()` **永远不会抛异常**。失败时 resolve `{ok: false, reason}`（文件 404、清单缺失等），游戏主流程不受影响。唯一值得关注的返回是 `{ok: true, reason: 'pending_gesture'}`：浏览器还没收到用户手势，BGM 已排队，会在玩家第一次点击/触摸后自动开播——这是正常现象，不需要处理。
+
+## 注意事项
+
+- **首次播放必须发生在用户手势之后**才有声音（浏览器策略）。把第一次 `play('bgm/...')` 放进「开始游戏」按钮的点击处理里最稳。
+- 玩家可以在游戏设置面板里分别调 BGM / 音效音量，游戏代码不需要自己做音量设置界面（做游戏内静音开关仍然推荐）。
+- 页面切后台时 SDK 自动暂停，回前台自动续播。
+- 旧版宿主可能没有音频能力：直接调用前判一下 `if (dzmm.audio)`，或用 [`dzmm.capabilities.get()`](/gamefy/docs/sdk/capabilities.md) 的 `audio` 位。
+- 大 BGM 不要塞进首屏加载路径；需要提示加载进度时用 [启动加载状态](/gamefy/docs/sdk/loading.md)。
+
+========================================================================
+
+# 启动加载状态
+
+# 启动加载状态
+
+资源多的游戏启动时，iframe 的 `load` 事件可能很晚才触发。平台会尽量判断游戏是否还活着，但如果游戏在下载图片、音频、字体、WASM 或大 JS bundle 时完全没有任何信号，就可能被误判成卡死或空白。
+
+新游戏只要有明显预加载，就要用 `dzmm.loading.*` 主动告诉平台：游戏还在加载、首帧已经好了，或者启动失败了。
+
+---
+
+## 1. API 一览
+
+```javascript
+dzmm.loading.progress({
+  phase: 'resource_loading',
+  loadedResources: 3,
+  totalResources: 10,
+  loadedBytes: 420000,
+  totalBytes: 2100000,
+  currentResource: './assets/background.jpg',
+  message: 'Loading assets',
+});
+
+dzmm.loading.ready();
+
+dzmm.loading.error('ASSET_LOAD_FAILED', 'Failed to load background.jpg');
+```
+
+| 方法 | 作用 |
+|---|---|
+| `dzmm.loading.progress(payload?)` | 告诉平台游戏启动仍在推进，刷新宿主 loading 状态 |
+| `dzmm.loading.ready()` | 首个可交互画面已经渲染，可以移除宿主 loading |
+| `dzmm.loading.error(code, message?)` | 启动不可恢复失败，平台显示失败状态 |
+
+一旦调用过 `progress()`，平台就进入显式 loading 流程：普通 `window.load`、alive
+或 blank 探测不会提前把宿主 loading 隐藏。之后必须调用 `ready()` 或 `error()`
+明确结束；Web 和移动端行为一致。
+
+---
+
+## 2. 什么时候必须用
+
+下面任一情况都建议使用：
+
+- 首屏资源加载可能超过 3 秒。
+- 需要预加载多张图片、音频、字体、关卡 JSON。
+- 使用 Phaser、Three.js、WASM 或体积较大的运行时 bundle。
+- 移动网络下可能长时间白屏。
+- 启动期有自己的 asset manifest / runtime 初始化流程。
+
+资源很少的简单 DOM 游戏可以继续依赖默认探测，但新游戏尽量都加上，成本很低。
+
+---
+
+## 3. `progress()` payload
+
+所有字段都是可选的。SDK 会丢弃非法值和嵌套对象，只转发小的 JSON-safe 字段。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| `phase` | `'start' | 'resource_loading' | 'runtime_initializing' | 'first_frame' | 'ready'` | 当前启动阶段 |
+| `loadedResources` | number | 已加载资源数，非负数 |
+| `totalResources` | number | 总资源数，非负数 |
+| `loadedBytes` | number | 已加载字节数，非负数 |
+| `totalBytes` | number | 总字节数，非负数 |
+| `currentResource` | string | 当前资源名或相对路径 |
+| `message` | string | 给玩家看的短文案 |
+
+阶段建议：
+
+| phase | 何时发送 |
+|---|---|
+| `start` | 主脚本开始执行后立刻发 |
+| `resource_loading` | 下载图片、音频、字体、关卡 JSON 时 |
+| `runtime_initializing` | 初始化引擎、WASM、游戏状态时 |
+| `first_frame` | 即将渲染首帧或已经安排首帧 |
+| `ready` | 通常直接用 `dzmm.loading.ready()` |
+
+---
+
+## 4. 推荐模板
+
+```javascript
+const assetUrls = [
+  './assets/player.png',
+  './assets/background.jpg',
+  './assets/enemy.png',
+];
+
+dzmm.loading.progress({ phase: 'start', message: 'Preparing game' });
+
+function showBootError(message) {
+  document.body.innerHTML = `<main class="boot-error">${message}</main>`;
+}
+
+function loadImage(url) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error(`Failed to load ${url}`));
+    img.src = url;
+  });
+}
+
+async function boot() {
+  try {
+    const images = {};
+
+    for (let i = 0; i < assetUrls.length; i += 1) {
+      const url = assetUrls[i];
+      dzmm.loading.progress({
+        phase: 'resource_loading',
+        loadedResources: i,
+        totalResources: assetUrls.length,
+        currentResource: url,
+        message: 'Loading assets',
+      });
+
+      images[url] = await loadImage(url);
+    }
+
+    dzmm.loading.progress({
+      phase: 'runtime_initializing',
+      loadedResources: assetUrls.length,
+      totalResources: assetUrls.length,
+      message: 'Starting game',
+    });
+
+    startGame(images);
+
+    requestAnimationFrame(() => {
+      dzmm.loading.ready();
+    });
+  } catch (err) {
+    dzmm.loading.error('BOOT_FAILED', err?.message || 'Game failed to start');
+    showBootError('加载失败，请刷新重试');
+  }
+}
+
+boot();
+```
+
+---
+
+## 5. 使用规则
+
+- 第一次 `progress()` 要尽量早，通常放在主脚本顶部。
+- 不要等 `window.onload` 或所有资源加载完才第一次上报。
+- `ready()` 只能在首个可见、可交互画面渲染后调用。
+- 启动失败时，既要 `dzmm.loading.error(code, message)` 通知平台，也要在游戏内渲染失败/重试 UI。
+- `progress()` 不要放进每帧循环；按资源完成、阶段切换，或最多每约 500ms 上报即可。
+- 宿主在 30 秒没有握手或新进度时显示可重试失败，并有 120 秒启动硬上限；长加载要持续上报真实进度，但仍要控制总耗时。
+- `currentResource` 不要放带签名参数、token、玩家 ID 的完整私有 URL；用相对路径或文件名。
+- payload 只传小字段，不要传 DOM、Error、Blob、ArrayBuffer、大数组或嵌套对象。
+- `dzmm.loading.*` 只负责启动期宿主 loading；游戏内 AI 生成、抽卡、战斗结算等长任务仍然要自己做 loading / 防重复 / 错误 UI。
+
+---
+
+## 6. 反模式
+
+```javascript
+// ❌ 太晚：资源都加载完才第一次上报，中途仍可能被判定超时
+window.onload = () => dzmm.loading.progress({ phase: 'ready' });
+
+// ❌ 糊弄 ready：首屏还没渲染，玩家仍看到白屏
+dzmm.loading.ready();
+initBigEngineAndLoadAssets();
+
+// ❌ 高频刷 progress：每帧 postMessage，浪费主线程
+function loop() {
+  dzmm.loading.progress({ message: 'Loading' });
+  requestAnimationFrame(loop);
+}
+
+// ❌ 泄漏敏感信息：不要把带签名参数的 URL 发给宿主/日志
+dzmm.loading.progress({ currentResource: signedPrivateUrl });
+
+// ❌ 调过 progress 却不收口：宿主会一直等到 timeout
+dzmm.loading.progress({ phase: 'resource_loading' });
+startGame();
+// 缺少 dzmm.loading.ready() / dzmm.loading.error(...)
+```
+
+---
+
+## 7. 和游戏内 loading 的区别
+
+`dzmm.loading.*` 是给平台宿主看的启动信号，解决的是"平台是否还应该继续等这个 iframe"。
+
+你自己的游戏 UI 仍然要显示 loading、进度条、失败重试按钮。玩家能看到的体验靠游戏 UI，平台 loading 只是兜底保护。
+
+========================================================================
+
+# 能力检查
+
+# 能力检查 — `dzmm.capabilities.get()`
+
+> 新手提示：这个 API 只回答“当前宿主有没有这类能力”。它不返回积分、配额、图片数量上限、KV 剩余空间等动态信息。
+
+---
+
+## 1. 用法
+
+```javascript
+const caps = await dzmm.capabilities.get();
+
+if (caps.share) {
+  showShareButton();
+}
+
+if (caps.loading) {
+  dzmm.loading.progress({ phase: 'start', message: 'Preparing game' });
+}
+
+if (caps.kvBatch) {
+  await dzmm.kv.batchPut({ profile: player, settings });
+}
+
+if (!caps.chatStableIds) {
+  hideBranchSaveUi(); // 当前 Host 不能保证旧 message id 在分支后仍有效
+}
+```
+
+---
+
+## 2. 返回值
+
+```typescript
+{
+  environment: 'dev' | 'prod';
+  kv: boolean;
+  kvBatch: boolean;
+  kvList: boolean;
+  kvPutIfAbsent?: boolean;
+  fn: boolean;
+  completions: boolean;
+  draw: boolean;
+  drawEdit?: boolean;
+  drawPresentation?: boolean;
+  chat: boolean;
+  share: boolean;
+  loading: boolean;
+  user: boolean;
+  toast: boolean;
+  log: boolean;
+  workshop: boolean;
+  realtime: boolean;
+  voice: boolean;
+  chatStableIds?: boolean;
+  drawStatus?: boolean;
+  audio?: boolean;
+}
+```
+
+这些值在一次运行中可以当作静态能力使用。不要把它当作 quota / 余额 / 模型列表；
+需要模型列表时用 [`dzmm.models.list()`](/gamefy/docs/sdk/models.md)，
+需要处理余额不足时 catch `QUOTA_EXHAUSTED`。
+
+`kv` 只表示基础 `get / put / delete`。使用 `batchGet / batchPut` 前检查
+`kvBatch`，使用 `list` 前检查 `kvList`，使用 `putIfAbsent` 前检查 `kvPutIfAbsent === true`；不要从 `kv: true` 推断高级 KV
+方法可用。同理，`draw` 只表示 `draw.generate()`：调用 `draw.edit()` 前检查
+`drawEdit`，调用 `draw.download()` / `draw.nav()` 前检查 `drawPresentation`；
+这两个字段在旧 Host 上可能缺失，缺失时按不可用处理。声明为 `false` 的能力
+对应的普通网络调用会被 Host 拒绝（`INVALID_REQUEST`）。日志会静默丢弃，音频则返回播放结果，见各自章节。新版 Host 会在既有 ready 握手中直接附带能力；SDK 识别到没有该字段的
+旧 Host 时直接返回保守值，不会发送旧 Host 不认识的探测 RPC。不同 Web、App、Workbench 和 CLI 宿主的版本与能力可能不同；不要用设备类型或 `environment` 推断能力。只有 `chatStableIds` 为 `true` 时，才把 `chat.insert()` 返回的 message id
+长期保存为复杂分支后的剧情存档点。
+
+`drawStatus` 表示宿主支持用 taskId 取重新签名的图片地址
+（[`dzmm.draw.status()`](/gamefy/docs/sdk/draw.md)）。
+存档里存的是 taskId 时，渲染前检查这一位；缺失或为 `false` 时显示占位图并提供重新生成入口。本会话刚生成的签名 URL 可以临时展示，但会过期，不能改回持久化 URL。
+
+`log` 表示宿主会把 [`dzmm.log.*`](/gamefy/docs/sdk/log.md) 转交作者的运行面板。
+`workshop` 对应[作品工坊](/gamefy/docs/sdk/workshop.md)；不代表玩家已通过内容审核或有发布额度。
+`realtime` / `voice` 分别控制[联机房间和房间语音](/gamefy/docs/sdk/realtime.md)。`dzmm.rt` / `dzmm.voice` 始终存在，不能用 `if (dzmm.rt)` 判断是否可用。
+`audio` 表示支持平台音量设置与音频资源代理；音频实际在 iframe 内播放，仍需处理浏览器的手势限制与 `{ ok, reason }` 结果。
+
+========================================================================
+
+# 聊天存档
+
+# 聊天存档 — `dzmm.chat.*`
+
+> 新手提示：把游戏的对话历史存到平台数据库里，支持分支。最常见的用途是 Galgame / 互动小说：玩家做不同选择走不同剧情，每个选择都是一个分支。
+
+---
+
+## 1. 核心概念：不透明 message ID 与稳定能力
+
+所有版本的 Host 都会在旧顶层 `insert().id`、`list()` 或 `timeline()` 中返回平台生成的 message ID；新版 Host 还会返回与输入消息同序的 `insert().ids`。无论 Host 版本如何，调用方都必须把拿到的 ID 当作不透明值：
+
+- 只保存并原样回传 `insert().id` / `insert().ids`、`list()` 或 `timeline()` 返回的 ID
+- 不要解析 ID、拼接 ID、截取 UUID，也不要自行编造业务字符串充当 ID
+
+只有 `(await dzmm.capabilities.get()).chatStableIds === true` 时，平台才额外保证新版 Chat 合同：`insert().ids` 存在；空 parent 会 append active leaf；明确 parent 会创建/继续分支；后续物理 chunk 拆分或迁移不会让已经返回的逻辑 ID 失效。旧 Host 会返回或被规范化为 `false`；基础 `insert/list/timeline` 仍可调用，但它的 parent、active-history 和返回结构属于 legacy 语义，新游戏不能拿它作为复杂剧情进度真源。
+
+这样可以做：
+
+- 多分支剧情：玩家选 A 和选 B 生成两条不同的子链
+- 存档点：记住"我现在在哪个节点"，下次接着玩
+- 读档：跳回某个旧节点，重新选择
+
+P0 不承诺 `ChatMessage.parent` / `children` 字段。新游戏只依赖 `insert`、`list` 和 `timeline`。
+
+公开 API 只有这三个方法，没有 `chat.append()`。开始使用“分支后仍长期保存旧 ID”的能力前先检查 Host capability：
+
+```javascript
+const caps = await dzmm.capabilities.get();
+if (!caps.chatStableIds) {
+  // 不禁用基础 Chat 调用；关闭现代分支流程，并用 KV 保存完整业务进度
+  disableBranchSaveFeature();
+}
+```
+
+---
+
+## 2. 插入消息 — `chat.insert(parentId, messages)`
+
+当 `chatStableIds === true` 时，插入一组新消息由 `parentId` 决定“继续当前剧情”还是“从存档点分支”：
+
+- 空 Chat：`null` / `undefined` / `''` 创建第一条根剧情
+- 非空 Chat：`null` / `undefined` / `''` 追加到当前 active leaf，继续当前 active history
+- 明确传入一个 SDK 返回的 message ID：从该存档点创建/切换分支
+
+```javascript
+// 玩家选了"向左走"，AI 给出反应
+const result = await dzmm.chat.insert(currentSavePoint, [
+  { role: 'user', content: '向左走' },
+  { role: 'assistant', content: '你走进了一片森林…' }
+]);
+
+console.log(result.ids);
+// ['<opaque-id-1>', '<opaque-id-2>'] — 与输入 messages 同序；不要解析格式
+
+console.log(result.id);      // 兼容旧代码：最后一条消息 ID
+console.log(result.message); // 显式的最后一条消息
+
+const lastId = result.ids?.[result.ids.length - 1] ?? result.id;
+// 通常你会想记住"最后一条"作为新的存档点
+```
+
+如果 capability 为 `false`，只把 `result.id` 当作当前调用返回的 legacy
+顶层字段；不要假设 `result.ids` 存在，也不要假设空 parent / 明确 parent
+具备本页下面的 active-leaf 与分支语义。此时应由 KV 保存完整业务进度。
+
+### 参数
+
+| 参数 | 类型 | 必需 | 说明 |
+|---|---|---|---|
+| `parentId` | `string \| null` | ✅ | SDK 返回的父消息 ID；`null` / `undefined` / `''` 在非空 Chat 中表示追加 active leaf，在空 Chat 中创建根消息 |
+| `messages` | `Message[]` | ✅ | 消息数组，至少 1 条。`Message = { role: 'user' \| 'assistant', content: string }` |
+
+多条消息会按输入顺序形成一条链。只有明确 ID 才表达“从这个存档点分支”；不要用空 parent 表达新分支。
+
+### 返回值
+
+```typescript
+ChatMessage & {
+  ids: string[];        // 新插入消息 ID；chatStableIds=true 时可跨后续分支长期保存
+  message: ChatMessage; // 最后一条消息，和顶层 id/role/content/timestamp 相同
+}
+```
+
+为兼容老游戏，返回对象顶层继续保留最后一条 `ChatMessage` 的字段。
+
+---
+
+## 3. 读消息 — `chat.list(ids?)`
+
+按 ID 列表批量取消息。不传 ID 时返回当前 active history，不会把其它历史分支全部混进来。
+
+```javascript
+// 取当前 active history
+const all = await dzmm.chat.list();
+
+// 取指定几条；使用之前由 SDK 返回并保存的 ID
+const some = await dzmm.chat.list(savedIds);
+```
+
+传入超过 100 个 ID 时，SDK 会按 Provider 单次上限自动分批，并按输入顺序合并结果；
+`timeline()` 返回长时间线后可以直接交给 `list()`，不需要游戏自己切片。
+
+### 单条消息结构
+
+```typescript
+{
+  id: string;                      // 不透明 ID，只保存/回传；稳定保证受 capability 限定
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: string;               // ISO 时间
+}
+```
+
+Provider 单次最多读取 100 个 ID；新版 SDK 会自动分批并按输入顺序合并，
+所以可以把长 `timeline()` 结果直接传给 `list()`。不要通过解析 ID 猜测相邻消息。
+
+---
+
+## 4. 取时间线 — `chat.timeline(messageId)`
+
+传入一个由 SDK 返回的 message ID，取得该存档点对应的时间线 ID 序列；再交给 `list(ids)` 读取内容。需要跨复杂分支长期保存该 ID 时，先确认 `chatStableIds === true`。
+
+```javascript
+const timelineIds = await dzmm.chat.timeline(currentSavePoint);
+
+// 拿到所有消息内容
+const messages = await dzmm.chat.list(timelineIds);
+```
+
+这是"读档"最常用的组合：拿到 timeline 后渲染整条线索给玩家看。
+
+---
+
+## 5. 完整示例：Galgame 存档系统
+
+```javascript
+let currentSavePoint = null;
+let canPersistChatSavePoints = false;
+let legacyHistory = [];
+let storageMode = null;
+let persistedStorageState = null;
+const STORAGE_STATE_KEY = 'story:storageState';
+const LEGACY_HISTORY_KEY = 'story:legacyHistory';
+const STORAGE_SCHEMA_VERSION = 1;
+
+async function persistStorageMode(mode) {
+  storageMode = mode;
+  canPersistChatSavePoints = mode === 'stable-chat';
+  if (persistedStorageState?.schemaVersion === STORAGE_SCHEMA_VERSION
+      && persistedStorageState.mode === mode) return;
+  persistedStorageState = { schemaVersion: STORAGE_SCHEMA_VERSION, mode };
+  await dzmm.kv.put(STORAGE_STATE_KEY, persistedStorageState);
+}
+
+async function initializeGame() {
+  // 先读显式 storage mode 与 legacy KV，再检查当前 Host 能力。
+  // 一旦进入 legacy-kv，Host 后续升级也不会隐式切换剧情真源。
+  const [stateRecord, legacyRecord] = await Promise.all([
+    dzmm.kv.get(STORAGE_STATE_KEY),
+    dzmm.kv.get(LEGACY_HISTORY_KEY),
+  ]);
+  persistedStorageState = stateRecord?.value ?? null;
+  const persistedMode = persistedStorageState?.schemaVersion === STORAGE_SCHEMA_VERSION
+    ? persistedStorageState.mode
+    : null;
+  const hasLegacyHistory = legacyRecord?.updated_at != null;
+  legacyHistory = Array.isArray(legacyRecord?.value) ? legacyRecord.value : [];
+  const caps = await dzmm.capabilities.get();
+  const mustStayLegacy = persistedMode === 'legacy-kv'
+    || hasLegacyHistory
+    || caps.chatStableIds !== true;
+  await persistStorageMode(mustStayLegacy ? 'legacy-kv' : 'stable-chat');
+  if (storageMode === 'legacy-kv') {
+    // 基础 Chat 仍可调用，但不依赖 legacy parent/active-history/result.ids。
+    // KV 保存完整剧情，才是旧 Host 以及升级后兼容路径的进度真源。
+    disableBranchSaveFeature();
+    if (legacyHistory.length > 0) {
+      renderHistory(legacyHistory);
+      return;
+    }
+    // 升级前若只有旧 Chat 数据，尽量导入当前 Host 能返回的 basic history。
+    const basicHistory = await dzmm.chat.list();
+    if (basicHistory.length > 0) {
+      legacyHistory = basicHistory;
+      renderHistory(legacyHistory);
+      await dzmm.kv.put(LEGACY_HISTORY_KEY, legacyHistory);
+      return;
+    }
+    return startGame();
+  }
+  return loadSave();
+}
+
+async function persistSavePoint() {
+  if (canPersistChatSavePoints && currentSavePoint) {
+    await dzmm.kv.put('savePoint', currentSavePoint);
+  }
+}
+
+async function appendStory(messages) {
+  const r = await dzmm.chat.insert(null, messages);
+  currentSavePoint = r.ids?.[r.ids.length - 1] ?? r.id ?? null;
+  if (storageMode === 'legacy-kv') {
+    legacyHistory = [...legacyHistory, ...messages];
+    await dzmm.kv.put(LEGACY_HISTORY_KEY, legacyHistory);
+  }
+  await persistSavePoint();
+  return r;
+}
+
+// chatStableIds=true 时，空 Chat 的 null 创建第一条根剧情。
+// 旧 Host 只把 Chat 调用当 best-effort 展示/记录，进度由 KV 保证。
+async function startGame() {
+  await appendStory([
+    { role: 'assistant', content: '你在一个陌生的房间醒来…' }
+  ]);
+}
+
+// 只有现代稳定合同才承诺 null append active leaf。
+async function continueStory(choice) {
+  await appendStory([
+    { role: 'user', content: choice },
+    { role: 'assistant', content: await generateResponse(choice) }
+  ]);
+}
+
+// 玩家从旧存档点重选：只有明确传入旧 ID 才创建分支
+async function branchFrom(savePoint, choice) {
+  if (!canPersistChatSavePoints) {
+    throw new Error('当前 Host 不支持稳定 Chat 分支存档');
+  }
+  const r = await dzmm.chat.insert(savePoint, [
+    { role: 'user', content: choice },
+    { role: 'assistant', content: await generateResponse(choice) }
+  ]);
+  currentSavePoint = r.ids[r.ids.length - 1];
+  await persistSavePoint();
+}
+
+// 玩家回到游戏：读档
+async function loadSave() {
+  if (!canPersistChatSavePoints) return startGame();
+  const saved = (await dzmm.kv.get('savePoint'))?.value;
+  if (!saved) return loadExistingChatOrStart();
+  const ids = await dzmm.chat.timeline(saved);
+  if (ids.length === 0) return loadExistingChatOrStart();
+  const history = await dzmm.chat.list(ids);
+  renderHistory(history);
+  currentSavePoint = saved;
+}
+
+async function loadExistingChatOrStart() {
+  // 缺 savePoint 不等于新游戏；先确认 active Chat 是否真的为空。
+  const history = await dzmm.chat.list();
+  if (history.length === 0) return startGame();
+  renderHistory(history);
+  currentSavePoint = history[history.length - 1]?.id ?? null;
+  await persistSavePoint();
+}
+
+void initializeGame();
+```
+
+---
+
+## 6. 开发模式 vs 生产模式
+
+| 模式 | 行为 |
+|---|---|
+| 开发模式（Workbench 预览） | 数据持久化到数据库，绑定一个隐藏的开发会话（dev chat），刷新 / 重开浏览器数据都在 |
+| 生产模式（玩家游玩） | 数据持久化到数据库，跟当前聊天会话绑定 |
+
+预览挂在开发会话上，SDK 统一走真实后端；开发会话独立于玩家会话，与生产数据按命名空间隔离。即便如此，游戏初始化时仍要处理"无数据"分支：首次运行、点了「清除存储」之后都是空数据，不要假设上次保存的数据一定还在。
+
+---
+
+## 7. 限制
+
+| 项 | 限制 |
+|---|---|
+| 单次插入消息数 | 1–100 条 |
+| 单条消息大小 | ≤ 128 KiB（按 UTF-8 计） |
+| 单次插入总大小 | ≤ 512 KiB（按 UTF-8 计） |
+| 单聊天总消息数 | 无硬限，但建议合理使用 |
+| 分支数 | 无硬限 |
+
+---
+
+## 8. 常见错误码
+
+| Code | 含义 | 建议 |
+|---|---|---|
+| `CHAT_NOT_FOUND` / `chat_not_found` | `chat.insert` 明确传入的 parent message ID 不存在 | 只使用 SDK 返回并持久保存的 ID；不要自行构造 |
+| `UNAUTHORIZED` | 登录态失效 | 提示重新进入游戏 |
+| `NETWORK_ERROR` | 网络瞬时 | 结束当前动作并提供显式重试入口 |
+
+`CHAT_NOT_FOUND` 是浏览器 `dzmm.chat.*` 抛出的 `DzmmError` 形式，开发模式与生产模式
+走同一条链路、行为一致；服务端函数里的 `ctx.chat.*` 错误经 `dzmm.fn.*` 返回时则是
+`RPCError(code: 'chat_not_found')`。跨路径代码应兼容两种大小写，并按 `error.code` 判断。
+
+---
+
+## 9. KV 和 Chat 都能存数据，怎么选？
+
+| 用 `chat` 当存档 | 用 `kv` 存数据 |
+|---|---|
+| 有线性 / 树状关系（剧情节点） | 没有关系（背包、分数） |
+| 需要展示成对话气泡 | 需要快速读写键值 |
+| 玩家会"读档"回到某个节点 | 只关心"当前是什么状态" |
+
+典型搭配：用 `chat` 存剧情对话本身，用 `kv` 存"当前在哪个节点 ID"。
+
+========================================================================
+
+# KV 存储
+
+# KV 存储 — `dzmm.kv.*`
+
+> 新手提示：KV（Key-Value）就是"按名字存数据"。你给它一个名字（key）和一份数据（value），下次用同一个名字就能拿回来。不像 [聊天存档](/gamefy/docs/sdk/chat.md) 有树状关系，KV 是扁平的，最适合存"分数 / 关卡 / 背包 / 设置"这类数据。
+
+---
+
+## 1. 基础 API
+
+```javascript
+// 存
+await dzmm.kv.put('score', 100);
+await dzmm.kv.put('inventory', { items: ['sword', 'potion'], gold: 50 });
+
+// 手动存档、购买结果等必须确认已落到服务端的状态
+await dzmm.kv.put('critical-save', state, { flush: true });
+
+// 读
+const scoreData = await dzmm.kv.get('score');
+console.log(scoreData?.value); // 100
+
+// 删
+await dzmm.kv.delete('score');
+```
+
+注意 `get` 返回的是包了一层的对象 `{ value, updated_at }`，不是直接的值。
+key 不存在时两者都是 `null`；显式保存 JSON `null` 时 `value` 是 `null`、
+`updated_at` 是时间字符串。删除必须调用 `kv.delete(key)`，`put(key, null)` 不等于删除。
+`delete` 是幂等的：删除一个不存在的 key 会正常 resolve，不会抛 `KEY_NOT_FOUND`。
+
+生产 Web Host 默认会对普通 `put` 做 leading/trailing debounce：`await put(...)` 表示 Host 已接受这次写入，不一定表示后台请求已经成功。移动 Host 当前会等待网络响应。对手动存档、付费结果或准备向玩家显示“保存成功”的操作，请传 `{ flush: true }`，并处理 reject。第一方 Web iframe 或移动 WebView 文档被替换时，会立即中止旧文档的读取、Chat、Workshop、completions、Draw 和函数请求；Web 中即使 DOM iframe 元素没有更换，游戏执行 `location.reload()` 或页内导航也属于文档替换。只有已经接受的 pending/in-flight KV 写入会进入关闭排空：默认 2 秒，在途存档超过 512 KB 时按体积追加（每 MiB 约 4 秒，上限 10 秒），且不会延迟新文档的 SDK 握手；超时后旧写作用域会被中止。后台自动存档遇到 `UNAUTHORIZED` / `FORBIDDEN` / 校验类错误不会再自动重试，会通过 Host 提示玩家。同一 `(chatId,key)` 的替换前后写入仍会排队，避免旧 autosave 覆盖新存档。浏览器或 App 被强杀仍只能 best-effort，不能把终止事件当成唯一保存时机。
+
+---
+
+## 2. 存什么都可以
+
+`value` 可以是任何能被 `JSON.stringify` 序列化的东西：
+
+```javascript
+await dzmm.kv.put('username', 'Alice');                       // 字符串
+await dzmm.kv.put('hp', 100);                                  // 数字
+await dzmm.kv.put('isVip', true);                              // 布尔
+await dzmm.kv.put('unlocked', ['level1', 'level2']);           // 数组
+await dzmm.kv.put('player', { name: 'Alice', hp: 100, mp: 50 }); // 对象
+```
+
+不能存：函数、Date 对象（会变字符串）、循环引用对象、`undefined`、`BigInt`。
+
+---
+
+## 3. 批量读写、列 key、namespace
+
+批量接口适合存档槽、设置面板这类一次读写多个 key 的场景：
+
+```javascript
+await dzmm.kv.batchPut({
+  'slot:1': { level: 3, hp: 20 },
+  'slot:2': { level: 5, hp: 8 },
+});
+
+const slots = await dzmm.kv.batchGet(['slot:1', 'slot:2', 'slot:missing']);
+console.log(slots['slot:missing']); // null
+```
+
+批量限制：
+
+- `batchGet` 最多 10 个 key，`batchPut` 最多 10 个条目
+- 所有 key 都必须非空、不含 NUL、是合法 Unicode，且不能等于 `.` / `..`。新 `batchGet / batchPut / list / namespace` 合同的 key / prefix 上限是 256 字符；旧的根级 `get / put / delete` 继续允许访问历史上已经使用的更长 key，避免升级 SDK 后旧存档无法读写或删除
+- `kv.put(key, null)` 会保存 JSON `null`，只有 `batchPut` 的顶层 entry value 禁止 `null` / `undefined`。删除必须显式调用 `kv.delete`，非法条目会在 RPC 前拒绝
+- `/`、`?`、`#` 等字符会被安全编码为同一个 URL path segment，不会逃逸到别的 chat 或接口
+- 请求与响应分别最多 5 MiB（`5,242,880` 字节）
+- 字节数按完整 JSON 的 UTF-8 序列化结果计算，包含 key 和外层结构
+- `batchPut` 是原子操作：整批全部成功，或整批不写入
+
+列 key 只返回 key，不返回 value；用 `cursor` 取下一页：
+
+```javascript
+let cursor;
+do {
+  const page = await dzmm.kv.list({ prefix: 'slot:', limit: 20, cursor });
+  renderSlotKeys(page.keys);
+  cursor = page.cursor;
+} while (cursor);
+```
+
+远端分页和 prefix 过滤在服务端执行。生产 SDK 还会把本会话已经接受、仍在
+debounce 队列中的 key 合并到当前页，因此和 `get` / `batchGet` 一样具备
+read-your-writes 语义。key 使用稳定的 UTF-8 字节序排列；把 `cursor` 当作
+不透明值原样传回，不要用本地语言排序重新计算。
+
+`namespace(prefix)` 返回一个自动加前缀的 KV 适配器，适合把一个功能的 key 放在一起：
+
+```javascript
+const saves = dzmm.kv.namespace('save:');
+
+await saves.put('slot:1', { level: 3 });
+const data = await saves.get('slot:1'); // 实际读 save:slot:1
+
+const page = await saves.list({ prefix: 'slot:' });
+console.log(page.keys); // ['slot:1']，不会带 save: 前缀
+```
+
+### 原子创建：`putIfAbsent(key, value)`
+
+```javascript
+const caps = await dzmm.capabilities.get();
+if (caps.kvPutIfAbsent === true && typeof dzmm.kv.putIfAbsent === 'function') {
+  const created = await dzmm.kv.putIfAbsent('profile:v1', { level: 1 });
+  if (created) console.log('Created the initial profile');
+  else console.log('Existing profile was preserved');
+}
+```
+
+返回 `true` 表示原子创建成功且已经等待服务端确认；`false` 表示 key 已存在，旧值不会被覆盖。它不走普通 `put` 的 debounce，也不需要 `{ flush: true }`。key 最长 256 字符，命名空间拼接后的完整 key 同样受限，value 必须可 JSON 序列化。
+
+这只能保证“创建这个 key”原子，不能把后续 AI 扣费、发奖或多个 key 的写入变成一个事务。需要防重复动作时，用稳定 action ID 记录 reservation / result，明确处理 pending 与未知结果；请求超时后不要直接重复付费操作。
+
+旧宿主缺少这项能力时，停用依赖它的动作或改走有同等原子守卫的服务端逻辑。**不要用 `get` 后 `put` 模拟**，并发窗口会让两个调用都认为自己拿到了资格。服务端的 [`ctx.kv.putIfAbsent`](/gamefy/docs/serverless/ctx.md) 使用不同的数据 scope，不能和浏览器存档互换。
+
+---
+
+## 4. 推荐写法：直接用 dzmm.kv，不需要 localStorage fallback
+
+沙箱 iframe 里 `localStorage` 不可用；而 `dzmm.kv` 无论开发模式还是生产模式都持久化到数据库，直接用即可。可以封一层薄 helper 省掉 `.value` 包装、统一错误处理：
+
+```javascript
+async function kvPut(key, value, { critical = false } = {}) {
+  await window.dzmm.kv.put(key, value, { flush: critical });
+}
+
+async function kvGet(key) {
+  const data = await window.dzmm.kv.get(key);
+  return data?.value ?? null;
+}
+
+// 用起来更顺手
+await kvPut('score', 100);
+const score = await kvGet('score');
+console.log(score); // 100（没了一层 .value 包装）
+
+// 关键删除也要处理失败，不要静默显示“已删除”
+await dzmm.kv.delete('score');
+```
+
+> 什么时候才需要 localStorage？只有"把游戏文件直接丢进浏览器打开、完全没有 DZMM SDK"的裸本地预览才需要自己写 localStorage 兜底。在 Workbench 预览和线上 iframe 里都不要用：沙箱禁用了 localStorage，`dzmm.kv` 是唯一正常路径。
+
+---
+
+## 5. 开发模式 vs 生产模式
+
+| 模式 | 行为 |
+|---|---|
+| 开发模式（Workbench 预览） | 数据持久化到数据库（你自己的开发数据），刷新 / 重开浏览器数据都在 |
+| 生产模式（玩家游玩） | 数据持久化到 PostgreSQL，跟当前玩家绑定 |
+
+预览挂在一个隐藏的开发会话（dev chat）上，SDK 统一走真实后端：开发模式的 `dzmm.kv` 拥有与生产完全相同的写语义（debounce、`{ flush: true }`、批量、list 等），只是数据落在你自己的开发数据里，与玩家的生产数据、与其他开发者的开发数据都互相隔离。localStorage 不参与任何一种模式。
+
+关键含义：游戏初始化时永远要处理"没数据"分支（首次运行、清除存储后都会遇到）。不要假设 `kvGet('savePoint')` 一定有结果。
+
+---
+
+## 6. 数据隔离
+
+生产模式下：
+
+- 每个玩家的 KV 数据互相隔离 —— 玩家 A 看不到玩家 B 的数据
+- 每个聊天会话的 KV 数据互相隔离 —— 同一玩家在两个不同 chat 里存的同名 key，互不影响
+- 不同游戏之间也是隔离的
+
+> 这是"浏览器 SDK 的 `dzmm.kv`"的 scope 规则（chat 维度 + 玩家维度）。服务端函数中，`ctx.kv.*` 是当前玩家私有、跨 chat 持久的数据；`ctx.kv.global.*` 才是全游戏共享数据，例如排行榜或公告。两者都属于 game 维度，但入口和隔离范围不同，详见[服务端函数 ctx KV](/gamefy/docs/serverless/ctx.md)。
+
+> `ctx.kv` / `ctx.kv.global` 和这里的 `dzmm.kv` 在开发模式下遵循同一套规则：都按开发者隔离。Workbench 预览读写的是你自己的那份开发数据，与生产、与其他开发者都完全隔离 —— 预览里写 `ctx.kv.global` 排行榜不会污染线上，同时也读不到线上数据；要验证真实数据需发布后验证。详见 [服务端函数 ctx.kv 章节](/gamefy/docs/serverless/ctx.md)。
+
+---
+
+## 7. 限制
+
+| 项 | 限制 | 超出时 |
+|---|---|---|
+| batch / list / namespace key 或组合 prefix | ≤ 256 字符 | `KEY_TOO_LONG` |
+| 旧根级 `get / put / delete` key | 不新增 256 字符限制；保留历史数据访问 | — |
+| key 内容 | 非空、不含 NUL、合法 Unicode，不能是 `.` / `..` | `INVALID_REQUEST` |
+| value 大小 | ≤ 5 MiB（SDK 客户端会前置校验，超出直接 throw） | `VALUE_TOO_LARGE` |
+| key 不存在 | `get` 返回 `null`，`delete` 正常 resolve（都不抛错） | — |
+| 同 key 并发 `get` | 生产 Host 合并成一次请求，并在约 1.5 秒内复用最近一次结果；`put` / `delete` 后立即失效，写入在途时 `get` 会等它落地 | — |
+| `get` 被限流 / 存储短暂不可用 | SDK 自动重试最多 2 次（总等待不超过约 4 秒） | 之后才抛 `RATE_LIMITED` / `SERVICE_UNAVAILABLE` |
+
+---
+
+## 8. 实用模式
+
+### 启动时读一次，之后在内存里持有
+
+```javascript
+// ✓ 进入游戏时把需要的存档一次读进内存，之后只改内存、按需 put
+const state = (await kvGet('game-state')) ?? createInitialState();
+function render() {
+  drawHud(state); // 直接读内存
+}
+
+// ✗ 不要在渲染循环 / 定时器 / 每次打开菜单时反复 get
+setInterval(async () => {
+  const slots = await Promise.all([1, 2, 3, 4].map(i => kvGet(`save-${i}`)));
+  renderSlots(slots);
+}, 1000);
+```
+
+每次 `get` 都是一次网络请求。把它写进渲染循环或定时器，几秒内就会攒出上百个请求，
+被网关按 IP 限流后 `get` 会以 `RATE_LIMITED` 失败，整局游戏都会变卡。生产 Host 会把
+同一 key 的并发 `get` 合并、并在约 1.5 秒内复用结果，这只是兜底，不是让你无限读的许可。
+存档槽列表这类界面，打开时读一次并缓存在内存里，写入后自己更新内存即可。
+
+### 关键状态"立即落盘"，不要等 unload
+
+```javascript
+// ✓ 每次有意义的状态变化都立刻保存
+async function onLevelComplete(level) {
+  state.maxLevel = Math.max(state.maxLevel, level);
+  await kvPut('progress', state, { critical: true });
+}
+
+// ✗ 不要等"页面退出"才保存 —— 玩家直接关标签时不会触发
+window.addEventListener('beforeunload', () => {
+  dzmm.kv.put('progress', state); // 大概率丢
+});
+```
+
+玩家关标签 / 切应用时浏览器经常不给你时间执行 `beforeunload`，靠它存档基本不可靠。
+
+### 复杂数据用一个 key 一次性存
+
+```javascript
+// ✓ 一次性存整个游戏状态，原子读写
+await kvPut('game-state', {
+  level: 5,
+  hp: 80,
+  inventory: ['sword'],
+  flags: { metKing: true },
+}, { critical: true });
+
+// ✗ 拆很多 key，要 race condition 自己想办法
+await kvPut('level', 5);
+await kvPut('hp', 80);
+await kvPut('inventory', ['sword']);
+// 中间任何一步失败 → 数据不一致
+```
+
+单个 key 尽量控制在 512 KB 以内。超过后离场时的排空时间会按体积延长，但慢网络下几 MB 的存档
+仍可能在页面关闭前来不及落盘。图片、音频走资源接口，对话历史用 `dzmm.chat`，不要整段塞进 KV；
+真的很大的状态可以拆成「热数据小 key + 冷数据大 key」，热数据频繁保存、冷数据只在变化时保存。
+
+### 用版本号防止旧代码读到新数据
+
+```javascript
+const STATE_SCHEMA_VERSION = 2;
+
+async function loadState() {
+  const raw = await kvGet('game-state');
+  if (!raw) return null;
+  if (raw.version !== STATE_SCHEMA_VERSION) {
+    // 旧版本，迁移或重置
+    return migrateState(raw);
+  }
+  return raw;
+}
+
+async function saveState(state) {
+  await kvPut('game-state', { ...state, version: STATE_SCHEMA_VERSION });
+}
+```
+
+游戏迭代时改了存档结构，老玩家的旧存档不会让游戏崩。
+
+---
+
+## 9. 常见错误码
+
+| Code | 触发 | 建议 |
+|---|---|---|
+| `KEY_TOO_LONG` | putIfAbsent / batch / list / namespace key 或组合 prefix > 256 字符 | 用更短的 key / prefix |
+| `INVALID_REQUEST` | key 为空、含 NUL、是 `.` / `..`、含非法 Unicode，或 value 不能 JSON 序列化 | 修正 key / value |
+| `VALUE_TOO_LARGE` | value 过大 | 拆分或压缩 |
+| `KEY_NOT_FOUND` | 不存在的 key | 单个 `get` 返回 `{ value: null, updated_at: null }`；`batchGet` 对应条目为 `null`，`delete` 正常 resolve，都不会抛这个 |
+| `RATE_LIMITED` | 读取过于频繁，被网关按 IP 限流 | SDK 已自动重试 2 次仍失败；检查是否把 `get` 写进了渲染循环或定时器 |
+| `SERVICE_UNAVAILABLE` | 存储短暂不可用 | SDK 已自动重试；稍后再试，不要循环硬刷 |
+| `UNAUTHORIZED` | 登录态失效 | 提示重新进入游戏；后台自动存档遇到它不会再重试 |
+
+========================================================================
+
+# 存档生命周期
+
+# 存档生命周期 — `dzmm.save.onAction`
+
+> 新手提示：玩家在游戏容器里点“重置存档”或“删除游戏记录”时，平台不会直接猜你的存档结构，也不会默认强删 KV。你要注册 `dzmm.save.onAction`，告诉平台这个游戏支持安全处理存档。
+
+---
+
+## 1. 什么时候必须接
+
+只要游戏有进度、背包、关卡、角色状态、解谜状态、抽卡结果、养成数据，就应该接：
+
+```javascript
+dzmm.save.onAction(async (request) => {
+  if (request.action === 'reset') {
+    // 玩家想保留这条游玩记录，但重新开始
+  }
+
+  if (request.action === 'prepareDeleteRecord') {
+    // 玩家想从列表删除这条记录；游戏先清理自己的存档
+  }
+});
+```
+
+如果不接，平台会认为这个游戏不支持容器级存档操作：玩家不会被强制提供“重置/删除存档”能力。
+
+---
+
+## 2. 最小完整模板
+
+```javascript
+let autosaveEnabled = true;
+let state = createInitialState();
+
+function stopAutosave() {
+  autosaveEnabled = false;
+}
+
+async function saveState() {
+  if (!autosaveEnabled) return;
+  await dzmm.kv.put('game-state', state);
+}
+
+async function clearOwnedSaveKeys() {
+  await dzmm.kv.delete('game-state');
+  await dzmm.kv.delete('checkpoint');
+  await dzmm.kv.delete('inventory');
+}
+
+dzmm.save.onAction(async (request) => {
+  stopAutosave();
+
+  if (request.action === 'reset') {
+    await clearOwnedSaveKeys();
+    state = createInitialState();
+    return { ok: true, reload: true };
+  }
+
+  if (request.action === 'prepareDeleteRecord') {
+    await clearOwnedSaveKeys();
+    return { ok: true };
+  }
+
+  return { ok: false, code: 'unsupported' };
+});
+```
+
+关键点：
+
+- 先停 autosave，再删 key。
+- 删掉这个游戏自己拥有的所有存档 key。
+- `reset` 成功后通常返回 `{ reload: true }`，让平台重新加载 iframe。
+- `prepareDeleteRecord` 只表示“我已经清理/准备好了”，真正删除列表记录由平台完成。
+
+---
+
+## 3. request 字段
+
+```typescript
+type SaveActionRequest = {
+  requestId: string;
+  action: 'reset' | 'prepareDeleteRecord';
+  reason: 'user_reset_save' | 'user_delete_record';
+  timeoutMs: number;
+};
+```
+
+| 字段 | 说明 |
+|---|---|
+| `requestId` | 平台生成的本次操作 ID。只用于日志 / 防重复。 |
+| `action` | `reset` = 重置进度；`prepareDeleteRecord` = 删除记录前清理。 |
+| `reason` | 玩家触发原因。当前和 `action` 一一对应。 |
+| `timeoutMs` | 平台等待时间。请在这个时间内完成清理并返回。 |
+
+---
+
+## 4. 返回值
+
+```typescript
+type SaveActionResult =
+  | { ok: true; message?: string; reload?: boolean }
+  | { ok: false; code?: string; message?: string };
+```
+
+成功：
+
+```javascript
+return { ok: true, reload: true };
+```
+
+失败并阻止平台继续：
+
+```javascript
+return {
+  ok: false,
+  code: 'save_locked',
+  message: '战斗结算中，稍后再试',
+};
+```
+
+如果返回 `ok: false`、抛异常或超时，平台不会继续删除记录，也不会强制删除存档。
+
+---
+
+## 5. 常见错误
+
+### ❌ 只删一个 key
+
+```javascript
+await dzmm.kv.delete('game-state');
+return { ok: true };
+```
+
+如果你还把进度存在 `checkpoint` / `inventory` / `flags`，旧进度会残留。把存档 key 集中维护：
+
+```javascript
+const SAVE_KEYS = ['game-state', 'checkpoint', 'inventory', 'flags'];
+
+async function clearOwnedSaveKeys() {
+  await Promise.all(SAVE_KEYS.map(key => dzmm.kv.delete(key)));
+}
+```
+
+### ❌ 删完后 autosave 又写回旧数据
+
+```javascript
+await clearOwnedSaveKeys();
+autosave(); // 把旧 state 又写回去了
+```
+
+清理前先停 autosave，并把内存 state 重置：
+
+```javascript
+stopAutosave();
+await clearOwnedSaveKeys();
+state = createInitialState();
+```
+
+### ❌ 误解 `prepareDeleteRecord`
+
+`prepareDeleteRecord` 不是让游戏删除平台记录。游戏只能清理自己的存档、停止计时器、取消 autosave、上报统计。平台收到成功后才会删除这条游戏记录。
+
+---
+
+## 6. 和 KV 的关系
+
+`dzmm.kv` 仍然是推荐的玩家存档方式。`dzmm.save.onAction` 不是新存储，它只是让平台在玩家触发容器级操作时，给游戏一个“自己处理存档”的机会。
+
+如果游戏还用了内存缓存或服务端函数里的 `ctx.kv`，也要在 handler 里一起处理。平台无法知道这些数据的含义。DZMM 沙箱不能使用 `localStorage`，不要把它当成存档清理或保存的兜底。
+
+========================================================================
+
+# 玩家提示
+
+# 玩家提示 — `dzmm.toast.*`
+
+> 新手提示：Toast 是页面右上角弹出来的一行小提示（"保存成功"那种）。`dzmm.toast.*` 让你的游戏代码直接调起 DZMM 主站的 toast 组件，不用自己写。
+
+---
+
+## 1. 四种级别
+
+```javascript
+dzmm.toast.success('保存成功');
+dzmm.toast.error('没有更多角色卡了');
+dzmm.toast.warning('能量值不足');
+dzmm.toast.info('正在生成图片，预计 30 秒');
+```
+
+仅这 4 个 level：`'success' | 'error' | 'warning' | 'info'`。
+
+不同 level 颜色 / 图标不同，能让玩家一眼看出严重程度。
+
+---
+
+## 2. 特性
+
+- 返回 `Promise<void>`，内部吞掉发送错误，正常调用不会 reject。可以直接调用，但 `await` 完成不代表玩家已经看到提示，也不能当成存档或业务操作成功的确认。
+- `message` 上限 500 字符，超过会被截断。
+- 同一时刻 DZMM 主站会管理 toast 队列，不会把屏幕铺满。
+
+---
+
+## 3. ⚠️ 重要：不要把 SDK 错误手动转 toast
+
+所有 `DzmmError` 平台都会自动 toast 给玩家（已按玩家语言本地化）。
+
+```javascript
+// ❌ 错误：会出现两条相同的 toast
+try {
+  await dzmm.draw.generate(...);
+} catch (e) {
+  dzmm.toast.error(e.message); // 平台已经 toast 了，你再 toast 一次就出现两条
+}
+
+// ✅ 正确：catch 只决定要不要重试 / 引导
+try {
+  await dzmm.draw.generate(...);
+} catch (e) {
+  if (e.code === 'QUOTA_EXHAUSTED') {
+    showVipUpsell(); // 业务引导，不是 toast
+  }
+  // 其它错误：什么都不做，平台已经自动 toast
+}
+```
+
+`dzmm.toast.*` 的正确用途是"业务级事件"，比如：
+
+- 玩家完成了一关：`dzmm.toast.success('过关！')`
+- 玩家的某个动作不满足条件：`dzmm.toast.warning('能量不足，去主城休息')`
+- 游戏状态变化：`dzmm.toast.info('新角色已解锁')`
+
+不是用来转 SDK 错误的。
+
+---
+
+## 4. 写作建议
+
+- 简短：toast 不是 dialog，一行字能说清楚就行。"保存成功"比"游戏数据已经被保存到云端"好。
+- 有指引：error toast 最好告诉玩家"接下来该做什么"。
+- 慎用 error：玩家看到红色 toast 就紧张。日常状态变化用 `info` 更友好。
+
+---
+
+## 5. 不需要错误处理
+
+```javascript
+// ✓ 直接调，不用 try/catch
+dzmm.toast.success('保存成功');
+
+// ❌ 多余
+try { dzmm.toast.success('保存成功'); } catch (e) {} // 永远不会进 catch
+```
+
+========================================================================
+
+# 游戏日志
+
+# 游戏日志 — `dzmm.log.*`
+
+日志给作者排错用，显示在游戏的运行面板；玩家提示请用 [`dzmm.toast.*`](/gamefy/docs/sdk/toast.md)。不要把日志当成存档、支付回执或业务操作成功的确认。
+
+## 用法
+
+```javascript
+dzmm.log.info('Scene entered', { scene: 'forest' }, 'SCENE_ENTERED');
+dzmm.log.warn('Using text fallback', { scene: 'forest' }, 'IMAGE_UNAVAILABLE');
+dzmm.log.error('Save failed', { slot: 1 }, 'SAVE_FAILED');
+```
+
+三个方法的签名一致：
+
+```typescript
+(message: string, data?: Record<string, unknown>, code?: string): Promise<void>
+```
+
+`code` 可省略，推荐用稳定的大写下划线名字，方便运行面板聚合同类问题。`data` 只传少量可 JSON 序列化的字段。
+
+调用内部吞掉发送错误，正常调用不会 reject，也不保证日志一定被保存。`(await dzmm.capabilities.get()).log` 为 `true` 表示宿主会转交日志；没有日志接收器的旧宿主会静默丢弃。CLI 本地测试不产生玩家生产运行日志。
+
+## 限制
+
+| 项 | 当前限制 |
+|---|---|
+| `message` | 1024 UTF-8 字节 |
+| `data` | 4096 UTF-8 字节 |
+| 每游戏每小时 | error 1000 / warn 500 / info 1000 条 |
+| 每玩家每游戏每小时 | error 100 / warn 60 / info 100 条 |
+| 保存时间 | 3 天 |
+| 每游戏存储上限 | 50,000 条 / 50 MiB |
+
+超出额度会丢弃日志，不能靠循环刷日志追踪每一帧。记录失败原因、降级分支和少量关键状态即可；不要放 token、密码、完整对话、私人资料、base64 图片或带签名的资源 URL。
+
+========================================================================
+
+# 玩家信息
+
+# 玩家信息 — `dzmm.user.*`
+
+> 新手提示：拿到当前玩家是谁（ID / 昵称 / 头像），用来个性化游戏体验（"欢迎回来，Alice！"）。如果你的游戏有自己的后端服务（少见），还能拿到一个 JWT token 让后端验证玩家身份。
+
+---
+
+## 1. 获取玩家信息 — `user.info()`
+
+```javascript
+const { id, name, avatarUrl, token } = await dzmm.user.info();
+
+document.getElementById('player-name').textContent = name || '玩家';
+if (avatarUrl) {
+  document.getElementById('player-avatar').src = avatarUrl;
+}
+```
+
+### 返回值
+
+```typescript
+{
+  id: string | null;         // 玩家唯一 ID（UUID）
+  name: string | null;       // 玩家昵称
+  avatarUrl: string | null;  // 玩家头像 URL
+  token: string | null;      // 平台签发的 JWT（RS256），有效期 30 分钟
+  environment?: 'dev' | 'prod'; // 当前运行环境：Workbench 预览是 'dev'，玩家游玩是 'prod'
+}
+```
+
+所有字段都可能是 `null`，写代码时务必处理空值。
+
+### 不同模式下的差异
+
+| 模式 | 返回值 |
+|---|---|
+| 开发模式（Workbench 预览） | 返回你自己的真实信息和真实 token；`environment` 是 `'dev'` |
+| 生产模式（玩家游玩） | 返回当前玩家的真实信息和 token；`environment` 是 `'prod'` |
+| 未登录用户 | `id` / `name` / `avatarUrl` / `token` 都是 `null` |
+
+> 开发模式现在也签发真实 RS256 token。`token === null` 只代表"未登录或签发失败"，不能用来判断是不是开发模式；判断环境的官方方法是读这里的 `environment` 字段，或 `(await dzmm.capabilities.get()).environment`。
+
+---
+
+## 2. JWT Token：什么时候用？
+
+绝大多数游戏不需要用 token —— 你的游戏所有数据都通过 `dzmm.kv` / `dzmm.chat` 走平台数据库，平台自动鉴权。
+
+只有少数情况下需要：你的游戏有自己的后端服务，需要验证"是不是真的 DZMM 玩家"。这种场景非常少见，通常用[服务端函数](/gamefy/docs/serverless.md)就能解决，不用搭自己的后端。
+
+如果你确实有自己后端：
+
+```javascript
+// 前端：把 token 发给你的后端
+const { token } = await dzmm.user.info();
+if (!token) throw new Error('DZMM login token is unavailable');
+fetch('https://your-game-server.com/api/login', {
+  method: 'POST',
+  headers: { 'Authorization': `Bearer ${token}` },
+});
+```
+
+```javascript
+// 后端（Node.js）：拿 JWKS 公钥验签
+import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
+
+const client = jwksClient({
+  jwksUri: 'https://www.dzmm.ai/api/gamefy/.well-known/jwks.json',
+  cache: true,
+  rateLimit: true,
+});
+
+function getKey(header, callback) {
+  client.getSigningKey(header.kid, (err, key) => {
+    callback(err, key?.getPublicKey());
+  });
+}
+
+const EXPECTED_GAME_ID = '你的 game ID';
+jwt.verify(token, getKey, {
+  algorithms: ['RS256'],
+  issuer: 'dzmm-gamefy',
+  audience: EXPECTED_GAME_ID,
+}, (err, decoded) => {
+  if (err) return res.status(401).json({ error: 'Invalid token' });
+  // decoded.sub = 玩家 ID, decoded.name = 玩家昵称, decoded.avatar_url = 玩家头像 URL（可能为 null）
+});
+```
+
+### Token 注意事项
+
+- 有效期 30 分钟，过期后调 `dzmm.user.info()` 再拿一个新的。
+- 不要写进 KV / chat / console.log。开发模式 console 会被转发到 Workbench 控制台，token 会暴露给所有看 Console 的人。
+- token 是 RS256 JWT，对称密钥不能用于验签，必须用公钥（见下面）。
+- 必须校验 `audience` 等于当前游戏 ID；只验签名和 issuer 会让另一个游戏签发的有效 token 被跨游戏重放。
+
+---
+
+## 3. 获取 JWKS 公钥 — `user.jwks()`
+
+平台用 JWKS（JSON Web Key Set）发布验证 token 用的 RSA 公钥。
+
+```javascript
+const jwks = await dzmm.user.jwks();
+// {
+//   keys: [
+//     { kty: 'RSA', alg: 'RS256', use: 'sig', kid: '...', n: '...', e: '...' }
+//   ]
+// }
+```
+
+### 在前端用不上
+
+99% 情况下前端不需要自己拿 JWKS。这是给你的后端用的（验签）。
+
+后端验签的标准做法是直接调 well-known 端点（见上面 Node.js 示例的 `jwksUri`），不是经过 SDK 转发。
+
+`dzmm.user.jwks()` 主要是给"想在浏览器内做轻量 token 内省"的场景，普通游戏用不到。
+
+### 注意事项
+
+- 开发模式也签发真实 RS256 token，验签用的公钥同样通过 JWKS 发布，dev / prod 用同一套验签流程。
+- 公钥缓存 1 小时，密钥轮换时预留缓存刷新窗口。
+
+---
+
+## 4. 实用模式
+
+### 优雅地处理"未登录玩家"
+
+```javascript
+async function initPlayer() {
+  const { id, name } = await dzmm.user.info();
+  if (!id) {
+    // 未登录，给个友好提示，让玩家先登录
+    showLoginPrompt();
+    return false;
+  }
+  greetingEl.textContent = `欢迎回来，${name || '玩家'}！`;
+  return true;
+}
+```
+
+### 个性化打招呼
+
+```javascript
+const { name } = await dzmm.user.info();
+await dzmm.completions(
+  {
+    model: 'default',
+    messages: [
+      {
+        role: 'user',
+        content: `请用友好的语气向玩家 ${name || '陌生人'} 打招呼。`,
+      },
+    ],
+  },
+  (content) => {
+    greetingEl.textContent = content; // 回调是截至当前的累计全文
+  },
+);
+```
+
+> ⚠️ 不要把玩家 `id` 明文写进 prompt 或 console.log，泄漏隐私。
+
+========================================================================
+
+# 模型列表
+
+# 模型列表 — `dzmm.models.list()`
+
+> 新手提示：这个 API 用于动态获取当前平台可用的 AI 对话模型，适合游戏自己展示模型选择。`defaultModel` 是目录推荐元数据，不是玩家的 fallback 设置。
+
+---
+
+## 1. 用法
+
+```javascript
+const { models, categories } = await dzmm.models.list();
+
+// 最常见用法：让当前 GameFy Chat 设置决定模型
+await dzmm.completions(
+  {
+    model: 'default',
+    messages: [{ role: 'user', content: '你好' }],
+  },
+  (content) => {
+    outputEl.textContent = content;
+  },
+);
+```
+
+`dzmm.completions()` 返回 `Promise<void>`；上面的回调每次收到截至当前的完整文本，所以直接覆盖 UI，不要用 `+=` 拼接。
+
+> 新手提示：`model: 'default'` 会使用玩家当前 GameFy Chat 的模型设置，不需要先调用 `dzmm.models.list()`。玩家可直接在游戏设置里修改这个模型。
+
+---
+
+## 2. 返回值
+
+```typescript
+{
+  // 扁平列表 — 简单场景用这个
+  models: Array<{
+    internalName: string;   // 传给 dzmm.completions() 的 model 字段
+    displayName: string;    // 给 UI 显示用
+    price: string;          // 价格说明文案
+    description: string;
+  }>;
+
+  // 按"模型大家族"分组 — 想做高级 UI 时用
+  categories: Array<{
+    key: string;
+    name: string;
+    description: string | null;
+    modelGroups: Array<{
+      seriesKey: string;
+      icon: string;
+      gradient: string;
+      description: string;
+      price: number;
+      thinkingSupported: boolean | null;
+      thinkingMinMembershipLevel: number;
+      isRecommended: boolean | null;
+      minMembershipLevel: number;
+      isApex: boolean;
+      // 一个模型系列下不同上下文长度的变体
+      contexts: Array<{
+        internalName: string;
+        displayName: string;
+        maxContext: number;
+        isRecommended: boolean;
+        description: string;
+      }>;
+    }>;
+  }>;
+
+  defaultModel: string | null; // 模型目录推荐项，不是玩家 Chat 的 fallback 设置
+}
+```
+
+---
+
+## 3. 实用模式
+
+### 渲染下拉框让玩家选模型
+
+```javascript
+const { models, defaultModel } = await dzmm.models.list();
+
+const select = document.getElementById('model-select');
+models.forEach((m) => {
+  const opt = document.createElement('option');
+  opt.value = m.internalName;
+  opt.textContent = m.displayName;
+  if (m.internalName === defaultModel) opt.selected = true;
+  select.appendChild(opt);
+});
+
+// 玩家发消息时
+async function send() {
+  await dzmm.completions(
+    {
+      model: select.value,
+      messages: [{ role: 'user', content: inputEl.value }],
+    },
+    (content) => {
+      outputEl.textContent = content;
+    },
+  );
+}
+```
+
+### 适配模型变更（防止旧模型下线）
+
+```javascript
+const KNOWN_GOOD = 'nalang-medium-0826';
+
+const { models } = await dzmm.models.list();
+const isAvailable = models.some(m => m.internalName === KNOWN_GOOD);
+
+const modelToUse = isAvailable ? KNOWN_GOOD : 'default';
+```
+
+> 作者指定的模型已下线时，平台会使用玩家当前 GameFy Chat 的模型设置。`defaultModel` 只用于游戏自己的模型选择 UI，不参与这个 fallback。
+
+---
+
+## 4. 缓存与配额
+
+- 列表数据相对稳定，没必要频繁调。游戏启动时调一次缓存到变量即可。
+- 这个 API 调用本身不消耗玩家积分。
+- 模型目录会随平台配置变化；目录里的会员要求可用于渲染提示，列出某个模型不代表玩家一定有调用权限或足够积分，实际调用仍由服务端检查。
+
+---
+
+## 5. 完全可以不用
+
+如果你的游戏简单，写死 `model: 'default'` 就够了：
+
+```javascript
+await dzmm.completions(
+  {
+    model: 'default', // 使用当前 GameFy Chat 的模型设置
+    messages: [{ role: 'user', content: inputEl.value }],
+  },
+  (content) => {
+    outputEl.textContent = content;
+  },
+);
+```
+
+浏览器 `dzmm.completions()` 与服务端函数 `ctx.completions()` 都会使用同一项 Chat 设置。`dzmm.models.list()` 只用于游戏想展示自己的模型选择 UI 时。Workbench 预览挂在隐藏的开发会话上，`default` 同样读取该会话的模型设置，与玩家链路一致。
+
+========================================================================
+
+# 分享 & 启动参数
+
+# 分享游戏 & 启动参数 — `dzmm.share` / `dzmm.getLaunchParams`
+
+> 新手提示：这是一对"对称"的能力。你的游戏可以**生成**一个分享链接（`dzmm.share`），玩家把它发给朋友；朋友点链接进来后，你的游戏能**读到**链接里带的参数（`dzmm.getLaunchParams`）。常见玩法：邀请好友、对战口令、分享自己捏的关卡 / 角色、组队码。
+
+---
+
+## 1. 两个参数：`from` 和 `gp`
+
+链接里能带两样东西：
+
+| 参数 | 谁填 | 含义 |
+|---|---|---|
+| `from` | 生成分享链接时由平台填写 | 邀请人的玩家 id，用来做归因。收到的 URL 可被修改，不能把它当成已验证身份。 |
+| `gp` | **你自己填** | game params —— 你定义的不透明字符串。平台原样透传，不解析。要塞结构化数据自己 `JSON.stringify`（上限 1024 字符）。 |
+
+---
+
+## 2. 读取启动参数（朋友点进来这一侧）
+
+```javascript
+const { from, gp } = await dzmm.getLaunchParams();
+// 直接打开游戏（不是从分享链接进来）→ from 和 gp 都是 null
+```
+
+⚠️ **只在游戏启动时读一次，并立刻存到 `dzmm.kv`。** 平台读取后会把 `from` / `gp` 从 URL 上清掉（避免切换聊天时参数残留、串台），刷新页面就拿不到了。需要长期记住就自己落库。
+
+```javascript
+async function bootstrapInvite() {
+  const { from, gp } = await dzmm.getLaunchParams();
+  if (!from && !gp) return; // 普通打开，不是邀请进来的
+
+  // Persist only the context needed after reload.
+  if (from) await dzmm.kv.put('__invited_by', from, { flush: true });
+
+  if (gp) {
+    if (typeof gp !== 'string' || gp.length > 1024) return;
+    let payload;
+    try { payload = JSON.parse(gp); }
+    catch { return; }
+    if (!payload || typeof payload !== 'object' || Array.isArray(payload)
+      || typeof payload.roomId !== 'string'
+      || !/^[A-Za-z0-9_-]{1,64}$/.test(payload.roomId)) return;
+    await dzmm.kv.put('__invite_gp', { roomId: payload.roomId }, { flush: true });
+    startBattle(payload.roomId);
+  }
+}
+```
+
+> 平台已自动给"通过别人链接进来"打了埋点（首次、且不是自己邀自己），你不用自己上报归因。
+
+`from` / `gp` 都来自链接，先限制长度、解析并验证字段，再参与游戏流程。邀请奖励、房间权限和付费资格必须在服务端验证；不能因 URL 带着某个 id 就发奖或授权。
+
+---
+
+## 3. 生成分享链接（分享这一侧）
+
+### 形态一：弹平台分享面板（默认，最省事）
+
+```javascript
+await dzmm.share({
+  params: JSON.stringify({ roomId: 'abc123' }), // 可选：对方用 getLaunchParams 读回
+  text: '来和我组队！',                          // 可选：分享面板上的文案
+  // mode: 'sheet' 是默认值，可省略
+});
+```
+
+会弹出 DZMM 的分享面板（含"复制链接"），玩家自己选怎么发。
+
+### 形态二：只要 url，自己处理
+
+```javascript
+const { url } = await dzmm.share({
+  params: JSON.stringify({ roomId: 'abc123' }),
+  mode: 'url',
+});
+renderQRCode(url); // 自己画二维码 / 自定义 UI / 复制按钮
+// url 形如：https://站点/chat?card=<卡id>&from=<我的id>&gp=<params>
+```
+
+返回值 `{ url, shared }`：`url` 是最终链接；`shared` 在 `mode: 'sheet'` 弹出面板后为 `true`，`mode: 'url'` 时为 `false`。
+
+---
+
+## 4. ⚠️ 关键：朋友点进来回到的是他自己的存档
+
+游戏会话已**单例化** —— 同一玩家 + 同一张游戏卡只有一个存档。朋友点你的分享链接进来，回到的是**他自己在这张卡的那个会话**（第一次进则新建），**不是**你的存档，也不是每次都新开一个空档。所以：
+
+- ✅ 适合传"轻量上下文"：房间号、口令、关卡 id、邀请人 —— 让对方进来后据此跳到对应玩法。
+- ❌ 不要指望用 `gp` 把"你的完整存档"塞给对方。要分享存档内容得自己设计：比如把存档放到服务端函数的 `ctx.kv.global`，`gp` 里只带一个 id 让对方去拉。
+
+---
+
+## 5. 错误处理
+
+```javascript
+try {
+  await dzmm.share({ params: bigString });
+} catch (e) {
+  if (e.code === 'VALUE_TOO_LARGE') {
+    // params 超过 1024 字符：精简载荷，或只传一个 id 让对方去服务端拉完整数据
+  } else if (e.code === 'INVALID_REQUEST') {
+    // 当前环境不支持分享（如 Workbench dev 预览）。属正常。
+  }
+}
+```
+
+> Workbench 预览（dev）下 `share()` 会抛 `INVALID_REQUEST` —— 分享面板只在玩家真实游玩的页面里才有，这是预期。调试 `getLaunchParams()` 的解析逻辑时，可以先在代码里写死一个假的 `gp` 跑通流程。
+
+========================================================================
+
+# 作品工坊
+
+# 作品工坊 — `dzmm.workshop.*`
+
+把玩家选定的 AI 角色或作品发布到当前游戏的共享作品列表，供其他玩家浏览和收藏。它与作者发布游戏代码、上架角色卡是不同功能。
+
+先检查 `(await dzmm.capabilities.get()).workshop === true`，再显示入口。CLI 本地宿主不支持作品工坊；其他宿主以能力旗标为准。能力可用不代表有发布额度或一定通过内容审核，调用仍须处理错误。
+
+## 1. 发布作品
+
+```javascript
+const task = await dzmm.draw.generate({ prompt: 'anime knight', dimension: '2:3' });
+// Publish only after the player explicitly confirms the selected result.
+const item = await dzmm.workshop.publish({
+  image: { taskId: task.taskId, index: 0 },
+  roleName: 'Forest knight',
+  attributes: { class: 'knight', level: 1 },
+  background: 'A traveller guarding the forest.',
+  tag: 'knight',
+});
+```
+
+图片必须引用当前玩家自己的绘图任务；不能传任意 URL 或别人的 taskId。任务要已有可用图片，发布前让玩家确认，不要在每次生成完成后自动投稿。请求会经过权限、额度和内容检查。
+
+| 字段 | 要求 |
+|---|---|
+| `image.taskId` | `draw.generate / edit` 返回的任务 UUID |
+| `image.index` | 从 0 开始，0–31，默认 0；还须对应实际存在的图片 |
+| `roleName` | 去掉首尾空白后 1–120 字符 |
+| `attributes` | 可选，严格 JSON 对象，默认 `{}`；最多 32 KiB、128 个顶层 key、2048 节点、16 层 |
+| `background` | 可选，最多 12,000 字符，默认空字符串 |
+| `tag` | 可选，去掉首尾空白后 1–64 字符 |
+
+不要把签名图片 URL、函数、循环引用、原型相关 key 或大段资源写进 `attributes`。整个投稿请求最多 128 KiB。
+
+## 2. 浏览和分页
+
+```javascript
+const first = await dzmm.workshop.list({ limit: 20, tag: 'knight' });
+renderItems(first.items);
+if (first.nextCursor) {
+  const next = await dzmm.workshop.list({ limit: 20, tag: 'knight', cursor: first.nextCursor });
+  renderItems(next.items);
+}
+
+const mine = await dzmm.workshop.list({ mine: true });
+```
+
+`list({ cursor?, limit?, tag?, mine? })` 返回 `{ items, nextCursor }`。每页默认 20 项，范围 1–50；cursor 最长 512 字符，作为不透明值原样传回，保留原来的过滤条件。`mine: true` 读取当前玩家自己已发布与已下架的作品。
+
+每个 `WorkshopItem` 包含：
+
+```typescript
+{
+  id: string;
+  imageUrl: string;
+  roleName: string;
+  attributes: Record<string, unknown>;
+  background: string;
+  tag: string | null;
+  uploader: { id: string; name: string };
+  likeCount: number;
+  likedByMe: boolean;
+  isMine: boolean;
+  status: 'published' | 'unlisted' | 'removed';
+  createdAt: string;
+}
+```
+
+把内容当作其他玩家提供的数据：渲染文字用 `textContent`，导入 `attributes` 前验证自己的存档 schema，不要拼接进 `innerHTML`。使用本次列表返回的图片地址，不把它当永久资源地址存档。
+
+## 3. 收藏与下架
+
+```javascript
+const result = await dzmm.workshop.setLiked(item.id, true);
+// Render the confirmed server state instead of incrementing locally.
+renderLike(result.liked, result.likeCount);
+
+await dzmm.workshop.setLiked(item.id, false);
+await dzmm.workshop.unpublish(item.id);
+```
+
+`setLiked(itemId, liked)` 设置明确的收藏状态，重复设置同一状态是幂等的，返回 `{ liked, likeCount }`。`unpublish(itemId)` 返回 `Promise<void>`，只允许下架自己的作品；下架会隐藏发现入口，不会删除别人已导入的副本。
+
+这些方法失败时抛 `DzmmError`。给投稿和收藏按钮加 loading、防重复，并在 `finally` 恢复按钮；额度、鉴权、内容检查失败时停止流程，使用稳定 `error.code` 分支，见[错误处理](/gamefy/docs/errors.md)。
+
+========================================================================
+
+# 联机房间与语音
+
+# 联机房间与语音 — `dzmm.rt.*` / `dzmm.voice.*`
+
+房间让同一游戏的玩家组队、收发游戏事件；语音使用该房间的宿主连接。SDK 命名空间始终存在，先检查能力，不能用 `if (dzmm.rt)` 判断是否能联机。
+
+```javascript
+const caps = await dzmm.capabilities.get();
+setMultiplayerVisible(caps.realtime === true);
+setVoiceVisible(caps.realtime === true && caps.voice === true);
+```
+
+Workbench 预览以及没有房间连接的宿主会返回 `false`，调用被拒绝为 `INVALID_REQUEST`。保留单人玩法；支持联机的宿主仍可能因权限、房间过期或网络问题失败，要 catch `DzmmError`，不要根据设备类型猜能力。
+
+## 1. 房间 API
+
+| 方法 | 返回值 / 用途 |
+|---|---|
+| `rt.create({ maxPlayers? }?)` | `Promise<GameRoomState>`，创建房间 |
+| `rt.join({ joinCode })` | `Promise<GameRoomState>`，按六位房间码加入同一游戏的房间 |
+| `rt.start()` | `Promise<GameRoomState>`，房主把 lobby 切到 playing |
+| `rt.state()` | `Promise<GameRoomState \| null>`，当前房间快照 |
+| `rt.send(payload, seq?)` | `Promise<void>`，向房间发游戏定义的事件 |
+| `rt.leave()` | `Promise<void>`，退出房间 |
+| `rt.on(listener)` | 同步返回取消订阅函数 |
+
+```javascript
+const stopRoomEvents = dzmm.rt.on(event => {
+  if (event.type === 'member') renderRoom(event.state);
+  else if (event.type === 'event') receiveGameEvent(event.from, event.payload, event.seq);
+  else if (event.type === 'ended') showRoomEnded(event.reason);
+});
+
+// Run from the player's create-room button, with loading and error handling.
+const room = await dzmm.rt.create({ maxPlayers: 4 });
+renderJoinCode(room.joinCode);
+
+// Another player joins by the displayed code.
+// await dzmm.rt.join({ joinCode: 'ABC234' });
+await dzmm.rt.send({ type: 'ready' }, 1);
+
+// When leaving this game screen:
+stopRoomEvents();
+await dzmm.rt.leave();
+```
+
+`GameRoomState` 包含 `roomId`、`gameId`、`joinCode`、`hostId`、`lifecycle`（`lobby / playing`）、`maxPlayers`、`players`、数字时间戳 `createdAt / updatedAt`。每个玩家包含 `userId`、`fullName`、`avatarUrl`（可能为 null）、`joinedAt`、`isHost`。
+
+事件有三种：
+
+| `type` | 内容 |
+|---|---|
+| `member` | 最新 `state`，可选 `joined / left / host` 玩家 id |
+| `event` | `from`、游戏定义的 `payload`，以及可选 `seq` |
+| `ended` | `reason: 'host_left' / 'empty' / 'expired'` |
+
+`payload` 来自其他玩家，必须验证类型、大小、允许的动作及当前游戏阶段；`seq` 只是你提供的序号，不等于可靠投递、事务或防作弊。房间事件不能直接用来确认付费、发奖或权威分数，这些应由服务端验证。
+
+## 2. 房间语音
+
+先进入房间，再由玩家点按钮加入语音和开启麦克风：
+
+```javascript
+async function enableVoiceFromButton() {
+  try {
+    const caps = await dzmm.capabilities.get();
+    if (caps.realtime !== true || caps.voice !== true) return;
+    const room = await dzmm.rt.state();
+    if (!room) return;
+    const joined = await dzmm.voice.join();
+    if (!joined.connected) return renderVoice(joined);
+    const actual = await dzmm.voice.setMic(true);
+    renderVoice(actual);
+  } catch (error) {
+    showVoiceFailure(error.code);
+  }
+}
+
+const stopVoiceEvents = dzmm.voice.on(event => renderVoice(event.snapshot));
+// Call on explicit exit and unregister the listener when disposing the view.
+// stopVoiceEvents();
+// await dzmm.voice.leave();
+```
+
+`join()` 和 `setMic(enabled)` 返回 `VoiceSnapshot`：
+
+```typescript
+{
+  connected: boolean;
+  micEnabled: boolean;
+  participants: Array<{
+    userId: string;
+    fullName: string;
+    role: 'host' | 'cohost' | 'speaker' | 'listener';
+    mutedByHost: boolean;
+    isSpeaking: boolean;
+  }>;
+}
+```
+
+`voice.on(listener)` 发出 `{ type: 'state', snapshot }`，同步返回取消订阅函数；`voice.leave()` 返回 `Promise<void>`。以返回的实际 `micEnabled / connected` 更新 UI，浏览器权限或宿主静音可能让请求开启麦克风后仍是关闭状态。不要在页面加载时自动请求麦克风。
+
+退出游戏视图时取消 room / voice 订阅并退出对应会话；不要反复注册监听器，或只依赖页面关闭事件清理。
+
+========================================================================
+
+# 常用 Recipes
+
+# 常用 Recipes
+
+> 新手提示：Recipes 是给 AI 编码助手和模板作者用的“可复用做法”。这里是入口和简化说明。Coding Agent 的同名完整模板需要配套的 runtime/Coding Agent 版本上线；旧版 Coding Agent 可能还没有这些模板，请以当前页面和实际 SDK 契约为准。
+
+---
+
+## 本文档中的常用 recipes
+
+| Recipe | 什么时候用 |
+|---|---|
+| [save-slots](/gamefy/docs/recipes/save-slots.md) | 多存档槽、自动存档、读档列表 |
+| [completions-safe](/gamefy/docs/recipes/completions-safe.md) | 调 AI 文本时防重复、超时、旧请求覆盖新结果 |
+| [ai-json](/gamefy/docs/recipes/ai-json.md) | 需要 AI 返回结构化 JSON |
+| [model-picker](/gamefy/docs/recipes/model-picker.md) | 让玩家选择模型，或内部自动使用平台默认模型 |
+
+## Coding Agent 的其他模板
+
+最新 Coding Agent 的 `gamefy-sdk` 指引还提供以下同目录 recipes；让 Agent 先读取匹配的 recipe，再按你的游戏需要复制模板。它们不是浏览器 SDK 方法，也不要求游戏安装额外运行时依赖。实际部署的 Agent 是否带有这些文件，以当前工作区为准。
+
+| Recipe | 什么时候用 |
+|---|---|
+| `template-config` | 用稳定配置个性化品牌、角色、场景和默认项 |
+| `sdk-adapter` | 集中处理 SDK 边界、能力检测、启动和错误 |
+| `versioned-storage` | 单份进度／设置的 schema、迁移与清洗 |
+| `structured-ai-director` | 白名单 AI JSON、校验、缓存与确定性降级 |
+| `lifecycle-manager` | 统一启动、暂停恢复和监听器／计时器回收 |
+| `engine-view-separation` | 分开游戏规则、异步效果和 DOM 渲染 |
+| `content-feed` | 帖子、评论和可缓存的 AI 内容列表 |
+| `visual-novel-scene` | 剧情、选项与好感度变化 |
+| `image-workflow` | 立绘、物品的生成和编辑流程 |
+| `management-loop` | 回合经营、养成与数值结算 |
+| `audio-manager` | BGM、音效与静音，播放使用 `dzmm.audio.*` |
+| `playable-game-shell` | 加载、目标／结局、资源与触屏布局 |
+
+不要为了很小的一次性逻辑强行引入 recipe。比如只有一个“保存分数”的小游戏，
+直接 `dzmm.kv.put('score', score)` 就够了。
+
+========================================================================
+
+# save-slots
+
+# save-slots
+
+用于多存档槽、自动存档、读档列表。推荐基于 `dzmm.kv.namespace()`、`batchGet()`、
+`batchPut()` 和 `list()` 做，不要把大型 base64 / data URL 图片塞进 KV。
+
+核心规则：
+
+- 每个 slot 一个小 JSON，对大资源只存 URL / asset id / 轻量引用
+- 用 `list({ prefix: 'slot:' })` 列槽位，再 `batchGet(keys)` 取内容
+- `batchGet` / `batchPut` 每次最多 10 项；槽位更多时按 10 个一组分批
+- 每个批量请求和响应的完整 UTF-8 JSON 各不能超过 5 MiB（`5,242,880` 字节）
+- 同一批 `batchPut` 是原子的，适合一次提交互相关联的存档字段
+- 单 key `put(key, null)` 保存 JSON null；`batchPut` 顶层 entry value 禁止 null/undefined。清槽位请显式 `delete`，不要用 null 暗示删除
+- 非 DZMM 的普通同源页面可以 best-effort 使用 localStorage fallback；DZMM 生产 iframe 是 opaque origin，不能依赖 localStorage
+- 远端和 fallback 都失败时必须 reject 或返回明确失败结果，不能把“未保存”静默当成成功
+- 自动存档可用普通 `put` 削峰；手动存档、购买结果和退出前的关键状态必须用 `{ flush: true }` 等真实响应。Host 文档替换时默认排空 2 秒，在途存档超过 512 KB 时按体积延长，最长 10 秒，但浏览器强杀仍不能保证 unload 写入完成
+- 存档结构带 `version`，方便后续迁移
+
+========================================================================
+
+# completions-safe
+
+# completions-safe
+
+用于所有 `dzmm.completions()` 调用：防重复点击、用本地 deadline 收口挂起请求、统一处理 SDK / 平台超时，并避免旧请求晚到覆盖新 UI。
+
+核心规则：
+
+- 一个任务开始后先禁用按钮或进入 busy 状态
+- 用递增 request id，只让最后一次请求能更新 UI
+- recipe 级 cancel 只代表“忽略这次结果”，不承诺底层请求真实 abort
+- helper 默认创建 60 秒本地 deadline，也允许工厂或单次调用覆盖；到期后可以停止接收晚到结果并展示 fallback，但不会真实取消已经发出的付费请求
+- 本地 deadline 后仍要保持该 helper 实例的付费 in-flight 锁，直到原请求真正 settle；否则玩家再次点击会与仍在运行的付费请求重叠
+- SDK / 平台主动抛出的 `TIMEOUT` 与本地 deadline 走同一分支；可配置固定文本 fallback，结构化 fallback 仍由唯一的业务 owner 生成
+- catch `QUOTA_EXHAUSTED`、`RATE_LIMITED`、`NETWORK_ERROR`、`TIMEOUT` 并展示对应 UI 或确定性降级结果，不要在同一次用户动作里自动重试 AI
+
+`dzmm.fn.invoke()` 默认只发送一次请求，不会因为响应丢失而静默重放旧函数。只有调用方显式传入 `{ retry: true }` 才会对可信、可恢复的基础设施错误再尝试一次；该选项只能用于幂等函数，或已经用稳定 action ID 和服务端 reservation/result 状态机去重的函数。
+
+`ai-json`、对话记忆、图片流水线都应该复用这个基础，而不是各写一套竞态控制。
+
+========================================================================
+
+# ai-json
+
+# ai-json
+
+用于让 AI 返回结构化 JSON，例如生成任务、剧情节点、NPC 状态。
+
+核心规则：
+
+- 用 `instructions` 和 `userText` 组织 prompt，不生成 `system` role
+- 要求 AI 只输出 JSON，并对返回值做严格解析、字段校验与递归净化；拒绝 `__proto__` / `constructor` / `prototype` 等原型敏感 key
+- 一次用户动作最多调用一次 AI；解析或校验失败后直接使用本地确定性降级结果，不再发送修复或重试请求
+- validator 用手写 JS 函数，不为了小游戏引入 schema 库
+- 所有 AI 调用复用 `completions-safe`
+
+========================================================================
+
+# model-picker
+
+# model-picker
+
+用于游戏自己展示模型选择 UI。没有可见选择器时，不需要调用 `dzmm.models.list()`，直接传
+`model: 'default'`；由当前 GameFy Chat 的模型设置决定。Workbench 预览挂在隐藏的开发会话上，
+模型解析与玩家链路一致，同样读取该会话的模型设置。
+
+核心规则：
+
+- 不硬编码短模型名
+- 可见选择器使用动态 `models` 列表，`defaultModel` 只用于初始化 UI 选项
+- UI 显示用 `displayName`，调用 `dzmm.completions()` 用 `internalName`
+- 模型列表获取失败时降级到 `'default'`
+- 游戏自己的选择器不会修改平台的 Chat 模型设置
+
+========================================================================
+
+# 是什么 & 何时用
+
+# 服务端函数：是什么 & 何时用
+
+> 新手提示：服务端函数让你的游戏跑一段“源码不直接下发到玩家浏览器”的代码。它跑在云端的轻量沙箱里，由游戏 JS 通过 `dzmm.fn.invoke()` 调用。适合服务端编排、校验和跨玩家共享数据；但函数返回值、错误信息和 AI 输出仍会到达浏览器。
+
+---
+
+## 1. 跟浏览器 SDK 是什么关系？
+
+```
+玩家浏览器（沙箱 iframe）           云端 fn-runner（workerd 沙箱）
+┌──────────────────────────┐        ┌──────────────────────────┐
+│  你的 publish/game.js    │        │  你的 functions/score.ts │
+│                          │        │                          │
+│  dzmm.fn.invoke('score', │ ─────► │  export default function │
+│    { runs: 1, kills: 5 } │        │  (req, ctx) {            │
+│  )                       │        │    // 服务端校验 + 算分  │
+│                          │        │    // 玩家看不到这段     │
+│  // 只拿到结果           │ ◄───── │    return { ok: true };  │
+│                          │        │  }                       │
+└──────────────────────────┘        └──────────────────────────┘
+```
+
+- `publish/` 里的 JS / HTML 是公开的，玩家按 F12 能看到所有代码、所有 prompt。
+- `functions/` 里的 TypeScript 是私有的，只跑在云端，玩家看不到源码。
+- 两侧通过 `dzmm.fn.invoke(name, body)` 通信。
+
+---
+
+## 2. 三个典型场景
+
+### 场景 A：避免 AI 提示词直接随前端代码下发
+
+游戏里有个"塔罗占卜师"NPC，你给 AI 的设定是这样的：
+
+```
+你是一个有 30 年经验的塔罗占卜师。当玩家询问感情、事业、健康时，从以下 78 张牌中随机抽 3 张，然后基于这些牌给出 200 字以内的占卜词…
+```
+
+如果直接写在 `publish/game.js` 的 `dzmm.completions()` 里 —— 玩家按 F12 就能看到全部设定，复制走自己用 ChatGPT 跑。
+
+放到 `functions/tarot.ts` 里以后，玩家不能再从前端源码或普通请求载荷中直接读取这段设定。
+
+`ctx.completions()` 也只支持 `user` / `assistant`，不能传 `system`。可以把服务端指令和玩家输入组装进同一条 `user` 消息，但这**不保证指令保密**：玩家输入可能通过 prompt injection 诱导模型复述指令，模型输出又会原样返回浏览器。不要在 prompt 中放 API key、密码、令牌、个人数据或安全关键规则；权限、奖励和防作弊判断必须由确定性的服务端代码执行。
+
+### 场景 B：服务端验证分数（防作弊）
+
+玩家打通一关，前端发"我赢了，分数 10000"。但是 —— 玩家可以改 JS 直接传 99999。
+真正的防作弊不能只把 `score`、`runs`、`kills` 或 `time` 换个接口接收；函数必须根据
+服务端保存的关卡状态、一次性挑战 token、可验证回放或其他可信证据重新计算结果。
+
+```text
+架构伪代码（不是可复制的 ctx API）：
+
+run = 从你设计的可信服务端状态中校验 challengeToken，并读取击杀数与耗时
+if run 不存在、已使用、归属错误，或 elapsedMs <= 0：拒绝
+score = floor(kills * 100000 / elapsedMs)
+把 run 标记为已结算，再返回 score
+```
+
+这里的“可信服务端状态”和结算流程需要按游戏状态模型自行设计，不是平台提供的 `verifyRunFromServerState` helper。不要直接信任浏览器提供的运行统计。另请注意，`ctx.kv.global` 没有 CAS/事务，严格排行榜或发奖不能靠一次 `get` → 修改 → `put` 保证并发正确性；详细限制见 [ctx API 详解](/gamefy/docs/serverless/ctx.md)。
+
+### 场景 C：跨玩家共享数据
+
+浏览器 `dzmm.kv.*` 是 (chat, 玩家) scope —— 玩家 A 看不到玩家 B 的数据。
+
+如果你想做：
+
+- 全游戏排行榜（所有玩家都能看）
+- 全游戏公告 / 限时活动
+- 玩家之间通信（留言板）
+
+只能用服务端函数的 `ctx.kv.global`。服务端 KV 属于 game scope，并分成两种明确的访问入口：
+
+- `ctx.kv.*`：`(gameId, userId)`，当前玩家私有、跨 chat 持久（跟浏览器 `dzmm.kv` 的"chat 隔离"不同）
+- `ctx.kv.global.*`：`(gameId, NULL)`，全游戏共享，所有玩家都能读写
+
+详见 [ctx API 详解](/gamefy/docs/serverless/ctx.md)。
+
+---
+
+## 3. 何时不要用服务端函数
+
+服务端函数有额外限制（CPU 5 秒、5 分钟超时、配额、不能 import 别的库等），简单场景直接用浏览器 SDK 更舒服。
+
+| 场景 | 推荐 |
+|---|---|
+| 玩家点按钮直接调 AI 聊天 | 浏览器 `dzmm.completions` |
+| 玩家自己存档（关卡进度、背包） | 浏览器 `dzmm.kv` |
+| 玩家自己看的剧情分支 | 浏览器 `dzmm.chat` |
+| AI 画图给玩家自己看 | 浏览器 `dzmm.draw.generate` |
+| AI 指令不想直接随前端源码下发 | 服务端 `functions/`（prompt 仍可能被模型泄露） |
+| 服务端校验玩家分数 / 战利品 | 服务端 `functions/` |
+| 全游戏排行榜 / 公共数据 | 服务端 `functions/` + `ctx.kv.global` |
+| 多步 AI 链（多次调用 AI 合成结果） | 服务端 `functions/` |
+
+---
+
+## 4. dev 模式 vs prod 模式
+
+模式是显式的，由调用来自哪种会话决定，不再跟"容器是否存活"隐式挂钩：
+
+| 模式 | 触发条件 | 函数代码来源 |
+|---|---|---|
+| dev | Workbench 预览（挂在隐藏的开发会话上） | 实时从作者容器读取 `functions/*.ts` / `*.js` |
+| prod | 玩家会话（永远 prod） | 已发布版本（「发布」时上传的快照） |
+
+dev 模式的好处：改 `.ts` / `.js` 文件立刻生效，无需重启 / 无需发布。dev 模式要求开发容器在运行：容器未运行时调用会明确报错 `dev_container_inactive`（HTTP 409，提示先启动容器），不会静默降级到已发布快照。
+
+prod 模式的代价：必须先「发布」，把 `functions/` 上传一份快照。未发布的函数玩家调会得到 `function_not_published` 错误。
+
+玩家会话永远走 prod 已发布快照，所以你开着工作台改代码不会影响线上玩家。反过来说，玩家看到的永远是你上次成功发布的函数版本，改完要让玩家用上就必须重新发布，并确认没有函数警告。Workbench 用 gameId 直接调用的入口始终只允许作者。
+
+---
+
+## 5. 一个完整的 hello world
+
+步骤 1：在容器里新建 `functions/hello.ts`：
+
+```typescript
+export default async function (req: any, ctx: any) {
+  return {
+    message: `Hello, ${ctx.user.name || '玩家'}！`,
+    youSent: req.body,
+    at: new Date().toISOString(),
+  };
+}
+```
+
+步骤 2：在 `publish/index.html` 加个按钮：
+
+```html
+<button onclick="callHello()">打招呼</button>
+<pre id="out"></pre>
+
+<script>
+  async function callHello() {
+    try {
+      const r = await dzmm.fn.invoke('hello', { greeting: 'hi' });
+      document.getElementById('out').textContent = JSON.stringify(r, null, 2);
+    } catch (e) {
+      document.getElementById('out').textContent = `${e.code}: ${e.message}`;
+    }
+  }
+</script>
+```
+
+步骤 3：保存代码 → 切到 Preview → 刷新 → 点按钮 → 看到 JSON 输出。
+
+步骤 4：想让真玩家也能用？点右上角「发布」。
+
+---
+
+## 6. 接下来读什么
+
+| 章节 | 内容 |
+|---|---|
+| [编写函数](/gamefy/docs/serverless/writing.md) | 函数签名、单文件限制、流式返回、错误抛出 |
+| [ctx API 详解](/gamefy/docs/serverless/ctx.md) | `ctx.kv` / `ctx.completions` / `ctx.chat` / `ctx.draw` |
+| [浏览器调用](/gamefy/docs/serverless/calling.md) | `dzmm.fn.invoke` / `invokeStream` + RPCError 处理 |
+| [限制与错误码](/gamefy/docs/serverless/limits.md) | CPU、时长、配额、所有错误码 |
+
+========================================================================
+
+# 编写函数
+
+# 编写函数
+
+> 新手提示：把代码放在 `functions/{name}.ts` 或 `functions/{name}.js` 里，`name` 就是浏览器调用时用的名字。每个文件有一个 `default export` 的服务端入口，可以在同一文件里写任意数量的 helper；不能 `import` 别的文件 / npm 包。
+
+---
+
+## 1. 函数签名
+
+每个 `functions/*.ts` / `*.js` 必须 default export 一个函数。函数名只允许字母、数字、下划线和连字符，不扫描子目录，同名 `.ts` / `.js` 不能同时发布。下面用 TypeScript 举例；JavaScript 文件去掉类型标注即可。两种形态：
+
+### 1.1 一次性函数（最常见）
+
+```typescript
+// functions/echo.ts
+export default async function (request: any, ctx: any) {
+  return {
+    echo: request.body,
+    by: ctx.user?.id,
+  };
+}
+```
+
+参数：
+- `request.body` —— 浏览器传过来的 body（已 JSON 解析）
+- `ctx` —— 平台注入的工具箱，详见 [ctx API 详解](/gamefy/docs/serverless/ctx.md)
+
+返回：任何能被 `JSON.stringify` 的对象。浏览器侧 `await dzmm.fn.invoke('echo', { ... })` 会拿到这个返回值。
+
+### 1.2 流式函数（async generator）
+
+`async function*` 让函数像 SSE 一样边算边吐 chunk，浏览器侧用 `for await` 消费。最常见用法是流式 AI 对话。
+
+```typescript
+// functions/storyteller.ts
+export default async function* (request: any, ctx: any) {
+  const prompt = String(request.body?.prompt ?? '');
+
+  // ctx.completions.stream 是个 async generator
+  for await (const chunk of ctx.completions.stream({
+    model: 'default',
+    messages: [
+      {
+        role: 'user',
+        content: `你是一位说书人。\n\n玩家请求：${prompt}`,
+      },
+    ],
+  })) {
+    // 把每个 delta 转发给浏览器
+    yield { delta: chunk.delta };
+  }
+}
+```
+
+浏览器侧：
+
+```javascript
+for await (const c of dzmm.fn.invokeStream('storyteller', { prompt: '讲个故事' })) {
+  document.getElementById('out').textContent += c.delta;
+}
+```
+
+每次 `yield` 立刻发到浏览器，玩家逐字看到生成。
+
+---
+
+## 2. 单文件限制
+
+每个函数文件必须自包含：
+
+❌ 不能用：
+```typescript
+import { something } from './helper';   // 不支持
+import axios from 'axios';                // 不支持
+const x = require('lodash');              // 不支持
+```
+
+任何 `import` / `require` 语句都会让 fn 被加载阶段拒绝，浏览器拿到 `unsupported_import` 错误。
+
+✅ 能用：
+- ES 标准内置（`JSON`、`Math`、`Date`、`Promise`、`Map`、`Set`、`Array`、`String` 等）
+- workerd 内置的 `fetch` / `URL`（虽然能写但沙箱会拦截到外网的请求，详见限制章节）
+- `ctx.*` 上挂着的所有 API
+
+---
+
+## 3. 怎么"组织代码"？
+
+既然不能 `import`，复用就只能靠：
+
+### 3.1 复制粘贴
+
+简单情况下完全够用。3 个函数里都需要"算 SHA-256"？直接复制 SHA-256 实现到每个文件里。
+
+### 3.2 一个函数包多个功能（method dispatch）
+
+```typescript
+// functions/player.ts
+export default async function (req: any, ctx: any) {
+  const { method, args } = req.body;
+  switch (method) {
+    case 'getStats':
+      return await getStats(ctx, args);
+    case 'submitScore':
+      return await submitScore(ctx, args);
+    case 'leaderboard':
+      return await leaderboard(ctx);
+    default:
+      throw new Error(`unknown method: ${method}`);
+  }
+}
+
+async function getStats(ctx: any, args: any) { /* ... */ }
+async function submitScore(ctx: any, args: any) { /* ... */ }
+async function leaderboard(ctx: any) { /* ... */ }
+```
+
+浏览器侧：
+
+```javascript
+const stats = await dzmm.fn.invoke('player', { method: 'getStats', args: {} });
+const board = await dzmm.fn.invoke('player', { method: 'leaderboard' });
+```
+
+这是绕过"不能 import"最实用的模式。一个文件 200-300 行没问题。
+
+---
+
+## 4. 抛错的正确方式
+
+函数里抛任何 `Error`，浏览器侧都会收到 `RPCError`：
+
+```typescript
+export default async function (req: any, ctx: any) {
+  if (typeof req.body?.score !== 'number') {
+    throw new Error('score is required and must be a number');
+  }
+  if (req.body.score < 0 || req.body.score > 1000000) {
+    throw new Error('score out of range');
+  }
+  // ...
+}
+```
+
+浏览器拿到：
+
+```javascript
+try {
+  await dzmm.fn.invoke('submitScore', { score: -1 });
+} catch (e) {
+  console.log(e.code);    // 'function_error' （所有自定义抛错都归这个 code）
+  console.log(e.source);  // 'user'  （区别于 'runtime' 错误）
+  console.log(e.message); // 'score out of range'  （你抛的 message）
+  console.log(e.userStack); // 你函数内的 stack；生产调用也可能收到
+}
+```
+
+`userStack` 当前会随用户代码错误在 dev 和 prod 链路中转发给调用方。玩家可以查看生产游戏里的错误对象，因此不要把令牌、个人数据、私有 prompt 或其他敏感值拼进异常 message，也不要让这些值出现在自定义错误堆栈信息中。
+
+> 想抛"平台标准"错误码？ 极少数情况下你想抛 `quota_exceeded` 这种平台级 code。99% 不需要，扔自定义 message 就够。具体规则见 [限制与错误码](/gamefy/docs/serverless/limits.md)。
+
+---
+
+## 5. 完整模板：服务端编排的占卜师
+
+`ctx.completions()` 和 `.stream()` 的 `messages` 都只支持 `user` / `assistant`。下面把服务端指令和玩家输入合并到同一条 `user` 消息中。函数源码不会直接下发到浏览器，但 prompt injection 仍可能让模型在输出中复述这些指令，所以不要把它当秘密存储，也不要放凭证或安全关键规则。
+
+```typescript
+// functions/tarot.ts
+
+const SERVER_INSTRUCTIONS = `
+你是一位有 30 年经验的塔罗占卜师。
+当玩家询问问题时，从示例牌库随机抽 3 张（依次代表过去、现在、未来），
+然后用诗意但温和的语气，200 字内给出占卜词。
+最后必须以"请把这份答案当作启发，而非命运"结尾。
+`.trim();
+
+// 为了让文档示例简短，这里只是节选牌库；正式塔罗游戏请补全你需要的牌。
+const CARDS = [
+  '愚者', '魔法师', '女祭司', '皇后', '皇帝',
+];
+
+function drawThreeCards(): [string, string, string] {
+  const shuffled = [...CARDS].sort(() => Math.random() - 0.5);
+  return [shuffled[0], shuffled[1], shuffled[2]];
+}
+
+export default async function (req: any, ctx: any) {
+  const question = String(req.body?.question ?? '').slice(0, 200);
+  if (!question) {
+    throw new Error('请输入你想问的事');
+  }
+
+  const [past, present, future] = drawThreeCards();
+
+  const reading = await ctx.completions({
+    model: 'default',
+    messages: [
+      {
+        role: 'user',
+        content: `${SERVER_INSTRUCTIONS}\n\n玩家问题：${question}\n抽到的牌：${past} / ${present} / ${future}`,
+      },
+    ],
+    maxTokens: 500,
+  });
+
+  return {
+    cards: { past, present, future },
+    reading: reading.text,
+  };
+}
+```
+
+浏览器侧：
+
+```javascript
+const r = await dzmm.fn.invoke('tarot', { question: '我会找到对的人吗？' });
+// {
+//   cards: { past: '...', present: '...', future: '...' },
+//   reading: '...'
+// }
+// 指令源码不直接下发，但模型输出仍可能复述指令
+```
+
+---
+
+## 6. 文件命名规则
+
+`functions/{name}.ts` 里 `name`：
+
+- 只能用 ASCII 字母 / 数字 / 下划线 / 连字符
+- 不支持点号、中文、Emoji、空格或带音符字母；`dzmm.fn.invoke(name, ...)` 与服务端路由会按同一规则校验
+
+浏览器调用时用同一个 `name`：
+
+```javascript
+// functions/submit-score.ts
+await dzmm.fn.invoke('submit-score', { ... });
+```
+
+支持子目录吗？不支持。所有函数必须直接放在 `functions/` 下：
+
+```
+functions/
+├── tarot.ts        ✅
+├── submit-score.ts ✅
+└── npc/            ❌ 不会被扫描
+    └── shopkeeper.ts
+```
+
+---
+
+## 7. dev 模式：改完立刻生效
+
+Workbench 预览（挂在隐藏的开发会话上）走 dev 模式，每次调用都从容器实时拉取最新源文件：
+
+- 你改完 `functions/tarot.ts` → 切到 Preview → 调用 → 马上跑到新版本
+- 不用重启、不用刷新、不用发布
+- 前提是开发容器在运行：容器未运行时调用会明确报错 `dev_container_inactive`（HTTP 409），先启动容器再调，不会静默降级到已发布快照
+
+玩家会话永远走 prod，读“已发布快照”，跟你的容器开不开无关 —— 所以改完必须先发布，玩家才能用到新版本。
+
+---
+
+## 8. 下一步
+
+学完函数签名，去看 [`ctx` API 详解](/gamefy/docs/serverless/ctx.md)，里面是所有"在函数里能调到平台能力"的列表（KV / AI / chat / draw / models）。
+
+========================================================================
+
+# ctx API 详解
+
+# ctx API 详解
+
+> 新手提示：`ctx` 是平台塞给你函数的第二个参数，里面挂着所有"在函数里能调用平台能力"的 API。命名跟浏览器 `dzmm.*` 很像，但作用域不同（详见下面 KV 章节）。
+
+---
+
+## 0. ctx 总览
+
+```typescript
+type ServerDrawTask = {
+  id: string;
+  outputImages: string[];
+  createdAt: string;
+  status: string;
+  errorMessage?: string;
+};
+
+ctx = {
+  gameId: number;
+  user: { id: string; name: string }; // name 可能是空字符串
+  kv: {
+    get(key): Promise<{ value: unknown | null; updated_at: string | null }>;
+    put(key, value): Promise<{ ok: true }>;
+    putIfAbsent(key, value): Promise<boolean>;
+    delete(key): Promise<{ ok: true }>;
+    global: { /* 全游戏共享 KV，同上四个方法 */ };
+  };
+  completions(cfg): Promise<{ text: string }>;
+  completions: {
+    stream(cfg): AsyncIterable<{ delta: string }>;
+  };
+  chat: {
+    list(ids?): Promise<ChatMessage[]>;
+    insert(parentId, messages): Promise<ChatMessage & {
+      ids: string[];
+      message: ChatMessage;
+    }>;
+    timeline(messageId): Promise<string[]>;
+  };
+  draw: {
+    generate(cfg): Promise<ServerDrawTask>; // 图片在 outputImages
+    edit(cfg): Promise<ServerDrawTask>;
+    models: {
+      generate(): Promise<{ models, defaultModel }>;
+      edit(): Promise<{ models, defaultModel }>;
+    };
+  };
+  models: { list(): Promise<ModelList> };
+};
+```
+
+`ctx.chat.insert()` 的 `ids` 与传入消息同序。为保持旧版 Chat 调用向后兼容，
+返回对象顶层仍保留最后一条 `ChatMessage` 的 `id`、`role`、`content`、`timestamp`
+等字段，并通过 `message` 显式提供同一条最后消息。
+
+---
+
+## 1. `ctx.kv` — game scope 的键值存储
+
+⚠️ **跟浏览器 `dzmm.kv` 是两个完全独立的 KV，且行为差异很重要，特别留意**：
+
+| | 浏览器 `dzmm.kv` | 函数 `ctx.kv` |
+|---|---|---|
+| 作用域 | (chat, 玩家) | (game, 玩家) |
+| 玩家切换不同 chat | 看不到旧 chat 的数据 | 看得到（跨 chat 持久） |
+| 全游戏共享 | 不支持 | 支持（`ctx.kv.global`） |
+| **Workbench 预览模式** | PostgreSQL（你自己的开发数据） | **PostgreSQL（你自己的开发数据）** |
+| **生产模式** | PostgreSQL | **PostgreSQL（prod 数据）** |
+
+**服务端 KV 按 dev/prod 命名空间隔离**：
+
+- 开发模式（Workbench 预览）下，`ctx.kv.*` 和 `ctx.kv.global.*` 都读写你自己的那份开发数据，与生产隔离，也与其他参与开发的人隔离——每个开发者各有一份。
+- 预览里写 `ctx.kv.global` 排行榜不会污染线上；同时也读不到线上数据 —— 要验证真实数据，需要发布后在正式链路验证。
+- `ctx.kv.*` 始终按 `(gameId, 当前调用者 userId)` 隔离：即便在开发数据里，也只能读写自己的私有数据。
+- `ctx.kv.global.*` 按 `(gameId, NULL)` 全游戏共享；在生产环境中，global delete 会删除所有玩家共用的值，改 global KV schema 前要兼容老格式。
+
+### 1.1 玩家私有：`ctx.kv.*`
+
+scope 是 (gameId, userId)。玩家 A 看不到玩家 B 的数据，但跨 chat 持久。
+
+```typescript
+// functions/save.ts
+export default async function (req: any, ctx: any) {
+  const action = req.body?.action;
+
+  if (action === 'load') {
+    const data = await ctx.kv.get('progress');
+    return { progress: data.value };
+  }
+
+  if (action === 'save') {
+    await ctx.kv.put('progress', req.body.progress);
+    return { ok: true };
+  }
+
+  if (action === 'reserve-once') {
+    const inserted = await ctx.kv.putIfAbsent('operation-reservation', {
+      status: 'reserved',
+      at: new Date().toISOString(),
+    });
+    return { inserted };
+  }
+
+  if (action === 'reset') {
+    await ctx.kv.delete('progress');
+    return { ok: true };
+  }
+}
+```
+
+`get()` 即使 miss 也返回 `{ value: null, updated_at: null }`；`put()` / `delete()` 返回 `{ ok: true }`；只有 `putIfAbsent()` 被 runtime 解包为 boolean。
+
+`putIfAbsent(key, value)` 只有在该作用域内的 key 尚不存在时才原子写入并返回 `true`；key 已存在时不覆盖并返回 `false`。它提供的是“至多一个预留成功者 / winner election”，**不是 exactly-once 副作用**：预留成功后如果函数崩溃、AI 调用失败或响应丢失，key 仍可能永久停在 `reserved`，重试只会得到 `false`，无法知道奖励或付费操作是否真正完成。
+
+付费动作应保存 `reserved → completed/result` 或 `failed` 状态。同一 action ID 的重复调用只可返回 completed 缓存；看到 reserved 要明确报告 pending，看到 failed 要明确报告失败，两者都 fail closed、不得再次调用 AI/draw。玩家显式开始新尝试时生成新的 action ID。当前 API 没有 CAS/lease，不能安全地按超时自动接管旧 reservation。
+
+这也不是通用 CAS：已有 key 的“读取、修改、覆盖”仍可能发生并发冲突。
+
+### 1.2 全游戏共享：`ctx.kv.global.*`
+
+scope 是 (gameId, NULL) —— 一个游戏一份，所有玩家共享。下面的排行榜只适合展示型、best-effort 场景；严格排名和奖励结算不能依赖这种无事务的读-改-写。
+
+> Preview 对 global KV 的写入落在你自己的开发数据里，不会影响线上、也不会影响其他开发者，可以放心用正式 key 调试；同理，Preview 也读不到线上排行榜，要验证真实数据需发布后验证。
+
+```typescript
+// functions/leaderboard.ts
+const BOARD_KEY = 'leaderboard';
+
+export default async function (req: any, ctx: any) {
+  const action = req.body?.action;
+
+  if (action === 'submit') {
+    const score = Number(req.body.score);
+    if (!Number.isFinite(score) || score < 0) {
+      throw new Error('invalid score');
+    }
+
+    const board = (await ctx.kv.global.get(BOARD_KEY)).value ?? [];
+    board.push({ user: ctx.user.id, name: ctx.user.name || '匿名', score, at: Date.now() });
+    board.sort((a, b) => b.score - a.score);
+    const persistedBoard = board.slice(0, 100);
+    await ctx.kv.global.put(BOARD_KEY, persistedBoard);
+    return { ok: true, listed: persistedBoard.some((e) => e.user === ctx.user.id) };
+  }
+
+  if (action === 'list') {
+    const board = (await ctx.kv.global.get(BOARD_KEY)).value ?? [];
+    return {
+      board: board.map((e) => ({ name: e.name, score: e.score, at: e.at })),
+    };
+  }
+}
+```
+
+> ⚠️ 并发问题：`ctx.kv.global` 是共享数据，多个玩家同时提交分数会读到同一份旧数据再写回，可能互相覆盖；同一玩家的高分也可能被并发的低分覆盖。`putIfAbsent` 只能原子创建新 key，不能原子更新已有排行榜。此模式仅适合可容忍偶尔丢写的展示榜，不适合奖励、比赛或严格排名；这些场景需要 CAS/事务存储。
+
+### 1.3 限制
+
+| 项 | 限制 |
+|---|---|
+| key | 非空、不含 NUL、不是 `.` / `..`、Unicode 必须完整，且 ≤ 512 UTF-8 字节；否则 `invalid_request` / `key_too_large` |
+| value（JSON 序列化后） | ≤ 128 KiB（131072 UTF-8 字节）；否则 `value_too_large` |
+| 单次调用 bridge RPC 总数 | ≤ 50，所有 `ctx.*` 共享，不是 KV 专属计数 |
+
+---
+
+## 2. `ctx.completions` — 服务端 AI 对话
+
+参数形状跟浏览器 `dzmm.completions` 接近，积分扣的是触发这次调用的玩家（不是开发者），但结果契约不同：浏览器方法返回 `Promise<void>`，文本通过累计全文回调提供；一次性 `ctx.completions` 直接返回 `{ text: string }`。
+
+模型选择规则也与浏览器一致：作者传入的具体且可用模型优先；`model: 'default'` 或作者模型已不可用时，服务端会根据签名调用令牌中的玩家与 Chat，读取同一个 `chats.model` 设置。玩家在游戏 Chat 设置里修改后，浏览器调用和 Function Runner 调用都会生效。Workbench 预览挂在隐藏的开发会话上，`default` 同样读取该会话的模型设置，与玩家链路一致。
+
+两者的 `messages` 都只支持 `user` / `assistant`，不能传 `system`。把提示词写在 `functions/*.ts` / `*.js` 只能防止它直接随浏览器源码下发；玩家输入可能通过 prompt injection 让模型复述指令。prompt 中不得放 secrets、个人数据或安全规则，权威校验必须写成确定性代码。
+
+### 2.1 一次性
+
+```typescript
+const question = String(req.body?.question ?? '');
+const result = await ctx.completions({
+  model: 'default',
+  messages: [
+    {
+      role: 'user',
+      content: `你是占卜师。请用温和的语气回答。\n\n玩家问题：${question}`,
+    },
+  ],
+  maxTokens: 500,
+});
+
+return { reply: result.text };
+```
+
+返回值 `{ text: string }`。
+
+### 2.2 流式（async iterable）
+
+```typescript
+export default async function* (req: any, ctx: any) {
+  for await (const chunk of ctx.completions.stream({
+    model: 'default',
+    messages: [{ role: 'user', content: req.body.prompt }],
+  })) {
+    yield { delta: chunk.delta };
+  }
+}
+```
+
+`ctx.completions.stream(...)` 返回 `AsyncIterable<{ delta: string }>`，配合 `async function*` + `yield` 用。这里的 `chunk.delta` 是增量片段；它与浏览器 `dzmm.completions` 回调里的累计全文不同。
+
+> ⚠️ 50 次 subrequest 上限是所有 bridge RPC 的共享上限。流式调用建立 cursor 会消耗 RPC，每次读取一个 delta 的 `cursor.next()` 也会继续消耗；上游如果把文本切得很碎，可能在正常结束前耗尽大约 50 次额度。需要稳定长文本时优先使用一次性 `ctx.completions()`，或控制输出长度并处理流中途失败。
+
+### 2.3 配额
+
+- 单次调用 fn 内最多 3 次 `ctx.completions`（含 stream 计为 1 次）—— 超第 4 次抛 `quota_exceeded`
+- 玩家级 60/分 + 2000/天 速率限（与浏览器侧 `dzmm.completions` 共用）
+
+---
+
+## 3. `ctx.chat` — 聊天存档
+
+读 / 写当前 chat 的消息。与浏览器 `dzmm.chat` 操作同一份数据。
+
+```typescript
+// 不传 ids：拉当前 active history，不包含其它历史分支
+const all = await ctx.chat.list();
+
+// 从自己的 KV 存档读取此前由 SDK 返回的 ID；不要构造 ID
+const savedMessageIds = ((await ctx.kv.get('save:messageIds')).value ?? []) as string[];
+const some = await ctx.chat.list(savedMessageIds);
+
+// 非空 Chat：undefined / null / '' 追加 active leaf；空 Chat 才创建根
+const r = await ctx.chat.insert(parentId, [
+  { role: 'user', content: req.body.text },
+]);
+const insertedIds = r.ids; // 与 messages 同序
+
+// Read the saved message's timeline IDs.
+const savedMessageId = savedMessageIds[savedMessageIds.length - 1];
+const ids = savedMessageId ? await ctx.chat.timeline(savedMessageId) : [];
+```
+
+只有明确传入由 SDK 返回的 message ID 才表示从该存档点分支。message ID 是平台生成、稳定且不透明的字符串；请直接保存并原样回传 `list()`、`insert().ids` 或 `timeline()` 返回的值，不要解析、拼接、猜测格式或自行构造。`ctx.chat.list(ids)` 单次最多传 100 个 ID。
+
+### 开发模式下 `ctx.chat` 也可用
+
+Workbench 预览挂在一个隐藏的开发会话（dev chat）上，函数里的 `ctx.chat` 在开发模式下读写的就是这个开发会话的存档，不会再抛 `chat_not_associated`。玩家会话里则读写玩家 chat 的存档，与浏览器 `dzmm.chat` 操作同一份数据。开发会话与玩家会话按命名空间隔离，预览写入不会出现在任何玩家的聊天里。
+
+---
+
+## 4. `ctx.draw` — 服务端 AI 画图
+
+积分仍然扣触发调用的玩家，但服务端返回值**不会经过浏览器 SDK 的 `images` 归一化**。fn-runner 会返回 provider 的任务对象，图片字段名是 `outputImages`。
+
+```typescript
+// 生成
+const task = await ctx.draw.generate({
+  prompt: req.body.prompt,
+  dimension: '1:1',
+  model: 'anime',
+});
+return { images: task.outputImages };
+
+// 编辑（参考图必须是 URL，不接受 base64）
+const edited = await ctx.draw.edit({
+  prompt: '换成蓝色头发',
+  images: [req.body.refUrl], // 必须是平台已生成图片或平台信任 URL
+  model: 'pro',
+});
+```
+
+### 4.1 阻塞 vs polling
+
+`ctx.draw.generate / edit` 是阻塞的：函数会等图生成完才返回（内置轮询，最长 2 分钟）。轮询时序接近浏览器 SDK，但返回对象形状不同，请使用 `outputImages`。
+
+### 4.2 列模型
+
+```typescript
+const { models, defaultModel } = await ctx.draw.models.generate();
+// 跟浏览器 dzmm.draw.generateModels() 结构相同
+```
+
+### 4.3 配额
+
+- 单次调用 fn 内最多 3 次 `ctx.draw.*`（generate / edit 共同计数）—— 超第 4 次抛 `quota_exceeded`
+- 玩家级配额跟浏览器侧共用
+
+### 4.4 ⚠️ 没有公开的 `uploadReference`
+
+浏览器和服务端函数都没有公开的 `draw.uploadReference` 方法。玩家本地/base64 图片应直接交给浏览器侧 `dzmm.draw.edit()`；Host 会在内部完成校验和上传：
+
+```javascript
+// 浏览器侧
+const task = await dzmm.draw.edit({
+  images: [canvas.toDataURL('image/png')],
+  prompt: '换成蓝色头发',
+});
+```
+
+服务端 `ctx.draw.edit()` 只能接收平台已生成图片的 URL 或其它平台信任 URL。不要把 data URL 通过 `fn.invoke` 转发给函数；这既受 1 MiB body 限制，也不会触发浏览器 Host 的内部上传流程。
+
+---
+
+## 5. `ctx.models.list` — 列对话模型
+
+```typescript
+const list = await ctx.models.list();
+// 跟浏览器 dzmm.models.list() 返回结构相同
+```
+
+跟浏览器版完全一致，不消耗积分。
+
+---
+
+## 6. `ctx.gameId` / `ctx.user`
+
+`ctx.gameId` — 当前游戏的数字 ID（每个游戏一个）。常见用途：日志、调试。
+
+`ctx.user` — 当前触发调用的玩家：
+
+```typescript
+ctx.user = {
+  id: string;   // 玩家 UUID
+  name: string; // 昵称，未设置时是空字符串
+};
+```
+
+显示昵称时使用 `ctx.user.name || '匿名'`，不要只用 `??` 判断，因为未设置昵称时是 `''` 而不是 `null`。
+
+> ⚠️ 不要把 `ctx.user.id` 写进返回值给浏览器，玩家自己的 ID 没事，但暴露其他玩家的 ID（比如 leaderboard 里）算泄漏隐私。推荐只把 `name` 和必要的数据返回。
+
+---
+
+## 7. 不存在的 API（常见误用）
+
+| 浏览器 SDK 有 | fn 内 ctx 有吗 | 备注 |
+|---|---|---|
+| `dzmm.fn.invoke` | ❌ | 函数内不能再调函数（防套娃） |
+| `dzmm.toast.*` | ❌ | toast 是给玩家的，fn 不显示 UI |
+| `dzmm.user.jwks()` | ❌ | 不需要，fn 已在受信端 |
+| `dzmm.draw.download` / `nav` | ❌ | 这些是浏览器侧的 navigation 行为 |
+| `dzmm.draw.uploadReference` | ❌ | 浏览器和 fn 都没有这个公开方法；本地图直接传给浏览器 `dzmm.draw.edit` |
+| `ctx.waitUntil` | ❌ | 不支持后台任务，函数返回后就清理资源 |
+| 直接 `fetch('https://...')` | ❌ | 沙箱阻断外网（只有平台内部的 `ctx.*` bridge 能出站） |
+
+不要假设所有误用都会统一返回 `unsupported_feature`：大多数属性根本不存在，调用时会产生 JavaScript `TypeError`；被阻断的 `fetch` 当前通常也作为 `function_error`、`source: 'user'` 返回。`ctx.waitUntil` 是明确的稳定例外：它返回 `unsupported_feature`、`source: 'runtime'`。
+
+---
+
+## 8. 完整示例：跨玩家共享排行榜
+
+> 下面示例演示共享存储、去重和排名，不构成防作弊实现。浏览器提交的 `score` 不可信；
+> 正式游戏应先根据可信服务端状态、一次性挑战 token 或可验证回放重新计算分数。示例仍是无事务的 get-modify-put，可能丢并发提交或让低分覆盖高分，只适合 best-effort 展示榜，不能用于奖励或严格排名。Preview 写入落在你自己的开发数据里，不会影响线上数据，直接用正式 key 即可。
+
+```typescript
+// functions/leaderboard.ts
+const MAX_SCORE = 10_000_000;
+const TOP_N = 100;
+const BOARD_KEY = 'leaderboard';
+
+export default async function (req: any, ctx: any) {
+  const { action } = req.body ?? {};
+
+  if (action === 'submit') {
+    const raw = Number(req.body.score);
+    if (!Number.isFinite(raw) || raw < 0 || raw > MAX_SCORE) {
+      throw new Error('分数超出允许范围');
+    }
+
+    const board = (await ctx.kv.global.get(BOARD_KEY)).value ?? [];
+
+    // 用 userId 去重：玩家只保留最高分
+    const existing = board.findIndex((e: any) => e.user === ctx.user.id);
+    const entry = {
+      user: ctx.user.id,
+      name: ctx.user.name || '匿名',
+      score: raw,
+      at: Date.now(),
+    };
+
+    if (existing < 0) {
+      board.push(entry);
+    } else if (board[existing].score < raw) {
+      board[existing] = entry;
+    } else {
+      // 没有刷新最高分时不要把旧快照写回去，否则可能覆盖另一名玩家刚提交的成绩。
+      const persistedBoard = board.slice(0, TOP_N);
+      const rankIndex = persistedBoard.findIndex((e: any) => e.user === ctx.user.id);
+      const rank = rankIndex >= 0 ? rankIndex + 1 : null;
+      return { ok: true, kept: true, listed: rank !== null, rank };
+    }
+
+    board.sort((a: any, b: any) => b.score - a.score);
+    const persistedBoard = board.slice(0, TOP_N);
+    await ctx.kv.global.put(BOARD_KEY, persistedBoard);
+
+    const rankIndex = persistedBoard.findIndex((e: any) => e.user === ctx.user.id);
+    const rank = rankIndex >= 0 ? rankIndex + 1 : null;
+    return { ok: true, kept: false, listed: rank !== null, rank };
+  }
+
+  if (action === 'list') {
+    const board = (await ctx.kv.global.get(BOARD_KEY)).value ?? [];
+    return {
+      board: board.map((e: any) => ({ name: e.name, score: e.score, at: e.at })),
+      // 不返回 user.id，避免泄漏
+    };
+  }
+
+  if (action === 'myRank') {
+    const board = (await ctx.kv.global.get(BOARD_KEY)).value ?? [];
+    const persistedBoard = board.slice(0, TOP_N);
+    const me = persistedBoard.find((e: any) => e.user === ctx.user.id);
+    return {
+      rank: me ? persistedBoard.indexOf(me) + 1 : null,
+      score: me?.score ?? null,
+    };
+  }
+
+  throw new Error(`未知排行榜动作：${action}`);
+}
+```
+
+浏览器侧：
+
+```javascript
+await dzmm.fn.invoke('leaderboard', { action: 'submit', score: 9999 });
+const { board } = await dzmm.fn.invoke('leaderboard', { action: 'list' });
+const me = await dzmm.fn.invoke('leaderboard', { action: 'myRank' });
+```
+
+========================================================================
+
+# 浏览器调用
+
+# 浏览器调用 — `dzmm.fn.*`
+
+> 新手提示：你的游戏 JS 通过 `dzmm.fn.invoke()` 调一次性函数（拿完整结果），通过 `dzmm.fn.invokeStream()` 调流式函数（边算边收 chunk）。失败抛 `RPCError`（不是 `DzmmError`），处理方式略有不同。
+
+---
+
+## 1. 一次性：`dzmm.fn.invoke(name, body, opts?)`
+
+```javascript
+const result = await dzmm.fn.invoke('tarot', {
+  question: '我会找到对的人吗？',
+});
+
+console.log(result.cards);   // { past: '...', present: '...', future: '...' }
+console.log(result.reading); // 占卜词
+```
+
+### 参数
+
+<table>
+  <thead><tr><th>参数</th><th>类型</th><th>必需</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>name</code></td><td><code>string</code></td><td>✅</td>
+      <td>函数名（对应 `functions/{name}.ts`）</td>
+    </tr>
+    <tr>
+      <td><code>body</code></td><td>any</td><td>✅</td>
+      <td>任何可 JSON 序列化对象，作为 <code>request.body</code> 传给函数</td>
+    </tr>
+    <tr>
+      <td><code>opts</code></td><td><code>{`{ timeout?: number, retry?: boolean }`}</code></td><td>❌</td>
+      <td><code>timeout</code> 单位毫秒，默认 320_000；<code>retry</code> 默认 false。只有幂等或 reservation 保护的函数才可设为 true，允许一次可信基础设施重试</td>
+    </tr>
+  </tbody>
+</table>
+
+### 返回值
+
+函数 `return` 的任意 JSON 可序列化对象。
+
+---
+
+## 2. 流式：`dzmm.fn.invokeStream(name, body, opts?)`
+
+返回 `AsyncIterable`，用 `for await` 消费：
+
+```javascript
+const out = document.getElementById('out');
+out.textContent = '';
+
+try {
+  for await (const chunk of dzmm.fn.invokeStream('storyteller', { prompt: '讲个故事' })) {
+    out.textContent += chunk.delta; // chunk 是函数 yield 出来的对象
+  }
+} catch (e) {
+  console.error('stream failed:', e.code, e.message);
+}
+```
+
+chunk 结构由函数决定（不是平台规定）。函数 `yield { delta: '...' }`，浏览器就收 `{ delta: '...' }`。
+
+### 流中途出错
+
+流式调用中途也可能失败（fn 超时、cordon 死掉、用户函数抛错）。`for await` 循环会 throw 一个 `RPCError`，已经收到的 chunk 不会丢：
+
+```javascript
+let received = [];
+try {
+  for await (const c of dzmm.fn.invokeStream('flaky', body)) {
+    received.push(c);
+  }
+  console.log('stream done, total chunks:', received.length);
+} catch (e) {
+  console.log('partial result:', received.length, 'chunks');
+  console.log('then failed with:', e.code);
+}
+```
+
+fn-runner 在能够继续写连接时会尽力发送最终 `{ error: { code, message } }` 帧，SDK 会把它转换成 throw。但网络断开、代理重置或客户端连接先消失时，服务端可能无法送达最终 error frame；调用方可能看到连接错误，极端情况下也可能只看到提前 EOF。
+
+已经收到的 chunk 必须始终当作 partial result。业务如果必须确认完整性，应让函数自己 `yield { type: 'done' }` 之类的应用层终止标记；没有收到该标记就按不完整处理，不能仅凭 `for await` 结束断言成功。
+
+---
+
+## 3. `RPCError`：服务端函数的错误类型
+
+服务端函数失败时不抛 `DzmmError`，抛 `RPCError`：
+
+```typescript
+class RPCError extends Error {
+  code: string;           // fn runtime 多为小写；ctx.draw/completions 也可能透传大写上游码
+  source: 'user' | 'runtime';  // 错的是用户代码还是平台
+  message: string;
+  userStack?: string;     // 函数内的 stack；生产调用也可能收到
+  retryable: boolean;
+  retryAfterMs?: number;
+}
+```
+
+注意：
+
+- fn runtime 自身的错误码通常是小写下划线（`function_error` / `function_timeout`）；`ctx.completions` / `ctx.draw` 还可能透传 `QUOTA_EXHAUSTED` 等大写上游码。
+- `retryable` 只表示平台判断将来再次请求可能成功；部分限流/繁忙响应还会带 `retryAfterMs`，表示服务端建议等待的毫秒数。没有 `DzmmError.category`。
+- `source: 'user'` 的错误不能获得可信 runtime 身份，即使用户函数伪造了 runtime-looking code 或 `retryable: true`。
+- `dzmm.fn.invoke()` 默认不重放；只有显式 `{ retry: true }` 才会对可信 `source: 'runtime'` 基础设施错误最多再尝试 1 次，并优先遵守 `retryAfterMs`。`invokeStream()` 不重试，避免重复交付已经收到的 chunk。
+- `userStack` 当前在 dev 和 prod 都可能转发给浏览器。玩家能检查生产错误对象，不要在异常 message 或堆栈中包含凭证、个人数据、私有 prompt 等敏感信息。
+
+---
+
+## 4. 错误处理推荐 pattern
+
+```javascript
+try {
+  const r = await dzmm.fn.invoke('myFn', body);
+  // 成功
+} catch (e) {
+  switch (e.code) {
+    case 'function_error':
+      // 函数里 throw 了，或代码有 bug
+      console.error('fn 抛错:', e.message, e.userStack);
+      showError(`错误：${e.message}`);
+      break;
+
+    case 'function_timeout':
+      // 函数跑超 5 分钟被砍
+      showError('请求太复杂，请简化后重试');
+      break;
+
+    case 'function_not_published':
+      // prod 模式调一个没保存过的函数
+      showError('这个功能还没上线');
+      break;
+
+    case 'function_not_found':
+      // dev 模式调一个不存在的函数（写错名字了）
+      console.error('fn 不存在，检查 name 拼写');
+      break;
+
+    case 'unsupported_import':
+      // 函数代码里有 import 语句，加载阶段被拒
+      console.error('函数里不能 import');
+      break;
+
+    case 'runtime_busy':
+    case 'cordon_dead':
+    case 'fn_runner_unreachable':
+      // 默认调用没有静默重放；结束当前动作，给玩家显式重试入口
+      showRetryButton('服务暂时繁忙，请稍后再次点击');
+      break;
+
+    case 'too_many_requests':
+      // 同游戏 / 同玩家并发太多
+      showError('请稍等再操作');
+      break;
+
+    case 'quota_exceeded':
+      // 函数内 ctx.completions / ctx.draw 调超了配额
+      showError('额度不足，请稍后再试');
+      break;
+
+    case 'invocation_token_invalid':
+      // 调用凭证过期 / 被撤销
+      showError('请刷新页面重试');
+      break;
+
+    case 'response_too_large':
+      // 函数返回值超大（非流 > 1 MiB / 流 > 10 MiB）
+      console.error('fn 返回太大，需要优化');
+      break;
+
+    case 'chat_not_associated':
+      // 函数没有关联的 chat（正常链路不会出现：预览挂在开发会话上，玩家链路有玩家 chat）
+      console.warn('函数没有关联的 chat');
+      break;
+
+    case 'dev_container_inactive':
+      // 开发模式调用但开发容器未运行（HTTP 409）
+      console.warn('请先启动开发容器再预览调用函数');
+      break;
+
+    default:
+      console.error('未知错误:', e.code, e.message);
+      showError(e.message);
+  }
+}
+```
+
+完整错误码字典见 [限制与错误码](/gamefy/docs/serverless/limits.md)。
+
+---
+
+## 5. 常见模式
+
+### 5.1 防重复点击 + loading
+
+```javascript
+let inflight = false;
+
+async function onClickInvoke() {
+  if (inflight) return;
+  inflight = true;
+  setBtn({ disabled: true, label: '处理中…' });
+  try {
+    const r = await dzmm.fn.invoke('myFn', body);
+    showResult(r);
+  } catch (e) {
+    handleErr(e);
+  } finally {
+    inflight = false;
+    setBtn({ disabled: false, label: '提交' });
+  }
+}
+```
+
+### 5.2 默认单次与显式 retry opt-in
+
+`dzmm.fn.invoke()` 默认只发送一次请求。响应丢失时，客户端无法知道服务端是否已经完成付费调用或副作用，因此老调用不能被无感重放。
+
+只有严格幂等的函数，或已接收稳定 action ID 并在服务端使用 reservation/result 状态机的函数，才可以显式传 `{ retry: true }`。此时可信 runtime 基础设施错误最多再尝试 1 次，并优先遵守 `retryAfterMs`：
+
+```javascript
+await dzmm.fn.invoke('reserved-action', { actionId, input }, { retry: true });
+```
+
+不要再套通用自动循环。付费或有副作用的函数最终失败后应结束当前动作并展示显式重试按钮；玩家再次操作时开始一个新的业务动作。
+
+注意：`function_error` / `quota_exceeded` / `function_not_published` / `invocation_token_invalid` 不要重试，重试结果一样。
+
+### 5.3 流式 + race condition 守卫
+
+```javascript
+let latestReq = 0;
+
+async function regenStream() {
+  const reqId = ++latestReq;
+  let text = '';
+  try {
+    for await (const c of dzmm.fn.invokeStream('storyteller', { prompt })) {
+      if (reqId !== latestReq) return; // 旧请求，丢弃
+      text += c.delta ?? '';
+      outputEl.textContent = text;
+    }
+  } catch (e) {
+    if (reqId !== latestReq) return; // 旧请求出错也忽略
+    showError(e.message);
+  }
+}
+```
+
+### 5.4 复用一个 fn 做多种操作
+
+如果用 [编写函数 §3.2](/gamefy/docs/serverless/writing.md) 的 method dispatch 模式：
+
+```javascript
+const player = {
+  async getStats() {
+    return await dzmm.fn.invoke('player', { method: 'getStats' });
+  },
+  async submitScore(score) {
+    return await dzmm.fn.invoke('player', { method: 'submitScore', args: { score } });
+  },
+  async leaderboard() {
+    return await dzmm.fn.invoke('player', { method: 'leaderboard' });
+  },
+};
+
+// 用起来更顺手
+const stats = await player.getStats();
+```
+
+---
+
+## 6. dev vs prod 行为差异
+
+模式是显式的：Workbench 预览挂在隐藏的开发会话上，走 dev 模式；玩家会话永远走 prod。不再由"容器是否存活"隐式决定。
+
+| 场景 | Workbench 预览（dev） | 玩家会话（prod） |
+|---|---|---|
+| 调一个新加的函数 | ✅ 实时读容器内 `functions/*.ts` / `*.js` 就跑 | ❌ `function_not_published`，要先发布函数快照 |
+| 改完 fn 代码 | ✅ 下次调立即生效 | ❌ 跑的是上次保存的版本 |
+| 开发容器未运行 | ❌ 明确报错 `dev_container_inactive`（HTTP 409），提示先启动容器；不会静默降级到已发布快照 | 不受影响，始终跑已发布快照 |
+| 调用 `console.log` | 输出到 fn-runner 服务日志（你看不到） | 同上 |
+| `ctx.chat` | ✅ 可用，读写开发会话的存档 | ✅ 读写玩家 chat 的存档 |
+| `ctx.kv` / `ctx.kv.global` | 读写你自己的开发数据，与生产、与其他开发者都隔离 | 读写生产数据 |
+
+玩家无论容器是否存活，都走 prod 已发布快照，你开着工作台改代码不会影响线上玩家。
+
+dev 环境下函数 `console.log` 输出浏览器侧看不到。调试时建议：
+
+- 把要看的信息直接 `return` 出来
+- 或者临时写到 `ctx.kv.put('debug-log', ...)` 再用另一个 fn 读；dev 模式的 KV 与生产隔离，不会污染线上数据
+
+---
+
+## 7. 完整示例：占卜师按钮 + 流式说书
+
+```html
+<!-- publish/index.html -->
+<button id="tarot">塔罗占卜</button>
+<input id="q" placeholder="你想问什么？" />
+<pre id="tarot-out"></pre>
+
+<button id="story">讲个故事</button>
+<input id="topic" placeholder="主题" />
+<pre id="story-out"></pre>
+
+<script>
+  // 占卜：一次性 invoke
+  let tarotInflight = false;
+  document.getElementById('tarot').onclick = async () => {
+    if (tarotInflight) return;
+    tarotInflight = true;
+    const out = document.getElementById('tarot-out');
+    out.textContent = '占卜中…';
+    try {
+      const r = await dzmm.fn.invoke('tarot', {
+        question: document.getElementById('q').value,
+      });
+      out.textContent = `卡牌: ${Object.values(r.cards).join(' / ')}\n\n${r.reading}`;
+    } catch (e) {
+      out.textContent = `[${e.code}] ${e.message}`;
+    } finally {
+      tarotInflight = false;
+    }
+  };
+
+  // 流式：边讲边显示
+  let latestStory = 0;
+  document.getElementById('story').onclick = async () => {
+    const id = ++latestStory;
+    const out = document.getElementById('story-out');
+    out.textContent = '';
+    try {
+      for await (const c of dzmm.fn.invokeStream('storyteller', {
+        prompt: document.getElementById('topic').value,
+      })) {
+        if (id !== latestStory) return;
+        out.textContent += c.delta ?? '';
+      }
+    } catch (e) {
+      if (id !== latestStory) return;
+      out.textContent += `\n\n[error: ${e.code}] ${e.message}`;
+    }
+  };
+</script>
+```
+
+========================================================================
+
+# 限制与错误码
+
+# 服务端函数：限制与错误码
+
+把服务端函数所有"超过就出错"的事情列在一处。先看[平台限制总表 §10](/gamefy/docs/limits.md) 拿到全局印象，再来这里查具体错误码。
+
+---
+
+## 1. 写法限制
+
+| 项 | 限制 | 触发错误 |
+|---|---|---|
+| 函数文件 | `functions/` 直接子文件 `.ts` / `.js`，函数名只能含字母、数字、下划线、连字符；不允许同名两种扩展 | `invalid_function_name` / 发布校验错误 |
+| `import` / `require` | 禁止 | `unsupported_import`（加载阶段） |
+| 多文件 / 子目录 | 不扫描 `functions/` 子目录 | `function_not_found` |
+| `ctx.waitUntil` | 不支持 | `unsupported_feature` |
+| 函数内上传本地/base64 参考图 | 不支持；`ctx.draw.edit` 只接收已生成图片或平台信任 URL | 传 data URL 会被拒绝；不存在公开的 `uploadReference` 方法 |
+| 直接 `fetch('https://...')` | 沙箱拦截 | 没有稳定 typed code，当前通常是 `function_error` |
+
+只有 `ctx.waitUntil` 有稳定的 `unsupported_feature`。其它不存在的属性通常是 JavaScript `TypeError`，被阻断的 fetch 也没有稳定 typed code，最终以 `function_error / source: 'user'` 返回。
+
+---
+
+## 2. 时长 / 资源
+
+| 项 | 限制 | 超时行为 |
+|---|---|---|
+| CPU time | 5 秒 | `cpu_time_limit_exceeded` (504)，cordon 自愈重启 |
+| Wall-clock | 5 分钟 | `function_timeout` (504)，cordon 自愈重启 |
+| 内存 | 128 MB（每个 cordon） | OOM / cordon 中途退出通常为 `cordon_dead`，cordon 自愈 |
+| bridge subrequests | 每次调用 ≤ 50 次共享 RPC round-trip | 所有 `ctx.*` 共用；流式 completions 每次读取 delta 也会消耗 |
+
+> CPU time 和 wall-clock 的区别：
+>
+> - CPU：函数里纯计算用了多少时间。`await` 等待不算 CPU。`while (true) {}` 5 秒后就会被砍。
+> - Wall-clock：从函数开始到结束的实际时间（含 `await`）。包括 `ctx.completions` 等 AI 调用的时间。
+
+---
+
+## 3. 体积
+
+| 项 | 限制 | 触发错误 |
+|---|---|---|
+| 请求 body | ≤ 1 MiB | 超限请求可能在网关/解析层直接 413；不要依赖稳定 RPC code |
+| 非流式 response | ≤ 1 MiB | `response_too_large` |
+| 流式 response 总量 | ≤ 10 MiB | `response_too_large` |
+| `ctx.kv` key | 非空、不含 NUL、非 `.` / `..`、完整 Unicode、≤ 512 UTF-8 B | `invalid_request` / `key_too_large` |
+| `ctx.kv` value | JSON 序列化后 ≤ 128 KiB（131072 UTF-8 B） | `value_too_large` |
+
+---
+
+## 4. 配额（Layer A：单次调用）
+
+每次 `dzmm.fn.invoke()` 调用都有一个 token，token 上带 limits：
+
+| 配额 | 默认 |
+|---|---|
+| `maxCompletionCalls` | 3 |
+| `maxDrawCalls` | 3 |
+
+超出会早失败抛 `quota_exceeded`，函数代码能 catch 这个错误自己处理。
+
+---
+
+## 5. 配额（Layer B：玩家级 / 游戏级）
+
+为了防止 fn 被恶意刷，平台在 DZMM 侧还有几道闸：
+
+| 闸 | 限制 | 触发错误 |
+|---|---|---|
+| 玩家级 `fn.invoke` 入口速率 | 60 次/分 | `too_many_requests`（函数进入 fn-runner 前） |
+| 玩家级 `completions` 速率 | 60 次/分 + 2000 次/天 | `RATE_LIMITED`（`ctx.completions` 抛） |
+| 同游戏 in-flight | 5 | `too_many_requests`（`scope: 'game'`） |
+| 同玩家 in-flight | 3 | `too_many_requests`（`scope: 'user'`） |
+| 同 invocationToken（jti）调用 | 受 token TTL 限制（320s = 5min wall-clock + 20s 缓冲） | `invocation_token_invalid`（320s 后） |
+
+---
+
+## 6. 完整错误码字典
+
+`RPCError.code` 是 forward-compatible string：新版 runtime/provider 以后可能增加 code，旧 SDK 仍会保留原字符串。下面列出当前实现所有已知可达 code。`source: 'runtime'` 表示可信平台/Provider 错误；用户函数直接 throw 总是 `function_error / source: 'user'`，不能靠伪造 `code/source/retryable` 冒充 runtime。
+
+### 6.1 入口、鉴权与加载
+
+| Code | 含义 |
+|---|---|
+| `invalid_function_name` | 函数名含非法字符或路径穿越 |
+| `invalid_route_id` | Web 入口既不是合法 chat UUID，也不是正整数 gameId |
+| `session_expired` | 玩家登录态失效 |
+| `forbidden_gameid_entry` | 非作者尝试用 gameId 直接调用 |
+| `forbidden_prod_mode` | 私有游戏 prod 调用无权限 |
+| `dev_container_inactive` | Workbench 开发容器未运行（409），先在工坊启动；CLI inline 开发不依赖容器 |
+| `function_not_found` | dev 模式文件不存在，或老发布记录无法确认函数 |
+| `function_not_published` | prod 模式函数从未成功发布 |
+| `function_syntax_error` | 编译语法错误（400，source=user）；dev 响应可含定位信息，prod 不返回源码片段。修复源码，不要重试 |
+| `inline_snapshot_invalid` | CLI dev 源码快照不满足 UTF-8、256 KiB 或摘要契约；不重试原请求 |
+| `unsupported_import` | 函数包含 `import` / `require` |
+| `invocation_token_required` | Bridge/provider 请求缺少 invocation token |
+| `invocation_token_invalid` | token 过期、签名/issuer 无效或被撤销；TTL 为 320 秒 |
+| `invalid_invocation_token` | inline 源码扩展的已签名声明或 dev mode 不合法，拒绝请求 |
+| `fn_runner_misconfigured` | Web 部署缺少 fn-runner 地址配置 |
+
+### 6.2 执行、资源与基础设施
+
+| Code | 含义 | 显式 `{ retry: true }` |
+|---|---|---|
+| `function_error` | 用户函数 throw / TypeError；`source: 'user'` | 否 |
+| `cpu_time_limit_exceeded` | CPU 超 5 秒 | 否 |
+| `function_timeout` | wall-clock 超 5 分钟 | 否 |
+| `response_too_large` | 非流式 > 1 MiB 或流式累计 > 10 MiB | 否 |
+| `unsupported_feature` | 当前 runtime/provider 不支持该能力 | 否 |
+| `quota_exceeded` | 单 invocation 的 completions/draw 配额耗尽 | 否 |
+| `quota_check_unavailable` | 配额存储不可用，平台 fail closed | 否 |
+| `runtime_busy` | cordon 池暂时没有空位 | opt-in 时最多 1 次 |
+| `too_many_requests` | 每游戏、每玩家或入口速率闸触发 | opt-in 时最多 1 次，可能带 `retryAfterMs` |
+| `cordon_dead` | cordon 在执行中退出，包括 OOM / 外部终止 | opt-in 时最多 1 次 |
+| `fn_runner_unreachable` | Web 无法连接 fn-runner | opt-in 时最多 1 次 |
+| `dzmm_route_timeout` | Web 等待 fn-runner 超过总预算 | 否 |
+| `runtime_unavailable` | iframe RPC channel、旧服务或协议响应不可用的兜底 | 默认否 |
+| `bridge_upstream_error` | cordon Bridge 调 Web provider 失败 | 否，重复整个函数可能放大副作用 |
+| `completions_upstream_error` | `ctx.completions` 上游失败的兜底 | 否 |
+
+当前调用形态不匹配还没有稳定 typed code：用 `invokeStream()` 调非流式函数可能得到
+零 chunk 并正常结束；用 `invoke()` 调流式函数可能表现为响应解析失败。调用方必须按
+函数声明选择正确方法，不能依赖 `function_returned_stream` / `function_not_streaming` 分支。
+
+### 6.3 Chat / KV provider
+
+这些错误来自可信 Provider，因此是 `source: 'runtime'`：
+
+| Code | 触发条件 |
+|---|---|
+| `chat_not_associated` | `ctx.chat.*` 调用时函数没有关联的 chat（正常链路不会出现：Workbench 预览挂在开发会话上，玩家链路有玩家 chat） |
+| `chat_not_found` | Chat 或明确传入的 opaque message ID 不存在 |
+| `payload_too_large` | Chat 单条消息或本次插入总 payload 超限 |
+| `invalid_request` | 请求格式错误，包括非法 parent 格式；或 KV key 为空、含 NUL、是 `.` / `..`、Unicode 不完整 |
+| `key_too_large` | `ctx.kv` key 超过 512 UTF-8 字节 |
+| `value_required` | KV put 缺少 value |
+| `value_too_large` | `ctx.kv` value 的 JSON 超过 128 KiB |
+
+### 6.4 上游 Provider typed code
+
+`ctx.completions` / `ctx.draw` 失败时可能原样透传以下 code。它们仍是 `RPCError`，不带 `DzmmError.category`：
+
+| 类别 | Codes |
+|---|---|
+| 图片/输入校验 | `IMAGE_TOO_LARGE`, `IMAGE_DIMENSION_EXCEEDED`, `UNSUPPORTED_IMAGE_FORMAT`, `INVALID_IMAGE_DATA`, `IMAGE_NOT_FOUND`, `INVALID_KIND`, `INVALID_REQUEST`, `UNSUPPORTED_MODEL`, `IMAGE_EDIT_PROMPT_OR_TAGS_REQUIRED`, `IMAGE_URL_NOT_TRUSTED` |
+| 内容安全 | `SENSITIVE_CONTENT_DETECTED`, `NON_ANIME_IMAGE_DETECTED` |
+| 数据 | `KEY_NOT_FOUND`, `KEY_TOO_LONG`, `VALUE_TOO_LARGE`, `CHAT_NOT_FOUND` |
+| 额度/鉴权 | `QUOTA_EXHAUSTED`, `RATE_LIMITED`, `VIP_REQUIRED`, `UNAUTHORIZED`, `TOKEN_EXPIRED`, `FORBIDDEN` |
+| 生成/网络/服务 | `CREATE_TASK_FAILED`, `DRAW_TIMEOUT`, `NO_OUTPUT_IMAGES`, `NETWORK_ERROR`, `TIMEOUT`, `INTERNAL_ERROR`, `SERVICE_UNAVAILABLE` |
+| 取消/未知 | `ABORTED`, `UNKNOWN_ERROR` |
+
+完整字典见 [错误处理大全](/gamefy/docs/errors.md)。
+
+---
+
+## 7. 哪些可以重试，哪些不要重试
+
+`dzmm.fn.invoke()` 默认只发送一次请求，避免响应丢失时静默重放旧函数。只有幂等函数，或已用稳定 action ID + reservation/result 状态机保护的函数，才可以显式传 `{ retry: true }`，对可信 `source: 'runtime'` 的 `runtime_busy`、`too_many_requests`、`cordon_dead`、`fn_runner_unreachable` 最多再尝试一次，并优先遵守 `retryAfterMs`。
+
+`source: 'user'` 永远不自动重试，即使用户函数伪造了相同 code 或 `retryable: true`。`invokeStream()` 也不自动重试，因为调用方可能已经收到部分 chunk。
+
+最终错误上的 `retryable: true` 只表示未来再次请求可能成功。付费 AI、画图和写共享状态的函数应结束当前动作并给玩家显式重试入口；服务端用稳定 action ID + reservation/result 状态机防 SDK replay。只有无付费、无写入、严格幂等的读取才考虑额外一次有上限退避。
+
+### 不要重试
+
+- `function_error`：你的代码有 bug，重试也是同样错误
+- `quota_exceeded` / `QUOTA_EXHAUSTED`：积分真没了
+- `function_not_published`：必须先「发布」才能解
+- `unsupported_import` / `unsupported_feature`：函数代码本身就有问题
+- `invocation_token_invalid`：token 过期了，刷新页面重新换 token 才行，原样重试还是失败
+- 所有 `source: 'user'` 错误：SDK 已强制 `retryable = false`
+
+---
+
+## 8. 实用排错
+
+| 现象 | 大概率原因 |
+|---|---|
+| 浏览器拿到 `cpu_time_limit_exceeded` (504) | 函数里有死循环 / 重计算，CPU > 5 秒（host watchdog 通过 cgroup `cpu.stat` 强制） |
+| 流式函数跑到 ~5 分钟收到 error frame、连接错误或提前 EOF | wall-clock / cordon / 网络中断；最终 error frame 是 best-effort，不保证一定送达 |
+| `function_not_published`（prod 模式） | 这个 fn 还没「发布」过 |
+| `cordon_dead` 偶尔出现 | cordon 短暂自愈；默认调用不会重放，给玩家显式重试入口；只有幂等或 reservation 保护的函数才 opt-in 一次重试 |
+| 玩家 1 分钟内调用 60 次 fn 后开始 `too_many_requests` | Web 入口玩家级速率闸触发，等待冷却即可 |
+| 几个玩家同时操作时部分人 `too_many_requests` | 并发闸触发，单游戏 5 / 单玩家 3 |
+
+---
+
+## 9. 哪些事情没法靠服务端函数做
+
+服务端函数是"轻量沙箱"，不是完整的 Node.js 服务。下面的事情做不了，需要走别的路径：
+
+- 写入数据库的自定义表 —— 只有 `ctx.kv` 这一种存储
+- 跨函数共享代码 —— 必须复制粘贴
+- 后台任务 / 定时任务 —— 没有 cron，没有 `waitUntil`
+- WebSocket / 长连接 —— 函数生命周期 ≤ 5 分钟
+- 导入第三方包 —— 只能用 JS 内置 + `ctx.*`
+- 直接访问外网 API —— 沙箱拦截
+
+另外，用户函数抛错时的 `userStack` 当前可能转发给生产玩家。它是调试信息，不是私密日志通道；异常文本和堆栈中不得包含 secrets、个人数据或安全规则。
+
+如果业务真的需要这些，你得搭自己的后端服务（极少见，且超出 Workbench 范畴）。
+
+========================================================================
+
+# 命令行与发布错误码
+
+# 命令行与发布错误码
+
+本地开发、`gamefy` 命令行和「上传本地项目」网页报的错，按场景列出原因和处理办法。
+游戏代码里 `dzmm.*` 抛出的错误码见 [错误处理大全](/gamefy/docs/errors.md)。
+
+命令行不认识的选项会直接报错（`does not support --…`），什么都不执行，不会被悄悄忽略；每个命令支持哪些选项见 `gamefy --help`。
+
+## 发布本地项目的两种方式
+
+- 命令行：`gamefy deploy`
+- 网页：创作者中心侧边栏「游戏 → 上传本地项目」，选中项目文件夹
+
+两者走同一条发布流程，都会做版本冲突检查、函数检查和大小检查。**不要自己写脚本去调发布接口**：
+自制脚本绕过了这些检查，还容易撞上运行环境问题，比如 Windows 自带的 PowerShell 5.1 报
+「找不到类型 [Net.Http.HttpResponseMessage]」，那是脚本缺了 `Add-Type -AssemblyName System.Net.Http`，
+不是平台的问题。
+
+## 密钥与登录
+
+开发者密钥就是命令行的登录凭证。`gamefy auth login` 会打印一个网址和一串验证码：在任意浏览器（登录你的网页账号）打开网址、输入验证码确认，
+命令行就会拿到一把新授权的密钥并保存在本机。整个过程不需要在终端里输入，没有交互终端（比如 AI 助手的命令行）也能用。
+`--no-open` 只是不自动打开浏览器，流程不变；想用已有的密钥，用 `--key-stdin` 从标准输入传入。
+
+| 提示 | 原因 | 怎么办 |
+|---|---|---|
+| 开发者密钥无效（`dev_key_invalid`） | 密钥填错、复制不完整，或者对应的账号已注销 | 重新运行 `gamefy auth login`，在浏览器里授权一把新密钥 |
+| 这把开发者密钥已被吊销（`dev_key_revoked`） | 你或管理员在密钥页吊销了它 | 同上，重新授权一把新密钥 |
+| 这个接口不接受开发者密钥（`dev_key_not_accepted`） | 密钥本身没问题，但这个操作只能在网页登录后进行 | 改到网页上操作 |
+| `VIP_REQUIRED` | 开发和发布游戏需要 VIP1 及以上 | 升级会员后重试 |
+| `VIP_CHECK_UNAVAILABLE` | 会员等级暂时查不到，平台侧短暂故障 | 稍等几秒重试 |
+| `UNAUTHORIZED`（网页上传时） | 网页登录状态过期 | 刷新页面重新登录 |
+
+## 拉取：`gamefy pull`
+
+| 错误码 | 原因 | 怎么办 |
+|---|---|---|
+| `workspace_plane_unsupported` | 旧版 Game Studio 未提供直连工作区的已保存版本导出接口；新版支持从已保存的固定 Git SHA 拉取 | 用 `gamefy pull --published` 拉最近一次发布的版本 |
+| `save_pending` | 直连工作区的最新保存还在同步（409） | 等同步完成后重试 pull；不要用旧快照覆盖本地改动 |
+| `workspace_read_failed` / `export_unavailable` | 工作区解析、固定 SHA 读取或运行面暂不可用 | 保留本地改动后稍后重试；需要已发布版本时显式用 `--published` |
+| `workspace_offline` | 工坊工作区已被回收，拿不到未发布内容 | 同上，改拉已发布版本；或先在工坊打开一次游戏 |
+| `never_published` | 游戏从来没发布过，也没有可用的工作区 | 先在工坊里保存代码并发布一次 |
+| `export_too_large` | 项目太大，超过导出上限 | 删掉不需要的大文件后在工坊发布，再拉取 |
+| `forbidden` | 这个游戏不属于密钥对应的账号 | 确认 `gamefy pull` 后面的游戏 ID（或粘贴的工坊链接），以及密钥是作者本人建的 |
+| `Could not read a game id` | `gamefy pull` 后面的参数既不是游戏 ID，也不是创作者中心 / 工坊的游戏链接 | 传数字 ID，或直接粘贴工坊地址栏里的链接 |
+
+## 发布：`gamefy deploy` 与网页上传
+
+| 错误码 | 原因 | 怎么办 |
+|---|---|---|
+| `revision_conflict` | 线上有比你本地更新的版本（别处发布过），为避免覆盖拒绝发布 | `gamefy pull` 会覆盖 `publish/` 和 `functions/`，所以先保住本地改动（提交到 git，或复制整个项目目录）；再到另一个**空目录**里 `gamefy pull` 拿线上最新版对比，把你的改动合进去后重新发布。只有确认要用本地覆盖线上时，才用 `--force`（命令行）或勾选「忽略版本冲突」（网页），这会直接覆盖线上版本 |
+| `deploy_in_progress` | 这个游戏正在发布中，工坊和命令行共用同一把发布锁 | 等上一次发布结束后再试 |
+| `forbidden` | 游戏不属于当前账号 | 检查 `dzmm.json` 里的 `cardId` 和登录的账号 |
+| `not_a_gamefy_card` | `dzmm.json` 里的 ID 不是游戏卡 | 重新 `gamefy pull` 生成正确的 `dzmm.json` |
+| `missing_index_html` | `publish/` 里没有 `index.html` | 游戏入口必须是 `publish/index.html` |
+| `invalid_index_html` | `index.html` 不是有效 HTML（空文件或格式错） | 修好入口文件 |
+| `invalid_paths` | 有文件名含中文或其它非 ASCII 字符，或者路径重复 | 每段只能含 `[A-Za-z0-9._-]`，不能为 `.` / `..`；避免空段、顶层 `__v` 数字保留名，并处理重复路径 |
+| `invalid_functions` | 服务端函数有问题：重名、超过 256 KB、或者用了 `import` | 服务端函数不能 `import`，多个操作放在一个文件里用 `request.body.op` 分发 |
+| `file_too_large` | 单个文件超过 25 MB | 压缩或拆分资源 |
+| `deploy_too_large` | 总大小超过 100 MB，或文件超过 3000 个 | 删掉不需要的资源 |
+| `invalid_file_encoding` | 上传内容损坏（通常是自制脚本编码错了） | 改用 `gamefy deploy` 或网页上传 |
+| `upload_failed` / `function_upload_failed` / `deploy_timeout` | 平台存储暂时出错，线上旧版本不受影响 | 稍后重试 |
+| `publish/ does not exist` | 项目里没有 `publish/` 目录 | 在项目根目录运行，或先 `gamefy pull` |
+| `No pull baseline` | 缺少 `.dzmm/lock.json`，无法判断版本冲突 | 先 `gamefy pull`；确认要覆盖时用 `--force` |
+
+网页「上传本地文件夹」限制：最多 3000 个静态文件（每个不超过 25 MiB）、64 个服务端函数（每个不超过 256 KiB），项目总计不超过 100 MiB；静态文件以 2 MiB 分片上传。命令行 `gamefy deploy` 仍以单个请求提交，当前正式入口约 30 MiB 的请求体上限会先于服务端的项目总量限制生效；较大的项目请使用网页上传。
+
+发布只更新代码，成功后**游戏还不会对玩家可见**：封面、简介在创作者中心的游戏页面设置，上架要到角色详情页单独操作。
+详见 [发布与上架](/gamefy/docs/publishing.md)。
+
+## 本地调试：`gamefy dev`
+
+| 现象 | 原因 | 怎么办 |
+|---|---|---|
+| `Platform protocol version … is not supported` | 命令行版本太旧 | 运行 `gamefy upgrade` |
+| `function_returned_stream` | 流式函数（`async function*`）用了普通 `dzmm.fn.invoke` | 改用 `dzmm.fn.invokeStream` |
+| 控制台报音频 / 图片加载失败（示例工程里） | 随命令行附带的示例省略了媒体文件 | 预期现象，不影响阅读代码 |
+
+## 可观测：`gamefy logs` / `gamefy health`
+
+| 现象 | 原因 | 怎么办 |
+|---|---|---|
+| 输出为空或 `none` | 游戏还没有线上玩家流量，或者从没做过体检 | `logs` 只统计已发布版本的真实玩家；`gamefy dev` 的本地调用不计入 |
+| 401 | 密钥问题，见上面「密钥与登录」 | |
+
+========================================================================
+
+# 错误处理大全
+
+# 错误处理大全
+
+> 新手提示：普通 SDK API 通常抛 `DzmmError`（开发模式与生产模式一致）；服务端函数 `dzmm.fn.*` 抛 `RPCError`（含 `ctx.chat` 的 `chat_not_found` 等小写 code）。两者都有稳定的 `code` 字段，兼容代码应优先按 `error.code` 分支，不要只按错误类或会随语言变化的 `error.message` 判断。
+
+---
+
+## 1. `DzmmError` 是什么
+
+普通 SDK 方法（`dzmm.completions / draw / chat / kv / user / models`）失败时抛 `DzmmError`，继承自 `Error`：
+
+```typescript
+class DzmmError extends Error {
+  code: DzmmErrorCode;        // 稳定 SNAKE_CASE 枚举（用这个分支！）
+  category:
+    | 'validation'   // 用户输入问题
+    | 'safety'       // 内容审查
+    | 'quota'        // 额度 / 速率
+    | 'auth'         // 登录态
+    | 'network'      // 瞬时网络
+    | 'server'       // 服务端故障
+    | 'unknown';
+  retryable: boolean;         // 以后再次请求是否可能成功，不代表应自动重试付费动作
+  message: string;            // 已按玩家语言本地化
+  rawCode?: string;           // 上游原始码（如果不在标准枚举内）
+  serverStack?: string;       // 服务端 stack（调试用）
+}
+```
+
+浏览器 `dzmm.chat.*` 在开发和生产环境都返回 `DzmmError(code: 'CHAT_NOT_FOUND')`。服务端函数中的 `ctx.chat.*` 才通过 `dzmm.fn.*` 返回 `RPCError(code: 'chat_not_found')`。跨浏览器／函数两条调用路径的公共错误处理应读取稳定 `error.code`，不要仅用 `isDzmmError` 过滤掉函数错误。
+
+---
+
+## 2. 自动 toast：你不 catch 也行
+
+平台默认会自动 toast 这些错误的 `message` 给玩家（已本地化）。
+
+```javascript
+// 即使你这么写，玩家也会看到"积分不足"的 toast
+await dzmm.draw.generate({ prompt: 'cat', dimension: '1:1' });
+// （平台会弹 toast，但 Promise 仍会 reject；后面的代码不会继续执行）
+```
+
+自动 toast 不会吞掉异常。仍然要 `try/catch`（或显式 `.catch()`），否则会产生未处理的 Promise rejection。你的代码应该明确处理至少这几类错误：
+
+| 错误类 | 你必须做点什么 |
+|---|---|
+| `QUOTA_EXHAUSTED` / `VIP_REQUIRED` | 引导玩家充值 / 开通 VIP |
+| `UNAUTHORIZED` / `TOKEN_EXPIRED` | 停止后续请求，提示重新进入 |
+| `SENSITIVE_CONTENT_DETECTED` | 提示玩家换 prompt / 换图 |
+| `RATE_LIMITED` / `NETWORK_ERROR` | 结束当前动作，提供稍后显式重试入口 |
+| 其它 | 平台自动 toast，你不用做什么 |
+
+---
+
+## 3. 推荐 pattern
+
+```javascript
+try {
+  const result = await dzmm.draw.edit({
+    prompt: '加上猫耳',
+    images: [refImageDataUrl],
+    model: 'pro',
+  });
+  showImage(result.images[0]);
+} catch (e) {
+  // 先用守卫，避免 e 不是 DzmmError 时读到 undefined
+  if (!dzmm.errors.isDzmmError(e)) throw e;
+
+  switch (e.code) {
+    case 'IMAGE_TOO_LARGE':
+    case 'IMAGE_DIMENSION_EXCEEDED':
+    case 'UNSUPPORTED_IMAGE_FORMAT':
+    case 'INVALID_IMAGE_DATA':
+      showError('请换一张更小或更标准的参考图');
+      break;
+    case 'IMAGE_NOT_FOUND':
+      showError('参考图已失效，请重新生成或选择');
+      break;
+    case 'SENSITIVE_CONTENT_DETECTED':
+    case 'NON_ANIME_IMAGE_DETECTED':
+      showError('提示词或图片包含敏感内容');
+      break;
+    case 'RATE_LIMITED':
+      showRetryButton('请求太频繁，请稍后再次点击');
+      break;
+    case 'QUOTA_EXHAUSTED':
+      showVipUpsell();
+      break;
+    case 'UNAUTHORIZED':
+    case 'TOKEN_EXPIRED':
+      // 停止后续请求
+      stopAllInflight();
+      showError('请重新进入游戏');
+      break;
+    default:
+      // 兜底：平台已自动 toast 本地化的 message，不用再做
+      console.error('[edit error]', e.code, e.message);
+  }
+}
+```
+
+---
+
+## 4. 完整错误码字典
+
+### 4.1 validation — 用户输入问题（不可重试）
+
+<table>
+  <thead><tr><th>Code</th><th>触发条件</th><th>建议</th></tr></thead>
+  <tbody>
+    <tr><td><code>IMAGE_TOO_LARGE</code></td><td>参考图 &gt; 10MB</td><td>提示换小图</td></tr>
+    <tr><td><code>IMAGE_DIMENSION_EXCEEDED</code></td><td>参考图任一边 &gt; 8192px</td><td>提示缩小</td></tr>
+    <tr><td><code>UNSUPPORTED_IMAGE_FORMAT</code></td><td>非 jpg / png / webp</td><td>提示换格式</td></tr>
+    <tr><td><code>INVALID_IMAGE_DATA</code></td><td>data URL 解析失败 / magic-byte 嗅探未过</td><td>重新选图</td></tr>
+    <tr><td><code>IMAGE_NOT_FOUND</code></td><td>edit 传入的图 URL 失效</td><td>重新生成或选择</td></tr>
+    <tr><td><code>INVALID_KIND</code></td><td><code>/draw/models?kind=</code> 参数非法</td><td>查代码</td></tr>
+    <tr><td><code>INVALID_REQUEST</code></td><td>上游 4xx 兜底；<code>BAD_REQUEST</code> / <code>VALIDATION_ERROR</code> 别名也归这里</td><td><code>error.message</code> 可直接显示给玩家</td></tr>
+    <tr><td><code>UNSUPPORTED_MODEL</code></td><td>model 字段不在白名单</td><td>检查 model 字符串</td></tr>
+    <tr><td><code>IMAGE_EDIT_PROMPT_OR_TAGS_REQUIRED</code></td><td>edit 没传 prompt 也没 tagIds</td><td>至少提供一个</td></tr>
+    <tr><td><code>IMAGE_URL_NOT_TRUSTED</code></td><td>参考图 URL 不在受信任域</td><td>用 generate 结果或 base64</td></tr>
+    <tr><td><code>KEY_TOO_LONG</code></td><td>batch / list / namespace KV key 或 prefix &gt; 256 字符</td><td>用更短 key / prefix</td></tr>
+    <tr><td><code>VALUE_TOO_LARGE</code></td><td>KV value 过大</td><td>拆分 / 压缩</td></tr>
+    <tr><td><code>KEY_NOT_FOUND</code> / <code>CHAT_NOT_FOUND</code></td><td>数据不存在</td><td>视场景处理</td></tr>
+  </tbody>
+</table>
+
+### 4.2 safety — 内容审查（不可重试，必须改输入）
+
+<table>
+  <thead><tr><th>Code</th><th>触发条件</th></tr></thead>
+  <tbody>
+    <tr><td><code>SENSITIVE_CONTENT_DETECTED</code></td><td>提示词 / 图片命中审查</td></tr>
+    <tr><td><code>NON_ANIME_IMAGE_DETECTED</code></td><td>edit 仅支持二次元风格</td></tr>
+  </tbody>
+</table>
+
+### 4.3 quota — 额度 / 速率
+
+<table>
+  <thead><tr><th>Code</th><th>retryable</th><th>建议</th></tr></thead>
+  <tbody>
+    <tr><td><code>RATE_LIMITED</code></td><td>✅</td><td>结束当前动作，等待玩家稍后明确再次触发</td></tr>
+    <tr><td><code>QUOTA_EXHAUSTED</code></td><td>❌</td><td>引导充值，绝不重试</td></tr>
+    <tr><td><code>VIP_REQUIRED</code></td><td>❌</td><td>引导开通 VIP</td></tr>
+  </tbody>
+</table>
+
+### 4.4 auth — 登录态
+
+<table>
+  <thead><tr><th>Code</th><th>建议</th></tr></thead>
+  <tbody>
+    <tr><td><code>UNAUTHORIZED</code> / <code>TOKEN_EXPIRED</code></td><td>触发重新登录提示，停止后续请求</td></tr>
+    <tr><td><code>FORBIDDEN</code></td><td>提示无权限</td></tr>
+  </tbody>
+</table>
+
+### 4.5 network — 瞬时错误
+
+<table>
+  <thead><tr><th>Code</th><th>retryable</th></tr></thead>
+  <tbody>
+    <tr><td><code>NETWORK_ERROR</code></td><td>✅</td></tr>
+    <tr><td><code>TIMEOUT</code></td><td>✅</td></tr>
+    <tr><td><code>DRAW_TIMEOUT</code></td><td>✅（绘图任务超 2 分钟）</td></tr>
+  </tbody>
+</table>
+
+这里的 `retryable` 表示以后再次请求可能成功。AI 和画图属于付费生成，当前动作仍然只调用一次；先用确定性结果收口，再给玩家显式重试入口。
+
+### 4.6 server — 服务端兜底
+
+<table>
+  <thead><tr><th>Code</th><th>retryable</th></tr></thead>
+  <tbody>
+    <tr><td><code>CREATE_TASK_FAILED</code></td><td>✅</td></tr>
+    <tr><td><code>NO_OUTPUT_IMAGES</code></td><td>✅</td></tr>
+    <tr><td><code>INTERNAL_ERROR</code></td><td>✅</td></tr>
+    <tr><td><code>SERVICE_UNAVAILABLE</code></td><td>✅</td></tr>
+  </tbody>
+</table>
+
+### 4.7 unknown — 兜底
+
+<table>
+  <thead><tr><th>Code</th><th>建议</th></tr></thead>
+  <tbody>
+    <tr><td><code>ABORTED</code></td><td>宿主主动取消，不需要提示</td></tr>
+    <tr><td><code>UNKNOWN_ERROR</code></td><td>信任 <code>error.message</code> 文案显示给玩家</td></tr>
+  </tbody>
+</table>
+
+---
+
+## 5. 服务端函数的错误：`RPCError`
+
+`dzmm.fn.invoke()` 和 `dzmm.fn.invokeStream()` 不抛 `DzmmError`，抛的是 `RPCError`：
+
+```typescript
+class RPCError extends Error {
+  code: string;
+  source: 'user' | 'runtime';
+  userStack?: string;
+  retryable: boolean;
+  retryAfterMs?: number;
+}
+```
+
+框架错误通常是小写下划线（如 `function_error` / `function_timeout`），但 Provider 也可能透传大写或未来新增的错误码。`error.code` 会保留上游原字符串；按实际处理的 code 精确分支，其余走通用 fallback。
+
+`source: 'user'` 不能获得可信 runtime 身份，用户函数伪造 runtime-looking code 或 `retryable: true` 也无效。可信 `source: 'runtime'` 错误可能携带 `retryAfterMs`；unary `dzmm.fn.invoke()` 默认只发送一次，只有显式 `{ retry: true }` 才允许最多一次基础设施重试；`invokeStream()` 不重试。
+
+详见 [服务端函数：限制与错误码](/gamefy/docs/serverless/limits.md)。
+
+---
+
+## 6. 反模式（不要这么写）
+
+```javascript
+// ❌ message 文案随版本和语言变，不稳定
+if (error.message.includes('quota')) { ... }
+
+// ❌ 不要假设 error 一定是 DzmmError，先用守卫
+if (error.code === 'IMAGE_TOO_LARGE') { ... } // error 可能是普通 Error，没 code
+
+// ✓ 正确
+if (dzmm.errors.isDzmmError(error) && error.code === 'IMAGE_TOO_LARGE') { ... }
+
+// ❌ 把 SDK 错误手动 toast（平台已经 toast 了）
+catch (e) { dzmm.toast.error(e.message); }
+
+// ❌ 无限重试
+while (true) { try { return await fn(); } catch (e) {} }
+
+// ✓ 付费生成只调用一次；可恢复错误交给玩家明确再次触发
+try { return await runGenerationOnce(); }
+catch (e) {
+  if (e.source !== 'runtime' || !e.retryable) throw e;
+  showRetryButton();
+  return useDeterministicFallback();
+}
+```
+
+---
+
+## 7. 工具函数：`dzmm.errors.isDzmmError(e)`
+
+类型守卫，判断 `e` 是不是 `DzmmError`（继承自 `Error`，能读到 `code` / `category` / `retryable` 字段）：
+
+```javascript
+try {
+  await dzmm.something();
+} catch (e) {
+  if (dzmm.errors.isDzmmError(e)) {
+    // 安全访问 e.code / e.category / e.retryable
+  } else {
+    // 普通 Error（比如你代码里 throw new Error(...) 抛出来的）
+    throw e;
+  }
+}
+```
+
+========================================================================
+
+# 平台限制总表
+
+# 平台限制总表
+
+所有上限 / 配额 / 大小 / 时长一处看。具体场景下的处理建议见各对应章节。
+
+---
+
+## 1. AI 对话（`dzmm.completions`）
+
+| 项 | 限制 |
+|---|---|
+| `maxTokens` 范围 | 200 - 3000，默认 1000 |
+| `messages` 数量 | 至少 1 条 |
+| 单次请求体积 | ≤ 8 MiB（整个请求的 JSON，按 UTF-8 字节计；超出返回 413 `VALUE_TOO_LARGE`） |
+| 单次调用超时 | 由模型决定（通常 30-90 秒） |
+| 同时并发 | 建议 ≤ 3 个 |
+| 计费 | 消耗玩家积分（按模型定价） |
+
+---
+
+## 2. AI 画图（`dzmm.draw.generate`）
+
+| 项 | 限制 |
+|---|---|
+| 模型 | `'anime'`（默认）/ `'iroha'` |
+| 比例 | `'1:1'` / `'2:3'` / `'3:2'`（上游 SDXL 训练约束） |
+| `prompt` 长度 | ≤ 2000 字符 |
+| `negativePrompt` 长度 | ≤ 2000 字符 |
+| 单次生成时长 | 10-60 秒 |
+| 任务超时 | 2 分钟（超 → `DRAW_TIMEOUT`） |
+| 每日配额 | 随负载动态调整 |
+| 配额耗尽计费 | 按所选模型定价；Kagami Web 入口为 1 积分/张，本 SDK 现有模型为 5 积分/张 |
+| 敏感内容 | 自动检测拦截 |
+
+---
+
+## 3. AI 图片编辑（`dzmm.draw.edit`）
+
+| 项 | 限制 |
+|---|---|
+| 模型 | `'lite'`（默认）/ `'pro'` |
+| 比例 | `'1:1' / '2:3' / '3:2' / '4:3' / '3:4' / '16:9' / '9:16'`（7 种） |
+| `prompt` 长度 | ≤ 2000 字符 |
+| 参考图数量 | 1-4 张 |
+| 参考图单图体积 | ≤ 10 MB |
+| 参考图单边像素 | ≤ 8192 px |
+| 参考图格式 | 仅 `jpg` / `png` / `webp`（`gif` / `avif` / `tiff` 不支持） |
+| 单次生成时长 | 10-60 秒 |
+| 任务超时 | 2 分钟 |
+| 每日配额 | 独立于 generate |
+| 配额耗尽计费 | 按所选模型定价；Kagami Web 入口为 1 积分/张，本 SDK 现有模型为 5 积分/张 |
+
+> Web Host 会在上传前校验格式、体积和真实尺寸。Mobile Host 会先校验数量、格式和编码体积并限制为 2 个并发上传；真实尺寸仍由上传接口做最终校验。不要依赖客户端校验绕过服务端限制。
+
+---
+
+## 4. 聊天存档（`dzmm.chat.*`）
+
+| 项 | 限制 |
+|---|---|
+| 单次插入消息数 | 1–100 条 |
+| 单条消息大小 | ≤ 128 KiB（按 UTF-8 计） |
+| 单次插入总大小 | ≤ 512 KiB（按 UTF-8 计） |
+| `chat.list(ids)` | Provider 单批 ≤ 100 个 opaque message ID；当前 SDK 接受更长输入并自动分批。省略 ids 返回 active history |
+| 单聊天总消息数 | 无硬限 |
+| 分支数 | 无硬限 |
+| 开发模式持久化 | 数据库（绑定隐藏的开发会话），刷新 / 重开浏览器都在 |
+| 生产模式持久化 | 数据库，跟当前 chat 绑定 |
+
+---
+
+## 5. KV 存储（`dzmm.kv.*` / 浏览器侧）
+
+| 项 | 限制 |
+|---|---|
+| 旧根级 `get / put / delete` key | 不新增 256 字符限制，保留历史长 key 访问 |
+| `putIfAbsent / batch / list / namespace` key / prefix | ≤ 256 个 JavaScript 字符 |
+| `key` 内容 | 非空、不含 NUL、合法 Unicode，不能等于 `.` / `..`；`/`、`?`、`#` 会安全编码为 key 的一部分 |
+| `value` 大小 | ≤ 5 MiB（`5,242,880` 字节，SDK 客户端前置校验） |
+| `batchGet` / `batchPut` 条目数 | ≤ 10 |
+| `putIfAbsent` | 需 `kvPutIfAbsent === true`；原子创建，等待落盘，返回 boolean；不支持时不能用 get/put 模拟 |
+| 批量 key / value | key 非空且 ≤ 256 字符；entry value 不能是顶层 `null` / `undefined` 且必须可 JSON 序列化 |
+| 批量请求 / 响应大小 | 各 ≤ 5 MiB（`5,242,880` 字节，包含 UTF-8 key 与 JSON 结构） |
+| 同 key 并发 `get` | 生产 Host 合并为一次请求，结果在约 1.5 秒内复用；`put` / `delete` 后立即失效 |
+| `get` 自动重试 | 429 / 503 最多重试 2 次（尊重 `Retry-After`，单次等待 ≤ 3 秒） |
+| `delete` 不存在的 key | 正常 resolve（幂等），不抛 `KEY_NOT_FOUND` |
+| 文档替换时的写入排空 | 默认 2 秒；在途存档超过 512 KB 时每 MiB 追加约 4 秒，上限 10 秒 |
+| 数据隔离 scope | (chat, 玩家) |
+| 开发模式持久化 | PostgreSQL（你自己的开发数据，独立于玩家会话与其他开发者），刷新 / 重开浏览器都在 |
+| 生产模式持久化 | PostgreSQL |
+
+单 key `kv.put(key, null)` 保存 JSON null，只有 `delete` 才删除。`batchPut` 整批原子写入。
+`list` 的远端数据按 prefix/cursor 分页，并合并本会话尚在 debounce 队列中的已接受 key；
+结果只返回 key。`namespace` 仍访问同一套 chat-scope KV。
+
+---
+
+## 6. 存档生命周期（`dzmm.save.onAction`）
+
+| 项 | 限制 |
+|---|---|
+| 支持动作 | `reset` / `prepareDeleteRecord` |
+| 宿主等待时间 | 10 秒 |
+| 未注册 handler | 平台不会强制提供重置/删除存档 |
+| 返回失败 / 抛异常 / 超时 | 平台停止当前操作，不强制删除数据 |
+
+详见 [存档生命周期](/gamefy/docs/sdk/save-actions.md)。
+
+---
+
+## 7. 玩家提示（`dzmm.toast.*`）
+
+| 项 | 限制 |
+|---|---|
+| level | 仅 `success` / `error` / `warning` / `info` |
+| `message` 长度 | ≤ 500 字符（超出截断） |
+| 是否会 throw | 否，fire-and-forget |
+
+---
+
+## 8. 启动加载状态（`dzmm.loading.*`）
+
+| 项 | 限制 |
+|---|---|
+| 用途 | 启动期 iframe → 宿主的状态上报 |
+| 支持阶段 | `start` / `resource_loading` / `runtime_initializing` / `first_frame` / `ready` |
+| payload | 只支持小型 JSON-safe 字段 |
+| `currentResource` | 用相对路径或文件名，不要放签名 URL / token |
+| 上报频率 | 按阶段或资源完成上报；不要每帧刷 |
+| 完成信号 | 首个可交互画面渲染后调用 `dzmm.loading.ready()` |
+| 失败信号 | 启动不可恢复失败时调用 `dzmm.loading.error(code, message?)` |
+| idle timeout | 30 秒没有握手或新的 `progress()` 后显示可重试失败 |
+| hard timeout | 启动总时长 120 秒；持续 progress 也不能无限延长 |
+
+Web 和移动 WebView 都会处理这些信号。调用过 `progress()` 后，普通 `load` / 空白探测不会提前移除宿主 loading，必须用 `ready()` 或 `error()` 收口。详见 [启动加载状态](/gamefy/docs/sdk/loading.md)。
+
+---
+
+## 9. 玩家信息（`dzmm.user.info`）
+
+| 项 | 行为 |
+|---|---|
+| 未登录玩家 | 所有字段为 `null` |
+| 开发模式 `token` | 真实 RS256 token；`null` 只代表未登录或签发失败 |
+| 环境判断 | `(await dzmm.capabilities.get()).environment` 或 `(await dzmm.user.info()).environment`（`'dev'` / `'prod'`） |
+| 生产模式 `token` 有效期 | 30 分钟 |
+| JWKS 公钥缓存 | 1 小时 |
+
+---
+
+## 10. 服务端函数（`dzmm.fn.*` + `functions/*.ts` / `*.js`）
+
+详情见 [服务端函数：限制与错误码](/gamefy/docs/serverless/limits.md)。这里只列汇总：
+
+### 10.1 写法限制
+
+| 项 | 限制 |
+|---|---|
+| 文件结构 | 单文件，`functions/` 直接子文件 `.ts` / `.js`，同名不可共存 |
+| `import` / npm 依赖 | 不支持 |
+| `ctx.waitUntil` | 不支持 |
+| 函数内本地/base64 参考图上传 | 不支持；不存在公开的 `uploadReference`，浏览器应直接把 data URL 传给 `dzmm.draw.edit` |
+| 直接 `fetch()` 外网 | 被沙箱拦截 |
+
+### 10.2 时长 / 资源
+
+| 项 | 限制 |
+|---|---|
+| CPU time（单次调用） | 5 秒 |
+| Wall-clock（单次调用） | 5 分钟 |
+| 内存（每个 cordon） | 128 MB |
+| bridge subrequests | ≤ 50 次共享 RPC（所有 `ctx.*` 共用；stream 每次读取 delta 也计入） |
+
+### 10.3 体积
+
+| 项 | 限制 |
+|---|---|
+| 请求 body | ≤ 1 MiB |
+| 非流式响应 | ≤ 1 MiB |
+| 流式响应总量 | ≤ 10 MiB |
+| `ctx.kv` value | JSON 序列化后 ≤ 128 KiB（131072 UTF-8 B） |
+| `ctx.kv` key | 非空、不含 NUL、完整 Unicode、非 `.` / `..`，且 ≤ 512 UTF-8 B |
+
+### 10.4 调用配额
+
+| 项 | 限制 | 备注 |
+|---|---|---|
+| 单次调用内 `ctx.completions(...)` | 默认 3 次 | 早失败 `quota_exceeded` |
+| 单次调用内 `ctx.draw.*` | 默认 3 次 | 早失败 `quota_exceeded` |
+| 玩家级 `dzmm.fn.invoke` 入口 | 60 次/分 | 超 → `too_many_requests` |
+| 玩家级 `completions` 总速率 | 60 次/分 + 2000 次/天 | 浏览器 + 函数共用 |
+| 同游戏 in-flight | 5 | 超 → `too_many_requests` (scope=`game`) |
+| 同玩家 in-flight | 3 | 超 → `too_many_requests` (scope=`user`) |
+| invocationToken 有效期 | 320 秒（5 分钟 wall-clock + 20s 缓冲） | 一次调用的整个生命周期 |
+
+---
+
+## 11. 文件命名
+
+`publish/` 和 `functions/` 下所有路径必须：
+
+- ASCII 英文字母 / 数字
+- 下划线 `_` / 连字符 `-` / 点 `.`
+
+不允许：中文、日文、Emoji、空格、带音符拉丁字母。详见 [快速入门 §2](/gamefy/docs/getting-started.md)。
+
+---
+
+## 12. 音频（`dzmm.audio.*`）
+
+- 使用 `assets/audio/manifest.json` 中的逻辑 key；音频在 iframe 本地播放，能力检测与浏览器手势解锁是两件事。
+- BGM 默认循环、SFX 默认不循环；同时播放的 SFX 最多 8 个，解码缓存最多 48 项。
+- `play()` 返回 `{ ok, reason }`，`pending_gesture` 表示等待玩家手势。详见[音频播放](/gamefy/docs/sdk/audio.md)。
+
+## 13. 作品工坊（`dzmm.workshop.*`）
+
+- 投稿请求 ≤ 128 KiB；名称 1–120 字符、背景 ≤ 12,000 字符、tag 1–64 字符。
+- attributes ≤ 32 KiB、128 个顶层 key、2048 节点、16 层；只能引用自己的绘图任务。
+- 列表默认 20 项，每页 1–50，cursor ≤ 512 字符。详见[作品工坊](/gamefy/docs/sdk/workshop.md)。
+
+## 14. 游戏日志（`dzmm.log.*`）
+
+- message ≤ 1024 UTF-8 字节，data ≤ 4096 UTF-8 字节。
+- 每游戏每小时 error 1000 / warn 500 / info 1000；每玩家每游戏每小时分别 100 / 60 / 100。
+- 保存 3 天，每游戏最多 50,000 条 / 50 MiB；超额丢弃。详见[游戏日志](/gamefy/docs/sdk/log.md)。
+
+## 15. 联机与语音（`dzmm.rt.*` / `voice.*`）
+
+- 分别检查 `capabilities.realtime / voice`；命名空间存在不代表宿主支持。
+- 房间码为六位；加入同一游戏房间后才可加入对应语音。以返回的实际连接、麦克风状态更新 UI。
+- 游戏 payload 与 seq 不保证业务事务或权威结算。详见[联机房间与语音](/gamefy/docs/sdk/realtime.md)。
+
+## 16. 本地项目发布
+
+- 网页上传：最多 3000 个静态文件（每个 ≤ 25 MiB）、64 个函数（每个 ≤ 256 KiB），项目总计 ≤ 100 MiB。
+- CLI deploy 为单请求，正式入口约 30 MiB 的请求体上限可能先于项目上限触发，大项目改用网页上传。
+- 路径必须符合第 11 节，静态相对路径 ≤ 1024 字符，顶层 `__v` 加数字为平台保留名。详见[命令行与发布错误码](/gamefy/docs/cli-errors.md)。
+
+---
+
+## 17. 整体观察
+
+- 写一段游戏代码前，先看你的 API 的"额度耗尽"行为：是抛 `QUOTA_EXHAUSTED` 还是扣积分？这决定了 UX 设计。
+- 长任务都要有 loading + 防重复。10-60 秒的等待期间玩家会反复点。
+- 配额错误不要重试，让玩家充值。`dzmm.fn.invoke()` 默认只发送一次；只有幂等或 stable action ID + reservation/result 保护的函数才可显式 `{ retry: true }`。付费/有副作用操作最终失败后应收口并等待玩家显式再次触发。
+
+========================================================================
+
+# 常见问题
+
+# 常见问题
+
+把开发时高频踩坑列在一处。看不到答案的话，把问题发给 Agent，它能直接看你的代码。
+
+---
+
+## 改了代码看不到效果？
+
+先手动刷新 Preview，确认当前工作区的文件已经加载。
+
+切到底部 Preview 面板 → 点刷新按钮。
+
+如果刷新后还是不对：
+
+- 看 Preview 控制台有没有红字错误 → 复制内容发给 Agent
+- 看 Files 面板，文件确实被改到了吗
+- 看 `publish/index.html`，引用的 JS / CSS 路径对吗
+
+---
+
+## 「发布」失败 / 提示文件名非法？
+
+文件名 / 文件夹名出现了中文 / Emoji / 空格 / 带音符拉丁字母。线上对象存储拒收非 ASCII 路径，只要一个文件违规整次保存就失败。
+
+在 Terminal 运行[快速入门 §2 的 Node 文件名预检](/gamefy/docs/getting-started.md)。静态路径还不能含空段、`.` / `..`；函数名只能用字母、数字、下划线和连字符，同名 `.ts` / `.js` 不能共存。
+
+把违规路径改成合法名称（用 `git mv`，相应 HTML / JS 引用也改），再发布。工坊的函数警告也要处理，避免新前端仍调用旧函数。
+
+---
+
+## `Script error at :0` 看不到完整错误？
+
+这是跨域错误的浏览器标准模糊化提示。通常是因为代码尝试了沙箱禁止的操作（`parent.document`、`localStorage` 等）。
+
+排查：
+
+1. 按 F12 → DevTools → Console
+2. 找 `SecurityError` 开头的项，能看到完整堆栈
+3. 把违规操作改成 `dzmm.*` API
+
+控制台里来源是 `chrome-extension://` 或 `moz-extension://` 的报错来自浏览器扩展注入，与游戏无关。
+
+详见 [游戏运行环境](/gamefy/docs/runtime.md)。
+
+---
+
+## `localStorage is not defined` / `Cookie 不能用`？
+
+沙箱 iframe 没有 `allow-same-origin`，所以 `localStorage` / `sessionStorage` / Cookie / `indexedDB` 全部不能用。
+
+改用 [`dzmm.kv.*`](/gamefy/docs/sdk/kv.md)，直接用即可，不需要 localStorage fallback：开发模式和生产模式都持久化到数据库（开发模式数据是你自己那一份，刷新 / 重开浏览器都在）。
+
+---
+
+## 玩家说游戏卡死，但我本地预览没问题？
+
+最常见原因（按概率排序）：
+
+1. 配额 / 积分耗尽 —— 玩家积分用完，AI / 画图开始抛 `QUOTA_EXHAUSTED`，你的代码没处理 → UI 卡在 loading
+2. 网络抖动 + 没有错误收口 / 显式重试按钮 —— `NETWORK_ERROR` 后 UI 一直卡在 loading
+3. AI 返回非 JSON —— 你的代码 `JSON.parse(...)` throw，整个流程白屏
+
+对应方案分别见：
+
+- [完整错误码处理](/gamefy/docs/errors.md)
+- [completions 章节 §5 网络瞬时错误与显式重试](/gamefy/docs/sdk/completions.md)
+- [completions 章节 §5.2 解析 JSON 必须兜底](/gamefy/docs/sdk/completions.md)
+
+---
+
+## 我想藏起 system prompt 不让玩家看到？
+
+浏览器 `dzmm.completions()` 的 messages 是写在 JS 里的，玩家按 F12 → Network 能看到。
+
+不想让 prompt 直接出现在前端源码和普通浏览器请求里，可以用[服务端函数](/gamefy/docs/serverless.md)：在 `functions/secret-npc.ts` 里调用 `ctx.completions(...)`。但模型输出仍会返回浏览器，prompt injection 可能诱导模型复述服务端指令，所以这不是保密机制。不要放 API key、密码、个人数据或安全关键规则；权威校验要写成确定性服务端代码。
+
+---
+
+## 想做全游戏排行榜，但 dzmm.kv 是玩家私有的？
+
+是的，浏览器侧 `dzmm.kv.*` 是 (chat, 玩家) scope，互相隔离。
+
+跨玩家共享需要[服务端函数](/gamefy/docs/serverless.md) 里的 `ctx.kv.global`，例如 `ctx.kv.global.put('leaderboard', ...)`。`ctx.kv.*` 是当前玩家私有的 `(gameId, userId)` scope，不能用于共享榜单。
+
+注意：Workbench 预览里 `ctx.kv.global` 读写的是你自己的开发数据，与线上、与其他开发者都隔离 —— 调试不会污染玩家排行榜，但也读不到线上数据，要验证真实数据需发布后验证。另外 global KV 没有事务或 CAS；展示型榜单可以 best-effort 使用，严格排名和奖励结算需要事务存储。
+
+具体见 [ctx API 详解 §1 KV](/gamefy/docs/serverless/ctx.md)。
+
+---
+
+## 服务端函数怎么本地调试？
+
+直接在 Workbench：
+
+1. 在容器里写 `functions/myFn.ts`
+2. 在 `publish/` 里写浏览器代码调 `dzmm.fn.invoke('myFn', { ... })`
+3. 切到 Preview 刷新
+
+Workbench 预览（挂在隐藏的开发会话上）走 dev 模式，实时读容器内的 `functions/*.ts` / `*.js`，改完立刻生效，不用重启 / 重发布；开发容器未运行时会明确报错 `dev_container_inactive`（HTTP 409），先启动容器再调。`console.log` 在容器 fn 内不会显示在 Preview 控制台（在 fn-runner 服务日志里），调试时建议把信息直接 `return` 出去。玩家会话永远读已发布的 prod 快照，不受你的容器开关影响。
+
+更详细的写法见 [编写函数](/gamefy/docs/serverless/writing.md)。
+
+---
+
+## 我的 AI 偶尔返回不是 JSON，怎么办？
+
+不要假设 AI 一定返回合法 JSON。`JSON.parse(buf)` 必须 try-catch 兜底，失败时降级到纯文本：
+
+```javascript
+let parsed;
+try { parsed = JSON.parse(buf); }
+catch { return useTextFallback(buf); }
+```
+
+详见 [completions §5.2](/gamefy/docs/sdk/completions.md)。
+
+---
+
+## 玩家关闭页面前我应该 `dzmm.kv.put` 一下吗？
+
+不要靠 `beforeunload` 存档。玩家直接关标签 / 切应用时浏览器经常不给执行时间，存档大概率丢。
+
+正确做法：每个有意义的状态变化（通关、选完一个分支、捡到道具）立刻 `kv.put`。游戏状态变量本身就是 source of truth，写多了也没事。
+
+---
+
+## 我引用了 Phaser / Three.js 通过 CDN，但加载失败？
+
+沙箱 iframe 可以从外部 CDN 加载脚本。失败常见原因：
+
+- CDN URL 拼错了 / 版本号过期
+- 引入顺序：你的 `game.js` 在 Phaser 还没加载完就跑了 → 用 `defer` 或 `DOMContentLoaded`
+- HTTPS：如果 CDN 是 `http://`，浏览器会拦截 mixed content。改 `https://`
+
+---
+
+## Console 看不到我自己的 `console.log`？
+
+开发模式 console 会被转发到 Preview 面板的控制台（不是浏览器 F12 那个）。
+
+`console.error('失败:', err)` 在 iframe 转发时可能丢结构，建议写成：
+
+```javascript
+console.error('失败:', err.code, err.message, err.stack);
+```
+
+详见 [游戏运行环境 §3](/gamefy/docs/runtime.md)。
+
+---
+
+## 还没解决？
+
+把问题、报错截图（或控制台错误文本）、相关代码片段发给 Workbench 里的 Agent —— 它能直接看到你的项目文件并定位问题。

@@ -1,0 +1,1500 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "browser": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "launch"
+            },
+            "executable_path": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[^\\x00]*$",
+              "description": "Absolute local filesystem path for the browser executable; relative paths are rejected."
+            },
+            "headless": {
+              "default": true,
+              "description": "Run without a visible browser window; defaults to true and can be disabled when the host supports a display.",
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "mode",
+            "executable_path"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "const": "connect"
+            },
+            "cdp_endpoint": {
+              "type": "string",
+              "minLength": 1
+            },
+            "target_id": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "mode",
+            "cdp_endpoint",
+            "target_id"
+          ],
+          "additionalProperties": false
+        }
+      ],
+      "description": "Required launch/connect selection. Launch uses the selected executable and an owned temporary profile; connect uses one loopback CDP endpoint and target."
+    },
+    "start_url": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "query": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "literal"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "secret"
+                      },
+                      "secret_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "secret_id"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "value"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "additionalProperties": false,
+      "description": "Required initial HTTP(S) URL. Query values must be declared separately as public literals or secret references."
+    },
+    "environment": {
+      "default": {
+        "viewport": {
+          "width": 1280,
+          "height": 720,
+          "device_scale_factor": 1
+        },
+        "locale": "en-US",
+        "timezone": "UTC",
+        "color_scheme": "light",
+        "reduced_motion": "reduce",
+        "service_workers": "block"
+      },
+      "description": "Optional deterministic browser settings. Defaults to 1280x720, en-US, UTC, light mode, reduced motion, and blocked service workers.",
+      "type": "object",
+      "properties": {
+        "viewport": {
+          "default": {
+            "width": 1280,
+            "height": 720,
+            "device_scale_factor": 1
+          },
+          "type": "object",
+          "properties": {
+            "width": {
+              "default": 1280,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "height": {
+              "default": 720,
+              "type": "integer",
+              "exclusiveMinimum": 0,
+              "maximum": 9007199254740991
+            },
+            "device_scale_factor": {
+              "default": 1,
+              "type": "number",
+              "exclusiveMinimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        "locale": {
+          "default": "en-US",
+          "type": "string",
+          "minLength": 2,
+          "pattern": "^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$"
+        },
+        "timezone": {
+          "default": "UTC",
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9_+\\x2d]+(?:\\x2f[A-Za-z0-9_+\\x2d]+)*$"
+        },
+        "color_scheme": {
+          "default": "light",
+          "type": "string",
+          "enum": [
+            "light",
+            "dark",
+            "no-preference"
+          ]
+        },
+        "reduced_motion": {
+          "default": "reduce",
+          "type": "string",
+          "enum": [
+            "reduce",
+            "no-preference"
+          ]
+        },
+        "service_workers": {
+          "default": "block",
+          "type": "string",
+          "enum": [
+            "allow",
+            "block"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "actions": {
+      "minItems": 1,
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "goto"
+              },
+              "destination": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "query": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "value": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "literal"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "source",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "secret"
+                                },
+                                "secret_id": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                                }
+                              },
+                              "required": [
+                                "source",
+                                "secret_id"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              "wait_until": {
+                "type": "string",
+                "enum": [
+                  "commit",
+                  "domcontentloaded",
+                  "load"
+                ]
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "destination",
+              "wait_until"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "click"
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "button": {
+                "default": "left",
+                "type": "string",
+                "enum": [
+                  "left",
+                  "middle",
+                  "right"
+                ]
+              },
+              "click_count": {
+                "default": 1,
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "fill"
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "literal"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "secret"
+                      },
+                      "secret_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "secret_id"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "press"
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "key": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator",
+              "key"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "select_option"
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "literal"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "secret"
+                      },
+                      "secret_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "secret_id"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator",
+              "value"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "check",
+                  "uncheck"
+                ]
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "timeout_ms": {
+                "description": "Optional action deadline in milliseconds; omitted means wait until completion or request cancellation.",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991
+              },
+              "action": {
+                "type": "string",
+                "const": "wait_for"
+              },
+              "locator": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "test_id"
+                      },
+                      "value": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "role"
+                      },
+                      "role": {
+                        "type": "string",
+                        "enum": [
+                          "button",
+                          "checkbox",
+                          "combobox",
+                          "dialog",
+                          "link",
+                          "listbox",
+                          "menuitem",
+                          "option",
+                          "radio",
+                          "slider",
+                          "spinbutton",
+                          "switch",
+                          "tab",
+                          "textbox"
+                        ]
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "role",
+                      "name"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "kind": {
+                        "type": "string",
+                        "const": "css"
+                      },
+                      "selector": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": [
+                      "kind",
+                      "selector"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "state": {
+                "type": "string",
+                "enum": [
+                  "attached",
+                  "detached",
+                  "visible",
+                  "hidden"
+                ]
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "locator",
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "step_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+              },
+              "action": {
+                "type": "string",
+                "const": "wait_for_timeout"
+              },
+              "duration_ms": {
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 9007199254740991,
+                "description": "Wait this many milliseconds; the wait ends early on cancellation."
+              }
+            },
+            "required": [
+              "step_id",
+              "action",
+              "duration_ms"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "description": "Required sequence of explicit browser actions."
+    },
+    "storage": {
+      "description": "Optional initial cookies, local storage, or session storage. Defaults to empty; every supplied value and origin must be declared and within the allowed origins.",
+      "type": "object",
+      "properties": {
+        "cookies": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "value": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "literal"
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "value"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "source": {
+                        "type": "string",
+                        "const": "secret"
+                      },
+                      "secret_id": {
+                        "type": "string",
+                        "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                      }
+                    },
+                    "required": [
+                      "source",
+                      "secret_id"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              },
+              "destination": {
+                "type": "object",
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "query": {
+                    "default": [],
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "value": {
+                          "oneOf": [
+                            {
+                              "type": "object",
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "literal"
+                                },
+                                "value": {
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "source",
+                                "value"
+                              ],
+                              "additionalProperties": false
+                            },
+                            {
+                              "type": "object",
+                              "properties": {
+                                "source": {
+                                  "type": "string",
+                                  "const": "secret"
+                                },
+                                "secret_id": {
+                                  "type": "string",
+                                  "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                                }
+                              },
+                              "required": [
+                                "source",
+                                "secret_id"
+                              ],
+                              "additionalProperties": false
+                            }
+                          ]
+                        }
+                      },
+                      "required": [
+                        "name",
+                        "value"
+                      ],
+                      "additionalProperties": false
+                    }
+                  }
+                },
+                "required": [
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              "http_only": {
+                "type": "boolean"
+              },
+              "secure": {
+                "type": "boolean"
+              },
+              "same_site": {
+                "type": "string",
+                "enum": [
+                  "Strict",
+                  "Lax",
+                  "None"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "value",
+              "destination",
+              "http_only",
+              "secure",
+              "same_site"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "local_storage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string",
+                "minLength": 1
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "type": "string",
+                              "const": "literal"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "value"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "type": "string",
+                              "const": "secret"
+                            },
+                            "secret_id": {
+                              "type": "string",
+                              "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "secret_id"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "origin",
+              "entries"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "session_storage": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "origin": {
+                "type": "string",
+                "minLength": 1
+              },
+              "entries": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "name": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "type": "string",
+                              "const": "literal"
+                            },
+                            "value": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "value"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "source": {
+                              "type": "string",
+                              "const": "secret"
+                            },
+                            "secret_id": {
+                              "type": "string",
+                              "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+                            }
+                          },
+                          "required": [
+                            "source",
+                            "secret_id"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  },
+                  "required": [
+                    "name",
+                    "value"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "origin",
+              "entries"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "secrets": {
+      "default": [],
+      "description": "Optional environment-variable references for values used in actions, URLs, storage, or replay, and for redacting matching observed text. Secret values are never supplied inline.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "secret_id": {
+            "type": "string",
+            "pattern": "^[A-Za-z][A-Za-z0-9._\\x2d]*$"
+          },
+          "environment_variable": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "secret_id",
+          "environment_variable"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "capture": {
+      "default": {
+        "after_each_step": [],
+        "at_end": [
+          "url"
+        ],
+        "events": [],
+        "network": {
+          "request_body": false,
+          "response_body": false,
+          "header_values": false
+        }
+      },
+      "description": "Optional retained artifacts and event families. Defaults to only a final sanitized URL; request screenshots, DOM, accessibility, history, storage, and event capture explicitly.",
+      "type": "object",
+      "properties": {
+        "after_each_step": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "screenshot",
+              "dom",
+              "accessibility",
+              "url",
+              "history",
+              "storage"
+            ]
+          }
+        },
+        "at_end": {
+          "default": [
+            "url"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "screenshot",
+              "dom",
+              "accessibility",
+              "url",
+              "history",
+              "storage"
+            ]
+          }
+        },
+        "events": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "console",
+              "page-errors",
+              "network",
+              "websockets",
+              "frames",
+              "workers",
+              "popups",
+              "downloads"
+            ]
+          }
+        },
+        "network": {
+          "default": {
+            "request_body": false,
+            "response_body": false,
+            "header_values": false
+          },
+          "type": "object",
+          "properties": {
+            "request_body": {
+              "default": false,
+              "type": "boolean"
+            },
+            "response_body": {
+              "default": false,
+              "type": "boolean"
+            },
+            "header_values": {
+              "default": false,
+              "type": "boolean"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "browser",
+    "start_url",
+    "actions"
+  ],
+  "additionalProperties": false
+}

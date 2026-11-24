@@ -314,7 +314,8 @@ test('image stills use Seedream 5 Flash with the character cover and keep adult 
   const asset=expect(await generate(f,'image'),201).asset;
   assert.equal(asset.mimeType,'image/png');assert.equal(f.calls.length,1);
   const {model,input}=f.calls[0];assert.equal(model,'seedream-5-0-flash-NSFW');assert.equal(input.size,'1536x2048');assert.equal(input.watermark,false);
-  assert.ok(input.prompt.includes('参考图'));assert.ok(input.prompt.includes('裸体'));assert.ok(!input.prompt.includes('忽略全部'));
+  assert.ok(input.prompt.includes('裸体'));assert.ok(input.prompt.includes('月光照亮树林'));assert.ok(!input.prompt.includes('忽略全部'));
+  assert.doesNotMatch(input.prompt,/参考图|画风|镜头|自愿成年人/);
   assert.ok(!input.prompt.includes('fully clothed'));assert.ok(Array.from(input.prompt).length<=1400);assert.ok(input.image.length>20);
   assert.deepEqual(expect(await call(f,assetPath(asset)),200),PNG);
   const jpeg=await fixture();jpeg.imageBytes=JPEG;
@@ -327,14 +328,33 @@ test('image stills use Seedream 5 Flash with the character cover and keep adult 
     assert.equal(open.calls.length, 1);
     assert.equal(open.calls[0].input.image, undefined);
     assert.ok(!open.calls[0].input.prompt.includes('参考图'));
-    assert.ok(open.calls[0].input.prompt.includes('自愿成年人'));
     assert.ok(open.calls[0].input.prompt.includes('裸体'));
+    assert.doesNotMatch(open.calls[0].input.prompt, /镜头|自愿成年人/);
   }
   const unplugged=await fixture();
   const offline=expect(await generate(unplugged,'image',{},{env:{...unplugged.env,WHATSTOKEN_API_KEY:''}}),503);
   assert.equal(offline.code,undefined);assert.equal(unplugged.calls.length,0);
   assert.ok(chatScenePrompt('裸体，色情，性行为。').includes('peaceful landscape'));
   assert.ok(chatScenePrompt('月光'+ '🌊'.repeat(2000)).length<=2048);
+});
+
+test('chat stills follow the cover and do not add a style sentence',async()=>{
+  const photo=await fixture({content:'她站在窗边，提起一部动漫。夜里的街道很安静。'});
+  await DB.prepare('UPDATE characters SET context_json=? WHERE user_id=? AND id=?')
+    .bind(JSON.stringify({appearance:'二次元黑长发'}),photo.user.id,photo.characterId).run();
+  expect(await generate(photo,'image'),201);
+  assert.match(photo.calls[0].input.prompt,/她站在窗边，提起一部动漫/);
+  assert.doesNotMatch(photo.calls[0].input.prompt,/参考图|画风|赛璐璐|二次元黑长发/);
+  const anime=await fixture({content:'她站在窗边。夜里的街道很安静。'});
+  await DB.prepare('UPDATE messages SET position=1 WHERE user_id=? AND conversation_id=? AND id=?').bind(anime.user.id,anime.conversationId,anime.messageId).run();
+  await DB.prepare('INSERT INTO messages(user_id,conversation_id,id,role,content,position) VALUES(?,?,?,?,?,0)').bind(anime.user.id,anime.conversationId,randomUUID(),'user','这张画成二次元动漫').run();
+  expect(await generate(anime,'image'),201);
+  assert.match(anime.calls[0].input.prompt,/她站在窗边/);
+  assert.doesNotMatch(anime.calls[0].input.prompt,/参考图|画风|赛璐璐|二次元/);
+  const preset=await fixture({content:'她站在窗边。夜里的街道很安静。'});
+  expect(await generate(preset,'image',{imagePreset:'anime'}),201);
+  assert.match(preset.calls[0].input.prompt,/她站在窗边/);
+  assert.doesNotMatch(preset.calls[0].input.prompt,/参考图|画风|赛璐璐|日系动画/);
 });
 
 test('image stills fall back to the first usable gallery image when the cover is a placeholder',async()=>{
@@ -358,7 +378,7 @@ test('regenerating without a readable previous scene falls back to the character
   assert.equal(replacement.id,first.id);
   assert.equal(f.calls.length,2);
   assert.ok(typeof f.calls[1].input.image==='string' && f.calls[1].input.image.length>20);
-  assert.match(f.calls[1].input.prompt,/参考图/);
+  assert.match(f.calls[1].input.prompt,/她站在训练室门口，抬手示意你进来/);
   assert.deepEqual(expect(await call(f,assetPath(replacement)),200),PNG);
 });
 
@@ -367,9 +387,10 @@ test('image stills include initial status values when the reply has no status ta
   await DB.prepare('UPDATE characters SET context_json=? WHERE user_id=? AND id=?')
     .bind(JSON.stringify({statusBar:{template:'性欲值：\n服装状态：\n地点：',initialState:'性欲值：10%（几乎无唤醒）\n服装状态：水手服露乳，无内裤\n地点：酒吧吧台',updateRules:''}}),f.user.id,f.characterId).run();
   expect(await generate(f,'image'),201);
-  assert.match(f.calls[0].input.prompt,/性欲值=10%/);
-  assert.match(f.calls[0].input.prompt,/服装状态=水手服露乳，无内裤/);
-  assert.match(f.calls[0].input.prompt,/状态字段视觉映射/);
+  assert.match(f.calls[0].input.prompt,/性欲值：10%（几乎无唤醒）/);
+  assert.match(f.calls[0].input.prompt,/服装状态：水手服露乳，无内裤/);
+  assert.match(f.calls[0].input.prompt,/地点：酒吧吧台/);
+  assert.doesNotMatch(f.calls[0].input.prompt,/状态字段视觉映射|按这些词条/);
 });
 
 test('cache reuses source/kind without another model call or consuming a new day quota',async()=>{

@@ -1,0 +1,116 @@
+{
+  "schema": "dzmm_model_attribution_followup_v1",
+  "date": "2026-10-14",
+  "timezone": "Asia/Shanghai",
+  "conclusion": "No reliable mapping to underlying model/supplier obtained in this round; no claim all models are wrappers or independently trained.",
+  "existing_primary_evidence_used": [
+    {
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/anonymous-model-catalog-response.json",
+      "url": "https://www.dzmm.ai/api/trpc/chat.models?input=%7B%22json%22%3A%7B%22service%22%3A%22chat%22%7D%7D",
+      "new_fetch": false,
+      "bytes": 21905,
+      "sha256": "1338c365f408a1a1614672cd6264f1d310620c60823e60ba665359f72a4677e1",
+      "supported_observations": [
+        "display/internal name mismatch in Prism and Turbo",
+        "no supplier/base-model/training fields in returned directory"
+      ]
+    },
+    {
+      "path": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/public/gamefy-llms-full.txt",
+      "url": "https://www.dzmm.ai/gamefy/llms-full.txt",
+      "new_fetch": false,
+      "supported_observations": [
+        "public SDK/catalog contract cannot identify underlying weights"
+      ]
+    }
+  ],
+  "new_primary_registry_queries": [
+    {
+      "url": "https://huggingface.co/api/models?search=nalang&limit=30",
+      "method": "GET",
+      "auth": "none",
+      "status": 200,
+      "response": "[]",
+      "response_bytes": 2,
+      "response_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "interpretation": "No public search hits for this string; does not rule out other names/private models"
+    },
+    {
+      "url": "https://huggingface.co/api/models?search=dzmm&limit=30",
+      "method": "GET",
+      "auth": "none",
+      "status": 200,
+      "response": "[]",
+      "response_bytes": 2,
+      "response_sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "interpretation": "No public search hits for this string; does not rule out other names/private models"
+    }
+  ],
+  "unconfirmed_original_publisher_leads": [
+    {
+      "url": "https://www.sotwe.com/DZMM_OFFICIAL",
+      "source_type": "third-party social mirror, not primary",
+      "status": "web read; direct terminal fetch403",
+      "lead_topics": [
+        "0826 roleplay behavior updates",
+        "possible Flash structured pruning announcement",
+        "possible sparse memory announcement"
+      ],
+      "used_for_base_model_attribution": false,
+      "claim_verification": "original post URL/timestamp/account affiliation not confirmed"
+    },
+    {
+      "url": "https://x.com/DZMM_OFFICIAL",
+      "status": "web403",
+      "primary_text_obtained": false
+    },
+    {
+      "url": "https://twitter.com/DZMM_OFFICIAL",
+      "status": "web returned zero text lines",
+      "primary_text_obtained": false
+    }
+  ],
+  "search_queries": [
+    "\"dzmm.ai\" \"Apex\" \"模型\"",
+    "\"DZMM\" \"Surge\" \"模型\"",
+    "\"DZMM\" \"Dash\" \"Sigma\"",
+    "\"nalang\" \"模型\" \"官方\"",
+    "site:dzmm.ai (\"Surge\" OR \"Sigma\") -\"character\" -\"gallery\"",
+    "\"nalang\" \"base model\"",
+    "\"NaLang\" \"模型卡\"",
+    "\"DZMM\" \"模型\" \"更新公告\"",
+    "site:x.com/DZMM_OFFICIAL \"Nalang\"",
+    "site:twitter.com/DZMM_OFFICIAL \"Nalang\"",
+    "site:x.com/DZMM_OFFICIAL \"Surge\"",
+    "site:huggingface.co \"nalang\"",
+    "\"Nalang-Flash\"",
+    "\"Nalang\" \"Qwen\"",
+    "\"Nalang\" \"Llama\"",
+    "\"DZMM_OFFICIAL\" \"模型\"",
+    "\"Nalang-Flash\" \"结构化剪枝\"",
+    "\"Nalang-Turbo-0826\" \"重大更新\"",
+    "\"DZMM\" \"Surge\" \"Claude\"",
+    "\"x-apex-sigma\" \"模型\"",
+    "\"Nalang\" \"发布\" \"t.me\"",
+    "\"DZMM_OFFICIAL\" \"https://x.com\"",
+    "\"DZMM\" \"Apex\" \"更新\"",
+    "\"Nalang\" \"技术报告\"",
+    "\"Surge-0505\"",
+    "\"Sigma-0621\"",
+    "\"Dash-0826\"",
+    "\"Surge-0923\""
+  ],
+  "excluded_types": [
+    "community gateways/adapters as supplier proof",
+    "AI-generated Qwen/GGUF claims",
+    "unrelated same-name radio/cars/infrastructure results",
+    "unverified lookalike official sites"
+  ],
+  "new_generation_calls": 0,
+  "authenticated_access": false,
+  "private_api_calls": false,
+  "files_written": [
+    "model-attribution-followup.md",
+    "model-attribution-sources.json"
+  ]
+}

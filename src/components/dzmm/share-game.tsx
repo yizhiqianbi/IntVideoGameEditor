@@ -1,9 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import Icon from "./icons";
 import { createDzmmShare, type DzmmShare } from "../../lib/dzmm-shares";
+import { shareHookLine, sharePosterFileName, sharePosterImageUrl } from "../../lib/xumeng-share-poster";
 import s from "./share-game.module.css";
 
 type Props = { title: string; synopsis: string; sourceId: string; onClose: () => void };
@@ -144,3 +146,285 @@ export function ShareGame({ title, synopsis, sourceId, onClose }: Props) {
 }
 
 export default ShareGame;
+
+export type XumengSharePoster = {
+  title: string;
+  hook: string;
+  coverUrl?: string;
+  url?: string;
+  kicker?: string;
+};
+
+const FONT = '-apple-system, BlinkMacSystemFont, "PingFang SC", "Noto Sans SC", sans-serif';
+
+type LoadedImage = { image: HTMLImageElement; url: string };
+
+async function loadImage(url: string): Promise<LoadedImage | null> {
+  if (!url) return null;
+  let objectUrl = "";
+  try {
+    const response = await fetch(url);
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    if (blob.size < 32 || (blob.type && !blob.type.startsWith("image/"))) return null;
+    objectUrl = URL.createObjectURL(blob);
+    const image = new Image();
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve();
+      image.onerror = () => reject(new Error("image"));
+      image.src = objectUrl;
+    });
+    return { image, url: objectUrl };
+  } catch {
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
+    return null;
+  }
+}
+
+function drawCover(context: CanvasRenderingContext2D, image: HTMLImageElement, x: number, y: number, w: number, h: number) {
+  if (!image.naturalWidth || !image.naturalHeight) return;
+  const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
+  const sw = w / scale;
+  const sh = h / scale;
+  const sx = Math.max(0, (image.naturalWidth - sw) / 2);
+  const sy = Math.max(0, (image.naturalHeight - sh) * 0.12);
+  context.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+}
+
+async function paintSharePoster(canvas: HTMLCanvasElement, poster: XumengSharePoster): Promise<void> {
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("海报画布不可用。");
+  canvas.width = W;
+  canvas.height = H;
+  const pageOrigin = location.origin;
+  const [cover, mark] = await Promise.all([
+    loadImage(sharePosterImageUrl(poster.coverUrl ?? "", pageOrigin)),
+    loadImage("/assets/xumeng/brand/xumeng-mark.svg"),
+  ]);
+  try {
+    const background = context.createLinearGradient(0, 0, W, H);
+    background.addColorStop(0, "#2b1020");
+    background.addColorStop(0.55, "#180b14");
+    background.addColorStop(1, "#0d060a");
+    context.fillStyle = background;
+    context.fillRect(0, 0, W, H);
+    const glow = context.createRadialGradient(560, 120, 10, 560, 120, 460);
+    glow.addColorStop(0, "rgba(228,85,127,.42)");
+    glow.addColorStop(1, "rgba(228,85,127,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, W, H);
+    if (cover) drawCover(context, cover.image, 0, 0, W, H);
+
+    const shade = context.createLinearGradient(0, H * 0.38, 0, H);
+    shade.addColorStop(0, "rgba(12,6,10,0)");
+    shade.addColorStop(0.34, "rgba(12,6,10,0.18)");
+    shade.addColorStop(0.68, "rgba(18,8,15,0.9)");
+    shade.addColorStop(1, "#12080f");
+    context.fillStyle = shade;
+    context.fillRect(0, 0, W, H);
+    const top = context.createLinearGradient(0, 0, 0, 190);
+    top.addColorStop(0, "rgba(12,6,10,0.62)");
+    top.addColorStop(1, "rgba(12,6,10,0)");
+    context.fillStyle = top;
+    context.fillRect(0, 0, W, 190);
+
+    context.fillStyle = "rgba(18,8,15,0.5)";
+    roundRect(context, 40, 36, mark ? 214 : 168, 68, 34);
+    context.fill();
+    if (mark) {
+      context.drawImage(mark.image, 50, 44, 52, 52);
+    } else {
+      context.fillStyle = "#d94c77";
+      context.beginPath();
+      context.arc(76, 70, 22, 0, Math.PI * 2);
+      context.fill();
+      context.fillStyle = "#fff6f8";
+      context.font = `700 20px ${FONT}`;
+      context.textAlign = "center";
+      context.textBaseline = "middle";
+      context.fillText("叙", 76, 71);
+    }
+    context.textAlign = "left";
+    context.textBaseline = "alphabetic";
+    canvas.dataset.shareCover = cover ? "loaded" : "missing";
+    context.fillStyle = "#f8e8eb";
+    context.font = `600 28px ${FONT}`;
+    context.fillText("叙梦", mark ? 114 : 108, 78);
+    context.fillStyle = "#e8c8a0";
+    context.font = `600 14px ${FONT}`;
+    context.fillText("XUMENG", mark ? 114 : 108, 100);
+
+    const url = poster.url?.trim() ?? "";
+    const textX = 56;
+    const textWidth = url ? 420 : W - 112;
+    const kicker = poster.kicker?.trim() || "叙梦";
+    const hook = shareHookLine(poster.hook);
+    context.font = `600 20px ${FONT}`;
+    const kickerLine = wrapText(context, kicker, textWidth, 1)[0] ?? kicker;
+    context.font = `700 52px ${FONT}`;
+    const titleLines = wrapText(context, poster.title.trim() || "叙梦", textWidth, 2);
+    context.font = `400 26px ${FONT}`;
+    const hookLines = wrapText(context, hook, textWidth, 2);
+    let cursor = 790;
+    context.shadowColor = "rgba(0,0,0,.72)";
+    context.shadowBlur = 16;
+    context.shadowOffsetY = 2;
+    context.fillStyle = "#e8c8a0";
+    context.font = `600 20px ${FONT}`;
+    context.fillText(kickerLine, textX, cursor);
+    cursor += 64;
+    context.fillStyle = "#fff6f8";
+    context.font = `700 52px ${FONT}`;
+    titleLines.forEach((line) => {
+      context.fillText(line, textX, cursor);
+      cursor += 64;
+    });
+    cursor += 6;
+    context.fillStyle = "#f3d5df";
+    context.font = `400 26px ${FONT}`;
+    hookLines.forEach((line) => {
+      context.fillText(line, textX, cursor);
+      cursor += 38;
+    });
+
+    context.shadowColor = "transparent";
+    context.shadowBlur = 0;
+    context.shadowOffsetY = 0;
+    if (url) {
+      try {
+        const qrSize = 168;
+        const cardX = W - 56 - qrSize;
+        const cardY = 812;
+        context.fillStyle = "rgba(255,255,255,.96)";
+        roundRect(context, cardX - 14, cardY - 14, qrSize + 28, qrSize + 58, 18);
+        context.fill();
+        const qr = document.createElement("canvas");
+        await QRCode.toCanvas(qr, url, { width: qrSize, margin: 1, color: { dark: "#1a0c14", light: "#ffffff" } });
+        context.drawImage(qr, cardX, cardY);
+        context.fillStyle = "#3a1a28";
+        context.font = `600 16px ${FONT}`;
+        context.textAlign = "center";
+        context.fillText("扫码打开", cardX + qrSize / 2, cardY + qrSize + 30);
+        context.textAlign = "left";
+      } catch { /* The written link stays on the poster when the code cannot be drawn. */ }
+    }
+
+    context.fillStyle = "#c79aa9";
+    context.font = `500 16px ${FONT}`;
+    context.fillText("xumengchat.top", textX, 1036);
+  } finally {
+    if (cover) URL.revokeObjectURL(cover.url);
+    if (mark) URL.revokeObjectURL(mark.url);
+  }
+}
+
+export function SharePoster({ poster, onClose }: { poster: XumengSharePoster; onClose: () => void }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const blobRef = useRef<Blob | null>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const [preview, setPreview] = useState("");
+  const [coverState, setCoverState] = useState("");
+  const [failed, setFailed] = useState("");
+  const [canShareFile, setCanShareFile] = useState(false);
+  const [status, setStatus] = useState("");
+  const fileName = sharePosterFileName(poster.title);
+  const shareUrl = poster.url?.trim() ?? "";
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    let cancelled = false;
+    setPreview("");
+    setCoverState("");
+    setFailed("");
+    setCanShareFile(false);
+    blobRef.current = null;
+    void paintSharePoster(canvas, poster).then(async () => {
+      if (cancelled) return;
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob((value) => resolve(value), "image/png"));
+      if (cancelled) return;
+      if (!blob) { setFailed("海报没有生成，请重试。"); return; }
+      blobRef.current = blob;
+      const file = new File([blob], fileName, { type: "image/png" });
+      setCanShareFile(Boolean(navigator.canShare?.({ files: [file] })));
+      setCoverState(canvas.dataset.shareCover === "loaded" ? "loaded" : "missing");
+      setPreview(canvas.toDataURL("image/png"));
+    }).catch(() => {
+      if (!cancelled) setFailed("海报没有生成，请重试。");
+    });
+    return () => { cancelled = true; };
+  }, [fileName, poster]);
+
+  useEffect(() => {
+    function onKey(event: KeyboardEvent) {
+      if (event.key === "Escape") { event.preventDefault(); onClose(); }
+    }
+    document.addEventListener("keydown", onKey);
+    closeRef.current?.focus();
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  function download() {
+    const blob = blobRef.current;
+    if (!blob) return;
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = fileName;
+    link.click();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 2000);
+    setStatus("海报已保存");
+  }
+
+  async function shareFile() {
+    const blob = blobRef.current;
+    if (!blob) return;
+    const file = new File([blob], fileName, { type: "image/png" });
+    const payload: ShareData = { files: [file], title: poster.title, text: shareHookLine(poster.hook) };
+    if (!navigator.canShare?.(payload)) { download(); return; }
+    try {
+      await navigator.share(payload);
+      setStatus("已交给系统分享");
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      download();
+      setStatus("系统分享不可用，已改为保存海报");
+    }
+  }
+
+  async function copyLink() {
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setStatus("链接已复制");
+    } catch {
+      setStatus("复制失败，请手动复制下方链接");
+    }
+  }
+
+  const sheet = <div className={s.backdrop} role="dialog" aria-modal="true" aria-label="分享海报">
+    <div className={s.sheet}>
+      <header className={s.head}>
+        <div><p>分享海报</p><h2>{poster.title}</h2></div>
+        <button ref={closeRef} type="button" className={s.close} onClick={onClose} aria-label="关闭"><Icon name="close" size={18} /></button>
+      </header>
+      <canvas ref={canvasRef} className={s.buffer} aria-hidden="true" />
+      {preview && <div className={s.poster}><img src={preview} alt="分享海报预览" data-share-poster="ready" data-share-cover={coverState} /></div>}
+      {!preview && !failed && <p className={s.hint} role="status">正在生成海报…</p>}
+      {failed && <div className={s.errorBox} role="alert"><p>{failed}</p><button type="button" onClick={onClose}>关闭</button></div>}
+      {preview && !failed && <>
+        <p className={s.caption}>{shareUrl ? "海报带封面、名字和二维码。可以保存，或发到微信 / 小红书。" : "保存这张海报再发出去。这张卡还没有公开链接。"}</p>
+        <div className={s.actions}>
+          {canShareFile && <button type="button" className={s.primary} onClick={() => void shareFile()}><Icon name="send" size={16} />分享海报</button>}
+          <button type="button" className={canShareFile ? s.secondary : s.primary} onClick={download}><Icon name="download" size={16} />保存海报</button>
+          {shareUrl && <button type="button" className={s.secondary} onClick={() => void copyLink()}><Icon name="copy" size={16} />复制链接</button>}
+        </div>
+        {shareUrl && <p className={s.url}>{shareUrl}</p>}
+        {status && <p className={s.status} role="status">{status}</p>}
+      </>}
+    </div>
+  </div>;
+
+  if (typeof document === "undefined") return sheet;
+  return createPortal(sheet, document.body);
+}

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import generationModule from "./image-generation";
 
 const {
-  DEFAULT_TAVERN_IMAGE_GENERATION, composeTavernImagePrompt, parseTavernImageGeneration,
+  DEFAULT_TAVERN_IMAGE_GENERATION, chatImageAutoMode, composeTavernImagePrompt, parseTavernImageGeneration,
   parseTavernImageSize, TAVERN_IMAGE_GENERATION_LIMITS,
 } = generationModule as typeof import("./image-generation");
 
@@ -14,6 +14,14 @@ test("defaults are safe and disabled", () => {
   assert.equal(parsed.enabled, false);
   assert.equal(parsed.autoMode, "off");
   assert.equal(parsed.size, "3:4");
+});
+
+test("new replies get an image unless the user turned that off", () => {
+  assert.equal(chatImageAutoMode(undefined), "each");
+  assert.equal(chatImageAutoMode(DEFAULT_TAVERN_IMAGE_GENERATION), "each");
+  assert.equal(chatImageAutoMode(parseTavernImageGeneration({ enabled: false, autoMode: "off" })), "each");
+  assert.equal(chatImageAutoMode(parseTavernImageGeneration({ enabled: true, autoMode: "off", autoOptOut: true })), "off");
+  assert.equal(chatImageAutoMode(parseTavernImageGeneration({ enabled: true, autoMode: "interval", interval: 4 })), "interval");
 });
 
 test("invalid stored values fall back to safe defaults", () => {

@@ -1,0 +1,112 @@
+{
+  "native_session_id": "6b506294825dff986b8694c00dc10312",
+  "since": "2026-10-18 13:45:00",
+  "records": [
+    {
+      "id": 25,
+      "tool_id": "call_d1ba4225490b4364be2f9e02",
+      "timestamp": "2026-10-18 13:46:23.613308",
+      "tool_name": "query_memory",
+      "arguments": {
+        "person_name": "阿舟",
+        "query": "阿舟 喜欢喝的茶 糖量 桂花乌龙"
+      },
+      "success": true,
+      "content": "1. 目标人物平时最喜欢喝桂花乌龙，不加糖\n2. 目标人物平时最喜欢喝不加糖的桂花乌龙\n3. 目标人物叫阿舟",
+      "error_message": ""
+    },
+    {
+      "id": 27,
+      "tool_id": "call_d05da6f960a4477095f7e618",
+      "timestamp": "2026-10-18 13:46:32.676319",
+      "tool_name": "reply",
+      "arguments": {
+        "expression_intent": {
+          "avoid": [
+            "机械复述",
+            "生硬重复"
+          ],
+          "focus": "桂花乌龙不加糖这个答案",
+          "prefer": [
+            "亲昵调侃",
+            "简短肯定"
+          ],
+          "reply_act": "确认并调侃",
+          "scene": "反复确认记忆",
+          "tone": "轻松俏皮"
+        },
+        "msg_id": "a0a80682-d1e6-4105-9955-449ada025c17",
+        "reply_reference": "阿舟第三次问Yume查长期记忆里他喜欢的茶和糖量。记忆确认：桂花乌龙、不加糖。中间隔了约49分钟，Yume刚\"回来\"。回复方向：直接给出答案（桂花乌龙、不加糖），带点被反复问到的俏皮感，顺带提一下刚回来/记得很牢。",
+        "reply_style": "简短表达"
+      },
+      "success": true,
+      "content": "\"Yume\"已生成并向\"你\"发送了回复\"桂花乌龙不加糖，我都快背下来了你这是考验我还是想听我再说一遍呀～\"",
+      "error_message": "",
+      "reply_output": "桂花乌龙不加糖，我都快背下来了你这是考验我还是想听我再说一遍呀～",
+      "send_results": [
+        {
+          "index": 0,
+          "segment": "桂花乌龙不加糖，我都快背下来了",
+          "set_quote": true,
+          "success": true,
+          "message_id": "send_api_1792302387716"
+        },
+        {
+          "index": 1,
+          "segment": "你这是考验我还是想听我再说一遍呀～",
+          "set_quote": false,
+          "success": true,
+          "message_id": "send_api_1792302387721"
+        }
+      ]
+    },
+    {
+      "id": 29,
+      "tool_id": "call_7e4c2becf6844697b12aef01",
+      "timestamp": "2026-10-18 13:46:34.300636",
+      "tool_name": "wait",
+      "arguments": {
+        "seconds": 60
+      },
+      "success": true,
+      "content": "当前对话循环进入等待状态，最多等待 60 秒；新消息可提前结束等待并继续思考。连续 wait 次数：1/3。",
+      "error_message": ""
+    },
+    {
+      "id": 32,
+      "tool_id": "call_245fa3f8cdbe4722a8fd959d",
+      "timestamp": "2026-10-18 13:47:36.896965",
+      "tool_name": "wait",
+      "arguments": {
+        "seconds": 120
+      },
+      "success": true,
+      "content": "当前对话循环进入等待状态，最多等待 120 秒；新消息可提前结束等待并继续思考。连续 wait 次数：2/3。",
+      "error_message": ""
+    }
+  ],
+  "gateway_observed_after_completion": {
+    "status": "idle",
+    "messages": [
+      {
+        "id": "a0a80682-d1e6-4105-9955-449ada025c17",
+        "role": "user",
+        "text": "你从长期记忆里帮我查一遍，我平时最喜欢喝什么茶，糖量呢？",
+        "createdAt": "2026-10-18T05:46:16.345Z",
+        "requestId": "e9dc94c1-943b-42e1-8031-94bb7d435740"
+      },
+      {
+        "id": "b4cc0f48-0d74-4144-9dd3-7d31ca6f309a",
+        "role": "assistant",
+        "text": "桂花乌龙不加糖，我都快背下来了",
+        "createdAt": "2026-10-18T05:46:27.717Z"
+      },
+      {
+        "id": "c8579b2a-3210-4f8f-b496-c9b135355017",
+        "role": "assistant",
+        "text": "你这是考验我还是想听我再说一遍呀～",
+        "createdAt": "2026-10-18T05:46:32.672Z"
+      }
+    ]
+  }
+}

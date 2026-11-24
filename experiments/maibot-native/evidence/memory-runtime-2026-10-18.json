@@ -1,0 +1,154 @@
+{
+  "upstream_commit": "ac6ed61b7b9c971ad94921de3b16fa6f63c36a20",
+  "instance": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance",
+  "agreements": {
+    "eula": {
+      "confirmation_file_exists": true,
+      "matches_current_document": true
+    },
+    "privacy": {
+      "confirmation_file_exists": true,
+      "matches_current_document": true
+    }
+  },
+  "config": {
+    "bot_config_exists": true,
+    "model_config_exists": true,
+    "enabled": true,
+    "data_dir": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance/data/a-memorix",
+    "integration": {
+      "enable_memory_query_tool": true,
+      "enable_person_profile_query_tool": true,
+      "enable_person_profile_injection": true,
+      "person_fact_writeback_enabled": true,
+      "chat_summary_writeback_enabled": true,
+      "heuristic_memory_recall_enabled": true,
+      "heuristic_memory_cross_chat_enabled": false
+    },
+    "global_memory_sharing_enabled": false,
+    "shared_memory_group_count": 0,
+    "embedding": {
+      "task_models": [
+        {
+          "name": "xumeng-embedding",
+          "model_identifier": "qwen/qwen3-embedding-8b",
+          "model_type": "embedding",
+          "api_provider": "OpenRouter"
+        }
+      ],
+      "model_name": "auto",
+      "dimension": 4096,
+      "dimension_request_mode": "never"
+    },
+    "image_embedding_configured": false,
+    "relation_vectorization_enabled": false
+  },
+  "storage": {
+    "directory_exists": true,
+    "database_exists": true,
+    "row_counts": {
+      "paragraphs": 0,
+      "relations": 0,
+      "episodes": 0,
+      "person_profile_snapshots": 0
+    },
+    "sqlite_quick_check": "ok",
+    "vectors": {
+      "file_count": 7,
+      "total_bytes": 15186
+    },
+    "graph": {
+      "file_count": 4,
+      "total_bytes": 964
+    }
+  },
+  "dependencies": {
+    "faiss-cpu": "1.13.2",
+    "numpy": "2.4.4",
+    "scipy": "1.17.1",
+    "maibot-plugin-sdk": "2.12.0"
+  },
+  "native_http": {
+    "runtime": {
+      "http_status": 200,
+      "summary": {
+        "success": true,
+        "data_dir": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance/data/a-memorix",
+        "embedding_dimension": 4096,
+        "stored_vector_dimension": 4096,
+        "vector_rebuild_required": false,
+        "embedding_fingerprint_status": "matched",
+        "auto_save": true,
+        "relation_vectors_enabled": false,
+        "vector_pools_ready": true,
+        "vector_pools_effective_mode": "dual",
+        "memory_enabled": true,
+        "runtime_ready": true,
+        "retrieval_ready": true,
+        "degraded": false,
+        "retrieval_mode": "hybrid",
+        "available_channels": [
+          "metadata",
+          "sparse",
+          "graph",
+          "vector_read",
+          "vector_write",
+          "embedding"
+        ],
+        "unavailable_channels": [],
+        "vector_health": {},
+        "embedding_degraded": false,
+        "paragraph_vector_backfill_pending": 0,
+        "paragraph_vector_backfill_failed": 0,
+        "enabled": true,
+        "startup_state": "ready",
+        "initializing": false,
+        "initialization_failed": false,
+        "error_stage": "",
+        "startup_queue_pending": 0
+      }
+    },
+    "embedding_probe": {
+      "http_status": 200,
+      "summary": {
+        "success": true,
+        "report": {
+          "ok": true,
+          "code": "ok",
+          "configured_dimension": 4096,
+          "vector_store_dimension": 4096,
+          "detected_dimension": 4096,
+          "encoded_dimension": 4096,
+          "elapsed_ms": 1174.5526660015457
+        },
+        "enabled": true,
+        "memory_enabled": true,
+        "runtime_ready": true,
+        "retrieval_ready": true,
+        "degraded": false,
+        "retrieval_mode": "hybrid",
+        "available_channels": [
+          "metadata",
+          "sparse",
+          "graph",
+          "vector_read",
+          "vector_write",
+          "embedding"
+        ],
+        "unavailable_channels": [],
+        "vector_health": {},
+        "startup_state": "ready",
+        "initializing": false,
+        "initialization_failed": false,
+        "error_stage": "",
+        "startup_queue_pending": 0,
+        "data_dir": "/Users/pencil/Documents/IntVideoGameEditor/experiments/maibot-native/instance/data/a-memorix"
+      }
+    }
+  },
+  "limits": [
+    "Does not start MaiBot, import its runtime, or accept agreements.",
+    "Storage/config checks do not prove Planner selected memory or Replyer used it.",
+    "Verify native chat tool calls and answer against a known synthetic fact separately."
+  ]
+}

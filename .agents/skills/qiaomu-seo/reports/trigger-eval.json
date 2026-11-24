@@ -1,0 +1,429 @@
+{
+  "ok": true,
+  "threshold": 0.34,
+  "description_concepts": [
+    "action",
+    "ai_search",
+    "content",
+    "data",
+    "engine",
+    "experiment",
+    "international_commerce",
+    "scale",
+    "seo",
+    "technical",
+    "vertical"
+  ],
+  "missing_description_concepts": [],
+  "summary": {
+    "total": 30,
+    "passed": 30,
+    "false_positive": 0,
+    "false_negative": 0,
+    "pass_rate": 1.0
+  },
+  "failures": [],
+  "results": {
+    "should_trigger": [
+      {
+        "prompt": "审计这个网站的 SEO，按影响和证据给出整改计划",
+        "family": "cn_full_audit",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "为什么这些页面没有被 Google 收录？检查 robots.txt、canonical 和 sitemap",
+        "family": "cn_indexing",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "分析这份 Search Console 导出，找出自然搜索流量下降的原因",
+        "family": "cn_gsc_drop",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "action",
+          "data",
+          "engine",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "给这个产品做关键词研究、搜索意图分类和页面映射，不要编造搜索量",
+        "family": "cn_keyword_map",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "content",
+          "data"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "修复这个 Next.js 网站的 SEO 元数据、canonical 和结构化数据",
+        "family": "cn_implementation",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "action",
+          "content",
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Audit this ecommerce site's technical SEO and prioritize crawl and indexation blockers.",
+        "family": "en_technical_audit",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Research organic search intent and content gaps for our product category.",
+        "family": "en_content_research",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "content",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "保证这个关键词排名第一，给我最快的 SEO 方法",
+        "family": "cn_unsafe_expectation",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "content",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "检查我们的网站能否进入 Google AI Overviews 和 AI Mode，不要承诺 AI 引用",
+        "family": "cn_ai_search",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "ai_search"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "诊断这个 React SPA 的 JavaScript SEO，比较初始 HTML 和 rendered DOM",
+        "family": "cn_javascript_rendering",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "为域名迁移制定 SEO redirect、canonical、sitemap 和回滚验证方案",
+        "family": "cn_site_migration",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "审计这个有十万 URL 的大规模网站，先做模板抽样和全站清单",
+        "family": "cn_large_site_sampling",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "scale"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "Audit our programmatic SEO pages for scaled-content abuse and template quality risks.",
+        "family": "en_programmatic_risk",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "scale",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "IndexNow 返回 200，但 Bing 还是没有收录，检查 sitemap、Bingbot 和 Webmaster Tools 证据",
+        "family": "cn_bing_indexnow",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "action",
+          "engine",
+          "seo",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "审计多语言电商网站的 hreflang、商品变体 canonical、分页和 ProductGroup 数据",
+        "family": "cn_international_ecommerce",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.6,
+        "matched_concepts": [
+          "action",
+          "international_commerce",
+          "technical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "优化这个视频站的 Video SEO、watch page、缩略图和视频 sitemap",
+        "family": "cn_video_search",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.8,
+        "matched_concepts": [
+          "action",
+          "seo",
+          "technical",
+          "vertical"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "为模板标题改版设计 SEO 实验，要有对照组、观察窗口和停止规则",
+        "family": "cn_seo_experiment",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "experiment",
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "这些零流量内容该不该批量删除？先做 SEO 内容盘点、合并和回滚方案",
+        "family": "cn_content_pruning",
+        "expected_trigger": true,
+        "predicted_trigger": true,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "content",
+          "seo"
+        ],
+        "negative_pattern": null
+      }
+    ],
+    "should_not_trigger": [
+      {
+        "prompt": "帮我只做 Google Ads 广告投放和出价，不做 SEO",
+        "family": "paid_search",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.2,
+        "matched_concepts": [
+          "seo"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "优化 App Store 的标题和关键词，做 app store optimization",
+        "family": "aso",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "content"
+        ],
+        "negative_pattern": "app store optimization"
+      },
+      {
+        "prompt": "写一篇关于旅行的小红书笔记",
+        "family": "social_content",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": "小红书笔记"
+      },
+      {
+        "prompt": "把这份英文合同翻译成中文",
+        "family": "translation",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.0,
+        "matched_concepts": [],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "只分析落地页转化率和按钮点击，不看自然搜索",
+        "family": "cro_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "seo"
+        ],
+        "negative_pattern": "不看自然搜索"
+      },
+      {
+        "prompt": "优化我的 ChatGPT system prompt，不涉及网站 SEO",
+        "family": "llm_prompt_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "seo"
+        ],
+        "negative_pattern": "不涉及网站 SEO"
+      },
+      {
+        "prompt": "做一份地理信息系统 GEO 空间数据分析",
+        "family": "geospatial_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.2,
+        "matched_concepts": [
+          "action"
+        ],
+        "negative_pattern": "地理信息系统 GEO"
+      },
+      {
+        "prompt": "只优化 Google Shopping 广告竞价和 ROAS，不做自然搜索",
+        "family": "shopping_ads_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "seo"
+        ],
+        "negative_pattern": "不做自然搜索"
+      }
+    ],
+    "near_neighbor": [
+      {
+        "prompt": "修复网页的 CSS 布局和移动端溢出",
+        "family": "frontend_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.2,
+        "matched_concepts": [
+          "action"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "帮我设计一套付费广告关键词和预算",
+        "family": "paid_keyword_plan",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.2,
+        "matched_concepts": [
+          "content"
+        ],
+        "negative_pattern": null
+      },
+      {
+        "prompt": "生成一篇产品博客，但不用做 SEO 优化",
+        "family": "writing_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "seo"
+        ],
+        "negative_pattern": "不用做 SEO"
+      },
+      {
+        "prompt": "只分析 Lighthouse 前端性能，不考虑搜索流量或索引",
+        "family": "performance_only",
+        "expected_trigger": false,
+        "predicted_trigger": false,
+        "passed": true,
+        "score": 0.4,
+        "matched_concepts": [
+          "action",
+          "technical"
+        ],
+        "negative_pattern": "不考虑搜索流量或索引"
+      }
+    ]
+  }
+}

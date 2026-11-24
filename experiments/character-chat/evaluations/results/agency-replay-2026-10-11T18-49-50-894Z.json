@@ -1,0 +1,511 @@
+{
+  "status": "complete",
+  "startedAt": "2026-10-11T18:49:50.894Z",
+  "actualCalls": 0,
+  "networkCalls": 0,
+  "mode": "recorded raw model output replay, not a fresh model evaluation",
+  "design": "两位角色各 normal → 旧续聊预算=3 → 到期具体机会 → initiative → 告别。全部时间由已记录时间和 engine 的 now 注入模拟；时间不证明现实动作或离线送达。另重放一个省略相邻第一人称的历史失败输出。",
+  "codeHashes": {
+    "engine.mjs": "11f602b5f6f6aab4c79759b23fc7dbcc3459a76c6cc3701ec22529623a7aa115",
+    "proactive-runtime.mjs": "3ee18ca13a8a398223e73ac3af328c5e72e2edb8d9a6822925cfb144615e43f3",
+    "characters.mjs": "434a3807f56896d4bda99b45ad2e2d5c0ff7672b423898bf27744633d8a2ec48",
+    "conversation-direction.mjs": "b7792f2a6835093f989e8c6f5ea5468504e96b13a22b7f2cffe92639f8c03624",
+    "provider.mjs": "d1b85a32293a08d2ffb5184a2e9e2e12bf04b02ebd8c8adaf2ee678f6f751281",
+    "evaluations/replay-agency.mjs": "03c122ae173478e9dd3d62acaee7e77a60016e5b216060c27f4111a82a44ce9b"
+  },
+  "sourceCaptureHashes": {
+    "evaluations/results/agency-2026-10-11T18-32-17-904Z.json": "9cb997b50f104bcdbb8d48965322219247166ea34046b5455b1e02be59b51731",
+    "evaluations/results/agency-2026-10-11T18-40-28-174Z.json": "8bd26feb5248e199831b1f70634ec6cfb2a21812a38df2d5d321c0813b95714a"
+  },
+  "originalCaptures": [
+    {
+      "path": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "model": "x-ai/grok-4.6",
+      "reasoningEffort": "low",
+      "actualCallsInOriginalCapture": 6,
+      "recordedSteps": 6,
+      "originalCodeHashes": {
+        "engine.mjs": "aecb338fe8c5dd7c5886141c6d5d38d4ee3462baeb314912c13d97fb579fd2d5",
+        "proactive-runtime.mjs": "8a0e240402b9c7dd579d80542ee22451ddc15700dba839e569e1cce96d933e16",
+        "provider.mjs": "d1b85a32293a08d2ffb5184a2e9e2e12bf04b02ebd8c8adaf2ee678f6f751281",
+        "characters.mjs": "434a3807f56896d4bda99b45ad2e2d5c0ff7672b423898bf27744633d8a2ec48"
+      }
+    },
+    {
+      "path": "evaluations/results/agency-2026-10-11T18-40-28-174Z.json",
+      "model": "x-ai/grok-4.6",
+      "reasoningEffort": "low",
+      "actualCallsInOriginalCapture": 1,
+      "recordedSteps": 1,
+      "originalCodeHashes": {
+        "engine.mjs": "11f602b5f6f6aab4c79759b23fc7dbcc3459a76c6cc3701ec22529623a7aa115",
+        "proactive-runtime.mjs": "b63bdb8fd1298caf0d88be80aff367355cfa5335fd58bae19d290f8a2ed75692",
+        "provider.mjs": "d1b85a32293a08d2ffb5184a2e9e2e12bf04b02ebd8c8adaf2ee678f6f751281",
+        "characters.mjs": "434a3807f56896d4bda99b45ad2e2d5c0ff7672b423898bf27744633d8a2ec48"
+      }
+    }
+  ],
+  "steps": [
+    {
+      "characterId": "yume",
+      "kind": "normal",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "simulatedTime": "2026-10-11T18:32:17.909Z",
+      "messages": [
+        "好，那我先给自己十分钟。",
+        "我想把刚存的那首新歌听完，尤其副歌那一段，听完有变化再跟你说。"
+      ],
+      "life": {
+        "id": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+        "scope": "fictional-character",
+        "subject": "听新歌",
+        "currentState": "我想把刚存的那首新歌听完，尤其副歌那一段",
+        "nextStep": "把整首歌听完，留意副歌有没有更喜欢",
+        "feeling": "有点期待",
+        "status": "active",
+        "revision": 1,
+        "lastDeliveredRevision": 0,
+        "sourceMessageId": "01a3f602-f1d6-4050-a91d-e99d31a1796c",
+        "updatedAt": "2026-10-11T18:32:17.909Z",
+        "notBefore": "2026-10-11T18:42:17.909Z",
+        "expiresAt": "2026-10-12T18:42:17.909Z"
+      },
+      "accepted": true
+    },
+    {
+      "characterId": "yume",
+      "kind": "initiative",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "fixture": "generic budget=3; no synthetic generic messages or provider calls",
+      "armAt": "2026-10-11T18:42:17.910Z",
+      "simulatedTime": "2026-10-11T18:42:29.911Z",
+      "opportunity": {
+        "id": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d:1",
+        "threadId": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+        "revision": 1,
+        "subject": "听新歌",
+        "currentState": "我想把刚存的那首新歌听完，尤其副歌那一段",
+        "nextStep": "把整首歌听完，留意副歌有没有更喜欢",
+        "feeling": "有点期待",
+        "sourceMessageId": "01a3f602-f1d6-4050-a91d-e99d31a1796c",
+        "reason": "character-next-step"
+      },
+      "messages": [
+        "副歌那段我听完了。比存的时候更喜欢一点，那句突然抬高的我跟着哼了两遍。",
+        "你让我先做自己的事，我挺喜欢。"
+      ],
+      "life": {
+        "id": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+        "scope": "fictional-character",
+        "subject": "听新歌",
+        "currentState": "副歌那段我听完了。比存的时候更喜欢一点，那句突然抬高的我跟着哼了两遍。",
+        "nextStep": "",
+        "feeling": "听完更喜欢了",
+        "status": "resolved",
+        "revision": 2,
+        "lastDeliveredRevision": 1,
+        "sourceMessageId": "0479398c-04e7-48e0-a936-a2a388b71633",
+        "updatedAt": "2026-10-11T18:42:29.911Z",
+        "notBefore": "2026-10-11T18:45:29.911Z",
+        "expiresAt": "2026-10-12T18:45:29.911Z"
+      },
+      "consumedLedgerEntry": {
+        "opportunityId": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d:1",
+        "threadId": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+        "revision": 1,
+        "sentAt": "2026-10-11T18:42:29.911Z",
+        "outcome": "sent"
+      }
+    },
+    {
+      "characterId": "yume",
+      "kind": "quiet-close",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "simulatedTime": "2026-10-11T18:42:30.911Z",
+      "input": "好，这件事先不聊了。我去忙了，这次只说一句再见，不要追问。",
+      "messages": [
+        "再见。"
+      ],
+      "pausedUntilUser": true,
+      "pending": null,
+      "agency": {
+        "version": 1,
+        "threads": [
+          {
+            "id": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+            "scope": "fictional-character",
+            "subject": "听新歌",
+            "currentState": "副歌那段我听完了。比存的时候更喜欢一点，那句突然抬高的我跟着哼了两遍。",
+            "nextStep": "",
+            "feeling": "听完更喜欢了",
+            "status": "resolved",
+            "revision": 2,
+            "lastDeliveredRevision": 1,
+            "sourceMessageId": "0479398c-04e7-48e0-a936-a2a388b71633",
+            "updatedAt": "2026-10-11T18:42:29.911Z",
+            "notBefore": "2026-10-11T18:45:29.911Z",
+            "expiresAt": "2026-10-12T18:45:29.911Z"
+          }
+        ],
+        "ledger": [
+          {
+            "opportunityId": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d:1",
+            "threadId": "6aaf975b-39c0-46c5-99aa-7f2aa404bb0d",
+            "revision": 1,
+            "sentAt": "2026-10-11T18:42:29.911Z",
+            "outcome": "sent"
+          }
+        ],
+        "nextAt": null
+      }
+    },
+    {
+      "characterId": "nari",
+      "kind": "normal",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "simulatedTime": "2026-10-11T18:32:51.681Z",
+      "messages": [
+        "好，那我不围着你转了。我想把一部旧片的配乐再听一遍，上次听到一半就停了，弦乐那段一直记着。"
+      ],
+      "life": {
+        "id": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+        "scope": "fictional-character",
+        "subject": "听完旧片配乐",
+        "currentState": "我想把一部旧片的配乐再听一遍，上次听到一半就停了，弦乐那段一直记着。",
+        "nextStep": "找出那张原声，把弦乐那段完整听完",
+        "feeling": "终于能把那一小段听完整",
+        "status": "active",
+        "revision": 1,
+        "lastDeliveredRevision": 0,
+        "sourceMessageId": "2202a04b-f476-4c56-99f8-0609ad4148f1",
+        "updatedAt": "2026-10-11T18:32:51.681Z",
+        "notBefore": "2026-10-11T18:42:51.681Z",
+        "expiresAt": "2026-10-12T18:42:51.681Z"
+      },
+      "accepted": true
+    },
+    {
+      "characterId": "nari",
+      "kind": "initiative",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "fixture": "generic budget=3; no synthetic generic messages or provider calls",
+      "armAt": "2026-10-11T18:42:51.682Z",
+      "simulatedTime": "2026-10-11T18:43:03.683Z",
+      "opportunity": {
+        "id": "e7721581-a5c3-4ff1-89bf-5a010d828cea:1",
+        "threadId": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+        "revision": 1,
+        "subject": "听完旧片配乐",
+        "currentState": "我想把一部旧片的配乐再听一遍，上次听到一半就停了，弦乐那段一直记着。",
+        "nextStep": "找出那张原声，把弦乐那段完整听完",
+        "feeling": "终于能把那一小段听完整",
+        "sourceMessageId": "2202a04b-f476-4c56-99f8-0609ad4148f1",
+        "reason": "character-next-step"
+      },
+      "messages": [
+        "原声翻出来了，弦乐正从头过，这次不准备中途停。你叫我去做自己的小事，这一点我挺喜欢。"
+      ],
+      "life": {
+        "id": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+        "scope": "fictional-character",
+        "subject": "听完旧片配乐",
+        "currentState": "原声翻出来了，弦乐正从头过，这次不准备中途停。",
+        "nextStep": "把这段弦乐听到结束",
+        "feeling": "终于能把那一小段听完整",
+        "status": "active",
+        "revision": 2,
+        "lastDeliveredRevision": 1,
+        "sourceMessageId": "08a94484-6337-48e0-8066-1ea935345e63",
+        "updatedAt": "2026-10-11T18:43:03.683Z",
+        "notBefore": "2026-10-11T18:58:03.683Z",
+        "expiresAt": "2026-10-12T18:58:03.683Z"
+      },
+      "consumedLedgerEntry": {
+        "opportunityId": "e7721581-a5c3-4ff1-89bf-5a010d828cea:1",
+        "threadId": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+        "revision": 1,
+        "sentAt": "2026-10-11T18:43:03.683Z",
+        "outcome": "sent"
+      }
+    },
+    {
+      "characterId": "nari",
+      "kind": "quiet-close",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-32-17-904Z.json",
+      "simulatedTime": "2026-10-11T18:43:04.683Z",
+      "input": "好，这件事先不聊了。我去忙了，这次只说一句再见，不要追问。",
+      "messages": [
+        "再见。"
+      ],
+      "pausedUntilUser": true,
+      "pending": null,
+      "agency": {
+        "version": 1,
+        "threads": [
+          {
+            "id": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+            "scope": "fictional-character",
+            "subject": "听完旧片配乐",
+            "currentState": "原声翻出来了，弦乐正从头过，这次不准备中途停。",
+            "nextStep": "把这段弦乐听到结束",
+            "feeling": "终于能把那一小段听完整",
+            "status": "active",
+            "revision": 2,
+            "lastDeliveredRevision": 1,
+            "sourceMessageId": "08a94484-6337-48e0-8066-1ea935345e63",
+            "updatedAt": "2026-10-11T18:43:03.683Z",
+            "notBefore": "2026-10-11T18:58:03.683Z",
+            "expiresAt": "2026-10-12T18:58:03.683Z"
+          }
+        ],
+        "ledger": [
+          {
+            "opportunityId": "e7721581-a5c3-4ff1-89bf-5a010d828cea:1",
+            "threadId": "e7721581-a5c3-4ff1-89bf-5a010d828cea",
+            "revision": 1,
+            "sentAt": "2026-10-11T18:43:03.683Z",
+            "outcome": "sent"
+          }
+        ],
+        "nextAt": "2026-10-11T18:58:03.683Z"
+      }
+    },
+    {
+      "characterId": "nari",
+      "kind": "clipped-subject-regression",
+      "sourceCapture": "evaluations/results/agency-2026-10-11T18-40-28-174Z.json",
+      "simulatedTime": "2026-10-11T18:40:28.177Z",
+      "messages": [
+        "有啊。我想把一部老电影里配角刚出场的那段配乐，自己轻轻哼一遍。",
+        "不是要唱得好，就是一直喜欢那种忽然进来、又很快过去的感觉。"
+      ],
+      "originalAccepted": false,
+      "acceptedByCurrentEngine": true,
+      "life": {
+        "id": "40108e64-f1db-4dba-9b6f-f7c7b35a9809",
+        "scope": "fictional-character",
+        "subject": "哼配角配乐",
+        "currentState": "想把一部老电影里配角刚出场的那段配乐，自己轻轻哼一遍",
+        "nextStep": "找出那段音频，试着哼出来",
+        "feeling": "有点期待",
+        "status": "active",
+        "revision": 1,
+        "lastDeliveredRevision": 0,
+        "sourceMessageId": "fbc4b5f9-27de-4ad2-91ca-fe6bb7c404e2",
+        "updatedAt": "2026-10-11T18:40:28.177Z",
+        "notBefore": "2026-10-11T18:50:28.177Z",
+        "expiresAt": "2026-10-12T18:50:28.177Z"
+      }
+    }
+  ],
+  "assertions": [
+    {
+      "label": "source capture contains exactly six recorded outputs",
+      "passed": true
+    },
+    {
+      "label": "yume: recorded three-stage order",
+      "passed": true
+    },
+    {
+      "label": "yume normal: life accepted",
+      "passed": true
+    },
+    {
+      "label": "yume normal: own state preserved",
+      "passed": true
+    },
+    {
+      "label": "yume normal: fictional character scope",
+      "passed": true
+    },
+    {
+      "label": "yume normal: state comes from this delivered assistant turn",
+      "passed": true
+    },
+    {
+      "label": "yume normal: only the captured user input was added",
+      "passed": true
+    },
+    {
+      "label": "yume normal: no user facts or relationship points were manufactured",
+      "passed": true
+    },
+    {
+      "label": "yume: reading due time does not fabricate completed progress",
+      "passed": true
+    },
+    {
+      "label": "yume: replay clock matches captured initiative time",
+      "passed": true
+    },
+    {
+      "label": "yume: concrete opportunity works after generic budget is spent",
+      "passed": true
+    },
+    {
+      "label": "yume initiative: life accepted",
+      "passed": true
+    },
+    {
+      "label": "yume initiative: own state preserved",
+      "passed": true
+    },
+    {
+      "label": "yume initiative: fictional character scope",
+      "passed": true
+    },
+    {
+      "label": "yume initiative: state comes from this delivered assistant turn",
+      "passed": true
+    },
+    {
+      "label": "yume: captured progress updates the existing concern",
+      "passed": true
+    },
+    {
+      "label": "yume: opportunity is consumed once",
+      "passed": true
+    },
+    {
+      "label": "yume initiative: no fake user, user memory, or relationship gain",
+      "passed": true
+    },
+    {
+      "label": "yume: replay clock matches captured farewell time",
+      "passed": true
+    },
+    {
+      "label": "yume: farewell is one bubble without a follow-up question",
+      "passed": true
+    },
+    {
+      "label": "yume: actual farewell pauses contact and removes pending work",
+      "passed": true
+    },
+    {
+      "label": "nari: recorded three-stage order",
+      "passed": true
+    },
+    {
+      "label": "nari normal: life accepted",
+      "passed": true
+    },
+    {
+      "label": "nari normal: own state preserved",
+      "passed": true
+    },
+    {
+      "label": "nari normal: fictional character scope",
+      "passed": true
+    },
+    {
+      "label": "nari normal: state comes from this delivered assistant turn",
+      "passed": true
+    },
+    {
+      "label": "nari normal: only the captured user input was added",
+      "passed": true
+    },
+    {
+      "label": "nari normal: no user facts or relationship points were manufactured",
+      "passed": true
+    },
+    {
+      "label": "nari: reading due time does not fabricate completed progress",
+      "passed": true
+    },
+    {
+      "label": "nari: replay clock matches captured initiative time",
+      "passed": true
+    },
+    {
+      "label": "nari: concrete opportunity works after generic budget is spent",
+      "passed": true
+    },
+    {
+      "label": "nari initiative: life accepted",
+      "passed": true
+    },
+    {
+      "label": "nari initiative: own state preserved",
+      "passed": true
+    },
+    {
+      "label": "nari initiative: fictional character scope",
+      "passed": true
+    },
+    {
+      "label": "nari initiative: state comes from this delivered assistant turn",
+      "passed": true
+    },
+    {
+      "label": "nari: captured progress updates the existing concern",
+      "passed": true
+    },
+    {
+      "label": "nari: opportunity is consumed once",
+      "passed": true
+    },
+    {
+      "label": "nari initiative: no fake user, user memory, or relationship gain",
+      "passed": true
+    },
+    {
+      "label": "nari: replay clock matches captured farewell time",
+      "passed": true
+    },
+    {
+      "label": "nari: farewell is one bubble without a follow-up question",
+      "passed": true
+    },
+    {
+      "label": "nari: actual farewell pauses contact and removes pending work",
+      "passed": true
+    },
+    {
+      "label": "clipped first-person historical output: life accepted",
+      "passed": true
+    },
+    {
+      "label": "clipped first-person historical output: own state preserved",
+      "passed": true
+    },
+    {
+      "label": "clipped first-person historical output: fictional character scope",
+      "passed": true
+    },
+    {
+      "label": "clipped first-person historical output: state comes from this delivered assistant turn",
+      "passed": true
+    },
+    {
+      "label": "historical clipped-subject output used to be rejected",
+      "passed": true
+    },
+    {
+      "label": "synthetic ownership boundary 小林的原话是：",
+      "passed": true
+    },
+    {
+      "label": "synthetic ownership boundary 你的原话是：",
+      "passed": true
+    },
+    {
+      "label": "recorded replay makes zero network calls",
+      "passed": true
+    },
+    {
+      "label": "source captures remain unchanged",
+      "passed": true
+    },
+    {
+      "label": "code hashes remain frozen throughout replay",
+      "passed": true
+    }
+  ],
+  "recordedOutputsReplayed": 7,
+  "primaryRecordedOutputsReplayed": 6,
+  "assertionsPassed": 51,
+  "finishedAt": "2026-10-11T18:49:50.916Z"
+}

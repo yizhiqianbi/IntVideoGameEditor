@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "xumeng-video",
+  "main": "src/worker.ts",
+  "compatibility_date": "2026-10-30",
+  "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
+  "account_id": "274d62c1f24b885b3dfe562cda5d60c1",
+  "routes": [{ "pattern": "video.xumengchat.top", "custom_domain": true }],
+  "assets": { "directory": "./dist", "binding": "ASSETS", "not_found_handling": "single-page-application", "run_worker_first": true },
+  "r2_buckets": [{ "binding": "MEDIA", "bucket_name": "dzmm-media" }]
+}

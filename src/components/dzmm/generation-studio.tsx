@@ -53,6 +53,8 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   const [aspectRatio, setAspectRatio] = useState("1:1");
   const [duration, setDuration] = useState(5);
   const [prompt, setPrompt] = useState("");
+  const [polishing, setPolishing] = useState(false);
+  const [promptOverride, setPromptOverride] = useState("");
   const [templateId, setTemplateId] = useState("");
   const [editorMode, setEditorMode] = useState<"template" | "legacy">("template");
   const [templateDrafts, setTemplateDrafts] = useState<GenerationTemplateDrafts>({});
@@ -120,10 +122,11 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     try { compiledPrompt = compileGenerationTemplateDraft(template, templateDraft); }
     catch (failure) { compiledPrompt = ""; templateError = message(failure, c.gsDisconnect); }
   }
+  const sentPrompt = promptOverride.trim() ? promptOverride : compiledPrompt;
   const hasLegacyDraft = editorMode === "legacy";
   const draftKey = `xumeng-generation-draft:${userId}`;
   const submitKey = `xumeng-generation-request:${userId}`;
-  const input: GenerationInput = { accountId: userId, kind, modelId: model?.id ?? "", prompt: compiledPrompt.trim(), aspectRatio: aspect,
+  const input: GenerationInput = { accountId: userId, kind, modelId: model?.id ?? "", prompt: sentPrompt.trim(), aspectRatio: aspect,
     ...(kind === "video" ? { duration: seconds } : {}), ...(needsReference && referenceImage ? { referenceImageId: referenceImage.id } : {}), ...(templateId ? { templateId } : {}) };
   const fingerprint = JSON.stringify(input);
   const currentQuote = quote && JSON.stringify(quote.input) === fingerprint ? quote.value : null;
@@ -228,9 +231,9 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
 
   useEffect(() => {
     if (draftReady?.key !== draftKey || draftReady.epoch !== draftHydrationEpoch.current) return;
-    try { sessionStorage.setItem(draftKey, JSON.stringify({ schemaVersion: 2, kind, prompt: compiledPrompt, modelId, aspectRatio, duration, templateId,
+    try { sessionStorage.setItem(draftKey, JSON.stringify({ schemaVersion: 2, kind, prompt: sentPrompt, modelId, aspectRatio, duration, templateId,
       editorMode, templateDrafts, workspaceMode, useReferenceImage, referenceImage })); } catch { /* Optional local draft. */ }
-  }, [draftReady, draftKey, kind, compiledPrompt, modelId, aspectRatio, duration, templateId, editorMode, templateDrafts, workspaceMode, useReferenceImage, referenceImage]);
+  }, [draftReady, draftKey, kind, sentPrompt, modelId, aspectRatio, duration, templateId, editorMode, templateDrafts, workspaceMode, useReferenceImage, referenceImage]);
   useEffect(() => {
     const element = replacementDialog.current;
     if (!element) return;
@@ -278,7 +281,7 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     setKind(value.kind); setTemplateId(value.id); setEditorMode("template"); setAspectRatio(value.aspectRatio); setUseReferenceImage(true);
     if (value.kind === "video") setDuration(5);
     replaceGpuPreview(""); setGpuResultKind("image");
-    setQuote(null); setError(""); setNotice(""); setSelectedId(""); setWorkspaceMode("create");
+    setPromptOverride(""); setQuote(null); setError(""); setNotice(""); setSelectedId(""); setWorkspaceMode("create");
     setPendingTemplate(null);
     revealReference.current = true;
   }
@@ -292,12 +295,12 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     if (!template || !templateDraft || busy) return;
     setTemplateDrafts(previous => ({ ...previous, [template.id]: { ...templateDraft,
       values: { ...templateDraft.values, [id]: value } } }));
-    setQuote(null); setError("");
+    setPromptOverride(""); setQuote(null); setError("");
   }
   function changeAdditionalRequirements(value: string) {
     if (!template || !templateDraft || busy) return;
     setTemplateDrafts(previous => ({ ...previous, [template.id]: { ...templateDraft, additionalRequirements: value } }));
-    setQuote(null); setError("");
+    setPromptOverride(""); setQuote(null); setError("");
   }
   async function getQuote() {
     if (creating.current || busy) return;
@@ -389,8 +392,8 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     setBusy(true); setError(""); setNotice(""); setSelectedId("");
     try {
       const still = channelEngine === "channel"
-        ? await requestAiapiStill({ templateId: template.id, prompt: compiledPrompt, image: gpuReferenceImage.current, ratio: template.aspectRatio }, controller.signal)
-        : await requestKrea2Still({ templateId: template.id, prompt: compiledPrompt, image: gpuReferenceImage.current, style: styleId }, controller.signal);
+        ? await requestAiapiStill({ templateId: template.id, prompt: sentPrompt, image: gpuReferenceImage.current, ratio: template.aspectRatio }, controller.signal)
+        : await requestKrea2Still({ templateId: template.id, prompt: sentPrompt, image: gpuReferenceImage.current, style: styleId }, controller.signal);
       if (controller.signal.aborted || !mounted.current) return;
       setGpuResultKind("image");
       replaceGpuPreview(URL.createObjectURL(still.image));
@@ -410,8 +413,8 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     setBusy(true); setError(""); setNotice(c.gsRendering); setSelectedId("");
     try {
       const video = channelEngine === "channel"
-        ? await requestAiapiVideo({ templateId: template.id, prompt: compiledPrompt, image: gpuReferenceImage.current, ratio: "9:16" }, controller.signal)
-        : await requestH3ReferenceVideo({ templateId: template.id, prompt: compiledPrompt, image: gpuReferenceImage.current }, controller.signal);
+        ? await requestAiapiVideo({ templateId: template.id, prompt: sentPrompt, image: gpuReferenceImage.current, ratio: "9:16" }, controller.signal)
+        : await requestH3ReferenceVideo({ templateId: template.id, prompt: sentPrompt, image: gpuReferenceImage.current }, controller.signal);
       if (controller.signal.aborted || !mounted.current) return;
       setGpuResultKind("video");
       replaceGpuPreview(URL.createObjectURL(video));
@@ -437,7 +440,30 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     } catch (failure) { if (mounted.current) setError(message(failure, c.gsDisconnect)); }
     finally { creating.current = false; if (mounted.current) setBusy(false); }
   }
-  function newGeneration() { requestIds.current.clear(); setSubmission(null); try { sessionStorage.removeItem(submitKey); } catch {} setQuote(null); setSelectedId("");
+  async function polishPrompt() {
+    if (isGuest) { onRequireAccount(); return; }
+    const extra = templateDraft?.additionalRequirements.trim() ?? "";
+    const source = hasLegacyDraft ? prompt : (extra || sentPrompt);
+    if (source.trim().length < 2) { setError("先写一句再优化。"); return; }
+    setPolishing(true); setError("");
+    try {
+      const response = await fetch("/api/aigen/optimize-prompt", {
+        method: "POST", credentials: "same-origin",
+        headers: { "Content-Type": "application/json", "X-Adult-Confirmed": "1" },
+        body: JSON.stringify({ text: source, kind: kind === "video" ? "video" : "image" }),
+      });
+      const payload = await response.json().catch(() => null) as { prompt?: string; error?: string } | null;
+      if ((response.status === 401 || response.status === 403)) onRequireAccount();
+      if (!response.ok || typeof payload?.prompt !== "string") throw new Error(payload?.error || "提示词没有优化完。");
+      if (!mounted.current) return;
+      if (hasLegacyDraft) { setPrompt(payload.prompt.slice(0, 4000)); setPromptOverride(""); }
+      else if (extra) changeAdditionalRequirements(payload.prompt.slice(0, 1000));
+      else setPromptOverride(payload.prompt.slice(0, 4000));
+      setQuote(null);
+    } catch (failure) { if (mounted.current) setError(message(failure, "提示词没有优化完。")); }
+    finally { if (mounted.current) setPolishing(false); }
+  }
+  function newGeneration() { requestIds.current.clear(); setSubmission(null); try { sessionStorage.removeItem(submitKey); } catch {} setPromptOverride(""); setQuote(null); setSelectedId("");
     setWorkspaceMode(template || hasLegacyDraft ? "create" : "templates"); setNotice(template ? c.gsNewFromTemplate : hasLegacyDraft ? c.gsOldKept : c.gsPickThenQuote); }
   const actionLabel = busy && h3Video ? c.gsMakingVideo : busy && gpuStill ? c.gsMakingImage : busy ? c.gsWorking : h3Video ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : c.gsMakeVideo) : gpuStill ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : xumengStudioFill(c.gsMakeImage, { credits: points(STUDIO_STILL_CREDITS) })) : stillBlocked && !recovering ? c.gsCannot : isGuest ? c.gsLoginStart : recovering ? c.gsCheckJob : uploadingReference ? c.gsUploading : checkingReference ? c.gsRestoring : needsReference && !referenceImage ? c.gsNeedRef : currentQuote ? xumengStudioFill(c.gsConfirm, { credits: points(currentQuote.maxCredits) }) : c.gsSeeQuote;
   const quotedConfirm = currentQuote ? xumengStudioFill(c.gsConfirm, { credits: points(currentQuote.maxCredits) }) : "";
@@ -471,11 +497,13 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
       {needsReference && referenceRecoveryError && <div className={s.error} role="alert"><span>{referenceRecoveryError}</span><button type="button" disabled={busy || uploadingReference || checkingReference} onClick={retryReference}>{c.gsRetryRef}</button></div>}
       {template && templateDraft && <div className={s.parameterFields} role="group" aria-label={c.gsParams}>
         {template.fields.map((field, index) => <label key={`${template.id}-${field.id}`}>{field.label}<span>{(templateDraft.values[field.id] ?? "").length} / 1,000</span><textarea ref={index === 0 ? promptInput : undefined} rows={2} maxLength={1000} required disabled={busy} placeholder={field.placeholder} value={templateDraft.values[field.id] ?? ""} onChange={event => changeTemplateField(field.id, event.target.value)}/>{field.description && <small>{field.description}</small>}</label>)}
-        <label>{actionTemplate ? c.gsMotionExtra : c.gsExtra} <em>{c.gsOptionalMark}</em><span>{templateDraft.additionalRequirements.length} / 1,000</span><textarea rows={2} maxLength={1000} disabled={busy} placeholder={actionTemplate ? c.gsMotionPh : c.gsExtraPh} value={templateDraft.additionalRequirements} onChange={event => changeAdditionalRequirements(event.target.value)}/></label>
+        <label>{actionTemplate ? c.gsMotionExtra : c.gsExtra} <em>{c.gsOptionalMark}</em><span>{templateDraft.additionalRequirements.length} / 1,000</span><textarea rows={2} maxLength={1000} disabled={busy || polishing} placeholder={actionTemplate ? c.gsMotionPh : c.gsExtraPh} value={templateDraft.additionalRequirements} onChange={event => changeAdditionalRequirements(event.target.value)}/></label>
+        <button type="button" className={s.optimize} disabled={busy || polishing} onClick={() => void polishPrompt()}>{polishing ? "优化中…" : "提示词优化"}</button>
         {templateError && <p className={s.parameterError} role="status">{templateError}</p>}
-        <details className={s.descriptionPreview}><summary>{c.gsViewPrompt}<span>{compiledPrompt.length} / 4,000</span></summary><p>{compiledPrompt || c.gsPromptEmpty}</p></details>
+        <details className={s.descriptionPreview}><summary>{c.gsViewPrompt}<span>{sentPrompt.length} / 4,000</span></summary><p>{sentPrompt || c.gsPromptEmpty}</p></details>
       </div>}
-      {hasLegacyDraft && <label className={s.prompt}>{c.gsOldPrompt}<span>{prompt.length} / 4,000</span><textarea ref={promptInput} rows={7} maxLength={4000} disabled={busy} value={prompt} onChange={event => { setPrompt(event.target.value); setQuote(null); }} /></label>}
+      {hasLegacyDraft && <label className={s.prompt}>{c.gsOldPrompt}<span>{prompt.length} / 4,000</span><textarea ref={promptInput} rows={7} maxLength={4000} disabled={busy || polishing} value={prompt} onChange={event => { setPrompt(event.target.value); setQuote(null); }} /></label>}
+      {hasLegacyDraft && <button type="button" className={s.optimize} disabled={busy || polishing} onClick={() => void polishPrompt()}>{polishing ? "优化中…" : "提示词优化"}</button>}
       {!gpuStill && !h3Video && <div className={s.options}><label>{c.gsModel}<select disabled={busy || loading} value={model?.id ?? ""} onChange={event => { setModelId(event.target.value); setQuote(null); }}>{models.map(item => <option key={item.id} value={item.id}>{item.label}</option>)}</select></label><label>{c.gsRatio}<select disabled={busy || loading} value={aspect} onChange={event => { setAspectRatio(event.target.value); setQuote(null); }}>{model?.aspectRatios.map(value => <option key={value}>{value}</option>)}</select></label>{kind === "video" && <label>{c.gsDuration}<select disabled={busy || loading} value={seconds} onChange={event => { setDuration(Number(event.target.value)); setQuote(null); }}>{model?.durations.map(value => <option key={value} value={value}>{xumengStudioFill(c.gsSeconds, { n: value })}</option>)}</select></label>}</div>}
       {needsReference && model && !model.supportsReferenceImage && <p className={s.error}>{c.gsModelNoRef}</p>}
       {!gpuStill && !h3Video && template && aspect !== aspectRatio && <p className={s.fine}>{xumengStudioFill(c.gsAspectNote, { current: aspect, suggested: aspectRatio })}</p>}

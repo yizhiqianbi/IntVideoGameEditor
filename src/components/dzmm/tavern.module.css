@@ -2818,12 +2818,8 @@
   .mobileNav a.mobileCreate.navActive span.mobileCreateDisc {
     box-shadow: 0 12px 28px var(--rose-glow), 0 0 0 4px color-mix(in srgb, var(--bg) 82%, transparent), 0 0 0 5px var(--pink);
   }
-  .floatingChat {
-    bottom: 77px;
-    right: 15px;
-    width: 46px;
-    height: 46px;
-  }
+  .floatingChat { display: none; }
+  .catalog { padding-bottom: calc(36px + env(safe-area-inset-bottom)); }
   .toast {
     bottom: 76px;
     font-size: 12px;
@@ -2856,7 +2852,7 @@
   .chatBesideStage { margin: 0; border-radius: 0; }
   /* Portrait chat: the character shot sits behind the thread as a soft backdrop. */
   .chatPlay > .chatBackdrop { filter: blur(22px) saturate(1.1); transform: scale(1.12); opacity: .6; }
-  .chatBesideStage .chatBackdrop { filter: none; transform: none; }
+  .chatBesideStage .chatBackdrop { filter: none; transform: none; opacity: 1; }
   .chatPlay > .chatBackdropScrim.chatBackdropDark {
     background: linear-gradient(to bottom, rgba(7, 3, 10, 0.58) 0, rgba(7, 3, 10, 0.5) 18%, rgba(7, 3, 10, 0.56) 62%, rgba(7, 3, 10, 0.82) 100%);
   }
@@ -3534,6 +3530,9 @@
 .shelfHeroScript span:last-child { margin: -4px 0 0 54px; font-size: clamp(36px, 3.5vw, 52px); }
 .shelfHeroRule { width: 84px; height: 1px; margin: 10px 0 0 4px; background: linear-gradient(90deg, rgba(240, 201, 160, .95), transparent); }
 .shelfHeroActions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.coinGuide { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; padding: 10px 12px; border-radius: 10px; background: color-mix(in srgb, var(--gold) 18%, var(--surface)); color: var(--text); font-size: 12px; line-height: 1.5; }
+.coinGuide p { margin: 0; }
+.coinGuide button { flex: none; border: 0; background: none; color: var(--muted); }
 .shelfHeroActions button { height: 34px; padding: 0 12px; border: 1px solid rgba(255, 255, 255, .22); border-radius: 8px; background: rgba(8, 4, 8, .55); color: #fff; font-size: 12px; font-weight: 600; backdrop-filter: blur(8px); }
 .shelfHeroActions button:hover { background: rgba(255, 255, 255, .16); color: #fff; }
 @media (max-width: 767px) {

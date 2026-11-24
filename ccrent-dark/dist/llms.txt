@@ -1,0 +1,28 @@
+# CCRent — 美国 Mac mini 租用
+
+> 美国 Mac mini 租用：专属 Mac mini M4，接入美国住宅 IP（千兆家宽），预装 Claude Code，Claude Max / Ultra 账号由我们提供，远程连上就能用，48 小时内交付。
+
+## 套餐与价格
+- 仅 Mac 租赁：$143/月（账号自备）
+- Claude Max：$324/月起（含 Claude Max 账号，由我们提供）
+- Claude Ultra：$466/月起（含 Claude Ultra 账号，由我们提供）
+- 季付 9 折、年付 8 折；到期不自动续费；可开发票（税点另计）
+
+## 关键信息
+- 地区：美国（美国住宅 IP，非机房 IP）
+- 设备：Mac mini M4，16G 内存 + 256G 存储（美国可选 M4 / M6）
+- 预装：Claude 桌面端、Claude Code、Homebrew、Xcode 等
+- 远程：UU 远程 / ToDesk / RustDesk / Tailscale + SSH
+- 售后：24 小时响应，Ultra 优先
+- 联系方式：微信 yizhiquanbi，Telegram @AAAXieeeee
+
+## 页面
+- [首页](https://ccrent.cc/)：产品介绍、常见问题、套餐入口
+- [价格](https://ccrent.cc/pricing)：三档套餐、套餐对比、计费说明、价格 FAQ
+- [帮助](https://ccrent.cc/help)：远程连接教程、预装内容、使用注意
+- [服务条款](https://ccrent.cc/terms)
+- [退款政策](https://ccrent.cc/refund)
+- [隐私政策](https://ccrent.cc/privacy)
+
+## 适合场景
+美国住宅 IP 下运行 Claude Code、iOS / macOS 构建、常开远程开发机、团队共享一台专属 Mac。

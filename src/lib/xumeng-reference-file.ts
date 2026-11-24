@@ -41,8 +41,12 @@ async function shrink(source: CanvasImageSource, width: number, height: number, 
   const context = canvas.getContext("2d");
   if (!context) throw new Error("这张参考图无法读取，请换一张。");
   context.drawImage(source, 0, 0, targetWidth, targetHeight);
-  const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.9));
-  if (!blob) throw new Error("这张参考图无法读取，请换一张。");
+  let blob: Blob | null = null;
+  for (const quality of [0.9, 0.75, 0.6]) {
+    blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", quality));
+    if (blob && blob.size <= maxBytes) break;
+  }
+  if (!blob || blob.size > maxBytes) throw new Error("图片太大，已经没法再压。请换一张较小的 JPG。");
   const base = name.replace(/\.[^.]+$/, "") || "reference";
   const file = new File([blob], `${base}.jpg`, { type: "image/jpeg" });
   return { file, dataUrl: await readDataUrl(file), width: targetWidth, height: targetHeight };

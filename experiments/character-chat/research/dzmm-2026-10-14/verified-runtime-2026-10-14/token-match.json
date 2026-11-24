@@ -1,0 +1,724 @@
+{
+  "date": "2026-10-14",
+  "kind": "offline_comparison_of_official_UI_diagnostics",
+  "target_model_identity": null,
+  "target_provider": null,
+  "tokenization_policy": "Each message content separately, without a chat template, BOS/EOS or externally added normalization; official tokenizer internal normalization retained.",
+  "reference_sources": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/model-fingerprint-2026-10-14/tokenizer-sources.json",
+  "additional_reference_sources": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/deepseek-v3.1-sources.json",
+  "samples": [
+    {
+      "assembly_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/assembly-final-input.json",
+      "official_deepseek_v3_template_tokens": 2008,
+      "observed_minus_official_deepseek_template": 3,
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/generation-metadata.json",
+      "assembly_sha256": "8df1db2c28d1d501e57d2e8fb1bdcd9d81fe113d54820d06d59acd6a2440a82d",
+      "metadata_sha256": "1270239e194d16b52b30e3a9e48a7af3778550076fad5dc0f96d4a519f21c8b1",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "user"
+      ],
+      "prefix_messages_sha256": "f4f5a582d57ccbd454fe9ba2b210a60e20021f72639f8c9c8a748e30634e539e",
+      "last_message_content_sha256": "3abf5083ef9eb0c47d4f46f6f1ce462e8f5a8341db6e06d2b8cfd8c09a22f7c2",
+      "content_codepoints": [
+        2649,
+        526,
+        24,
+        20
+      ],
+      "observed_prompt_tokens": 2011,
+      "observed_completion_tokens": 37,
+      "observed_cached_tokens": 1664,
+      "displayed_model": "Surge-0923-b (16K)",
+      "generation_id": "73d31560-dba5-4152-928f-f850a0dc02df",
+      "counts": [
+        {
+          "family": "cl100k_base",
+          "per_message_content_tokens": [
+            2927,
+            519,
+            29,
+            25
+          ],
+          "content_token_sum": 3500,
+          "observed_minus_content_sum": -1489,
+          "direct_concatenation_tokens": 3500,
+          "newline_concatenation_tokens": 3500
+        },
+        {
+          "family": "o200k_base",
+          "per_message_content_tokens": [
+            2068,
+            362,
+            20,
+            15
+          ],
+          "content_token_sum": 2465,
+          "observed_minus_content_sum": -454,
+          "direct_concatenation_tokens": 2465,
+          "newline_concatenation_tokens": 2465
+        },
+        {
+          "family": "qwen3",
+          "per_message_content_tokens": [
+            1811,
+            324,
+            16,
+            13
+          ],
+          "content_token_sum": 2164,
+          "observed_minus_content_sum": -153,
+          "direct_concatenation_tokens": 2164,
+          "newline_concatenation_tokens": 2164
+        },
+        {
+          "family": "deepseek_v3",
+          "per_message_content_tokens": [
+            1678,
+            299,
+            13,
+            12
+          ],
+          "content_token_sum": 2002,
+          "observed_minus_content_sum": 9,
+          "direct_concatenation_tokens": 2002,
+          "newline_concatenation_tokens": 2002
+        },
+        {
+          "family": "deepseek_v3_1",
+          "per_message_content_tokens": [
+            1677,
+            299,
+            13,
+            12
+          ],
+          "content_token_sum": 2001,
+          "observed_minus_content_sum": 10,
+          "direct_concatenation_tokens": 2001,
+          "newline_concatenation_tokens": 2001
+        }
+      ]
+    },
+    {
+      "assembly_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-input.json",
+      "official_deepseek_v3_template_tokens": 2019,
+      "observed_minus_official_deepseek_template": 3,
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-metadata.json",
+      "assembly_sha256": "a508713d94b9895985d0e78d38c62a6b51a1c5f64d0e0975838187e119ca17a6",
+      "metadata_sha256": "cc20c318f88bafdef27f420df7519936e83801e3385103f46dba7dd67b37de92",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "user"
+      ],
+      "prefix_messages_sha256": "f4f5a582d57ccbd454fe9ba2b210a60e20021f72639f8c9c8a748e30634e539e",
+      "last_message_content_sha256": "096bd4b409a6a1eea903865e58a6e4b1205da0596c78fe8efade2e98909e887c",
+      "content_codepoints": [
+        2649,
+        526,
+        24,
+        35
+      ],
+      "observed_prompt_tokens": 2022,
+      "observed_completion_tokens": 1,
+      "observed_cached_tokens": 1920,
+      "displayed_model": null,
+      "generation_id": null,
+      "counts": [
+        {
+          "family": "cl100k_base",
+          "per_message_content_tokens": [
+            2927,
+            519,
+            29,
+            50
+          ],
+          "content_token_sum": 3525,
+          "observed_minus_content_sum": -1503,
+          "direct_concatenation_tokens": 3525,
+          "newline_concatenation_tokens": 3525
+        },
+        {
+          "family": "o200k_base",
+          "per_message_content_tokens": [
+            2068,
+            362,
+            20,
+            32
+          ],
+          "content_token_sum": 2482,
+          "observed_minus_content_sum": -460,
+          "direct_concatenation_tokens": 2482,
+          "newline_concatenation_tokens": 2482
+        },
+        {
+          "family": "qwen3",
+          "per_message_content_tokens": [
+            1811,
+            324,
+            16,
+            28
+          ],
+          "content_token_sum": 2179,
+          "observed_minus_content_sum": -157,
+          "direct_concatenation_tokens": 2179,
+          "newline_concatenation_tokens": 2179
+        },
+        {
+          "family": "deepseek_v3",
+          "per_message_content_tokens": [
+            1678,
+            299,
+            13,
+            23
+          ],
+          "content_token_sum": 2013,
+          "observed_minus_content_sum": 9,
+          "direct_concatenation_tokens": 2013,
+          "newline_concatenation_tokens": 2013
+        },
+        {
+          "family": "deepseek_v3_1",
+          "per_message_content_tokens": [
+            1677,
+            299,
+            13,
+            23
+          ],
+          "content_token_sum": 2012,
+          "observed_minus_content_sum": 10,
+          "direct_concatenation_tokens": 2012,
+          "newline_concatenation_tokens": 2012
+        }
+      ]
+    },
+    {
+      "assembly_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-b-input.json",
+      "official_deepseek_v3_template_tokens": 2050,
+      "observed_minus_official_deepseek_template": 2,
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-b-metadata.json",
+      "assembly_sha256": "63fe2f194dc8d837fc3faddf6d9cf180ca403b6bf57848889a248827192a561b",
+      "metadata_sha256": "47a516f6276497c4f182f2740089308e9e926ee30f2686423d21e98339df0f46",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "user"
+      ],
+      "prefix_messages_sha256": "f4f5a582d57ccbd454fe9ba2b210a60e20021f72639f8c9c8a748e30634e539e",
+      "last_message_content_sha256": "2986926abc25d75fb1076b5c7e0695b185f8d576964e785e24ee956826ca5434",
+      "content_codepoints": [
+        2649,
+        526,
+        24,
+        87
+      ],
+      "observed_prompt_tokens": 2052,
+      "observed_completion_tokens": 2,
+      "observed_cached_tokens": 1664,
+      "displayed_model": null,
+      "generation_id": null,
+      "counts": [
+        {
+          "family": "cl100k_base",
+          "per_message_content_tokens": [
+            2927,
+            519,
+            29,
+            55
+          ],
+          "content_token_sum": 3530,
+          "observed_minus_content_sum": -1478,
+          "direct_concatenation_tokens": 3530,
+          "newline_concatenation_tokens": 3530
+        },
+        {
+          "family": "o200k_base",
+          "per_message_content_tokens": [
+            2068,
+            362,
+            20,
+            51
+          ],
+          "content_token_sum": 2501,
+          "observed_minus_content_sum": -449,
+          "direct_concatenation_tokens": 2501,
+          "newline_concatenation_tokens": 2501
+        },
+        {
+          "family": "qwen3",
+          "per_message_content_tokens": [
+            1811,
+            324,
+            16,
+            77
+          ],
+          "content_token_sum": 2228,
+          "observed_minus_content_sum": -176,
+          "direct_concatenation_tokens": 2228,
+          "newline_concatenation_tokens": 2228
+        },
+        {
+          "family": "deepseek_v3",
+          "per_message_content_tokens": [
+            1678,
+            299,
+            13,
+            54
+          ],
+          "content_token_sum": 2044,
+          "observed_minus_content_sum": 8,
+          "direct_concatenation_tokens": 2044,
+          "newline_concatenation_tokens": 2044
+        },
+        {
+          "family": "deepseek_v3_1",
+          "per_message_content_tokens": [
+            1677,
+            299,
+            13,
+            54
+          ],
+          "content_token_sum": 2043,
+          "observed_minus_content_sum": 9,
+          "direct_concatenation_tokens": 2043,
+          "newline_concatenation_tokens": 2043
+        }
+      ]
+    },
+    {
+      "assembly_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-c-input.json",
+      "official_deepseek_v3_template_tokens": 2048,
+      "observed_minus_official_deepseek_template": 2,
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-c-metadata.json",
+      "assembly_sha256": "65a484d413ccaee2db0caef74c248b869aabe4c612b7958b49db25b1a2703ead",
+      "metadata_sha256": "0ad7f247e6cb491cb5b0a6d0466a4db0ddb2dd0a0f30fa20d68077d374b12a84",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "user"
+      ],
+      "prefix_messages_sha256": "f4f5a582d57ccbd454fe9ba2b210a60e20021f72639f8c9c8a748e30634e539e",
+      "last_message_content_sha256": "b6ef1e9d5d73e7c227b7bfdf19204a5f9e83e97c28b4ae5da14198aa78f5d1a1",
+      "content_codepoints": [
+        2649,
+        526,
+        24,
+        43
+      ],
+      "observed_prompt_tokens": 2050,
+      "observed_completion_tokens": 2,
+      "observed_cached_tokens": 1664,
+      "displayed_model": null,
+      "generation_id": null,
+      "counts": [
+        {
+          "family": "cl100k_base",
+          "per_message_content_tokens": [
+            2927,
+            519,
+            29,
+            71
+          ],
+          "content_token_sum": 3546,
+          "observed_minus_content_sum": -1496,
+          "direct_concatenation_tokens": 3546,
+          "newline_concatenation_tokens": 3546
+        },
+        {
+          "family": "o200k_base",
+          "per_message_content_tokens": [
+            2068,
+            362,
+            20,
+            50
+          ],
+          "content_token_sum": 2500,
+          "observed_minus_content_sum": -450,
+          "direct_concatenation_tokens": 2500,
+          "newline_concatenation_tokens": 2500
+        },
+        {
+          "family": "qwen3",
+          "per_message_content_tokens": [
+            1811,
+            324,
+            16,
+            47
+          ],
+          "content_token_sum": 2198,
+          "observed_minus_content_sum": -148,
+          "direct_concatenation_tokens": 2198,
+          "newline_concatenation_tokens": 2198
+        },
+        {
+          "family": "deepseek_v3",
+          "per_message_content_tokens": [
+            1678,
+            299,
+            13,
+            52
+          ],
+          "content_token_sum": 2042,
+          "observed_minus_content_sum": 8,
+          "direct_concatenation_tokens": 2042,
+          "newline_concatenation_tokens": 2042
+        },
+        {
+          "family": "deepseek_v3_1",
+          "per_message_content_tokens": [
+            1677,
+            299,
+            13,
+            52
+          ],
+          "content_token_sum": 2041,
+          "observed_minus_content_sum": 9,
+          "direct_concatenation_tokens": 2041,
+          "newline_concatenation_tokens": 2041
+        }
+      ]
+    },
+    {
+      "assembly_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-repeat-input.json",
+      "official_deepseek_v3_template_tokens": 2019,
+      "observed_minus_official_deepseek_template": 3,
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-repeat-metadata.json",
+      "assembly_sha256": "a508713d94b9895985d0e78d38c62a6b51a1c5f64d0e0975838187e119ca17a6",
+      "metadata_sha256": "33f72124fad1e7492689b8ab14f9633bae83a216113196d24638cc54b253a35b",
+      "roles": [
+        "system",
+        "user",
+        "assistant",
+        "user"
+      ],
+      "prefix_messages_sha256": "f4f5a582d57ccbd454fe9ba2b210a60e20021f72639f8c9c8a748e30634e539e",
+      "last_message_content_sha256": "096bd4b409a6a1eea903865e58a6e4b1205da0596c78fe8efade2e98909e887c",
+      "content_codepoints": [
+        2649,
+        526,
+        24,
+        35
+      ],
+      "observed_prompt_tokens": 2022,
+      "observed_completion_tokens": 1,
+      "observed_cached_tokens": 1920,
+      "displayed_model": null,
+      "generation_id": null,
+      "counts": [
+        {
+          "family": "cl100k_base",
+          "per_message_content_tokens": [
+            2927,
+            519,
+            29,
+            50
+          ],
+          "content_token_sum": 3525,
+          "observed_minus_content_sum": -1503,
+          "direct_concatenation_tokens": 3525,
+          "newline_concatenation_tokens": 3525
+        },
+        {
+          "family": "o200k_base",
+          "per_message_content_tokens": [
+            2068,
+            362,
+            20,
+            32
+          ],
+          "content_token_sum": 2482,
+          "observed_minus_content_sum": -460,
+          "direct_concatenation_tokens": 2482,
+          "newline_concatenation_tokens": 2482
+        },
+        {
+          "family": "qwen3",
+          "per_message_content_tokens": [
+            1811,
+            324,
+            16,
+            28
+          ],
+          "content_token_sum": 2179,
+          "observed_minus_content_sum": -157,
+          "direct_concatenation_tokens": 2179,
+          "newline_concatenation_tokens": 2179
+        },
+        {
+          "family": "deepseek_v3",
+          "per_message_content_tokens": [
+            1678,
+            299,
+            13,
+            23
+          ],
+          "content_token_sum": 2013,
+          "observed_minus_content_sum": 9,
+          "direct_concatenation_tokens": 2013,
+          "newline_concatenation_tokens": 2013
+        },
+        {
+          "family": "deepseek_v3_1",
+          "per_message_content_tokens": [
+            1677,
+            299,
+            13,
+            23
+          ],
+          "content_token_sum": 2012,
+          "observed_minus_content_sum": 10,
+          "direct_concatenation_tokens": 2012,
+          "newline_concatenation_tokens": 2012
+        }
+      ]
+    }
+  ],
+  "completions": [
+    {
+      "text_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/completion-baseline-editor.txt",
+      "text_sha256": "294aa306f6dd422bf841641d46d440a28033f8d835b3c51a34ba8529f959c09d",
+      "source_exactness": "The script counts the saved text exactly, but cannot verify whether the UI preserved raw provider whitespace/Markdown.",
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/generation-metadata.json",
+      "codepoints": 57,
+      "observed_completion_tokens": 37,
+      "rows": [
+        {
+          "family": "cl100k_base",
+          "content_tokens": 73,
+          "observed_minus_content_tokens": -36
+        },
+        {
+          "family": "o200k_base",
+          "content_tokens": 45,
+          "observed_minus_content_tokens": -8
+        },
+        {
+          "family": "qwen3",
+          "content_tokens": 39,
+          "observed_minus_content_tokens": -2
+        },
+        {
+          "family": "deepseek_v3",
+          "content_tokens": 37,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "deepseek_v3_1",
+          "content_tokens": 37,
+          "observed_minus_content_tokens": 0
+        }
+      ]
+    },
+    {
+      "text_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/completion-probe-a.txt",
+      "text_sha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904",
+      "source_exactness": "The script counts the saved text exactly, but cannot verify whether the UI preserved raw provider whitespace/Markdown.",
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-metadata.json",
+      "codepoints": 2,
+      "observed_completion_tokens": 1,
+      "rows": [
+        {
+          "family": "cl100k_base",
+          "content_tokens": 2,
+          "observed_minus_content_tokens": -1
+        },
+        {
+          "family": "o200k_base",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "qwen3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "deepseek_v3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "deepseek_v3_1",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        }
+      ]
+    },
+    {
+      "text_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/completion-probe-b.txt",
+      "text_sha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904",
+      "source_exactness": "The script counts the saved text exactly, but cannot verify whether the UI preserved raw provider whitespace/Markdown.",
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-b-metadata.json",
+      "codepoints": 2,
+      "observed_completion_tokens": 2,
+      "rows": [
+        {
+          "family": "cl100k_base",
+          "content_tokens": 2,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "o200k_base",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "qwen3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "deepseek_v3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "deepseek_v3_1",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        }
+      ]
+    },
+    {
+      "text_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/completion-probe-c.txt",
+      "text_sha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904",
+      "source_exactness": "The script counts the saved text exactly, but cannot verify whether the UI preserved raw provider whitespace/Markdown.",
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-c-metadata.json",
+      "codepoints": 2,
+      "observed_completion_tokens": 2,
+      "rows": [
+        {
+          "family": "cl100k_base",
+          "content_tokens": 2,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "o200k_base",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "qwen3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "deepseek_v3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        },
+        {
+          "family": "deepseek_v3_1",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 1
+        }
+      ]
+    },
+    {
+      "text_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/completion-probe-a-repeat.txt",
+      "text_sha256": "e2c6751f828b50fd875237fcdd905fe728fc8466df462ca425e61496cec4c904",
+      "source_exactness": "The script counts the saved text exactly, but cannot verify whether the UI preserved raw provider whitespace/Markdown.",
+      "metadata_file": "/Users/pencil/Documents/IntVideoGameEditor/experiments/character-chat/research/dzmm-2026-10-14/verified-runtime-2026-10-14/probe-a-repeat-metadata.json",
+      "codepoints": 2,
+      "observed_completion_tokens": 1,
+      "rows": [
+        {
+          "family": "cl100k_base",
+          "content_tokens": 2,
+          "observed_minus_content_tokens": -1
+        },
+        {
+          "family": "o200k_base",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "qwen3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "deepseek_v3",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        },
+        {
+          "family": "deepseek_v3_1",
+          "content_tokens": 1,
+          "observed_minus_content_tokens": 0
+        }
+      ]
+    }
+  ],
+  "cross_sample_residuals": [
+    {
+      "family": "cl100k_base",
+      "residuals": [
+        -1489,
+        -1503,
+        -1478,
+        -1496,
+        -1503
+      ],
+      "residual_range": 25
+    },
+    {
+      "family": "o200k_base",
+      "residuals": [
+        -454,
+        -460,
+        -449,
+        -450,
+        -460
+      ],
+      "residual_range": 11
+    },
+    {
+      "family": "qwen3",
+      "residuals": [
+        -153,
+        -157,
+        -176,
+        -148,
+        -157
+      ],
+      "residual_range": 28
+    },
+    {
+      "family": "deepseek_v3",
+      "residuals": [
+        9,
+        9,
+        8,
+        8,
+        9
+      ],
+      "residual_range": 1
+    },
+    {
+      "family": "deepseek_v3_1",
+      "residuals": [
+        10,
+        10,
+        9,
+        9,
+        10
+      ],
+      "residual_range": 1
+    }
+  ],
+  "identical_prefix_messages_across_samples": true,
+  "identical_role_sequences_across_samples": true,
+  "limitations": [
+    "Official UI usage is observed, but the provider origin/counting implementation is not independently known.",
+    "A small constant residual is compatible with wrappers/special tokens; the exact chat template has not been observed.",
+    "Same message count/roles does not guarantee identical hidden context. Compare saved assemblies, not assumed backgrounds.",
+    "Tokenizer compatibility cannot identify weights, vendor, size, distillation, fine-tune, or routing.",
+    "The finite reference set does not include every tokenizer or private/current Grok, Claude, or Gemini encodings."
+  ]
+}

@@ -2,6 +2,7 @@ import { digest, requireUser, tokenFrom } from "./auth";
 import { publicCreditBillingConfig } from "./credit-usage";
 import { readDailyCheckinCredits, validCheckinCredits, writeDailyCheckinCredits } from "./checkin-config";
 import { handleAdminBanners } from "./home-banners";
+import { handleAdminStudioCovers } from "./studio-covers";
 import { handleOpsConsole } from "./ops-console";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
@@ -168,6 +169,7 @@ export async function handleAdmin(request:Request,env:Env):Promise<Response|null
   if(path==='/v1/admin/checkin'&&(request.method==='GET'||request.method==='POST')){if(url.search)throw new ApiError(400,'签到配置不接受查询参数。');return checkinSetting(request,env,user);}
   const ops=await handleOpsConsole(request,env,user); if(ops) return ops;
   const banners=await handleAdminBanners(request,env,user); if(banners) return banners;
+  const studioCovers=await handleAdminStudioCovers(request,env,user); if(studioCovers) return studioCovers;
   if(path==='/v1/admin/users'&&request.method==='GET')return users(env,user,url);
   for(const kind of ['orders','usage','audit','subscriptions'] as const)if(path===`/v1/admin/${kind}`&&request.method==='GET')return listing(env,user,url,kind);
   const match=/^\/v1\/admin\/users\/([^/]+)\/(credits|role)$/.exec(path);

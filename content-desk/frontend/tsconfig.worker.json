@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "types": ["@cloudflare/workers-types", "node"],
+    "strict": true,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true
+  },
+  "include": [
+    "src/entry.ts",
+    "test/**/*.mts",
+    "../shared/lib/shelf-chat-handler.ts",
+    "../shared/lib/shelf-chat.ts"
+  ],
+  "exclude": ["node_modules", ".wrangler", "dist"]
+}

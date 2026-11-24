@@ -1,0 +1,91 @@
+{
+  "status": "failed",
+  "startedAt": "2026-10-11T18:28:18.103Z",
+  "plannedCalls": 6,
+  "actualCalls": 1,
+  "design": "两位角色各一次自主事项、一次具体主动机会、一次告别。模拟时间及旧续聊预算耗尽；不证明真实离线送达。不自动打可爱分。",
+  "steps": [
+    {
+      "characterId": "yume",
+      "kind": "response",
+      "input": "我想听你自己的事。给自己留十分钟，挑件你真想做的小事去做呀；待会有变化再告诉我，别把决定都丢给我。",
+      "simulatedTime": "2026-10-11T18:28:18.108Z",
+      "status": "complete",
+      "parameters": {
+        "model": "x-ai/grok-4.6",
+        "temperature": 0.8,
+        "reasoning": {
+          "effort": "low",
+          "exclude": true
+        }
+      },
+      "rawContent": "{\"messages\":[\"耳机我夹好收起来了。\",\"这十分钟我想把刚存的那首广告歌循环听完，听完跟你说洗没洗脑。\"],\"emotion\":\"friendly\",\"beat\":{\"focus\":\"循环听刚存的广告歌\",\"feeling\":\"有点好奇会被洗成什么样\",\"want\":\"听完再决定要不要告诉你副歌\"},\"followUp\":{\"intent\":\"听完后说洗脑程度，或换下一首\",\"delaySeconds\":600}}",
+      "usage": {
+        "prompt_tokens": 2436,
+        "completion_tokens": 780,
+        "total_tokens": 3216,
+        "cost": 0.009552,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.009552,
+          "upstream_inference_prompt_cost": 0.004872,
+          "upstream_inference_completions_cost": 0.00468
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 669,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "latencyMs": 18584,
+      "result": {
+        "reply": "耳机我夹好收起来了。\n\n这十分钟我想把刚存的那首广告歌循环听完，听完跟你说洗没洗脑。",
+        "messages": [
+          "耳机我夹好收起来了。",
+          "这十分钟我想把刚存的那首广告歌循环听完，听完跟你说洗没洗脑。"
+        ],
+        "format": "messages",
+        "beat": {
+          "focus": "循环听刚存的广告歌",
+          "feeling": "有点好奇会被洗成什么样",
+          "want": "听完再决定要不要告诉你副歌"
+        },
+        "followUp": {
+          "intent": "听完后说洗脑程度，或换下一首",
+          "delaySeconds": 120
+        },
+        "emotion": "friendly",
+        "moodReason": "",
+        "trustDelta": 0,
+        "closenessDelta": 0,
+        "memories": [],
+        "summary": ""
+      },
+      "agency": {
+        "version": 1,
+        "threads": [],
+        "ledger": [],
+        "nextAt": null
+      },
+      "pausedUntilUser": false
+    }
+  ],
+  "files": {
+    "engine.mjs": "96e4fe6076c015e2b2c5fa4837831a270cebc832859d81d87463f574a381ab29",
+    "proactive-runtime.mjs": "29af7d481c52743c898c1219befe5111445efc6fefd0ee2c1d2b05bbf2a7af74",
+    "provider.mjs": "d1b85a32293a08d2ffb5184a2e9e2e12bf04b02ebd8c8adaf2ee678f6f751281",
+    "characters.mjs": "434a3807f56896d4bda99b45ad2e2d5c0ff7672b423898bf27744633d8a2ec48"
+  },
+  "model": "x-ai/grok-4.6",
+  "reasoningEffort": "low",
+  "error": {
+    "message": "yume 没建立有对白来源的生活事项。"
+  },
+  "finishedAt": "2026-10-11T18:28:36.698Z"
+}

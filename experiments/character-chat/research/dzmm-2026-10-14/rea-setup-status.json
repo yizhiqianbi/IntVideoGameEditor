@@ -1,0 +1,35 @@
+{
+  "healthy": true,
+  "scope": {
+    "mode": "explicit",
+    "clients": [
+      "codex"
+    ],
+    "providers": [],
+    "skill": false,
+    "target": null
+  },
+  "cliVersion": "6.4.0",
+  "skill": {
+    "installed_version": "37",
+    "installed_tool_count": 170,
+    "state": "aligned",
+    "remediation": null
+  },
+  "registration": {
+    "client": "codex",
+    "config_path": "/Users/pencil/.codex/config.toml",
+    "command": [
+      "/Users/pencil/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "/Users/pencil/.codex/tools/rea-6.4.0/node_modules/rea-agents/scripts/rea.mjs",
+      "mcp"
+    ],
+    "state": "aligned",
+    "remediation": null
+  },
+  "catalogCounts": {
+    "cli_commands": 127,
+    "mcp_tools": 170,
+    "mcp_prompts": 6
+  }
+}

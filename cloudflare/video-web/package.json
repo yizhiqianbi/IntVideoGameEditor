@@ -1,0 +1,29 @@
+{
+  "name": "xumeng-video-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5188",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1 --port 4188",
+    "check": "tsc --noEmit -p tsconfig.client.json && tsc --noEmit -p tsconfig.worker.json",
+    "deploy:dry-run": "npm run build && wrangler deploy --dry-run --config wrangler.jsonc --outdir .wrangler/dry-run",
+    "deploy": "npm run build && wrangler deploy --config wrangler.jsonc"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "6.1.1",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261002.1",
+    "@types/node": "^25.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "8.3.2",
+    "wrangler": "^4.147.0"
+  }
+}
