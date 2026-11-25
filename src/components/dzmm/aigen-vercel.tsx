@@ -287,17 +287,31 @@ function HubCard({ id, feature, onOpen }: { id: View; feature?: boolean; onOpen:
   </button>;
 }
 
-export function AigenVercel({ onRoute, onBack, userId, isGuest, onRequireAccount }: Props) {
+export function AigenVercel({ onRoute, onBack, userId, isGuest, onRequireAccount, locale = "zh-Hans" }: Props) {
   const [view, setView] = useState<View>("home");
-  const title = view === "home" ? "AI生成" : MODULES.find(module => module.id === view)?.label ?? "AI生成";
+  const isEn = locale === "en";
+  const title = view === "home" ? (isEn ? "Free AI Tools" : "自由 AI 工具") : MODULES.find(module => module.id === view)?.label ?? "AI生成";
   const back = () => view === "home" ? onBack() : setView("home");
   return <div className="xmgen">
     <header className={view === "home" ? "top top-home" : "top"}>
-      <button type="button" className="brand" onClick={back}>{view === "home" ? "← 返回创作" : "返回"}</button>
-      {view === "home" ? <span /> : <h1 className="top-title">{title}</h1>}
+      <button type="button" className="brand" onClick={back}>{view === "home" ? (isEn ? "← Create" : "← 返回创作") : (isEn ? "Back" : "返回")}</button>
+      {view === "home" ? (
+        <div className="mode-switch" role="tablist" aria-label={isEn ? "AI workspace mode" : "AI 生成模式"}>
+          <button type="button" role="tab" aria-selected={false} onClick={() => onRoute("generation")}>{isEn ? "Templates" : "模板广场"}</button>
+          <button type="button" role="tab" aria-selected={true} className="mode-active">{isEn ? "Free Tools" : "自由工具"}</button>
+        </div>
+      ) : <h1 className="top-title">{title}</h1>}
       <span />
     </header>
     {view === "home" ? <section className="home" aria-label="创作模块">
+      <button type="button" className="tpl-banner" onClick={() => onRoute("generation")}>
+        <div className="tpl-banner-copy">
+          <span className="tpl-banner-badge">{isEn ? "RECOMMENDED" : "热门体系入口"}</span>
+          <strong>{isEn ? "Explore Template Square" : "进入模板广场 · 挑现成动作与画风一键做同款"}</strong>
+          <small>{isEn ? "Pick a video motion or image style card — even pre-fill any character's portrait." : "内置视频动作演示与图片画风卡片，支持直接带入角色立绘作为参考图。"}</small>
+        </div>
+        <span className="tpl-banner-cta">{isEn ? "Open →" : "去选模板 →"}</span>
+      </button>
       <HubCard id="video" feature onOpen={setView} />
       <div className="tech-grid">{(["image", "face", "coat", "novel"] as const).map(id => <HubCard id={id} key={id} onOpen={setView} />)}</div>
     </section> : <section className="studio">

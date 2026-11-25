@@ -17,6 +17,8 @@ import {
   type TavernRole,
 } from "./prompt";
 import { activateTavernWorldbook, parseTavernWorldbook, type TavernWorldbook, type TavernWorldbookEntry } from "./worldbook";
+import { expandDzmmPromptMacros } from "../dzmm-prompt-card";
+import { XUMENG_DEFAULT_LOCALE, xumengLocaleInstruction, type XumengLocale } from "../xumeng-i18n";
 
 export type TavernGroupMember = {
   characterId: string;
@@ -36,6 +38,7 @@ export type TavernGroupPromptInput = {
   members: TavernGroupMember[];
   messages: ReadonlyArray<TavernGroupMessage>;
   userName: string;
+  locale?: XumengLocale;
   preset?: string;
   persona?: string;
   memory?: string;
@@ -151,24 +154,34 @@ export function buildTavernGroupPrompt(input: TavernGroupPromptInput): TavernGro
   const seed = input.seed ?? input.messages.length;
   const worldbook = mergeWorldbook(members, input.messages, seed);
   const active = speaker;
+  const macro = { characterName: active.name, userName: input.userName || "用户", original: "" };
+  const expand = (text?: string) => (text ? expandDzmmPromptMacros(text, macro) : undefined);
+  const expandEntries = (entries: TavernWorldbookEntry[]) =>
+    entries.map(entry => ({ ...entry, content: expandDzmmPromptMacros(entry.content, macro) }));
+  const expandedExamples = active.messageExamples?.trim() ? expand(active.messageExamples) : undefined;
+  const localeRule = `回复语言：${xumengLocaleInstruction(input.locale ?? XUMENG_DEFAULT_LOCALE)}`;
+  const safetyRule = "互动边界：不替用户或其他群聊成员新增未授权的台词、行动或决定；不讨论现实政治，问到时用角色口吻一句带过。";
   const plan = buildTavernPromptPlan({
     characterName: active.name,
     userName: input.userName,
-    main: [active.systemPrompt, rosterText(members, active)].filter(Boolean).join("\n\n"),
-    personaDescription: input.persona,
-    charDescription: active.description,
-    charPersonality: active.personality,
-    scenario: active.scenario,
-    appearance: active.appearance,
-    preset: input.preset,
-    worldInfoBefore: worldbook.before,
-    worldInfoAfter: worldbook.after,
-    worldInfoAtDepth: worldbook.atDepth,
-    dialogueExamples: active.messageExamples?.trim() ? [{ role: "system", content: `【${active.name} 的对话示例】\n${active.messageExamples}` }] : [],
+    main: [expand(active.systemPrompt), expand(rosterText(members, active))].filter(Boolean).join("\n\n"),
+    personaDescription: expand(input.persona),
+    charDescription: expand(active.description),
+    charPersonality: expand(active.personality),
+    scenario: expand(active.scenario),
+    appearance: expand(active.appearance),
+    preset: expand(input.preset),
+    worldInfoBefore: expandEntries(worldbook.before),
+    worldInfoAfter: expandEntries(worldbook.after),
+    worldInfoAtDepth: worldbook.atDepth.map(item => ({
+      ...item,
+      entry: { ...item.entry, content: expandDzmmPromptMacros(item.entry.content, macro) },
+    })),
+    dialogueExamples: expandedExamples?.trim() ? [{ role: "system", content: `【${active.name} 的对话示例】\n${expandedExamples}` }] : [],
     history: labelledHistory(input.messages, members),
     opening: input.opening,
     memory: input.memory,
-    postHistoryInstructions: [`本轮由「${active.name}」回应。`, input.jailbreak ? "" : ""].filter(Boolean).join("\n") || undefined,
+    postHistoryInstructions: [`本轮由「${active.name}」回应。`, localeRule, safetyRule].join("\n"),
     jailbreak: input.jailbreak,
   }, input.settings);
   return { speaker, plan };

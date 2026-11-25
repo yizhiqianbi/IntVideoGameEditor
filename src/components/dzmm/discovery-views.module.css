@@ -22,24 +22,26 @@
 .tagQuickList { display:flex; flex-wrap:wrap; gap:8px; margin:16px 0 4px; }
 .tagQuick { padding:8px 13px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text); font:inherit; font-size:12px; cursor:pointer; }
 .tagQuick:hover { border-color:var(--pink); color:var(--pink); }
-.tagPickerBackdrop { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background:#0008; }
-.tagPicker { width:min(620px, 100%); max-height:min(760px, calc(100svh - 40px)); overflow:auto; padding:22px; border:1px solid var(--line); border-radius:18px; background:var(--surface); color:var(--text); box-shadow:0 24px 80px #0005; }
+.tagPickerBackdrop { position:fixed; inset:0; z-index:100; display:flex; align-items:center; justify-content:center; padding:20px; background:rgba(8,3,7,.68); backdrop-filter:blur(10px); }
+.tagPicker { width:min(620px, 100%); max-height:min(760px, calc(100svh - 40px)); overflow:auto; padding:24px 26px; border:1px solid color-mix(in srgb, var(--pink) 24%, var(--line)); border-radius:24px; background:radial-gradient(circle at 92% 6%, color-mix(in srgb, var(--pink) 12%, transparent), transparent 42%), var(--surface); color:var(--text); box-shadow:0 28px 88px rgba(0,0,0,.55), inset 0 1px 0 rgba(255,255,255,.07); }
 .tagPickerHeader { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:18px; }
-.tagPickerHeader h2 { margin:6px 0 0; font-size:22px; }
+.tagPickerHeader h2 { margin:6px 0 0; font-size:22px; letter-spacing:-.02em; }
 .tagPickerHeader p { margin:6px 0 0; color:var(--muted); font-size:13px; }
-.tagPickerClose { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid var(--line); border-radius:50%; background:transparent; color:var(--muted); cursor:pointer; }
-.tagPickerClose:hover { border-color:var(--pink); color:var(--pink); }
-.tagPickerSearch { display:flex; align-items:center; gap:8px; padding:0 12px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
-.tagPickerSearch input { width:100%; min-width:0; height:42px; border:0; outline:0; background:transparent; color:var(--text); font:inherit; }
+.tagPickerClose { display:inline-flex; align-items:center; justify-content:center; width:36px; height:36px; border:1px solid color-mix(in srgb, var(--line) 88%, transparent); border-radius:50%; background:color-mix(in srgb, var(--bg) 52%, transparent); color:var(--muted); cursor:pointer; transition:border-color .18s ease, color .18s ease, background .18s ease; }
+.tagPickerClose:hover { border-color:var(--pink); color:var(--pink); background:color-mix(in srgb, var(--pink-soft) 45%, transparent); }
+.tagPickerSearch { display:flex; align-items:center; gap:10px; padding:0 14px; border:1px solid color-mix(in srgb, var(--line) 90%, transparent); border-radius:999px; background:color-mix(in srgb, var(--bg) 62%, transparent); color:var(--muted); transition:border-color .18s ease, box-shadow .18s ease; }
+.tagPickerSearch:focus-within { border-color:color-mix(in srgb, var(--pink) 58%, var(--line)); box-shadow:0 0 0 3px color-mix(in srgb, var(--pink) 14%, transparent); }
+.tagPickerSearch input { width:100%; min-width:0; height:40px; border:0; outline:0; background:transparent; color:var(--text); font:inherit; font-size:13.5px; }
 .tagPickerGrid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; margin-top:16px; }
-.tagPickerTag { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; align-items:center; padding:13px 14px; border:1px solid var(--line); border-radius:12px; background:var(--surface); color:var(--text); text-align:left; cursor:pointer; }
-.tagPickerTag:hover { border-color:var(--pink); background:color-mix(in srgb, var(--pink) 7%, var(--surface)); }
+.tagPickerTag { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 8px; align-items:center; padding:13px 14px; border:1px solid var(--line); border-radius:14px; background:var(--surface); color:var(--text); text-align:left; cursor:pointer; transition:border-color .18s ease, background .18s ease, transform .18s ease; }
+.tagPickerTag:hover { border-color:var(--pink); background:color-mix(in srgb, var(--pink) 8%, var(--surface)); transform:translateY(-1px); }
 .tagPickerTag span { font-size:14px; font-weight:600; }
 .tagPickerTag small { min-width:0; overflow:hidden; color:var(--muted); font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
 .tagPickerTag svg { grid-column:2; grid-row:1 / span 2; color:var(--muted); }
-.tagPickerChips { display:flex; flex-wrap:wrap; gap:8px; margin-top:16px; }
-.tagPickerChip, .tagPickerChipOn { padding:8px 14px; border:1px solid var(--line); border-radius:999px; background:var(--surface); color:var(--text); font:inherit; font-size:13px; cursor:pointer; }
-.tagPickerChipOn { border-color:var(--pink); background:var(--pink); color:#fff; }
+.tagPickerChips { display:flex; flex-wrap:wrap; gap:8px; margin-top:18px; }
+.tagPickerChip, .tagPickerChipOn { padding:7px 14px; border:1px solid color-mix(in srgb, var(--line) 88%, transparent); border-radius:999px; background:color-mix(in srgb, var(--bg) 56%, transparent); color:var(--text); font:inherit; font-size:13px; font-weight:550; cursor:pointer; transition:border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease; }
+.tagPickerChip:hover { border-color:color-mix(in srgb, var(--pink) 54%, var(--line)); background:color-mix(in srgb, var(--pink-soft) 45%, var(--surface)); color:var(--pink); transform:translateY(-1px); }
+.tagPickerChipOn { border-color:transparent; background:linear-gradient(130deg, #e4557f 0%, #b92f5b 100%); color:#fff; box-shadow:0 6px 16px -6px rgba(217,76,119,.72); }
 .tagPickerFooter { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:18px; color:var(--muted); font-size:13px; }
 .tagPickerConfirm { padding:8px 18px; border:0; border-radius:999px; background:var(--pink); color:#fff; font:inherit; font-size:13px; cursor:pointer; }
 .tagPickerEmpty { padding:28px 0 8px; color:var(--muted); text-align:center; font-size:13px; }

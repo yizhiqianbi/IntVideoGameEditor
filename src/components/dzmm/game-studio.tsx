@@ -8,6 +8,7 @@ import { deleteXumengGame, fetchXumengGame, fetchXumengGames, saveXumengGame, Xu
 import { clearXumengGameRecovery, discardXumengGameRecovery, persistXumengGameRecovery, readXumengGameRecoveries, restoreXumengGameRecovery,
   type XumengGameRecovery } from "../../lib/xumeng-game-recovery";
 import Icon from "./icons";
+import { UnsavedLeaveDialog } from "./unsaved-leave-dialog";
 import styles from "./game-studio.module.css";
 
 type Props = { userId: string | null; isGuest: boolean; onRequireAccount: () => void; onBack: () => void;
@@ -35,6 +36,7 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
   const [library, setLibrary] = useState<XumengGameSummary[]>([]), [busy, setBusy] = useState(false), [loading, setLoading] = useState(false);
   const [error, setError] = useState(""), [notice, setNotice] = useState(""), [recoveries, setRecoveries] = useState<XumengGameRecovery[]>([]), [recoverySaved, setRecoverySaved] = useState(false);
   const [conflict, setConflict] = useState<XumengGameDetail | null>(null), [preview, setPreview] = useState<string | null>(null), [previewRevision, setPreviewRevision] = useState(0);
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; description: string; confirmLabel: string; confirmTone?: "primary" | "danger"; onConfirm: () => void } | null>(null);
   const [search, setSearch] = useState("");
   draftRef.current = draft;
   const dirty = Boolean(draft && (version === null || snapshot(draft) !== savedRef.current));
@@ -120,26 +122,37 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
     window.addEventListener("beforeunload", warn); return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
-  function canReplace(replacementConfirmed = false): boolean {
-    if (busyRef.current) return false;
+  function withReplaceCheck(proceed: () => void, replacementConfirmed = false) {
+    if (busyRef.current) return;
     if (dirty) {
       try { retainCurrent(); }
-      catch { setRecoverySaved(false); setNotice("浏览器未能保留当前修改。请先保存或导出备份，再切换作品。"); return false; }
-      return replacementConfirmed || window.confirm("当前游戏尚未保存。继续会切换作品，浏览器仍保留恢复副本。请先保存或导出需要保留的源码。");
+      catch { setRecoverySaved(false); setNotice("浏览器未能保留当前修改。请先保存或导出备份，再切换作品。"); return; }
+      if (!replacementConfirmed) {
+        setConfirmDialog({
+          title: "当前游戏尚未保存",
+          description: "继续会切换作品，浏览器仍保留恢复副本。建议先保存或导出需要保留的源码。",
+          confirmLabel: "继续切换",
+          confirmTone: "danger",
+          onConfirm: proceed,
+        });
+        return;
+      }
     }
-    return true;
+    proceed();
   }
   function restore(entry: XumengGameRecovery) {
-    if (!requireAccount() || !canReplace()) return;
-    try {
-      const owner = crypto.randomUUID(), cloned = restoreXumengGameRecovery(entry, accountId, owner);
-      install(cloned.game, cloned.version, cloned.savedSnapshot, owner); recoveryRef.current = cloned; setRecoverySaved(true);
-      refreshRecoveries(); setNotice("已恢复未保存的游戏。原恢复副本仍保留，确认内容后可保存或导出。");
-      onNavigate?.(cloned.version === null ? "new" : cloned.game.id);
-    } catch (failure) { setError(message(failure)); }
+    if (!requireAccount()) return;
+    withReplaceCheck(() => {
+      try {
+        const owner = crypto.randomUUID(), cloned = restoreXumengGameRecovery(entry, accountId, owner);
+        install(cloned.game, cloned.version, cloned.savedSnapshot, owner); recoveryRef.current = cloned; setRecoverySaved(true);
+        refreshRecoveries(); setNotice("已恢复未保存的游戏。原恢复副本仍保留，确认内容后可保存或导出。");
+        onNavigate?.(cloned.version === null ? "new" : cloned.game.id);
+      } catch (failure) { setError(message(failure)); }
+    });
   }
   function requireAccount(): boolean { if (isGuest || !userId) { onRequireAccount(); return false; } return true; }
-  function newGame(template: "story" | "puzzle" | "blank") { if (requireAccount() && canReplace()) { install(createXumengGameDraft(template), null); onNavigate?.("new"); } }
+  function newGame(template: "story" | "puzzle" | "blank") { if (!requireAccount()) return; withReplaceCheck(() => { install(createXumengGameDraft(template), null); onNavigate?.("new"); }); }
   async function refresh() {
     if (isGuest || !userId) { onRequireAccount(); return; }
     if (busyRef.current) return;
@@ -148,12 +161,14 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
     catch (failure) { if (active(scope.owner, scope.epoch) && !scope.controller.signal.aborted) setError(message(failure)); }
     finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
   }
-  async function open(id: string) {
-    if (!canReplace()) return;
-    const scope = requestScope(); setWorking(true); setError("");
-    try { const detail = await fetchXumengGame(scope.owner, id, scope.controller.signal); if (active(scope.owner, scope.epoch)) { install(xumengGameDraftFromDetail(detail), detail.game.version); onNavigate?.(detail.game.id); } }
-    catch (failure) { if (active(scope.owner, scope.epoch) && !scope.controller.signal.aborted) setError(message(failure)); }
-    finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
+  function open(id: string) {
+    withReplaceCheck(() => {
+      const scope = requestScope(); setWorking(true); setError("");
+      void fetchXumengGame(scope.owner, id, scope.controller.signal)
+        .then(detail => { if (active(scope.owner, scope.epoch)) { install(xumengGameDraftFromDetail(detail), detail.game.version); onNavigate?.(detail.game.id); } })
+        .catch(failure => { if (active(scope.owner, scope.epoch) && !scope.controller.signal.aborted) setError(message(failure)); })
+        .finally(() => { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); });
+    });
   }
   async function save(copy = false) {
     if (busyRef.current || !draftRef.current) return;
@@ -178,43 +193,59 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
       }
     } finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
   }
-  async function remove() {
-    if (!draft || version === null || busyRef.current || !window.confirm("删除这部私人游戏？此操作不会删除其他作品。请先导出需要保留的源码。")) return;
-    const scope = requestScope(); setWorking(true); setError("");
-    try {
-      await deleteXumengGame(scope.owner, draft.id, version, scope.controller.signal);
-      if (!active(scope.owner, scope.epoch)) return;
-      setLibrary(previous => previous.filter(item => item.id !== draft.id));
-      // Deleting the cloud work does not discard unsaved browser revisions.
-      setDraft(null); draftRef.current = null; recoveryRef.current = null; setRecoverySaved(false); savedRef.current = ""; setVersion(null); setPreview(null); setNotice("游戏已删除。");
-    } catch (failure) { if (active(scope.owner, scope.epoch) && !scope.controller.signal.aborted) setError(message(failure)); }
-    finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
+  function remove() {
+    if (!draft || version === null || busyRef.current) return;
+    const targetId = draft.id, targetVersion = version;
+    setConfirmDialog({
+      title: "删除这部私人游戏？",
+      description: "此操作不会删除其他作品。请先导出需要保留的源码。",
+      confirmLabel: "确认删除",
+      confirmTone: "danger",
+      onConfirm: () => {
+        const scope = requestScope(); setWorking(true); setError("");
+        void deleteXumengGame(scope.owner, targetId, targetVersion, scope.controller.signal)
+          .then(() => {
+            if (!active(scope.owner, scope.epoch)) return;
+            setLibrary(previous => previous.filter(item => item.id !== targetId));
+            setDraft(null); draftRef.current = null; recoveryRef.current = null; setRecoverySaved(false); savedRef.current = ""; setVersion(null); setPreview(null); setNotice("游戏已删除。");
+          })
+          .catch(failure => { if (active(scope.owner, scope.epoch) && !scope.controller.signal.aborted) setError(message(failure)); })
+          .finally(() => { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); });
+      },
+    });
   }
-  async function importFile(event: ChangeEvent<HTMLInputElement>) {
+  function importFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]; event.target.value = "";
-    if (!requireAccount()) return;
-    if (!file || !canReplace()) return;
-    if (!/\.(html?|json|zip)$/i.test(file.name)) { setError("请上传 HTML、网页游戏 ZIP 或叙梦 JSON 备份。"); return; }
-    if (file.size > XUMENG_GAME_MAX_PACKAGE_BYTES) { setError("文件超过 12 MB，未覆盖当前草稿。"); return; }
-    const scope = requestScope(); setWorking(true); setError("");
-    try {
-      const buffer = await file.arrayBuffer();
-      if (!active(scope.owner, scope.epoch)) return;
-      const imported = /\.zip$/i.test(file.name)
-        ? await importXumengGameArchive(new Uint8Array(buffer), file.name)
-        : parseXumengGameImport(decodeXumengGameFile(buffer), /\.json$/i.test(file.name) ? "json" : "html", file.name);
-      if (!active(scope.owner, scope.epoch)) return;
-      install(imported, null); setNotice("已导入独立副本。确认内容后保存到私人作品。");
-      onNavigate?.("new");
-    } catch (failure) { if (active(scope.owner, scope.epoch)) setError(message(failure)); }
-    finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
+    if (!requireAccount() || !file) return;
+    withReplaceCheck(() => {
+      if (!/\.(html?|json|zip)$/i.test(file.name)) { setError("请上传 HTML、网页游戏 ZIP 或叙梦 JSON 备份。"); return; }
+      if (file.size > XUMENG_GAME_MAX_PACKAGE_BYTES) { setError("文件超过 12 MB，未覆盖当前草稿。"); return; }
+      const scope = requestScope(); setWorking(true); setError("");
+      void (async () => {
+        try {
+          const buffer = await file.arrayBuffer();
+          if (!active(scope.owner, scope.epoch)) return;
+          const imported = /\.zip$/i.test(file.name)
+            ? await importXumengGameArchive(new Uint8Array(buffer), file.name)
+            : parseXumengGameImport(decodeXumengGameFile(buffer), /\.json$/i.test(file.name) ? "json" : "html", file.name);
+          if (!active(scope.owner, scope.epoch)) return;
+          install(imported, null); setNotice("已导入独立副本。确认内容后保存到私人作品。");
+          onNavigate?.("new");
+        } catch (failure) { if (active(scope.owner, scope.epoch)) setError(message(failure)); }
+        finally { scope.finish(); if (active(scope.owner, scope.epoch)) setWorking(false); }
+      })();
+    });
   }
   function previewGame() {
     if (!draft) return;
     try { setPreview(buildXumengGamePreview(draft.source)); setPreviewRevision(value => value + 1); setError(""); }
     catch (failure) { setError(message(failure)); }
   }
-  function leaveEditor() { if (!canReplace()) return; setDraft(null); draftRef.current = null; recoveryRef.current = null; setRecoverySaved(false); setVersion(null); savedRef.current = ""; setPreview(null); setConflict(null); setError(""); onNavigate?.(null); }
+  function leaveEditor() {
+    withReplaceCheck(() => {
+      setDraft(null); draftRef.current = null; recoveryRef.current = null; setRecoverySaved(false); setVersion(null); savedRef.current = ""; setPreview(null); setConflict(null); setError(""); onNavigate?.(null);
+    });
+  }
   const results = library.filter(item => `${item.title} ${item.synopsis}`.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase()));
   const backLabel = draft ? "返回游戏作品列表" : "返回创作中心";
   const playLabel = preview ? "重新运行" : "运行游戏";
@@ -225,15 +256,22 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
     </div><div className={styles.actions}>
       <button className={styles.tool} aria-label="导入" title="导入" disabled={busy || loading} onClick={() => { if (requireAccount()) fileInput.current?.click(); }}><Icon name="upload" size={16} /></button>
       {draft ? <><button className={styles.tool} aria-label="备份" title="备份" disabled={busy} onClick={() => { try { download(exportXumengGameBackup(draft), `${filename(draft.title)}.xumeng-game.json`, "application/json;charset=utf-8"); } catch (failure) { setError(message(failure)); } }}><Icon name="braces" size={16} /></button>
-        <button className={`${styles.tool} ${styles.toolSave}`} aria-label="保存" title="保存" disabled={busy || loading || !dirty} onClick={() => void save()}><Icon name="check" size={16} /></button></> : <button className={styles.tool} aria-label="新建游戏" title="新建游戏" disabled={busy || loading} onClick={() => newGame("blank")}><Icon name="plus" size={16} /></button>}
+        <button className={styles.secondary} disabled={busy || loading || !dirty} onClick={() => void save()}><Icon name="check" size={15} />{busy ? "保存中…" : "保存"}</button></> : <button className={styles.secondary} disabled={busy || loading} onClick={() => newGame("blank")}><Icon name="plus" size={15} />新建游戏</button>}
     </div></header>
     <input ref={fileInput} type="file" accept=".html,.htm,.json,.zip,application/zip" hidden onChange={event => void importFile(event)} />
     <div className={styles.messages}>{error && <p className={styles.error} role="alert">{error}</p>}{notice && <p className={styles.notice} role="status">{notice}</p>}
-      {conflict && <div className={styles.recovery}><div><strong>云端已有 v{conflict.game.version}，当前源码未被覆盖。</strong><p>可先导出备份，再另存副本；加载云端会替换当前编辑器。</p></div><button className={styles.secondary} disabled={busy} onClick={() => void save(true)}>另存副本</button><button className={styles.secondary} disabled={busy} onClick={() => { if (window.confirm("加载云端版本会替换当前编辑器，请确认已导出备份。") && canReplace(true)) install(xumengGameDraftFromDetail(conflict), conflict.game.version); }}>加载云端版本</button></div>}
+      {conflict && <div className={styles.recovery}><div><strong>云端已有 v{conflict.game.version}，当前源码未被覆盖。</strong><p>可先导出备份，再另存副本；加载云端会替换当前编辑器。</p></div><button className={styles.secondary} disabled={busy} onClick={() => void save(true)}>另存副本</button><button className={styles.secondary} disabled={busy} onClick={() => { const next = conflict; setConfirmDialog({ title: "加载云端版本？", description: "加载云端版本会替换当前编辑器，请确认已导出备份。", confirmLabel: "加载云端版本", confirmTone: "danger", onConfirm: () => withReplaceCheck(() => install(xumengGameDraftFromDetail(next), next.game.version), true) }); }}>加载云端版本</button></div>}
       {recoveries.filter(entry => !draft || !dirty || entry.owner !== editorOwner.current || snapshot(entry.game) !== snapshot(draft)).map(entry => <div key={entry.key} className={styles.recovery}><div><strong>{entry.game.id === draft?.id ? "这部游戏有未保存修改" : "发现未保存的游戏"}：{entry.game.title || "未命名游戏"}</strong><p>{new Date(entry.updatedAt).toLocaleString("zh-CN")} · 恢复副本仅保存在当前浏览器、当前账号。</p></div><button className={styles.secondary} disabled={busy || loading} onClick={() => restore(entry)}>恢复草稿</button><button className={styles.quiet} disabled={busy || loading} onClick={() => {
-        if (!window.confirm("删除这份浏览器恢复副本？云端作品不受影响。")) return;
-        try { if (!discardXumengGameRecovery(entry, accountId)) setNotice("这份副本已在其他页面更新，未删除。请核对后重新选择。"); refreshRecoveries(); }
-        catch (failure) { setError(message(failure)); }
+        setConfirmDialog({
+          title: "删除恢复副本？",
+          description: "删除这份浏览器恢复副本后无法撤销，云端作品不受影响。",
+          confirmLabel: "确认删除",
+          confirmTone: "danger",
+          onConfirm: () => {
+            try { if (!discardXumengGameRecovery(entry, accountId)) setNotice("这份副本已在其他页面更新，未删除。请核对后重新选择。"); refreshRecoveries(); }
+            catch (failure) { setError(message(failure)); }
+          },
+        });
       }}>丢弃副本</button></div>)}
     </div>
     {!draft ? <main className={styles.library}><section className={styles.templates}><h2>新建游戏</h2><div><button disabled={busy || loading} onClick={() => newGame("blank")}><span><strong>空白页面</strong><small>从空的 HTML 开始写自己的游戏。可玩的成人游戏在聊天里的游戏列表。</small></span><Icon name="chevron" size={17} /></button></div></section>
@@ -247,12 +285,27 @@ function GameWorkspace({ userId, isGuest, onRequireAccount, onBack, onDirtyChang
           <p className={styles.help}>可以导入单个 HTML，或包含 index.html、样式、脚本、图片和音频的 ZIP。试玩允许内联脚本、内联样式与 data 图片；外部脚本、接口请求和嵌套页面不会加载。超过 1 MB 的作品不会写入浏览器恢复副本。</p>
           <div className={styles.editorFooter}><button className={styles.tool} aria-label="导出 HTML" title="导出 HTML" disabled={busy} onClick={() => download(draft.source, `${filename(draft.title)}.html`, "text/html;charset=utf-8")}><Icon name="fileText" size={16} /></button>{version !== null && <button className={`${styles.tool} ${styles.toolDanger}`} aria-label="删除游戏" title="删除游戏" disabled={busy} onClick={() => void remove()}><Icon name="trash" size={16} /></button>}</div>
         </section>
-        <section className={styles.preview}><div className={styles.sectionHead}><h2>试玩</h2><button className={styles.tool} aria-label={playLabel} title={playLabel} disabled={busy} onClick={previewGame}><Icon name={preview ? "refresh" : "play"} size={16} /></button></div>
+        <section className={styles.preview}><div className={styles.sectionHead}><h2>试玩</h2><button className={styles.secondary} disabled={busy} onClick={previewGame}><Icon name={preview ? "refresh" : "play"} size={15} />{playLabel}</button></div>
           {preview ? <iframe key={previewRevision} title={`${draft.title || "游戏"}试玩`} sandbox="allow-scripts" referrerPolicy="no-referrer" allow="" srcDoc={preview} /> : <div className={styles.previewEmpty}><Icon name="play" size={32} /><p>点击“运行游戏”试玩当前源码。</p><small>修改源码后重新运行，预览从头开始。</small></div>}
-          {preview && <button className={styles.tool} aria-label="停止试玩" title="停止试玩" onClick={() => setPreview(null)}><Icon name="stop" size={16} /></button>}
+          {preview && <button className={styles.quiet} onClick={() => setPreview(null)}><Icon name="stop" size={15} />停止试玩</button>}
           <p className={styles.help}>试玩在独立沙箱内运行，不共享叙梦账号、钱包或私人数据。作品保存在私人库中。</p>
         </section>
       </main>}
+    <UnsavedLeaveDialog
+      open={Boolean(confirmDialog)}
+      title={confirmDialog?.title ?? ""}
+      description={confirmDialog?.description ?? ""}
+      confirmLabel={confirmDialog?.confirmLabel ?? "确认"}
+      confirmTone={confirmDialog?.confirmTone ?? "danger"}
+      cancelLabel="取消"
+      busy={busy}
+      onCancel={() => setConfirmDialog(null)}
+      onConfirm={() => {
+        const next = confirmDialog;
+        setConfirmDialog(null);
+        next?.onConfirm();
+      }}
+    />
   </div>;
 }
 

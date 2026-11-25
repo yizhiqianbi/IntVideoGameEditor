@@ -411,6 +411,29 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
     return () => { passwordAccount.current = undefined; };
   }, [user?.id]);
   function update<K extends keyof DzmmPreferences>(key: K, value: DzmmPreferences[K]) { setForm((previous) => ({ ...previous, [key]: value })); setNotice(""); }
+  const initialBlockedText = (preferences.blockedTags ?? []).join("\n");
+  const isDirty = blockedText !== initialBlockedText
+    || form.nickname !== preferences.nickname
+    || (form.bio ?? "") !== (preferences.bio ?? "")
+    || (form.gender ?? "") !== (preferences.gender ?? "")
+    || (form.theme ?? (form.dark ? "dark" : "light")) !== (preferences.theme ?? (preferences.dark ? "dark" : "light"))
+    || (form.homeLayout ?? "double") !== (preferences.homeLayout ?? "double")
+    || (form.showFloatingChat ?? true) !== (preferences.showFloatingChat ?? true)
+    || (form.floatingSize ?? "medium") !== (preferences.floatingSize ?? "medium")
+    || (form.floatingOpacity ?? 100) !== (preferences.floatingOpacity ?? 100)
+    || (form.chatFontSize ?? "medium") !== (preferences.chatFontSize ?? "medium")
+    || (form.chatFont ?? "system") !== (preferences.chatFont ?? "system")
+    || (form.userBubbleColor ?? "") !== (preferences.userBubbleColor ?? "")
+    || (form.assistantBubbleColor ?? "") !== (preferences.assistantBubbleColor ?? "")
+    || (form.bubbleOpacity ?? 80) !== (preferences.bubbleOpacity ?? 80)
+    || (form.chatBackground ?? "cover") !== (preferences.chatBackground ?? "cover")
+    || (form.enterKey ?? "auto") !== (preferences.enterKey ?? "auto");
+  function resetChanges() {
+    setForm(preferences);
+    setBlockedText(initialBlockedText);
+    setError("");
+    setNotice("");
+  }
   function save(event: FormEvent) {
     event.preventDefault(); setError(""); setNotice("");
     const nickname = form.nickname.trim();
@@ -445,7 +468,7 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
     <div className={s.pageHeading}><button className={s.back} onClick={onBack}><Icon name="back" size={18} />返回</button><h1>设置</h1></div>
     <form className={s.settingsForm} onSubmit={save}>
       <section className={s.settingsSection}><h2>个人资料</h2><label>昵称<input required maxLength={30} value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="nickname" /></label><label>个人简介<textarea maxLength={500} rows={3} placeholder="介绍一下你自己" value={form.bio ?? ""} onChange={(event) => update("bio", event.target.value)} /><small>{form.bio?.length ?? 0}/500</small></label><label>性别<select value={form.gender ?? ""} onChange={(event) => update("gender", event.target.value ? event.target.value as DzmmPreferences["gender"] : undefined)}><option value="">未设置</option><option value="male">男</option><option value="female">女</option><option value="other">其他</option></select></label></section>
-      <section className={s.settingsSection}><h2>外观</h2><label>主题<select aria-label="主题" value={form.theme ?? (form.dark ? "dark" : "light")} onChange={(event) => update("theme", event.target.value as DzmmPreferences["theme"])}><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label><label>首页布局<select aria-label="首页布局" value={form.homeLayout ?? "double"} onChange={(event) => update("homeLayout", event.target.value as DzmmPreferences["homeLayout"])}><option value="single">单列</option><option value="double">双列</option></select></label><label className={s.checkboxRow}><span>显示悬浮聊天按钮</span><input type="checkbox" checked={form.showFloatingChat ?? true} onChange={(event) => update("showFloatingChat", event.target.checked)} /></label><label>悬浮按钮大小<select value={form.floatingSize ?? "medium"} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingSize", event.target.value as DzmmPreferences["floatingSize"])}><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label>悬浮按钮透明度 <span>{form.floatingOpacity ?? 100}%</span><input aria-label="悬浮按钮透明度" type="range" min={20} max={100} step={5} value={form.floatingOpacity ?? 100} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingOpacity", Number(event.target.value))} /></label></section>
+      <section className={s.settingsSection}><h2>外观</h2><label>主题<select aria-label="主题" value={form.theme ?? (form.dark ? "dark" : "light")} onChange={(event) => update("theme", event.target.value as DzmmPreferences["theme"])}><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label><label>首页布局<select aria-label="首页布局" value={form.homeLayout ?? "double"} onChange={(event) => update("homeLayout", event.target.value as DzmmPreferences["homeLayout"])}><option value="single">单列</option><option value="double">双列</option></select></label><label className={`${s.checkboxRow} ${s.desktopOnlyField}`}><span>显示悬浮聊天按钮</span><input type="checkbox" checked={form.showFloatingChat ?? true} onChange={(event) => update("showFloatingChat", event.target.checked)} /></label><label className={s.desktopOnlyField}>悬浮按钮大小<select value={form.floatingSize ?? "medium"} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingSize", event.target.value as DzmmPreferences["floatingSize"])}><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label className={s.desktopOnlyField}>悬浮按钮透明度 <span>{form.floatingOpacity ?? 100}%</span><input aria-label="悬浮按钮透明度" type="range" min={20} max={100} step={5} value={form.floatingOpacity ?? 100} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingOpacity", Number(event.target.value))} /></label></section>
       <section className={s.settingsSection}><h2>对话显示</h2><p className={s.muted}>对话模型、回复长度、语言和人设在「我的预设」里设置。</p>
         <label>字号<select aria-label="聊天字号" value={form.chatFontSize ?? "medium"} onChange={(event) => update("chatFontSize", event.target.value as DzmmChatFontSize)}><option value="small">小</option><option value="medium">标准</option><option value="large">大</option><option value="xlarge">特大</option></select></label>
         <label>字体<select aria-label="聊天字体" value={form.chatFont ?? "system"} onChange={(event) => update("chatFont", event.target.value as DzmmChatFont)}><option value="system">系统默认</option><option value="serif">宋体</option><option value="kai">楷体</option></select></label>
@@ -458,6 +481,15 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
       </section>
       <section className={s.settingsSection}><h2>内容屏蔽</h2><label>屏蔽标签<textarea aria-label="屏蔽标签" rows={4} maxLength={2050} placeholder="每行一个标签，例如：某个题材" value={blockedText} onChange={(event) => { setBlockedText(event.target.value); setNotice(""); }} /><small>目录和搜索会隐藏包含这些标签的角色。最多 50 个，每个最多 40 字。</small></label></section>
       {error && <p className={s.error} role="alert">{error}</p>}{notice && <p className={s.status} role="status">{notice}</p>}<div className={s.saveRow}><button type="submit" className={s.primary}><Icon name="check" size={16} />保存设置</button></div>
+      {isDirty && (
+        <div className={s.stickySaveBar} role="region" aria-label="未保存的设置">
+          <span>有未保存的设置更改</span>
+          <div className={s.stickySaveActions}>
+            <button type="button" className={s.outline} onClick={resetChanges}>撤销</button>
+            <button type="submit" className={s.primary}><Icon name="check" size={15} />保存设置</button>
+          </div>
+        </div>
+      )}
     </form>
     <section className={s.settingsSection}><h2>账号安全</h2>{!user || user.isGuest ? <p className={s.muted}>注册时需要邮箱和密码。完成后可以在这里修改密码。</p> : !user.email ? <BindEmailForm accountId={user.id} onBound={onEmailBound} /> : <form className={s.settingsForm} onSubmit={(event) => void changePassword(event)}>{needsPassword && <p className={s.muted}>邮箱已验证，当前账号尚未设置密码。设置后可使用邮箱与密码登录。</p>}{!needsPassword && <label>当前密码<input type="password" autoComplete="current-password" required maxLength={256} disabled={passwordBusy} value={passwords.current} onChange={(event) => setPasswords((previous) => ({ ...previous, current: event.target.value }))} /></label>}<label>新密码<input type="password" autoComplete="new-password" required minLength={12} maxLength={256} disabled={passwordBusy} value={passwords.next} onChange={(event) => setPasswords((previous) => ({ ...previous, next: event.target.value }))} /><small>至少 12 个字符。</small></label><label>确认新密码<input type="password" autoComplete="new-password" required minLength={12} maxLength={256} disabled={passwordBusy} value={passwords.confirm} onChange={(event) => setPasswords((previous) => ({ ...previous, confirm: event.target.value }))} /></label>{passwordError && <p className={s.error} role="alert">{passwordError}</p>}{passwordNotice && <p className={s.status} role="status">{passwordNotice}</p>}<button type="submit" className={s.outline} disabled={passwordBusy}>{passwordBusy ? "正在保存…" : needsPassword ? "设置密码" : "修改密码"}</button></form>}</section>
   </main>;

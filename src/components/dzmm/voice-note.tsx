@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { claimXumengAudioFocus, subscribeXumengAudioFocus } from "@/lib/xumeng-audio-mutex";
 import Icon from "./icons";
 import s from "./voice-note.module.css";
 
@@ -27,10 +28,11 @@ export function VoiceNote({ src, label, assetId, durationMs, onError }: {
   const retries = useRef(0);
   const wantPlay = useRef(false);
   const ignoreError = useRef(false);
+  const loadedSrc = useRef("");
   const live = useRef(0);
   const retryTimer = useRef<number | null>(null);
-  const [attached, setAttached] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
   const [duration, setDuration] = useState(() => hintedSeconds(durationMs));
   const [time, setTime] = useState(0);
@@ -41,51 +43,86 @@ export function VoiceNote({ src, label, assetId, durationMs, onError }: {
   }, [durationMs]);
 
   useEffect(() => {
-    setAttached(false);
+    const audio = ref.current;
+    live.current += 1;
+    wantPlay.current = false;
+    loadedSrc.current = "";
+    retries.current = 0;
+    if (retryTimer.current !== null) {
+      window.clearTimeout(retryTimer.current);
+      retryTimer.current = null;
+    }
     setFailed(false);
     setPlaying(false);
+    setLoading(false);
     setTime(0);
-    retries.current = 0;
-    if (!src) return;
-    const frame = requestAnimationFrame(() => setAttached(true));
-    return () => cancelAnimationFrame(frame);
-  }, [src]);
-
-  useEffect(() => () => { if (retryTimer.current !== null) window.clearTimeout(retryTimer.current); }, []);
-  useEffect(() => {
-    const audio = ref.current;
-    if (!audio || !attached || !src) return;
-    const ticket = ++live.current;
-    ignoreError.current = false;
-    audio.src = src;
-    audio.load();
-    return () => {
-      if (live.current === ticket) live.current += 1;
+    if (audio) {
       ignoreError.current = true;
       audio.pause();
       audio.removeAttribute("src");
+      audio.load();
+    }
+    return () => {
+      live.current += 1;
+      wantPlay.current = false;
+      if (retryTimer.current !== null) {
+        window.clearTimeout(retryTimer.current);
+        retryTimer.current = null;
+      }
+      if (audio) {
+        ignoreError.current = true;
+        audio.pause();
+        audio.removeAttribute("src");
+      }
     };
-  }, [attached, src]);
+  }, [src]);
 
   useEffect(() => {
-    const pause = (event: Event) => { if ((event as CustomEvent).detail !== assetId) ref.current?.pause(); };
-    document.addEventListener("xumeng-audio-play", pause);
-    return () => document.removeEventListener("xumeng-audio-play", pause);
+    return subscribeXumengAudioFocus(assetId, () => {
+      live.current += 1;
+      wantPlay.current = false;
+      setLoading(false);
+      ref.current?.pause();
+    });
   }, [assetId]);
+
+  function ensureAttached(audio: HTMLAudioElement): boolean {
+    if (!src) return false;
+    if (loadedSrc.current === src && audio.getAttribute("src")) return true;
+    ignoreError.current = false;
+    loadedSrc.current = src;
+    audio.src = src;
+    audio.load();
+    return true;
+  }
 
   function playWhenReady() {
     const audio = ref.current;
     if (!audio || !wantPlay.current) return;
+    const ticket = live.current;
     wantPlay.current = false;
-    void audio.play().catch(() => { wantPlay.current = true; });
+    void audio.play().catch((error: unknown) => {
+      if (live.current !== ticket) return;
+      const blocked = error instanceof DOMException && error.name === "NotAllowedError";
+      if (!blocked && audio.readyState < 2 && !audio.error) {
+        wantPlay.current = true;
+        setLoading(true);
+        return;
+      }
+      wantPlay.current = false;
+      setLoading(false);
+      setPlaying(false);
+    });
   }
 
   function reload(autoplay: boolean) {
     const audio = ref.current;
     if (!audio || !src) return;
-    if (autoplay) wantPlay.current = true;
     const ticket = ++live.current;
+    wantPlay.current = autoplay;
+    setLoading(autoplay);
     ignoreError.current = true;
+    loadedSrc.current = "";
     audio.pause();
     audio.removeAttribute("src");
     if (retryTimer.current !== null) window.clearTimeout(retryTimer.current);
@@ -93,20 +130,36 @@ export function VoiceNote({ src, label, assetId, durationMs, onError }: {
       retryTimer.current = null;
       if (live.current !== ticket || ref.current !== audio) return;
       ignoreError.current = false;
+      loadedSrc.current = src;
       audio.src = src;
       audio.load();
+      if (wantPlay.current) playWhenReady();
     }, 280);
   }
 
   function toggle() {
     const audio = ref.current;
-    if (!src) return;
-    if (failed) { retries.current = 0; setFailed(false); reload(true); return; }
-    if (!audio || !attached) { wantPlay.current = true; return; }
-    if (audio.paused) {
-      wantPlay.current = true;
-      playWhenReady();
-    } else audio.pause();
+    if (!src || !audio) return;
+    if (failed) {
+      retries.current = 0;
+      setFailed(false);
+      claimXumengAudioFocus(assetId);
+      reload(true);
+      return;
+    }
+    if (playing || loading || wantPlay.current) {
+      live.current += 1;
+      wantPlay.current = false;
+      setLoading(false);
+      audio.pause();
+      return;
+    }
+    live.current += 1;
+    claimXumengAudioFocus(assetId);
+    ensureAttached(audio);
+    wantPlay.current = true;
+    setLoading(audio.readyState < 2);
+    playWhenReady();
   }
 
   function fail() {
@@ -117,6 +170,8 @@ export function VoiceNote({ src, label, assetId, durationMs, onError }: {
       reload(wantPlay.current);
       return;
     }
+    wantPlay.current = false;
+    setLoading(false);
     setPlaying(false);
     setFailed(true);
     onError?.();
@@ -124,19 +179,21 @@ export function VoiceNote({ src, label, assetId, durationMs, onError }: {
 
   const shown = playing || time > 0 ? time : duration;
   const progress = known && shown > 0 ? Math.min(1, (playing || time > 0 ? time : 0) / duration) : 0;
-  return <div className={s.slot} data-playing={playing ? "true" : "false"} data-failed={failed ? "true" : "false"} style={{ width: slotWidth(duration) }}>
-    <button type="button" className={s.note} aria-busy={!attached || (!known && !failed)} aria-label={failed ? `${label}加载失败，重试` : playing ? `暂停${label}` : `播放${label}`} onClick={toggle}>
+  return <div className={s.slot} data-playing={playing ? "true" : "false"} data-loading={loading ? "true" : "false"} data-failed={failed ? "true" : "false"} style={{ width: slotWidth(duration) }}>
+    <button type="button" className={s.note} aria-busy={loading} aria-label={failed ? `${label}加载失败，重试` : playing ? `暂停${label}` : loading ? `取消加载${label}` : `播放${label}`} onClick={toggle}>
       <span className={s.body}>
-        <Icon name={playing ? "pause" : "play"} size={14} />
+        <Icon name={playing ? "pause" : loading ? "refresh" : "play"} size={14} />
         <span className={s.waves} aria-hidden="true"><i /><i /><i /></span>
-        <span className={s.time}>{failed ? "重试" : clock(shown)}</span>
+        <span className={s.time}>{failed ? "重试" : loading ? "缓冲…" : clock(shown)}</span>
       </span>
       <span className={s.progress} aria-hidden="true"><span style={{ width: `${progress * 100}%` }} /></span>
     </button>
-    <audio ref={ref} className={s.clip} preload="auto" aria-label={label}
-      onPlay={() => { setPlaying(true); document.dispatchEvent(new CustomEvent("xumeng-audio-play", { detail: assetId })); }}
-      onPause={() => setPlaying(false)}
-      onEnded={() => { setPlaying(false); setTime(0); }}
+    <audio ref={ref} className={s.clip} preload="none" aria-label={label}
+      onPlay={() => { wantPlay.current = false; setLoading(false); setPlaying(true); claimXumengAudioFocus(assetId); }}
+      onPlaying={() => { setLoading(false); setPlaying(true); }}
+      onWaiting={() => { if (!ref.current?.paused) setLoading(true); }}
+      onPause={() => { setPlaying(false); setLoading(false); }}
+      onEnded={() => { wantPlay.current = false; setPlaying(false); setLoading(false); setTime(0); }}
       onTimeUpdate={() => { if (ref.current) setTime(ref.current.currentTime); }}
       onLoadedMetadata={() => {
         const audio = ref.current;

@@ -55,6 +55,42 @@
   opacity: 0;
   transition: opacity 80ms linear;
 }
+.standbyVideo {
+  z-index: 1;
+  opacity: 0 !important;
+  visibility: hidden;
+  pointer-events: none;
+}
+.bufferPill {
+  position: absolute;
+  z-index: 4;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(10, 6, 12, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12px;
+  pointer-events: none;
+}
+.bufferPill i {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.28);
+  border-top-color: var(--pink);
+  animation: videoSpin 0.8s linear infinite;
+}
+@keyframes videoSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
 .landscape {
   object-fit: contain;
   object-position: center center;
@@ -798,6 +834,7 @@
 
 .seekHud { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); z-index:12; min-width:190px; padding:14px 18px 12px; border-radius:16px; background:rgba(10,6,12,.78); border:1px solid rgba(255,255,255,.16); backdrop-filter:blur(10px); pointer-events:none; text-align:center; }
 .seekHudRow { display:flex; align-items:center; justify-content:center; gap:8px; color:#fff3f6; }
+.seekHudRow[data-dir="back"] svg { transform: rotate(180deg); }
 .seekHudRow strong { font-size:22px; font-variant-numeric:tabular-nums; letter-spacing:.02em; }
 .seekHudRow span { font-size:12px; color:#e4a9bd; font-variant-numeric:tabular-nums; }
 .seekHudBar { height:4px; margin-top:10px; border-radius:999px; background:rgba(255,255,255,.18); overflow:hidden; }

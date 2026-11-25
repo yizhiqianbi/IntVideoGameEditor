@@ -2,9 +2,12 @@ import { dzmmModelReasoning, dzmmModelTemperature, findDzmmProviderModel } from 
 import { mergeTavernSampler, resolveTavernSampler } from "./tavern/sampler";
 import { buildTavernGroupPrompt, type TavernGroupMember } from "./tavern/group";
 import { readTavernFlags } from "./tavern/flags";
+import { countDzmmContextText } from "./dzmm-character-context";
 import {
+  applyDzmmPromptCaching,
   buildDzmmPromptPlan,
   createDzmmSseParser,
+  DZMM_CONTEXT_LIMIT_CHARS,
   DZMM_REQUEST_LIMIT_BYTES,
   DZMM_MAX_MESSAGE_CHARS,
   DzmmProviderStreamError,
@@ -17,6 +20,7 @@ import {
   currentDzmmWorldState,
   xumengAdultWritingPrompt,
 } from "./dzmm-chat";
+import { fetchDzmmUpstreamWithRetry } from "./dzmm-upstream-resilience";
 import { applyDzmmWorldPatch, readDzmmExplicitTimeJump } from "./dzmm-world-state";
 import { createDzmmWorldTailFilter, encodeDzmmWorldEvent } from "./dzmm-world-stream";
 import { prepareDzmmBillingRequest, DzmmBillingError, dzmmProviderRouting, readDzmmGenerationId, readDzmmProviderMaxPrice, trustedDzmmGenerationUsage,
@@ -102,7 +106,7 @@ export async function handleDzmmChatPost(
       if (!flags.engine && input.promptStyle === "tavern") { input.promptStyle = undefined; delete input.group; }
       if (!flags.sampler) delete input.sampler;
       if (!flags.memory) delete input.memoryConfig;
-      plan = buildDzmmPromptPlan(input, requestTime);
+      plan = input.group ? { messages: [], diagnostics: { version: "tavern-group-v1", historyMessages: input.messages.length, exampleMessages: 0, loreEntries: 0, hasMemory: Boolean(input.storyMemory), segments: [] } } : buildDzmmPromptPlan(input, requestTime);
     }
   } catch (error) {
     return failure(error instanceof DzmmValidationError ? error.message : "无法读取聊天请求，请重试。", 400);
@@ -116,12 +120,17 @@ export async function handleDzmmChatPost(
         members: input.group.members as TavernGroupMember[],
         messages: input.messages,
         userName: input.userName || "用户",
+        locale: input.locale,
         preset: input.preset,
         persona: input.userPersona,
         memory: input.storyMemory ? JSON.stringify(input.storyMemory) : undefined,
         jailbreak: xumengAdultWritingPrompt(),
         speaker: input.group.speaker,
       });
+      if (countDzmmContextText(group.plan.messages) > DZMM_CONTEXT_LIMIT_CHARS
+        || new TextEncoder().encode(JSON.stringify(group.plan.messages)).byteLength > DZMM_REQUEST_LIMIT_BYTES) {
+        throw new DzmmValidationError("群聊上下文过长，请减少群成员设定或较早消息。");
+      }
       groupSpeaker = { name: group.speaker.name, characterId: group.speaker.characterId };
       plan = {
         messages: group.plan.messages,
@@ -161,8 +170,9 @@ export async function handleDzmmChatPost(
     void ignoredMaxTokens;
     return rest;
   })() : undefined;
+  const wireMessages = applyDzmmPromptCaching(plan.messages, upstream.model, upstream.direct);
   const buildProviderBody = (maxOutputTokens: number) => JSON.stringify({
-    model: upstream.model, stream: true, ...(upstream.direct ? { stream_options: { include_usage: true } } : {}), messages: plan.messages,
+    model: upstream.model, stream: true, ...(upstream.direct ? { stream_options: { include_usage: true } } : {}), messages: wireMessages,
     ...dzmmModelReasoning(upstream.model),
     ...(maxPrice ? { provider: dzmmProviderRouting(upstream.model, maxPrice) } : {}),
     ...(samplerParams ?? dzmmModelTemperature(upstream.model, input.model === "story" || input.model === "heretic" ? 0.9 : 0.75)), max_tokens: maxOutputTokens,
@@ -198,16 +208,29 @@ export async function handleDzmmChatPost(
   };
   request.signal.addEventListener("abort", abortOnDisconnect, { once: true });
   if (request.signal.aborted) abortController.abort();
-  const timeout = setTimeout(() => {
+  const triggerTimeout = () => {
     timedOut = true;
     abortController.abort();
-  }, 90_000);
+  };
+  const timeout = setTimeout(triggerTimeout, 120_000);
+  let ttfbTimer: ReturnType<typeof setTimeout> | undefined = setTimeout(triggerTimeout, 40_000);
+  let idleTimer: ReturnType<typeof setTimeout> | undefined;
+  function clearTtfbTimer() {
+    if (ttfbTimer) { clearTimeout(ttfbTimer); ttfbTimer = undefined; }
+  }
+  function touchIdleTimer() {
+    clearTtfbTimer();
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(triggerTimeout, 25_000);
+  }
   let upstreamReader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let cleanedUp = false;
   function cleanup() {
     if (cleanedUp) return;
     cleanedUp = true;
     clearTimeout(timeout);
+    clearTtfbTimer();
+    if (idleTimer) { clearTimeout(idleTimer); idleTimer = undefined; }
     request.signal.removeEventListener("abort", abortOnDisconnect);
   }
   async function stopUpstream() {
@@ -231,12 +254,12 @@ export async function handleDzmmChatPost(
     if (request.signal.aborted || abortController.signal.aborted) throw new Error("Cancelled before billing reservation");
     if (options.billing) lease = await options.billing.reserve(prepared.preflight);
     if (request.signal.aborted || abortController.signal.aborted) throw new Error("Cancelled before provider request");
-    const upstreamResponse = await (options.providerFetch ?? fetch)(upstream.endpoint, {
+    const upstreamResponse = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint, {
       method: "POST",
       headers: dzmmUpstreamHeaders(upstream.apiKey, upstream.direct, "Local Roleplay Prototype"),
       body: prepared.providerBody,
       signal: abortController.signal,
-    });
+    }, { retryDelayMs: options.providerFetch ? 0 : 350 });
     if (abortController.signal.aborted) {
       await upstreamResponse.body?.cancel();
       throw new Error("Cancelled provider request");
@@ -273,6 +296,7 @@ export async function handleDzmmChatPost(
     async function nextText(): Promise<string | null> {
       while (!pending.length && !finished) {
         const result = await upstreamReader!.read();
+        if (!result.done) touchIdleTimer();
         if (result.done) {
           queue([...parser!.push(decoder.decode()), ...parser!.finish()]);
           worldFilter?.finish();

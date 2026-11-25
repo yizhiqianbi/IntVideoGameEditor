@@ -1,6 +1,7 @@
 import { dzmmModelReasoning, dzmmModelTemperature, findDzmmProviderModel } from "./dzmm-models";
 import { readDzmmJsonBody, type DzmmChatEnvironment, type DzmmChatHandlerOptions } from "./dzmm-chat-handler";
 import { DzmmValidationError, dzmmUpstreamHeaders, readDzmmProviderConfig, resolveDzmmChatUpstream, sanitizeDzmmProviderError } from "./dzmm-chat";
+import { fetchDzmmUpstreamWithRetry, parseDzmmJsonResponseText } from "./dzmm-upstream-resilience";
 import { prepareDzmmBillingRequest, DzmmBillingError, dzmmProviderRouting, readDzmmGenerationId, readDzmmGenerationUsage,
   readDzmmProviderMaxPrice, trustedDzmmGenerationUsage,
   type DzmmBillingCompletion, type DzmmBillingLease, type DzmmGenerationUsage } from "./dzmm-generation-billing";
@@ -61,10 +62,10 @@ export async function handleDzmmReplySuggestionsPost(request: Request, env: Dzmm
     if (abort.signal.aborted) throw new Error("Cancelled before reservation");
     if (options.billing) lease = await options.billing.reserve(prepared.preflight);
     if (abort.signal.aborted) throw new Error("Cancelled before provider");
-    const response = await (options.providerFetch ?? fetch)(upstream.endpoint, {
+    const response = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint, {
       method: "POST", headers: dzmmUpstreamHeaders(upstream.apiKey, upstream.direct, "Xumeng Reply Suggestions"),
       body: prepared.providerBody, signal: abort.signal,
-    });
+    }, { retryDelayMs: options.providerFetch ? 0 : 350 });
     if (abort.signal.aborted) { await response.body?.cancel(); throw new Error("Cancelled provider response"); }
     if (!response.ok) {
       const detail = await response.text().catch(() => ""); await finishBilling("failed");
@@ -94,7 +95,7 @@ export async function handleDzmmReplySuggestionsPost(request: Request, env: Dzmm
     const choice = payload.choices[0];
     if (choice.finish_reason !== "stop" || !record(choice.message) || typeof choice.message.content !== "string"
       || choice.message.content.length > 4096) throw new Error("Incomplete suggestions");
-    const suggestions = parseDzmmReplySuggestions(JSON.parse(choice.message.content));
+    const suggestions = parseDzmmReplySuggestions(parseDzmmJsonResponseText(choice.message.content));
     if (abort.signal.aborted) throw new Error("Cancelled validated response");
     hasValidOutput = true; await finishBilling("completed");
     return Response.json({ options: suggestions }, { headers: { ...HEADERS,

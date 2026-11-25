@@ -63,18 +63,74 @@ export function fetchDzmmPublicCharacters(query: number | DzmmCatalogRequest = 0
   if (input.look) params.set("look", input.look);
   return request<DzmmPublishingPage<{ characters: DzmmPublishedCharacter[] }>>(`/catalog?${params}`);
 }
-export async function fetchDzmmPlayMaterials(id: string, signal?: AbortSignal): Promise<Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar">> {
-  const result = await request<Record<string, unknown>>(`/catalog/${encodeURIComponent(id)}/prompt`, "GET", undefined, signal);
-  if (!result || typeof result.systemPrompt !== "string") throw new DzmmPublishingError(502, "角色扮演指令无效，请稍后重试。");
-  const play: Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar"> = {
-    systemPrompt: result.systemPrompt,
-  };
-  if (typeof result.postHistoryInstructions === "string") play.postHistoryInstructions = result.postHistoryInstructions;
-  if (typeof result.messageExamples === "string") play.messageExamples = result.messageExamples;
-  if (result.characterBook && typeof result.characterBook === "object") play.characterBook = result.characterBook as Character["characterBook"];
-  if (result.interactionTemplate && typeof result.interactionTemplate === "object") play.interactionTemplate = result.interactionTemplate as Character["interactionTemplate"];
-  if (result.statusBar && typeof result.statusBar === "object") play.statusBar = result.statusBar as Character["statusBar"];
-  return play;
+export type DzmmPlayMaterials = Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar">;
+
+const PLAY_MATERIALS_CACHE_TTL_MS = 5 * 60 * 1000;
+const PLAY_MATERIALS_CACHE_MAX = 64;
+const playMaterialsCache = new Map<string, { value: DzmmPlayMaterials; expiresAt: number }>();
+const playMaterialsInflight = new Map<string, Promise<DzmmPlayMaterials>>();
+
+export function clearDzmmPlayMaterialsCache(id?: string): void {
+  if (id === undefined) {
+    playMaterialsCache.clear();
+    playMaterialsInflight.clear();
+  } else {
+    playMaterialsCache.delete(id);
+    playMaterialsInflight.delete(id);
+  }
+}
+
+function awaitWithSignal<T>(promise: Promise<T>, signal?: AbortSignal): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) return Promise.reject(new DOMException("Aborted", "AbortError"));
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = () => reject(new DOMException("Aborted", "AbortError"));
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => { signal.removeEventListener("abort", onAbort); resolve(value); },
+      (error) => { signal.removeEventListener("abort", onAbort); reject(error); },
+    );
+  });
+}
+
+export async function fetchDzmmPlayMaterials(id: string, signal?: AbortSignal): Promise<DzmmPlayMaterials> {
+  if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
+  const now = Date.now();
+  const cached = playMaterialsCache.get(id);
+  if (cached && cached.expiresAt > now) {
+    // Refresh LRU order
+    playMaterialsCache.delete(id);
+    playMaterialsCache.set(id, cached);
+    return cached.value;
+  }
+  if (cached) playMaterialsCache.delete(id);
+
+  let inflight = playMaterialsInflight.get(id);
+  if (!inflight) {
+    inflight = (async () => {
+      const result = await request<Record<string, unknown>>(`/catalog/${encodeURIComponent(id)}/prompt`, "GET");
+      if (!result || typeof result.systemPrompt !== "string") throw new DzmmPublishingError(502, "角色扮演指令无效，请稍后重试。");
+      const play: DzmmPlayMaterials = {
+        systemPrompt: result.systemPrompt,
+      };
+      if (typeof result.postHistoryInstructions === "string") play.postHistoryInstructions = result.postHistoryInstructions;
+      if (typeof result.messageExamples === "string") play.messageExamples = result.messageExamples;
+      if (result.characterBook && typeof result.characterBook === "object") play.characterBook = result.characterBook as Character["characterBook"];
+      if (result.interactionTemplate && typeof result.interactionTemplate === "object") play.interactionTemplate = result.interactionTemplate as Character["interactionTemplate"];
+      if (result.statusBar && typeof result.statusBar === "object") play.statusBar = result.statusBar as Character["statusBar"];
+      playMaterialsCache.set(id, { value: play, expiresAt: Date.now() + PLAY_MATERIALS_CACHE_TTL_MS });
+      while (playMaterialsCache.size > PLAY_MATERIALS_CACHE_MAX) {
+        const oldestKey = playMaterialsCache.keys().next().value;
+        if (oldestKey === undefined) break;
+        playMaterialsCache.delete(oldestKey);
+      }
+      return play;
+    })().finally(() => {
+      if (playMaterialsInflight.get(id) === inflight) playMaterialsInflight.delete(id);
+    });
+    playMaterialsInflight.set(id, inflight);
+  }
+  return awaitWithSignal(inflight, signal);
 }
 export async function fetchDzmmPlayPrompt(id: string, signal?: AbortSignal): Promise<string> {
   return (await fetchDzmmPlayMaterials(id, signal)).systemPrompt ?? "";
@@ -121,6 +177,7 @@ export function submitDzmmCharacter(character: Character, publicationId?: string
   if (character.authoringDraft) return Promise.reject(new DzmmPublishingError(400, "世界书还有未完成项，请先完善再提交审核。"));
   const { authoringDraft: privateDraft, ...playableCharacter } = character;
   void privateDraft;
+  clearDzmmPlayMaterialsCache(character.id);
   return request<DzmmPublishingResult>("/submissions", "POST", { character: playableCharacter, ...(publicationId ? { publicationId } : {}), ...(version === undefined ? {} : { version }), ...(accountId === undefined ? {} : { accountId }) });
 }
 export function withdrawDzmmSubmission(id: string, version: number, accountId?: string) {
@@ -128,11 +185,13 @@ export function withdrawDzmmSubmission(id: string, version: number, accountId?: 
 }
 export type DzmmDisplayStats = { displayHeat: number; displayLikes: number };
 export function reviewDzmmSubmission(id: string, version: number, decision: "approved" | "rejected", reason = "", accountId?: string, stats?: DzmmDisplayStats) {
+  clearDzmmPlayMaterialsCache();
   return request<DzmmPublishingResult>(`/submissions/${encodeURIComponent(id)}/review`, "PATCH", { version, decision, reason, ...(decision === "approved" && stats ? stats : {}), ...(accountId === undefined ? {} : { accountId }) });
 }
 export async function setDzmmDisplayStats(publicationId: string, stats: DzmmDisplayStats, accountId?: string) {
   return (await request<{ publication: DzmmPublication }>(`/publications/${encodeURIComponent(publicationId)}/display-stats`, "PATCH", { ...stats, ...(accountId === undefined ? {} : { accountId }) })).publication;
 }
 export async function unpublishDzmmCharacter(publicationId: string, version: number, accountId?: string) {
+  clearDzmmPlayMaterialsCache();
   return (await request<{ publication: DzmmPublication }>(`/publications/${encodeURIComponent(publicationId)}/unpublish`, "POST", { version, ...(accountId === undefined ? {} : { accountId }) })).publication;
 }

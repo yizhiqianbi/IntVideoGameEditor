@@ -62,12 +62,31 @@ export function parseXumengLiveStatus(value: unknown, accountId: string): Xumeng
   return { accountId, configured: value.configured, region: value.region as "cn" | "global", session: parseXumengLiveSession(value.session), events,
     tasks: value.tasks.map(parseXumengLiveTask), lastStartError };
 }
-export async function requestXumengLive(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; signal?: AbortSignal; keepalive?: boolean } = {}): Promise<Record<string, unknown>> {
+export async function requestXumengLive(path: string, options: { method?: "GET" | "POST" | "DELETE"; body?: unknown; signal?: AbortSignal; keepalive?: boolean; timeoutMs?: number } = {}): Promise<Record<string, unknown>> {
   if (!/^\/api\/live(?:\/|$)/.test(path)) throw new Error("实时影像请求地址无效。");
   const method = options.method ?? "GET";
-  const response = await fetch(path, { method, credentials: "same-origin", cache: "no-store", signal: options.signal, keepalive: options.keepalive,
-    ...(method !== "GET" ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(options.body ?? {}) } : {}) });
-  const raw = await response.text();
+  const timeoutMs = options.timeoutMs ?? 15_000;
+  const controller = !options.keepalive && timeoutMs > 0 ? new AbortController() : null;
+  let timedOut = false;
+  const timer = controller ? setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs) : null;
+  const onExternalAbort = () => controller?.abort();
+  if (controller && options.signal) {
+    if (options.signal.aborted) controller.abort();
+    else options.signal.addEventListener("abort", onExternalAbort, { once: true });
+  }
+  let response: Response;
+  let raw: string;
+  try {
+    response = await fetch(path, { method, credentials: "same-origin", cache: "no-store", signal: controller ? controller.signal : options.signal, keepalive: options.keepalive,
+      ...(method !== "GET" ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(options.body ?? {}) } : {}) });
+    raw = await response.text();
+  } catch (failure) {
+    if (timedOut) throw new XumengLiveRequestError(504, "实时影像服务响应超时，请检查网络或刷新状态后重试。");
+    throw failure;
+  } finally {
+    if (timer) clearTimeout(timer);
+    if (controller && options.signal) options.signal.removeEventListener("abort", onExternalAbort);
+  }
   if (raw.length > 2_000_000) invalid();
   let result: unknown;
   try { result = JSON.parse(raw); } catch { throw new Error(`服务响应无法确认（HTTP ${response.status}），请先刷新状态，避免重复开播或提交。`); }

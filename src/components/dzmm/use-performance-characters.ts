@@ -1,7 +1,6 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import type { Character } from "@/lib/dzmm-characters";
-import { fetchDzmmNovels } from "@/lib/dzmm-novels-client";
 import { fetchXumengGames } from "@/lib/xumeng-games-client";
 import { xumengPerformanceFromCard, xumengPerformanceFromNovel, type XumengPerformanceCharacter, type XumengLiveSource } from "@/lib/xumeng-performance-character";
 
@@ -12,7 +11,10 @@ export function usePerformanceCharacters(accountId: string | undefined, isGuest:
   useEffect(() => {
     if (!enabled || !accountId || isGuest) return;
     const abort = new AbortController(); let alive = true;
-    void Promise.allSettled([fetchDzmmNovels(accountId, abort.signal), includeGames ? fetchXumengGames(accountId, abort.signal) : Promise.resolve(null)]).then(([novelResult, gameResult]) => {
+    void Promise.allSettled([
+      import("@/lib/dzmm-novels-client").then(({ fetchDzmmNovels }) => fetchDzmmNovels(accountId, abort.signal)),
+      includeGames ? fetchXumengGames(accountId, abort.signal) : Promise.resolve(null),
+    ]).then(([novelResult, gameResult]) => {
       if (!alive || abort.signal.aborted) return;
       const characters = novelResult.status === "fulfilled" ? novelResult.value.works.flatMap(work => (work.characters ?? []).map(character => xumengPerformanceFromNovel(character, work))) : [];
       const sources: XumengLiveSource[] = novelResult.status === "fulfilled" ? novelResult.value.works.map(work => ({ key: `novel:${work.id}`, kind: "novel", sourceId: work.id, label: work.title || "未命名小说", reference: work.synopsis.slice(0, 2000), characterKeys: characters.filter(character => character.sourceId === work.id).map(character => character.key) })) : [];

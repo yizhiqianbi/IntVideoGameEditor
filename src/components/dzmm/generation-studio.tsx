@@ -4,7 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { fetchDzmmBillingUsage } from "../../lib/dzmm-billing-client";
 import { createGeneration, deleteGeneration, fetchGenerationConfig, fetchGenerationJobs, GenerationError, quoteGeneration, recoverGeneration, refreshGeneration,
-  parseGenerationReference, type GenerationReference, type GenerationConfig, type GenerationInput, type GenerationJob, type GenerationKind, type GenerationQuote } from "../../lib/xumeng-generation";
+  parseGenerationReference, uploadGenerationReference, type GenerationReference, type GenerationConfig, type GenerationInput, type GenerationJob, type GenerationKind, type GenerationQuote } from "../../lib/xumeng-generation";
 import { recoverGenerationReferenceWithDeadline } from "../../lib/xumeng-reference-recovery";
 import { prepareReferenceImage } from "../../lib/xumeng-reference-file";
 import { getGenerationTemplate, type GenerationTemplate } from "../../lib/xumeng-generation-templates";
@@ -20,10 +20,26 @@ import GenerationReferenceInput from "./generation-reference";
 import GenerationActionPreview from "./generation-action-preview";
 import type { XumengLocale } from "../../lib/xumeng-i18n";
 import { xumengStudio, xumengStudioFill } from "../../lib/xumeng-studio-copy";
+import {
+  consumePendingGenerationTemplateId,
+  fetchCoverAsReferenceFile,
+  readTemplateBridgeCharacter,
+  setTemplateBridgeCharacter,
+  type TemplateBridgeCharacter,
+} from "../../lib/xumeng-template-bridge";
 import Icon from "./icons";
 import s from "./generation-studio.module.css";
 
-type Props = { userId: string; isGuest: boolean; locale?: XumengLocale; onRequireAccount: () => void; onRecharge?: () => void; onBack?: () => void };
+type Props = {
+  userId: string;
+  isGuest: boolean;
+  locale?: XumengLocale;
+  onRequireAccount: () => void;
+  onRecharge?: () => void;
+  onBack?: () => void;
+  onOpenAigen?: () => void;
+  onLaunchTour?: () => void;
+};
 const running = (job: GenerationJob) => job.finalizedAt === null;
 const message = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 const points = (value: number) => value.toLocaleString("zh-CN");
@@ -31,16 +47,24 @@ const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month:
 const jobTemplateLabel = (job: GenerationJob) => { const template = getGenerationTemplate(job.templateId); return template?.kind === job.kind ? template.label : null; };
 type Submission = { fingerprint: string; requestId: string; expectedMaxCredits?: number; status: "submitted" | "awaiting_confirmation" };
 
-export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", onRequireAccount, onRecharge, onBack }: Props) {
+export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", onRequireAccount, onRecharge, onBack, onOpenAigen, onLaunchTour }: Props) {
   const c = xumengStudio(locale);
+  const [bridgeRole, setBridgeRole] = useState<TemplateBridgeCharacter | null>(() => readTemplateBridgeCharacter());
+  const [bridgeLoading, setBridgeLoading] = useState(false);
   const jobName = (status: GenerationJob["status"]) => ({ pending: c.gsSubmitted, processing: c.gsProcessing, ready: c.gsReady, failed: c.gsFailedStatus, unknown: c.gsUnknownStatus }[status]);
+  const entryKindRef = useRef<GenerationKind | null>(null);
   const [kind, setKind] = useState<GenerationKind>(() => {
     try {
       const saved = sessionStorage.getItem("xumeng-aigen-kind");
       sessionStorage.removeItem("xumeng-aigen-kind");
-      return saved === "video" ? "video" : "image";
+      if (saved === "video" || saved === "image") {
+        entryKindRef.current = saved;
+        return saved;
+      }
+      return "image";
     } catch { return "image"; }
   });
+  const [elapsedSec, setElapsedSec] = useState(0);
   const [useReferenceImage, setUseReferenceImage] = useState(true);
   const [referenceImage, setReferenceImage] = useState<GenerationReference | null>(null);
   const [uploadingReference, setUploadingReference] = useState(false);
@@ -61,6 +85,7 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   const [pendingTemplate, setPendingTemplate] = useState<GenerationTemplate | null>(null);
   const [workspaceMode, setWorkspaceMode] = useState<"templates" | "create">("templates");
   const [quote, setQuote] = useState<{ input: GenerationInput; value: GenerationQuote } | null>(null);
+  const [quoting, setQuoting] = useState(false);
   const [balance, setBalance] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -87,6 +112,9 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   const creating = useRef(false);
   const gpuPreviewUrl = useRef<string | null>(null);
   const gpuReferenceImage = useRef("");
+  const lastReferenceFile = useRef<File | null>(null);
+  const syncedCloudFile = useRef<File | null>(null);
+  const autoQuoteAction = useRef<AbortController | null>(null);
   const referencePick = useRef(0);
   const revealReference = useRef(false);
   const compare = useRef<HTMLDivElement | null>(null);
@@ -178,7 +206,7 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
       const usage = !isGuest ? await fetchDzmmBillingUsage(userId).catch(() => null) : null;
       if (!mounted.current || collectionEpoch.current !== epoch) return;
       setJobs(list); setBalance(usage?.availableBalance ?? null);
-    } catch (failure) { if (mounted.current) setError(message(failure, c.gsDisconnect)); }
+    } catch (failure) { if (mounted.current && !isGuest) setError(message(failure, c.gsDisconnect)); }
     finally { refreshing.current = false; }
   }, [userId, isGuest]);
 
@@ -213,7 +241,7 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
           setReferenceImage(savedReference);
           void restoreReference(savedReference, controller.signal);
         } catch { setReferenceImage(null); setError(c.gsSavedRefGone); } }
-        setKind(value.kind); setPrompt(value.prompt); setModelId(typeof value.modelId === "string" ? value.modelId : "");
+        setKind(entryKindRef.current ?? value.kind); setPrompt(value.prompt); setModelId(typeof value.modelId === "string" ? value.modelId : "");
         setAspectRatio(typeof value.aspectRatio === "string" ? value.aspectRatio : "1:1"); setDuration(Number.isInteger(value.duration) ? value.duration : 5);
         setTemplateId(value.templateId); setEditorMode(value.editorMode);
         setWorkspaceMode(value.workspaceMode);
@@ -223,10 +251,10 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     // The epoch excludes stale renders during a same-account rehydration.
     setDraftReady({ key: draftKey, epoch: hydrationEpoch });
     void fetchGenerationConfig(userId, controller.signal).then(value => { if (mounted.current) setConfig(value); })
-      .catch(failure => { if (!controller.signal.aborted && mounted.current) setError(message(failure, c.gsDisconnect)); })
+      .catch(failure => { if (!controller.signal.aborted && mounted.current && !isGuest) setError(message(failure, c.gsDisconnect)); })
       .finally(() => { if (mounted.current) setLoading(false); });
     void refresh();
-    return () => { mounted.current = false; controller.abort(); action.current?.abort(); referenceAction.current?.abort(); };
+    return () => { mounted.current = false; controller.abort(); action.current?.abort(); autoQuoteAction.current?.abort(); referenceAction.current?.abort(); };
   }, [draftKey, submitKey, refresh, restoreReference, userId]);
 
   useEffect(() => {
@@ -241,9 +269,42 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     else if (!pendingTemplate && element.open) element.close();
   }, [pendingTemplate]);
   useEffect(() => {
+    if (!busy) { setElapsedSec(0); return; }
+    const started = Date.now();
+    const timer = window.setInterval(() => setElapsedSec(Math.floor((Date.now() - started) / 1000)), 1000);
+    const beforeUnload = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    window.addEventListener("beforeunload", beforeUnload);
+    return () => { window.clearInterval(timer); window.removeEventListener("beforeunload", beforeUnload); };
+  }, [busy]);
+  useEffect(() => {
     if (!jobs.some(running)) return;
-    const timer = setInterval(() => { if (!document.hidden) void refresh(true); }, 30000);
-    return () => clearInterval(timer);
+    let cancelled = false;
+    let step = 0;
+    const delays = [3000, 5000, 10000, 15000];
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (cancelled) return;
+      const delay = delays[Math.min(step, delays.length - 1)];
+      step++;
+      timer = setTimeout(() => {
+        if (cancelled) return;
+        if (!document.hidden) void refresh(true);
+        schedule();
+      }, delay);
+    };
+    const onVisible = () => {
+      if (!document.hidden && !cancelled) {
+        step = 0;
+        void refresh(true);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    schedule();
+    return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, [jobs, refresh]);
   useEffect(() => {
     if (gpuPreviewUrl.current) URL.revokeObjectURL(gpuPreviewUrl.current);
@@ -251,6 +312,74 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     setGpuPreview("");
   }, [templateId]);
   useEffect(() => () => { if (gpuPreviewUrl.current) URL.revokeObjectURL(gpuPreviewUrl.current); }, []);
+
+  // Unified reference image bridge: if the user uploaded a local GPU reference and switched
+  // to a cloud pipeline that needs a reference, automatically upload the cached file once.
+  useEffect(() => {
+    if (!needsReference || referenceImage || isGuest || busy || uploadingReference || checkingReference || referenceRecoveryError) return;
+    const cachedFile = lastReferenceFile.current;
+    if (!cachedFile || syncedCloudFile.current === cachedFile) return;
+    syncedCloudFile.current = cachedFile;
+    const controller = new AbortController();
+    setUploadingReference(true);
+    void uploadGenerationReference(userId, cachedFile, controller.signal)
+      .then(reference => {
+        if (!mounted.current || controller.signal.aborted) return;
+        setReferenceImage(reference);
+        setReferenceRecoveryError("");
+        setQuote(null);
+      })
+      .catch(() => {
+        if (syncedCloudFile.current === cachedFile) syncedCloudFile.current = null;
+      })
+      .finally(() => {
+        if (mounted.current && !controller.signal.aborted) setUploadingReference(false);
+      });
+    return () => controller.abort();
+  }, [needsReference, referenceImage, isGuest, busy, uploadingReference, checkingReference, referenceRecoveryError, userId]);
+
+  // Auto-debounced quote for cloud pipelines so users see live credit estimates without manual 2-step quoting.
+  const canAutoQuote = workspaceMode === "create"
+    && !gpuStill && !h3Video && !stillBlocked
+    && !isGuest && !recovering && !busy && !loading
+    && !uploadingReference && !checkingReference
+    && Boolean(config?.enabled && model?.id && input.prompt && (template || hasLegacyDraft) && !templateError)
+    && (!needsReference || (Boolean(referenceImage) && Boolean(model?.supportsReferenceImage) && !referenceRecoveryError));
+  useEffect(() => {
+    autoQuoteAction.current?.abort();
+    autoQuoteAction.current = null;
+    if (!canAutoQuote || currentQuote) {
+      setQuoting(false);
+      return;
+    }
+    const controller = new AbortController();
+    autoQuoteAction.current = controller;
+    const snapshotInput = input;
+    const timer = window.setTimeout(() => {
+      if (controller.signal.aborted || !mounted.current) return;
+      setQuoting(true);
+      void quoteGeneration(snapshotInput, controller.signal)
+        .then(value => {
+          if (mounted.current && !controller.signal.aborted) setQuote({ input: snapshotInput, value });
+        })
+        .catch(() => {
+          // Silent on auto-quote; explicit button click surfaces errors if needed.
+        })
+        .finally(() => {
+          if (mounted.current && autoQuoteAction.current === controller) {
+            autoQuoteAction.current = null;
+            setQuoting(false);
+          }
+        });
+    }, 450);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+      if (autoQuoteAction.current === controller) autoQuoteAction.current = null;
+    };
+  // Fingerprint uniquely represents every field of `input`.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canAutoQuote, fingerprint, Boolean(currentQuote)]);
 
   function chooseReference(reference: boolean) {
     if (busy || uploadingReference || checkingReference) return;
@@ -378,10 +507,42 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     void prepareReferenceImage(file).then(prepared => {
       if (!mounted.current || referencePick.current !== pick) return;
       gpuReferenceImage.current = prepared.dataUrl.slice(prepared.dataUrl.indexOf(",") + 1);
+      lastReferenceFile.current = prepared.file;
+      syncedCloudFile.current = null;
       setGpuReference({ name: prepared.file.name, url: prepared.dataUrl, width: prepared.width, height: prepared.height, byteLength: prepared.file.size });
     }).catch(failure => {
       if (mounted.current && referencePick.current === pick) setError(failure instanceof Error ? failure.message : c.gsBadRef);
     });
+  }
+  useEffect(() => {
+    const pendingId = consumePendingGenerationTemplateId();
+    if (!pendingId) return;
+    const target = getGenerationTemplate(pendingId);
+    if (target) setPendingTemplate(target);
+  }, []);
+  useEffect(() => {
+    if (!bridgeRole?.coverUrl) return;
+    const controller = new AbortController();
+    setBridgeLoading(true);
+    void fetchCoverAsReferenceFile(bridgeRole.coverUrl, bridgeRole.name, controller.signal)
+      .then(file => {
+        if (!mounted.current || controller.signal.aborted) return;
+        chooseGpuReference(file);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (mounted.current && !controller.signal.aborted) setBridgeLoading(false);
+      });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeRole?.id, bridgeRole?.coverUrl]);
+  function clearBridgeRole() {
+    setTemplateBridgeCharacter(null);
+    setBridgeRole(null);
+    gpuReferenceImage.current = "";
+    lastReferenceFile.current = null;
+    syncedCloudFile.current = null;
+    setGpuReference(null);
   }
   async function generateOnGpu() {
     if (!template || !gpuStill || busy) return;
@@ -463,6 +624,38 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     } catch (failure) { if (mounted.current) setError(message(failure, "提示词没有优化完。")); }
     finally { if (mounted.current) setPolishing(false); }
   }
+  function cancelActiveGeneration() {
+    if (!busy) return;
+    action.current?.abort();
+    action.current = null;
+    setBusy(false);
+    setNotice("已取消本次生成。");
+  }
+  function reuseJobParameters(job: GenerationJob) {
+    if (busy) return;
+    setError("");
+    setSelectedId("");
+    setConfirmDelete("");
+    setQuote(null);
+    setKind(job.kind);
+    if (job.aspectRatio) setAspectRatio(job.aspectRatio);
+    if (job.duration) setDuration(job.duration);
+    if (job.modelId) setModelId(job.modelId);
+    const matchedTemplate = getGenerationTemplate(job.templateId);
+    if (matchedTemplate && matchedTemplate.kind === job.kind) {
+      setTemplateId(matchedTemplate.id);
+      setEditorMode("template");
+      setPromptOverride(job.prompt.slice(0, 4000));
+    } else {
+      setTemplateId("");
+      setEditorMode("legacy");
+      setPrompt(job.prompt.slice(0, 4000));
+      setPromptOverride("");
+    }
+    setWorkspaceMode("create");
+    setNotice("已回填历史任务参数，可直接调整后重新生成。");
+    requestAnimationFrame(() => promptInput.current?.focus());
+  }
   function newGeneration() { requestIds.current.clear(); setSubmission(null); try { sessionStorage.removeItem(submitKey); } catch {} setPromptOverride(""); setQuote(null); setSelectedId("");
     setWorkspaceMode(template || hasLegacyDraft ? "create" : "templates"); setNotice(template ? c.gsNewFromTemplate : hasLegacyDraft ? c.gsOldKept : c.gsPickThenQuote); }
   const actionLabel = busy && h3Video ? c.gsMakingVideo : busy && gpuStill ? c.gsMakingImage : busy ? c.gsWorking : h3Video ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : c.gsMakeVideo) : gpuStill ? (isGuest ? c.gsLoginGenerate : !gpuReference ? c.gsNeedRef : xumengStudioFill(c.gsMakeImage, { credits: points(STUDIO_STILL_CREDITS) })) : stillBlocked && !recovering ? c.gsCannot : isGuest ? c.gsLoginStart : recovering ? c.gsCheckJob : uploadingReference ? c.gsUploading : checkingReference ? c.gsRestoring : needsReference && !referenceImage ? c.gsNeedRef : currentQuote ? xumengStudioFill(c.gsConfirm, { credits: points(currentQuote.maxCredits) }) : c.gsSeeQuote;
@@ -474,7 +667,31 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
     {error && <div className={s.error} role="alert">{error}<button onClick={() => setError("")} aria-label={c.gsCloseError}><Icon name="close" size={16} /></button></div>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
     {recovering && workspaceMode === "templates" && <div className={s.recoveryBanner} role="status"><p>{c.gsRecoverBanner}</p><button type="button" className={s.secondary} disabled={busy || loading} onClick={() => { setWorkspaceMode("create"); void recoverSubmission(); }}>{c.gsCheckJob}</button></div>}
-    <div className={s.workspaceNav}><div role="group" aria-label={c.gsViews}><button type="button" aria-pressed={workspaceMode === "templates"} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16}/>{c.gsTemplateSquare}</button><button type="button" aria-pressed={workspaceMode === "create"} disabled={busy || uploadingReference || checkingReference || (!template && !hasLegacyDraft && !recovering)} onClick={() => setWorkspaceMode("create")}><Icon name="sparkles" size={16}/>{hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}</button></div><button type="button" className={`${s.historyLink} ${s.tool}`} aria-label={c.gsHistory} title={c.gsHistory} disabled={busy || uploadingReference || checkingReference} onClick={() => { setWorkspaceMode("create"); requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" })); }}><Icon name="book" size={16}/></button></div>
+    <div className={s.workspaceNav} data-tour="tpl-nav">
+      <div role="group" aria-label={c.gsViews}>
+        <button type="button" aria-pressed={workspaceMode === "templates"} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16}/>{c.gsTemplateSquare}</button>
+        <button type="button" aria-pressed={workspaceMode === "create"} disabled={busy || uploadingReference || checkingReference || (!template && !hasLegacyDraft && !recovering)} onClick={() => setWorkspaceMode("create")}><Icon name="sparkles" size={16}/>{hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}</button>
+        {onOpenAigen && <button type="button" disabled={busy || uploadingReference || checkingReference} onClick={onOpenAigen}><Icon name="sliders" size={16}/>{locale === "en" ? "Free AI Tools" : "自由工具"}</button>}
+      </div>
+      <div className={s.workspaceNavTools}>
+        {onLaunchTour && <button type="button" className={s.tool} aria-label={locale === "en" ? "Guided tour" : "新手引导"} title={locale === "en" ? "Guided tour" : "新手引导"} onClick={onLaunchTour}><Icon name="help" size={16}/></button>}
+        <button type="button" className={`${s.historyLink} ${s.tool}`} aria-label={c.gsHistory} title={c.gsHistory} disabled={busy || uploadingReference || checkingReference} onClick={() => { setWorkspaceMode("create"); requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" })); }}><Icon name="book" size={16}/></button>
+      </div>
+    </div>
+    {bridgeRole && (
+      <div className={s.roleBridgeBanner} role="status">
+        <img src={bridgeRole.coverUrl} alt={bridgeRole.name} />
+        <div className={s.roleBridgeText}>
+          <strong>{locale === "en" ? `Character reference ready: ${bridgeRole.name}` : `已带入角色「${bridgeRole.name}」作为参考图`}</strong>
+          <small>{bridgeLoading
+            ? (locale === "en" ? "Preparing portrait…" : "正在准备角色立绘…")
+            : (locale === "en" ? "Pick any template below to generate matching images or motion videos in 1 tap." : "点选下方任意视频或图片模板，即可一键用 Ta 生成同款作品。")}</small>
+        </div>
+        <button type="button" className={s.roleBridgeClear} onClick={clearBridgeRole} disabled={busy}>
+          {locale === "en" ? "Clear" : "清除角色"}
+        </button>
+      </div>
+    )}
     <GenerationTemplateLibrary locale={locale} userId={userId} visible={workspaceMode === "templates"} busy={busy || uploadingReference || checkingReference} onSelect={selectTemplate}/>
     {workspaceMode === "create" && <div className={s.layout}><section className={s.controls} aria-label={c.gsSettings}>
       <div className={s.templateHeading}><div><span>{kind === "image" ? c.gsImage : c.gsVideo}</span><h2 ref={templateHeading} tabIndex={-1}>{template?.label ?? (hasLegacyDraft ? c.gsSavedPrompt : c.gsPickFirst)}</h2><p>{template?.description ?? (hasLegacyDraft ? c.gsLegacyKept : c.gsPickUse)}</p></div><button className={s.tool} type="button" aria-label={template ? c.gsChangeTemplate : c.gsChooseTemplate} title={template ? c.gsChangeTemplate : c.gsChooseTemplate} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16} /></button></div>
@@ -488,11 +705,11 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
       </section>}
       {(gpuStill || h3Video) && <section className={s.reference} aria-label={c.gsReference}>
         <div className={s.referenceHeading}><strong>{c.gsReference}</strong><span>{c.gsRequiredOne}</span>{!gpuReference && <label className={s.tool} title={c.gsUploadRef}><input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label={c.gsPickFile} title={c.gsUploadRef} disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /><Icon name="upload" size={16} /></label>}</div>
-        {gpuReference && <div className={s.referenceSelected}><img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /><div><strong>{gpuReference.name}</strong><span>{gpuReference.width} × {gpuReference.height} · {(gpuReference.byteLength / 1024).toFixed(0)} KB</span><div className={s.referenceTools}><label className={s.tool} title={c.gsReplaceImage}><input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label={c.gsReplaceFile} title={c.gsReplaceImage} disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /><Icon name="upload" size={16} /></label><button type="button" className={s.tool} aria-label={c.gsRemove} title={c.gsRemove} disabled={busy} onClick={() => { gpuReferenceImage.current = ""; setGpuReference(null); }}><Icon name="close" size={16} /></button></div></div></div>}
+        {gpuReference && <div className={s.referenceSelected}><img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /><div><strong>{gpuReference.name}</strong><span>{gpuReference.width} × {gpuReference.height} · {(gpuReference.byteLength / 1024).toFixed(0)} KB</span><div className={s.referenceTools}><label className={s.tool} title={c.gsReplaceImage}><input className={s.fileCover} type="file" accept="image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif" aria-label={c.gsReplaceFile} title={c.gsReplaceImage} disabled={busy} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; chooseGpuReference(file); }} /><Icon name="upload" size={16} /></label><button type="button" className={s.tool} aria-label={c.gsRemove} title={c.gsRemove} disabled={busy} onClick={() => { gpuReferenceImage.current = ""; lastReferenceFile.current = null; syncedCloudFile.current = null; setGpuReference(null); }}><Icon name="close" size={16} /></button></div></div></div>}
         <p>{h3Video ? c.gsH3Help : freeStill ? c.gsFreeHelp : c.gsStillHelp}{!gpuReference && <span className={s.formatHint}> · PNG / JPG / WebP</span>}</p>
       </section>}
       {(gpuStill || h3Video) && <div className={s.options}><label>{h3Video ? c.gsVideoChannel : c.gsImageChannel}<select aria-label={h3Video ? c.gsVideoChannel : c.gsImageChannel} disabled={busy} value={channelEngine} onChange={event => setChannelEngine(event.target.value === "channel" ? "channel" : "local")}><option value="local">{c.gsLocalChannel}</option><option value="channel">{h3Video ? c.gsH3Trial : c.gsQwenTrial}</option></select></label></div>}
-      {needsReference && <GenerationReferenceInput locale={locale} accountId={userId} value={referenceImage} required={Boolean(template)} actionParticipants={actionTemplate?.actionParticipants} disabled={busy || checkingReference} isGuest={isGuest} video={kind === "video"} onRequireAccount={onRequireAccount} onUploading={setUploadingReference} onError={setError} onChange={value => { setReferenceImage(value); setReferenceRecoveryError(""); setQuote(null); }} />}
+      {needsReference && <GenerationReferenceInput locale={locale} accountId={userId} value={referenceImage} required={Boolean(template)} actionParticipants={actionTemplate?.actionParticipants} disabled={busy || checkingReference} isGuest={isGuest} video={kind === "video"} onRequireAccount={onRequireAccount} onUploading={setUploadingReference} onError={setError} onPrepared={prepared => { gpuReferenceImage.current = prepared.dataUrl.slice(prepared.dataUrl.indexOf(",") + 1); lastReferenceFile.current = prepared.file; syncedCloudFile.current = prepared.file; setGpuReference({ name: prepared.file.name, url: prepared.dataUrl, width: prepared.width, height: prepared.height, byteLength: prepared.byteLength }); }} onChange={value => { if (!value) { lastReferenceFile.current = null; syncedCloudFile.current = null; } setReferenceImage(value); setReferenceRecoveryError(""); setQuote(null); }} />}
       {checkingReference && <p className={s.fine} role="status">{c.gsRestoring}</p>}
       {needsReference && referenceRecoveryError && <div className={s.error} role="alert"><span>{referenceRecoveryError}</span><button type="button" disabled={busy || uploadingReference || checkingReference} onClick={retryReference}>{c.gsRetryRef}</button></div>}
       {template && templateDraft && <div className={s.parameterFields} role="group" aria-label={c.gsParams}>
@@ -510,9 +727,11 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
       <p className={s.fine}>{channelEngine === "channel" && h3Video ? c.gsH3Fine : channelEngine === "channel" && gpuStill ? xumengStudioFill(c.gsQwenFine, { credits: points(STUDIO_STILL_CREDITS) }) : h3Video ? c.gsH3Together : gpuStill ? xumengStudioFill(c.gsStillFine, { parts: freeStill ? c.gsFreeParts : c.gsStillParts, credits: points(STUDIO_STILL_CREDITS) }) : stillBlocked ? c.gsBlocked : xumengStudioFill(c.gsSkuFine, { size: model?.resolutions[0] ?? (kind === "image" ? "1K" : "720p"), kind: kind === "image" ? c.gsPicture : c.gsSilentVideo })}</p>
       {gpuStill && <div className={s.quote}><strong>{xumengStudioFill(c.gsEachCredits, { credits: points(STUDIO_STILL_CREDITS) })}</strong><span>{c.gsStillSettle}</span></div>}
       {gpuStill && studioStillShort && <p className={s.error}>{xumengStudioFill(c.gsShort, { credits: points(STUDIO_STILL_CREDITS) })}{onRecharge ? <button onClick={onRecharge}>{c.gsTopUp}</button> : <span>{c.gsPayLater}</span>}</p>}
+      {!gpuStill && !h3Video && !recovering && !currentQuote && quoting && <div className={s.quote} role="status"><strong>正在实时估算金币消耗…</strong><span>估算完成后可直接一键生成</span></div>}
       {!gpuStill && !h3Video && !recovering && currentQuote && <div className={s.quote}><strong>{xumengStudioFill(c.gsEstimate, { credits: points(currentQuote.estimatedCredits) })}</strong><span>{xumengStudioFill(c.gsReserveNote, { credits: points(currentQuote.maxCredits) })}</span></div>}
       {!gpuStill && !h3Video && !recovering && balance !== null && currentQuote && balance < currentQuote.maxCredits && <p className={s.error}>{c.gsNeedReserve}{onRecharge ? <button onClick={onRecharge}>{c.gsTopUp}</button> : <span>{c.gsPayLater}</span>}</p>}
-      <button className={`${s.primary} ${s.decision}${chargesCredit ? ` ${s.submit}` : ""}`} disabled={busy || loading || (h3Video ? Boolean(templateError) || (!isGuest && !gpuReference) : gpuStill ? Boolean(templateError) || (!isGuest && !gpuReference) || studioStillShort : (stillBlocked && !recovering) || (!recovering && (uploadingReference || checkingReference || (!template && !hasLegacyDraft) || Boolean(templateError) || (!isGuest && needsReference && (!referenceImage || !model?.supportsReferenceImage || Boolean(referenceRecoveryError))) || (!isGuest && !config?.enabled) || (currentQuote !== null && balance !== null && balance < currentQuote.maxCredits))))} onClick={h3Video ? (isGuest ? onRequireAccount : () => void generateOnH3()) : gpuStill ? (isGuest ? onRequireAccount : () => void generateOnGpu()) : isGuest ? onRequireAccount : recovering ? recoverSubmission : currentQuote ? generate : getQuote}><Icon name={busy || recovering ? "refresh" : chargesCredit ? "sparkles" : actionLabel === c.gsSeeQuote ? "quote" : "sparkles"} size={17} />{actionLabel}</button>
+      <button className={`${s.primary} ${s.decision}${chargesCredit ? ` ${s.submit}` : ""}`} disabled={busy || loading || (h3Video ? Boolean(templateError) || (!isGuest && !gpuReference) : gpuStill ? Boolean(templateError) || (!isGuest && !gpuReference) || studioStillShort : (stillBlocked && !recovering) || (!recovering && (uploadingReference || checkingReference || (!template && !hasLegacyDraft) || Boolean(templateError) || (!isGuest && needsReference && (!referenceImage || !model?.supportsReferenceImage || Boolean(referenceRecoveryError))) || (!isGuest && !config?.enabled) || (currentQuote !== null && balance !== null && balance < currentQuote.maxCredits))))} onClick={h3Video ? (isGuest ? onRequireAccount : () => void generateOnH3()) : gpuStill ? (isGuest ? onRequireAccount : () => void generateOnGpu()) : isGuest ? onRequireAccount : recovering ? recoverSubmission : currentQuote ? generate : getQuote}><Icon name={busy || recovering ? "refresh" : chargesCredit ? "sparkles" : actionLabel === c.gsSeeQuote ? "quote" : "sparkles"} size={17} />{busy && elapsedSec > 0 ? `${actionLabel} (${elapsedSec}s)` : actionLabel}</button>
+      {busy && <button type="button" className={s.secondary} onClick={cancelActiveGeneration}><Icon name="stop" size={15} />取消生成</button>}
       {recovering && <p className={s.fine}>{xumengStudioFill(c.gsRecoverFine, { cap: previousSubmission.expectedMaxCredits ? xumengStudioFill(c.gsOldCap, { credits: points(previousSubmission.expectedMaxCredits) }) : "" })}</p>}
       {!gpuStill && !h3Video && !loading && config && !config.enabled && <p className={s.fine}>{c.gsNotConnected}</p>}
     </section><section ref={results} className={s.results} aria-label={c.gsResults}>
@@ -520,7 +739,7 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
       {!selected && h3Video && actionTemplate ? <div className={s.r2vCompare} ref={compare}><figure><figcaption>{c.gsRefCaption}</figcaption>{gpuReference ? <img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /> : <div className={s.empty}><p>{c.gsUploadShows}</p></div>}</figure><figure><figcaption>{c.gsTemplateCaption}</figcaption><video src={actionTemplate.demoVideoUrl} controls muted playsInline preload="metadata" /></figure><figure><figcaption>{c.gsFilm}</figcaption>{gpuPreview && gpuResultKind === "video" ? <video src={gpuPreview} controls playsInline preload="metadata" /> : <div className={s.empty}><p>{busy ? c.gsMakingVideo : c.gsShowsHere}</p></div>}</figure><button type="button" className={s.tool} aria-label={c.gsPlayTogether} title={c.gsPlayTogether} onClick={playTogether}><Icon name="play" size={16} /></button></div> : !selected && gpuStill && stillTemplate ? <div className={s.r2vCompare}><figure><figcaption>{c.gsRefCaption}</figcaption>{gpuReference ? <img src={gpuReference.url} alt={xumengStudioFill(c.gsRefAlt, { name: gpuReference.name })} /> : <div className={s.empty}><p>{c.gsUploadShows}</p></div>}</figure><figure><figcaption>{c.gsTemplateCaption}</figcaption><img src={stillTemplate.demoPosterUrl} alt={xumengStudioFill(c.gsNamedTemplate, { label: stillTemplate.label })} /></figure><figure><figcaption>{c.gsStillResult}</figcaption>{gpuPreview && gpuResultKind === "image" ? <img src={gpuPreview} alt={xumengStudioFill(c.gsNamedResult, { label: stillTemplate.label })} /> : <div className={s.empty}><p>{busy ? c.gsMakingImage : c.gsShowsHere}</p></div>}</figure></div> : !selected && gpuPreview ? <div className={s.preview}><img src={gpuPreview} alt={template?.label ?? c.gsResults} /></div> : !selected && actionTemplate ? <GenerationActionPreview template={actionTemplate}/> : !selected && stillTemplate ? <figure className={s.actionPreview} aria-label={xumengStudioFill(c.gsNamedFrame, { label: stillTemplate.label })}><img src={stillTemplate.demoPosterUrl} alt="" /><figcaption><strong>{xumengStudioFill(c.gsFrameLabel, { label: stillTemplate.label })}</strong><span>{c.gsPutIn}</span></figcaption></figure> : <div className={s.preview}>{selected?.status === "ready" && selected.assetUrl ? selected.kind === "image" ? <img src={selected.assetUrl} alt={selected.prompt} /> : <video key={selected.id} controls preload="metadata" src={selected.assetUrl} /> : <div className={s.empty}><Icon name={selected?.kind ?? kind} size={42} /><h3>{selected ? jobName(selected.status) : c.gsResultHere}</h3><p>{selected?.error ?? (selected && running(selected) ? selected.status === "unknown" ? c.gsUnknown : c.gsPolling : freeStill ? c.gsFreeEmpty : needsReference ? c.gsRefEmpty : c.gsTextEmpty)}</p></div>}</div>}
       {!selected && gpuPreview && gpuResultKind === "image" && <a className={s.tool} href={gpuPreview} download={`${template?.id ?? "krea2"}.png`} aria-label={c.gsDownloadImage} title={c.gsDownloadImage}><Icon name="download" size={16} /></a>}
       {!selected && gpuPreview && gpuResultKind === "video" && <a className={s.tool} href={gpuPreview} download={`${template?.id ?? "h3"}.mp4`} aria-label={c.gsDownloadVideo} title={c.gsDownloadVideo}><Icon name="download" size={16} /></a>}
-      {selected && <div className={s.resultInfo}>{jobTemplateLabel(selected) && <span className={s.referenceTag}><Icon name="grid" size={14}/>{xumengStudioFill(c.gsTemplateTag, { label: jobTemplateLabel(selected) ?? "" })}</span>}{selected.referenceImage && <span className={s.referenceTag}><Icon name="image" size={14}/>{xumengStudioFill(c.gsUsedRef, { name: selected.referenceImage.name })}</span>}<p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ?  ` · ${xumengStudioFill(c.gsSeconds, { n: selected.duration })}` : ""}</span><strong>{selected.status === "ready" ? xumengStudioFill(c.gsCharged, { credits: points(selected.chargedCredits) }) : running(selected) ? xumengStudioFill(c.gsReserved, { credits: points(selected.reservedCredits) }) : c.gsNotCharged}</strong></div>{selected.status === "ready" && <p className={s.fine}>{selected.costBasis === "frozen_sku" ? c.gsFrozen : c.gsProviderCost}{selected.exceedsReservation ? c.gsCapped : ""}</p>}{selected.assetUrl && <a className={s.tool} href={selected.assetUrl} download={`${selected.id}.${selected.mimeType === "image/jpeg" ? "jpg" : selected.mimeType === "image/webp" ? "webp" : selected.kind === "image" ? "png" : "mp4"}`} aria-label={c.gsDownload} title={c.gsDownload}><Icon name="download" size={16} /></a>}{!running(selected) && (confirmDelete === selected.id ? <div className={s.deleteConfirm}><span>{c.gsDeleteAsk}</span><button disabled={busy} onClick={() => void remove(selected.id)}>{c.gsConfirmDelete}</button><button disabled={busy} onClick={() => setConfirmDelete("")}>{c.gsCancel}</button></div> : <button type="button" className={s.tool} aria-label={c.gsDeleteTask} title={c.gsDeleteTask} disabled={busy} onClick={() => setConfirmDelete(selected.id)}><Icon name="trash" size={16} /></button>)}</div>}
+      {selected && <div className={s.resultInfo}>{jobTemplateLabel(selected) && <span className={s.referenceTag}><Icon name="grid" size={14}/>{xumengStudioFill(c.gsTemplateTag, { label: jobTemplateLabel(selected) ?? "" })}</span>}{selected.referenceImage && <span className={s.referenceTag}><Icon name="image" size={14}/>{xumengStudioFill(c.gsUsedRef, { name: selected.referenceImage.name })}</span>}<p>{selected.prompt}</p><div><span>{date(selected.createdAt)} · {selected.aspectRatio}{selected.duration ?  ` · ${xumengStudioFill(c.gsSeconds, { n: selected.duration })}` : ""}</span><strong>{selected.status === "ready" ? xumengStudioFill(c.gsCharged, { credits: points(selected.chargedCredits) }) : running(selected) ? xumengStudioFill(c.gsReserved, { credits: points(selected.reservedCredits) }) : c.gsNotCharged}</strong></div>{selected.status === "ready" && <p className={s.fine}>{selected.costBasis === "frozen_sku" ? c.gsFrozen : c.gsProviderCost}{selected.exceedsReservation ? c.gsCapped : ""}</p>}<div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}><button type="button" className={s.secondary} disabled={busy} onClick={() => reuseJobParameters(selected)}><Icon name="refresh" size={14} />{selected.status === "failed" ? "重填参数再试" : "复用参数"}</button>{selected.assetUrl && <a className={s.tool} href={selected.assetUrl} download={`${selected.id}.${selected.mimeType === "image/jpeg" ? "jpg" : selected.mimeType === "image/webp" ? "webp" : selected.kind === "image" ? "png" : "mp4"}`} aria-label={c.gsDownload} title={c.gsDownload}><Icon name="download" size={16} /></a>}{!running(selected) && (confirmDelete === selected.id ? <div className={s.deleteConfirm}><span>{c.gsDeleteAsk}</span><button disabled={busy} onClick={() => void remove(selected.id)}>{c.gsConfirmDelete}</button><button disabled={busy} onClick={() => setConfirmDelete("")}>{c.gsCancel}</button></div> : <button type="button" className={s.tool} aria-label={c.gsDeleteTask} title={c.gsDeleteTask} disabled={busy} onClick={() => setConfirmDelete(selected.id)}><Icon name="trash" size={16} /></button>)}</div></div>}
       <div className={s.sectionTitle}><h2>{c.gsMyHistory}</h2><button className={s.tool} type="button" aria-label={c.gsRefreshJobs} title={c.gsRefreshJobs} disabled={busy} onClick={() => { setError(""); void refresh(true); }}><Icon name="refresh" size={16} /></button></div>
       {jobs.length ? <div className={s.history}>{jobs.map(job => <button key={job.id} aria-pressed={job.id === selectedId} onClick={() => { setSelectedId(job.id); setConfirmDelete(""); }}><Icon name={job.kind} size={20} /><span><strong>{job.prompt}</strong><small>{date(job.createdAt)}{jobTemplateLabel(job) ? ` · ${jobTemplateLabel(job)}` : ""} · {jobName(job.status)}</small></span><b>{job.status === "ready" ? `${points(job.chargedCredits)} 金币` : jobName(job.status)}</b></button>)}</div> : <p className={s.fine}>{loading ? c.gsReading : c.gsNoJobs}</p>}
     </section></div>}

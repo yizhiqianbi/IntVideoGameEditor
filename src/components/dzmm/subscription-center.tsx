@@ -508,31 +508,65 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     </div>}
 
     {XUMENG_PAYMENTS_ENABLED && <div className={s.purchaseSection}>
-      <div className={s.purchaseHeading}>
-        <div><h3>{activeSubscription || queued.length ? "续订 VIP" : "开通 VIP"}</h3><p>微信支付 · 不自动扣费</p></div>
+      <div className={s.vipHeroBanner}>
+        <div className={s.vipHeroText}>
+          <span className={s.vipCrownPill}><Icon name="crown" size={14} />叙梦尊享 VIP</span>
+          <h3>{activeSubscription || queued.length ? "续订 VIP · 延续每日特权" : "开通 VIP · 每天领金币 + 全站特权"}</h3>
+          <p>微信一次性支付，绝不自动续费扣款；每日免费语音、剧情生图与全站短剧畅看全解锁。</p>
+        </div>
         {embedded && <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新"}</button>}
       </div>
       <ul className={s.mediaBenefits} aria-label="VIP 媒体权益">
-        <li><Icon name="chat" size={17} /><span>中文语音</span><strong>每日 20 条</strong></li>
-        <li><Icon name="sparkles" size={17} /><span>剧情图片</span><strong>每日 5 张</strong></li>
-        <li><Icon name="video" size={17} /><span>全站短剧</span><strong>期内免费</strong></li>
+        <li>
+          <span className={s.benefitIcon}><Icon name="mic" size={17} /></span>
+          <div><span>中文角色语音</span><strong>每日 20 条免费生成</strong></div>
+        </li>
+        <li>
+          <span className={s.benefitIcon}><Icon name="sparkles" size={17} /></span>
+          <div><span>沉浸剧情图片</span><strong>每日 5 张高清生图</strong></div>
+        </li>
+        <li>
+          <span className={s.benefitIcon}><Icon name="video" size={17} /></span>
+          <div><span>全站精选短剧</span><strong>有效期内全部免费</strong></div>
+        </li>
       </ul>
       {config?.plans.length ? <>
         <fieldset className={s.plans} disabled={busy || purchaseBlocked}><legend className={s.srOnly}>VIP 会员套餐</legend>
-          {config.plans.map(entry => <label className={`${s.plan} ${entry.id === plan?.id ? s.selected : ""}`} key={entry.id}>
-            <input type="radio" name="subscription-plan" checked={entry.id === plan?.id} onChange={() => setSelected(entry.id)} />
-            <div className={s.planOffer}><span className={s.planName}>{entry.label}</span><strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays} 天</small></strong></div>
-            <div className={s.planBenefit}><span className={s.daily}>{number(entry.dailyCredits)}<small> 金币 / 每日领取</small></span><span className={s.limit}>每期最多 {entry.maxClaims} 次 · 漏签不补 · 短剧免费</span></div>
-          </label>)}
+          {config.plans.map((entry, idx) => {
+            const perDay = entry.durationDays > 0 ? (entry.amountMinor / 100 / entry.durationDays).toFixed(2) : "0.00";
+            const totalGrant = entry.dailyCredits * entry.maxClaims;
+            const isPopular = config.plans.length >= 2 && idx === Math.min(1, config.plans.length - 1);
+            const isBest = config.plans.length >= 3 && idx === config.plans.length - 1;
+            const isSelected = entry.id === plan?.id;
+            return <label className={`${s.plan} ${isSelected ? s.selected : ""} ${isPopular ? s.planPopular : ""}`} key={entry.id}>
+              <input type="radio" name="subscription-plan" checked={isSelected} onChange={() => setSelected(entry.id)} />
+              <div className={s.planTop}>
+                <span className={s.planName}>{entry.label}</span>
+                {isPopular ? <em className={s.planRibbonPopular}><Icon name="flame" size={11} />最多人选</em>
+                  : isBest ? <em className={s.planRibbonBest}><Icon name="crown" size={11} />{entry.durationDays >= 90 ? "全年超省" : "尊享满配"}</em>
+                  : <em className={s.planRibbonPlain}>灵活体验</em>}
+              </div>
+              <div className={s.planOffer}>
+                <strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays} 天</small></strong>
+                <span className={s.perDayHint}>折合仅 ¥{perDay} / 天</span>
+              </div>
+              <div className={s.planBenefit}>
+                <span className={s.daily}>每日领 {number(entry.dailyCredits)} 金币</span>
+                <span className={s.totalGrant}>最高累计可领 {number(totalGrant)} 金币</span>
+                <span className={s.limit}>每期最多 {entry.maxClaims} 次 · 短剧/语音/生图全享</span>
+              </div>
+            </label>;
+          })}
         </fieldset>
         <div className={s.purchase}>
           <div><strong>{plan ? `${plan.label} · ${money(plan.amountMinor)} / ${plan.durationDays} 天` : "选择会员"}</strong>
-            <p>{methodId ? "使用微信支付。确认后开通，每天手动领取。" : "微信支付暂未开通。USDT 在下方。"}</p>
+            <p>{methodId ? "微信安全收银台一次性支付，不自动续费，开通后每日可领金币。" : "微信支付暂未开通。USDT 在下方。"}</p>
           </div>
-          <button type="button" className={s.primary} disabled={busy || purchaseBlocked || !config.enabled || !plan || !methodId} onClick={() => void purchase()}>
-            {acting === "purchase" ? "读取订单…" : !methodId ? "微信支付暂未开通" : !config.enabled ? "购买暂未开放" : isGuest ? "登录后开通"
+          <button type="button" className={`${s.primary} ${s.vipCta}`} disabled={busy || purchaseBlocked || !config.enabled || !plan || !methodId} onClick={() => void purchase()}>
+            <Icon name="crown" size={16} />
+            <span>{acting === "purchase" ? "读取订单…" : !methodId ? "微信支付暂未开通" : !config.enabled ? "购买暂未开放" : isGuest ? "登录后开通 VIP"
               : purchaseBlocked ? currentIntent ? "先处理原购买记录" : "先恢复购买记录"
-              : `${activeSubscription || queued.length ? "续订" : "开通"} · ${plan ? money(plan.amountMinor) : "微信支付"}`}
+              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${plan ? money(plan.amountMinor) : "微信支付"}`}</span>
           </button>
         </div>
       </> : <p className={s.empty}>{loading || !paymentConfig ? "正在读取 VIP 套餐…"

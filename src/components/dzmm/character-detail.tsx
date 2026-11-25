@@ -22,6 +22,7 @@ import { CoverVisual } from "./cover-visual";
 import Icon from "./icons";
 import { SharePoster, type XumengSharePoster } from "./share-game";
 import CharacterIntroduction from "./character-introduction";
+import CharacterComments from "./character-comments";
 import s from "./character-detail.module.css";
 
 export type CharacterDetailProps = {
@@ -37,6 +38,7 @@ export type CharacterDetailProps = {
   onGroupChat?: () => void;
   onLive?: () => void;
   onVoice?: () => void;
+  onTemplateGenerate?: () => void;
   onFavorite: () => void;
   onLike?: () => void;
   onExport: () => void;
@@ -53,6 +55,7 @@ export type CharacterDetailProps = {
   galleryPaths?: string[];
   openingOrigin?: "public-rendered";
   userName?: string;
+  viewerId?: string;
   locale?: XumengLocale;
 };
 
@@ -126,6 +129,7 @@ export default function CharacterDetail({
   onGroupChat,
   onLive,
   onVoice,
+  onTemplateGenerate,
   onFavorite,
   onLike,
   onExport: onExportCompatible,
@@ -141,6 +145,7 @@ export default function CharacterDetail({
   following = false,
   galleryPaths = [],
   userName,
+  viewerId,
   locale = "zh-Hans",
 }: CharacterDetailProps) {
   const copy = xumengPage(locale);
@@ -218,6 +223,13 @@ export default function CharacterDetail({
   const date = displayDate(character.createdAt);
   const pageTags = visibleShelfTags(character.tags, 12);
   const paintedTags = coverShelfTags(character.tags, 4);
+  const heroSummaryRaw = (character.introduction || character.description || character.scenario || "")
+    .replace(/\r\n?/g, "\n")
+    .split("\n")
+    .map((line) => line.replace(/^#+\s*/, "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const heroSummary = heroSummaryRaw.length > 150 ? `${heroSummaryRaw.slice(0, 149).trimEnd()}…` : heroSummaryRaw;
   const recommendations = related
     .filter((role) => role.id !== character.id)
     .slice(0, 8);
@@ -286,196 +298,262 @@ export default function CharacterDetail({
         <Icon name="back" size={20} />
       </button>
 
-      <div className={s.hero}>
-        <div className={s.gallery}>
-          <div className={s.coverFrame} role="group" aria-roledescription={pictures.length > 1 ? "轮播图" : undefined} aria-label={`${character.name} 封面`} tabIndex={pictures.length > 1 ? 0 : undefined} onKeyDown={(event) => { if (pictures.length < 2) return; if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); selectPicture(pictureIndex + (event.key === "ArrowLeft" ? -1 : 1)); } }}>
-            <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} poster={motionCover ? motionPoster : undefined} play />
-            {paintedTags.length > 0 && <div className={s.coverTags}>{paintedTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
-            <span className={s.heat}><Icon name="flame" size={16} />{character.heat}</span>
-            {pictures.length > 1 && <><button className={`${s.galleryArrow} ${s.galleryPrevious}`} type="button" aria-label="上一张封面" onClick={() => selectPicture(pictureIndex - 1)}><Icon name="chevron" size={18} /></button><button className={`${s.galleryArrow} ${s.galleryNext}`} type="button" aria-label="下一张封面" onClick={() => selectPicture(pictureIndex + 1)}><Icon name="chevron" size={18} /></button><span className={s.pictureCount} aria-live="polite">{pictureIndex + 1} / {pictures.length}</span></>}
-          </div>
-          {pictures.length > 1 && <div className={s.thumbnails} aria-label="选择角色图片">{pictures.map((path, index) => <button type="button" className={index === pictureIndex ? s.selectedThumbnail : ""} key={path} aria-label={isDzmmCoverVideoUrl(path) ? "查看封面视频" : `查看第 ${index + 1} 张图片`} aria-pressed={index === pictureIndex} onClick={() => selectPicture(index)}><CoverVisual src={xumengCardCoverUrl(path)} alt="" play={isDzmmCoverVideoUrl(path) && index === pictureIndex} /></button>)}</div>}
-        </div>
-
-        <div className={s.info}>
-          <div className={s.titleRow}>
-            <h1 id="character-detail-title">{character.name}</h1>
-            <div className={s.moreContainer} ref={menuRef}><button ref={menuButton} className={s.more} type="button" onClick={() => setMenuFor(menuOpen ? null : character.id)} aria-label="角色更多操作" title="更多操作" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined}><Icon name="more" size={20} /></button>{menuOpen && <div className={s.moreMenu} role="menu" id={menuId} aria-label="角色操作"><button role="menuitem" type="button" onClick={() => { setMenuFor(null); onExport(); }}><Icon name="download" size={15} />{character.authoringDraft ? "导出私人草稿" : "导出角色卡"}</button><button role="menuitem" type="button" onClick={() => { setMenuFor(null); onEdit(); }}><Icon name="edit" size={15} />定制角色</button>{onHide && <button role="menuitem" type="button" onClick={() => { setMenuFor(null); onHide(); }}><Icon name="close" size={15} />不感兴趣</button>}</div>}</div>
-          </div>
-          <p className={s.metadata}>
-            <span>#{character.id}</span>
-            {date && (
-              <>
-                <span aria-hidden="true">·</span>
-                <span>
-                  {officialShortDrama ? "上线" : isPublicSample ? "收录" : "创建"}于 {date}
-                </span>
-              </>
-            )}
-          </p>
-
-          <div className={s.authorRow}>
-            {onAuthor ? <button className={`${s.author} ${s.authorButton}`} type="button" onClick={onAuthor} aria-label={`查看作者 ${character.author}`}>
-              <span className={s.avatar} aria-hidden="true">{Array.from(character.author)[0] ?? "创"}</span><span className={s.authorText}><span className={s.authorName}>{character.author}</span><small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "公开角色作者" : "我的角色"}</small></span>
-            </button> : <div className={s.author}>
-              <span className={s.avatar} aria-hidden="true">
-                {Array.from(character.author)[0] ?? "创"}
-              </span>
-              <div>
-                <span className={s.authorName}>{character.author}</span>
-                <small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "暂无作者主页" : "我的角色"}</small>
-              </div>
-            </div>}
-            <div className={s.authorActions}>
-              {(isPublicSample || character.publication) && onFollow && <button
-                type="button"
-                className={`${s.outline} ${following ? s.following : ""}`}
-                onClick={onFollow}
-                aria-pressed={following}
-              >
-                <Icon name={following ? "check" : "plus"} size={15} />
-                {following ? copy.following : copy.follow}
-              </button>}
+      <div className={s.splitStage} data-layout="pc-split">
+        <aside className={s.visualStage} aria-label={`${character.name} 角色立绘`}>
+          <div className={s.gallery}>
+            <div className={s.coverFrame} role="group" aria-roledescription={pictures.length > 1 ? "轮播图" : undefined} aria-label={`${character.name} 封面`} tabIndex={pictures.length > 1 ? 0 : undefined} onKeyDown={(event) => { if (pictures.length < 2) return; if (event.key === "ArrowLeft" || event.key === "ArrowRight") { event.preventDefault(); selectPicture(pictureIndex + (event.key === "ArrowLeft" ? -1 : 1)); } }}>
+              <RoleImage character={character} className={s.cover} src={pictures[pictureIndex]} poster={motionCover ? motionPoster : undefined} play />
+              {paintedTags.length > 0 && <div className={s.coverTags}>{paintedTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
+              <span className={s.heat}><Icon name="flame" size={16} />{character.heat}</span>
+              {pictures.length > 1 && <><button className={`${s.galleryArrow} ${s.galleryPrevious}`} type="button" aria-label="上一张封面" onClick={() => selectPicture(pictureIndex - 1)}><Icon name="chevron" size={18} /></button><button className={`${s.galleryArrow} ${s.galleryNext}`} type="button" aria-label="下一张封面" onClick={() => selectPicture(pictureIndex + 1)}><Icon name="chevron" size={18} /></button><span className={s.pictureCount} aria-live="polite">{pictureIndex + 1} / {pictures.length}</span></>}
             </div>
+            {pictures.length > 1 && <div className={s.thumbnails} aria-label="选择角色图片">{pictures.map((path, index) => <button type="button" className={index === pictureIndex ? s.selectedThumbnail : ""} key={path} aria-label={isDzmmCoverVideoUrl(path) ? "查看封面视频" : `查看第 ${index + 1} 张图片`} aria-pressed={index === pictureIndex} onClick={() => selectPicture(index)}><CoverVisual src={xumengCardCoverUrl(path)} alt="" play={isDzmmCoverVideoUrl(path) && index === pictureIndex} /></button>)}</div>}
           </div>
 
-          <div className={s.metrics}>
-            {onLike ? <button
-              className={`${s.likeCount} ${liked ? s.likeActive : ""}`}
-              type="button"
-              onClick={onLike}
-              aria-label={`${liked ? "取消点赞" : "点赞"} ${character.name}`}
-              aria-pressed={liked}
-              title={exportedCard ? "叙梦用户点赞" : isPublicSample ? "收录时点赞数 + 叙梦新增点赞" : "点赞角色"}
-            >
-              <Icon name="heart" size={17} />
-              {likeCount ?? character.likes}
-            </button> : <span
-              className={s.likeCount}
-              title={exportedCard ? "叙梦用户点赞" : isPublicSample ? "收录时点赞数 + 叙梦新增点赞" : "自定义角色"}
-            >
-              <Icon name="heart" size={17} />
-              {likeCount ?? character.likes}
-            </span>}
+          <div className={s.visualDock} role="region" aria-label="角色快捷操作">
             <button
-              className={favorites ? s.favoriteActive : ""}
+              className={s.visualStartBtn}
               type="button"
-              onClick={onFavorite}
-              aria-pressed={favorites}
+              onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}
             >
-              <Icon name={favorites ? "check" : "book"} size={17} />
-              {favorites ? copy.savedAlready : copy.favorite}
+              <Icon name="chat" size={18} />
+              <span>{character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}</span>
             </button>
-            <button type="button" onClick={() => void share()}>
-              <Icon name="send" size={16} />
-              {copy.share}
-            </button>
-            {exportedCard ? <a href={exportedCard.downloadUrl} download>
-              <Icon name="download" size={16} />导出原卡
-            </a> : <button type="button" onClick={onExport}>
-              <Icon name="download" size={16} />
-              {character.authoringDraft ? "导出私人草稿" : "导出"}
-            </button>}
-            {onGroupChat && <button type="button" onClick={onGroupChat}><Icon name="users" size={16} />一起聊</button>}
-            <button type="button" onClick={onEdit}>
-              <Icon name="edit" size={16} />
-              {copy.customize}
-            </button>
-            {!contextMissing && XUMENG_CALLS_ENABLED && onLive && <button type="button" onClick={onLive} title={copy.callHint}><Icon name="video" size={16} />{copy.callRole}</button>}
-            {!contextMissing && XUMENG_CHARACTER_VOICE_ENABLED && onVoice && <button type="button" onClick={onVoice}><Icon name="volume" size={16} />{copy.makeVoice}</button>}
-          </div>
-        </div>
-      </div>
-
-      <div className={s.stickyCta} role="region" aria-label="角色主要操作">
-        <button
-          className={s.stickyStart}
-          type="button"
-          onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}
-        >
-          <Icon name="chat" size={17} />
-          {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
-        </button>
-      </div>
-
-      <section
-        className={s.introduction}
-        aria-labelledby="character-intro-title"
-      >
-        {pageTags.length > 0 && <div className={s.pageTags} aria-label="角色标签">{pageTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
-        <h2 id="character-intro-title">角色介绍</h2>
-        <CharacterIntroduction text={character.introduction || character.description || ""}
-          additionalNotes={getDzmmCharacterCreatorNotes(character)} bodyClassName={s.description}
-          characterName={character.name} userName={userName}
-          fallback={contextMissing ? "这个角色的故事设定尚未补齐。你可以导入完整角色卡，或通过定制补充人物背景和开场。" : "还没有填写角色介绍。可以定制这个角色，补充它的故事。"} />
-        {selectedOpeningText && (
-          <div className={s.opening}>
-            <h3>开场白</h3>
-            {openings.length > 1 && <div className={s.openingPicker}><label>选择开场<select aria-label="选择开场" value={String(selectedOpening)} onChange={(event) => setOpeningSelection({ characterId: character.id, index: Number(event.target.value), touched: true })}>{openings.map(item => <option key={item.index} value={String(item.index)}>{item.label}</option>)}</select></label><button type="button" onClick={() => onStart(selectedOpening, true)}>用此开场新建聊天</button></div>}
-            <CharacterIntroduction key={selectedOpening} text={selectedOpeningText} characterName={character.name} userName={userName} frontendScripts={character.frontendScripts} />
-          </div>
-        )}
-        {(character.personality || character.scenario || character.appearance || character.interactionSettings) && (
-          <details className={s.promptDetails} open>
-            <summary>
-              查看角色设定
-              <Icon name="chevron" size={14} />
-            </summary>
-            <div className={s.promptContent}>
-              {character.personality && (
-                <div>
-                  <h3>性格与回应方式</h3>
-                  <CharacterIntroduction text={character.personality} characterName={character.name} userName={userName} />
-                </div>
+            <div className={s.visualQuickRow}>
+              {onLike && (
+                <button
+                  type="button"
+                  className={`${s.visualQuickBtn} ${liked ? s.visualQuickActive : ""}`}
+                  onClick={onLike}
+                  aria-pressed={liked}
+                >
+                  <Icon name="heart" size={15} />
+                  <span>{likeCount ?? character.likes}</span>
+                </button>
               )}
-              {character.scenario && (
-                <div>
-                  <h3>故事场景</h3>
-                  <CharacterIntroduction text={character.scenario} characterName={character.name} userName={userName} />
-                </div>
-              )}
-              {character.appearance && (
-                <div>
-                  <h3>外貌</h3>
-                  <CharacterIntroduction text={character.appearance} characterName={character.name} userName={userName} />
-                </div>
-              )}
-              {character.interactionSettings && (
-                <div>
-                  <h3>互动设置</h3>
-                  <CharacterIntroduction text={character.interactionSettings} characterName={character.name} userName={userName} />
-                </div>
+              <button
+                type="button"
+                className={`${s.visualQuickBtn} ${favorites ? s.visualQuickActive : ""}`}
+                onClick={onFavorite}
+                aria-pressed={favorites}
+              >
+                <Icon name={favorites ? "check" : "bookmark"} size={15} />
+                <span>{favorites ? copy.savedAlready : copy.favorite}</span>
+              </button>
+              {onTemplateGenerate ? (
+                <button type="button" className={s.visualQuickBtn} onClick={onTemplateGenerate}>
+                  <Icon name="sparkles" size={15} />
+                  <span>{locale === "en" ? "Remix" : "做同款"}</span>
+                </button>
+              ) : (
+                <button type="button" className={s.visualQuickBtn} onClick={() => void share()}>
+                  <Icon name="send" size={15} />
+                  <span>{copy.share}</span>
+                </button>
               )}
             </div>
-          </details>
-        )}
-        {exportedCard && <div className={`${s.source} ${s.exportSource}`}>
-          <span>完整原卡 · {character.characterBook?.entries.length ?? 0} 条世界书 · {openings.length} 个开场</span>
-          {openings.length === 1 && <div className={s.openingPicker}><button type="button" onClick={() => onStart(selectedOpening, true)}>用此开场新建聊天</button></div>}
-          <span>作者：{exportedCard.author}{exportedCard.provenanceKind === "user-provided" ? " · 用户提供 · 许可未核验" : <> · <a href={exportedCard.sourceUrl} target="_blank" rel="noopener noreferrer">作者发布页</a> · <a href={exportedCard.licenseUrl} target="_blank" rel="noopener noreferrer">{exportedCard.licenseName}</a></>}</span>
-          <span>原文件完整保留；页面采用叙梦排版，卡内数值和指令按故事设定演绎。</span>
-          {exportedCard.compatibilityNotes?.map((note, index) => <span key={index}>{note}</span>)}
-          <a href={exportedCard.downloadUrl} download>下载完整原卡 JSON</a>
-          {exportedCard.pngDownloadUrl && <a href={exportedCard.pngDownloadUrl} download>下载完整原卡 PNG</a>}
-        </div>}
-        {character.catalogReadiness === "public-context" && <p className={s.source}>当前对话使用已补齐的故事背景{character.firstMessage ? "与开场" : ""}；完整角色卡和世界书尚未补齐。</p>}
-
-      </section>
-
-      <section className={s.album} aria-labelledby="character-album-title">
-        <h2 id="character-album-title">对话相册</h2>
-        {albumItems === null ? <p className={s.albumNote}>正在整理相册…</p> : albumGroups.length === 0 ? (
-          <div className={s.albumEmpty}>
-            <p>还没有一起生成的画面。</p>
-            <button type="button" className={s.outline} onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}>去聊聊看</button>
           </div>
-        ) : albumGroups.map(group => (
-          <div key={group.day} className={s.albumDay}>
-            <h3>{group.label}</h3>
-            <div className={s.albumGrid}>{group.items.map(item => <AlbumPiece key={item.id} item={item} />)}</div>
+        </aside>
+
+        <div className={s.editorialColumn}>
+          <div className={s.infoCard}>
+            <div className={s.info}>
+              <div className={s.titleRow}>
+                <h1 id="character-detail-title">{character.name}</h1>
+                <div className={s.moreContainer} ref={menuRef}><button ref={menuButton} className={s.more} type="button" onClick={() => setMenuFor(menuOpen ? null : character.id)} aria-label="角色更多操作" title="更多操作" aria-haspopup="menu" aria-expanded={menuOpen} aria-controls={menuOpen ? menuId : undefined}><Icon name="more" size={20} /></button>{menuOpen && <div className={s.moreMenu} role="menu" id={menuId} aria-label="角色操作"><button role="menuitem" type="button" onClick={() => { setMenuFor(null); onExport(); }}><Icon name="download" size={15} />{character.authoringDraft ? "导出私人草稿" : "导出角色卡"}</button><button role="menuitem" type="button" onClick={() => { setMenuFor(null); onEdit(); }}><Icon name="edit" size={15} />定制角色</button>{onHide && <button role="menuitem" type="button" onClick={() => { setMenuFor(null); onHide(); }}><Icon name="close" size={15} />不感兴趣</button>}</div>}</div>
+              </div>
+              <p className={s.metadata}>
+                <span>#{character.id}</span>
+                {date && (
+                  <>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      {officialShortDrama ? "上线" : isPublicSample ? "收录" : "创建"}于 {date}
+                    </span>
+                  </>
+                )}
+              </p>
+
+              <div className={s.authorRow}>
+                {onAuthor ? <button className={`${s.author} ${s.authorButton}`} type="button" onClick={onAuthor} aria-label={`查看作者 ${character.author}`}>
+                  <span className={s.avatar} aria-hidden="true">{Array.from(character.author)[0] ?? "创"}</span><span className={s.authorText}><span className={s.authorName}>{character.author}</span><small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "公开角色作者" : "我的角色"}</small></span>
+                </button> : <div className={s.author}>
+                  <span className={s.avatar} aria-hidden="true">
+                    {Array.from(character.author)[0] ?? "创"}
+                  </span>
+                  <div>
+                    <span className={s.authorName}>{character.author}</span>
+                    <small>{officialShortDrama ? "叙梦短剧" : isPublicSample || character.publication ? "暂无作者主页" : "我的角色"}</small>
+                  </div>
+                </div>}
+                <div className={s.authorActions}>
+                  {(isPublicSample || character.publication) && onFollow && <button
+                    type="button"
+                    className={`${s.outline} ${following ? s.following : ""}`}
+                    onClick={onFollow}
+                    aria-pressed={following}
+                  >
+                    <Icon name={following ? "check" : "plus"} size={15} />
+                    {following ? copy.following : copy.follow}
+                  </button>}
+                </div>
+              </div>
+
+              <div className={s.metrics}>
+                {onLike ? <button
+                  className={`${s.likeCount} ${liked ? s.likeActive : ""}`}
+                  type="button"
+                  onClick={onLike}
+                  aria-label={`${liked ? "取消点赞" : "点赞"} ${character.name}`}
+                  aria-pressed={liked}
+                  title={exportedCard ? "叙梦用户点赞" : isPublicSample ? "收录时点赞数 + 叙梦新增点赞" : "点赞角色"}
+                >
+                  <Icon name="heart" size={17} />
+                  {likeCount ?? character.likes}
+                </button> : <span
+                  className={s.likeCount}
+                  title={exportedCard ? "叙梦用户点赞" : isPublicSample ? "收录时点赞数 + 叙梦新增点赞" : "自定义角色"}
+                >
+                  <Icon name="heart" size={17} />
+                  {likeCount ?? character.likes}
+                </span>}
+                <button
+                  className={favorites ? s.favoriteActive : ""}
+                  type="button"
+                  onClick={onFavorite}
+                  aria-pressed={favorites}
+                >
+                  <Icon name={favorites ? "check" : "bookmark"} size={17} />
+                  {favorites ? copy.savedAlready : copy.favorite}
+                </button>
+                <button type="button" onClick={() => void share()}>
+                  <Icon name="send" size={16} />
+                  {copy.share}
+                </button>
+                {exportedCard ? <a href={exportedCard.downloadUrl} download>
+                  <Icon name="download" size={16} />导出原卡
+                </a> : <button type="button" onClick={onExport}>
+                  <Icon name="download" size={16} />
+                  {character.authoringDraft ? "导出私人草稿" : "导出"}
+                </button>}
+                {onGroupChat && <button type="button" onClick={onGroupChat}><Icon name="users" size={16} />一起聊</button>}
+                {onTemplateGenerate && (
+                  <button type="button" className={s.templateMetricBtn} onClick={onTemplateGenerate}>
+                    <Icon name="sparkles" size={16} />
+                    {locale === "en" ? "Use in Templates" : "用 Ta 做同款"}
+                  </button>
+                )}
+                <button type="button" onClick={onEdit}>
+                  <Icon name="edit" size={16} />
+                  {copy.customize}
+                </button>
+                {!contextMissing && XUMENG_CALLS_ENABLED && onLive && <button type="button" onClick={onLive} title={copy.callHint}><Icon name="video" size={16} />{copy.callRole}</button>}
+                {!contextMissing && XUMENG_CHARACTER_VOICE_ENABLED && onVoice && <button type="button" onClick={onVoice}><Icon name="volume" size={16} />{copy.makeVoice}</button>}
+              </div>
+
+              {heroSummary && <p className={s.heroSummary}>{heroSummary}</p>}
+
+              <div className={s.stickyCta} role="region" aria-label="角色主要操作">
+                <button
+                  className={s.stickyStart}
+                  type="button"
+                  onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}
+                >
+                  <Icon name="chat" size={17} />
+                  {character.authoringDraft ? copy.finishDraft : contextMissing ? copy.addSetting : copy.startTalk}
+                </button>
+              </div>
+            </div>
           </div>
-        ))}
-      </section>
+
+          <section
+            className={s.introduction}
+            aria-labelledby="character-intro-title"
+          >
+            {pageTags.length > 0 && <div className={s.pageTags} aria-label="角色标签">{pageTags.map((tag) => <button key={tag} type="button" onClick={() => onTag?.(tag)} aria-label={`只看${tag}`}>{tag}</button>)}</div>}
+            <h2 id="character-intro-title">角色介绍</h2>
+            <CharacterIntroduction text={character.introduction || character.description || ""}
+              additionalNotes={getDzmmCharacterCreatorNotes(character)} bodyClassName={s.description}
+              characterName={character.name} userName={userName}
+              fallback={contextMissing ? "这个角色的故事设定尚未补齐。你可以导入完整角色卡，或通过定制补充人物背景和开场。" : "还没有填写角色介绍。可以定制这个角色，补充它的故事。"} />
+            {selectedOpeningText && (
+              <div className={s.opening}>
+                <h3>开场白</h3>
+                {openings.length > 1 && <div className={s.openingPicker}><label>选择开场<select aria-label="选择开场" value={String(selectedOpening)} onChange={(event) => setOpeningSelection({ characterId: character.id, index: Number(event.target.value), touched: true })}>{openings.map(item => <option key={item.index} value={String(item.index)}>{item.label}</option>)}</select></label><button type="button" onClick={() => onStart(selectedOpening, true)}>用此开场新建聊天</button></div>}
+                <CharacterIntroduction key={selectedOpening} text={selectedOpeningText} characterName={character.name} userName={userName} frontendScripts={character.frontendScripts} />
+              </div>
+            )}
+            {(character.personality || character.scenario || character.appearance || character.interactionSettings) && (
+              <details className={s.promptDetails} open>
+                <summary>
+                  查看角色设定
+                  <Icon name="chevron" size={14} />
+                </summary>
+                <div className={s.promptContent}>
+                  {character.personality && (
+                    <div>
+                      <h3>性格与回应方式</h3>
+                      <CharacterIntroduction text={character.personality} characterName={character.name} userName={userName} />
+                    </div>
+                  )}
+                  {character.scenario && (
+                    <div>
+                      <h3>故事场景</h3>
+                      <CharacterIntroduction text={character.scenario} characterName={character.name} userName={userName} />
+                    </div>
+                  )}
+                  {character.appearance && (
+                    <div>
+                      <h3>外貌</h3>
+                      <CharacterIntroduction text={character.appearance} characterName={character.name} userName={userName} />
+                    </div>
+                  )}
+                  {character.interactionSettings && (
+                    <div>
+                      <h3>互动设置</h3>
+                      <CharacterIntroduction text={character.interactionSettings} characterName={character.name} userName={userName} />
+                    </div>
+                  )}
+                </div>
+              </details>
+            )}
+            {exportedCard && <div className={`${s.source} ${s.exportSource}`}>
+              <span>完整原卡 · {character.characterBook?.entries.length ?? 0} 条世界书 · {openings.length} 个开场</span>
+              {openings.length === 1 && <div className={s.openingPicker}><button type="button" onClick={() => onStart(selectedOpening, true)}>用此开场新建聊天</button></div>}
+              <span>作者：{exportedCard.author}{exportedCard.provenanceKind === "user-provided" ? " · 用户提供 · 许可未核验" : <> · <a href={exportedCard.sourceUrl} target="_blank" rel="noopener noreferrer">作者发布页</a> · <a href={exportedCard.licenseUrl} target="_blank" rel="noopener noreferrer">{exportedCard.licenseName}</a></>}</span>
+              <span>原文件完整保留；页面采用叙梦排版，卡内数值和指令按故事设定演绎。</span>
+              {exportedCard.compatibilityNotes?.map((note, index) => <span key={index}>{note}</span>)}
+              <a href={exportedCard.downloadUrl} download>下载完整原卡 JSON</a>
+              {exportedCard.pngDownloadUrl && <a href={exportedCard.pngDownloadUrl} download>下载完整原卡 PNG</a>}
+            </div>}
+            {character.catalogReadiness === "public-context" && <p className={s.source}>当前对话使用已补齐的故事背景{character.firstMessage ? "与开场" : ""}；完整角色卡和世界书尚未补齐。</p>}
+          </section>
+
+          <section className={s.album} aria-labelledby="character-album-title">
+            <h2 id="character-album-title">对话相册</h2>
+            {albumItems === null ? <p className={s.albumNote}>正在整理相册…</p> : albumGroups.length === 0 ? (
+              <div className={s.albumEmpty}>
+                <p>还没有一起生成的画面。</p>
+                <button type="button" className={s.outline} onClick={contextMissing ? onEdit : () => onStart(selectedOpening, openingTouched)}>去聊聊看</button>
+              </div>
+            ) : albumGroups.map(group => (
+              <div key={group.day} className={s.albumDay}>
+                <h3>{group.label}</h3>
+                <div className={s.albumGrid}>{group.items.map(item => <AlbumPiece key={item.id} item={item} />)}</div>
+              </div>
+            ))}
+          </section>
+
+          <CharacterComments
+            characterId={character.id}
+            characterName={character.name}
+            viewerId={viewerId || "guest"}
+            viewerName={userName || (locale === "en" ? "Player" : "游客")}
+            locale={locale}
+            variant="inline"
+          />
+        </div>
+      </div>
 
       {recommendations.length > 0 && (
         <section

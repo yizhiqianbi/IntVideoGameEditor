@@ -27,7 +27,7 @@ function failureText(message: SocketMessage): string {
   if (message.message?.trim()) return message.message;
   return "MiniCPM 电话连接失败。";
 }
-type Capture = { context: AudioContext; stream: MediaStream; source: MediaStreamAudioSourceNode; processor: ScriptProcessorNode };
+type Capture = { context: AudioContext; stream: MediaStream; source: MediaStreamAudioSourceNode; processor: ScriptProcessorNode; sink: GainNode };
 
 const bytes = (data: ArrayBuffer) => {
   const view = new Uint8Array(data); let binary = "";
@@ -62,6 +62,10 @@ export default function MiniCpmPhone({ userId, isGuest, characters = [], initial
   const muted = useRef(false);
   const playback = useRef<AudioContext | null>(null);
   const playbackAt = useRef(0);
+  const activeSources = useRef<Set<AudioBufferSourceNode>>(new Set());
+  const sessionEpoch = useRef(0);
+  const statusAbort = useRef<AbortController | null>(null);
+  const handshakeTimer = useRef<number | null>(null);
   const startedAt = useRef(0);
   const mounted = useRef(true);
   const characterName = initialCharacter?.name || "小玥";
@@ -72,6 +76,43 @@ export default function MiniCpmPhone({ userId, isGuest, characters = [], initial
     return buildXumengMiniCpmPrompt(persona, characterName, initialCharacter?.scene?.situation || "").slice(0, 5000);
   }, [characterName, initialCharacter, userName]);
   const active = status === "connecting" || status === "connected";
+
+  function clearHandshakeTimer() {
+    if (handshakeTimer.current !== null) {
+      window.clearTimeout(handshakeTimer.current);
+      handshakeTimer.current = null;
+    }
+  }
+  function flushPlayback() {
+    for (const source of activeSources.current) {
+      try { source.stop(); } catch {}
+      try { source.disconnect(); } catch {}
+    }
+    activeSources.current.clear();
+    playbackAt.current = 0;
+  }
+  function unlockPlaybackAudio() {
+    const AudioCtor = window.AudioContext || (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtor) return;
+    if (!playback.current || playback.current.state === "closed") playback.current = new AudioCtor();
+    const context = playback.current;
+    void context.resume().catch(() => undefined);
+    try {
+      const silent = context.createBuffer(1, 1, 24000);
+      const source = context.createBufferSource();
+      source.buffer = silent;
+      source.connect(context.destination);
+      source.start(0);
+    } catch { /* Ignore audio unlock errors on restricted devices. */ }
+  }
+  function micErrorText(failure: unknown): string {
+    if (failure instanceof DOMException) {
+      if (failure.name === "NotAllowedError" || failure.name === "PermissionDeniedError") return "未获得麦克风权限，请在浏览器设置中允许使用麦克风后重试。";
+      if (failure.name === "NotFoundError" || failure.name === "DevicesNotFoundError") return "未检测到可用麦克风设备，请检查连接后重试。";
+      if (failure.name === "NotReadableError") return "麦克风正被其他应用占用，请关闭占用后重试。";
+    }
+    return failure instanceof Error && failure.message.trim() ? failure.message : "麦克风启动失败，请检查设备与权限。";
+  }
 
   function appendInput(samples: Float32Array) {
     const audible = muted.current ? new Float32Array(samples.length) : samples;
@@ -86,70 +127,128 @@ export default function MiniCpmPhone({ userId, isGuest, characters = [], initial
     }
   }
 
-  async function startCapture() {
+  async function startCapture(epoch: number) {
+    if (!navigator.mediaDevices?.getUserMedia) throw new Error("当前浏览器不支持语音采集。");
     const stream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true } });
-    const context = new AudioContext(); await context.resume();
-    const source = context.createMediaStreamSource(stream), processor = context.createScriptProcessor(4096, 1, 1);
+    if (!mounted.current || sessionEpoch.current !== epoch) {
+      stream.getTracks().forEach(track => track.stop());
+      return;
+    }
+    const context = new AudioContext();
+    await context.resume();
+    if (!mounted.current || sessionEpoch.current !== epoch) {
+      stream.getTracks().forEach(track => track.stop());
+      void context.close();
+      return;
+    }
+    const source = context.createMediaStreamSource(stream);
+    const processor = context.createScriptProcessor(4096, 1, 1);
+    const sink = context.createGain();
+    sink.gain.value = 0;
     processor.onaudioprocess = event => appendInput(resample(event.inputBuffer.getChannelData(0), context.sampleRate));
-    source.connect(processor); processor.connect(context.destination);
-    capture.current = { context, stream, source, processor };
+    source.connect(processor); processor.connect(sink); sink.connect(context.destination);
+    capture.current = { context, stream, source, processor, sink };
   }
   function stopCapture() {
     const current = capture.current; capture.current = null;
     if (!current) return;
-    current.processor.disconnect(); current.source.disconnect(); current.stream.getTracks().forEach(track => track.stop()); void current.context.close(); inputBuffer.current = new Float32Array();
+    current.processor.disconnect(); current.source.disconnect(); current.sink.disconnect(); current.stream.getTracks().forEach(track => track.stop()); void current.context.close(); inputBuffer.current = new Float32Array();
   }
   function playAudio(encoded: string) {
     try {
       const raw = Uint8Array.from(atob(encoded), char => char.charCodeAt(0));
       const samples = new Float32Array(raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength));
-      const context = playback.current ?? (playback.current = new AudioContext()); void context.resume();
+      const context = playback.current && playback.current.state !== "closed" ? playback.current : (playback.current = new AudioContext());
+      void context.resume().catch(() => undefined);
       const buffer = context.createBuffer(1, samples.length, 24000); buffer.copyToChannel(samples, 0);
       const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination);
+      activeSources.current.add(source);
+      source.onended = () => {
+        activeSources.current.delete(source);
+        try { source.disconnect(); } catch {}
+      };
       const at = Math.max(context.currentTime + 0.02, playbackAt.current); source.start(at); playbackAt.current = at + buffer.duration;
     } catch { /* A malformed audio delta should not tear down the call. */ }
   }
   function cleanupSocket(sendClose = true) {
-    stopCapture(); const ws = socket.current; socket.current = null;
+    clearHandshakeTimer();
+    statusAbort.current?.abort(); statusAbort.current = null;
+    stopCapture(); flushPlayback();
+    const ws = socket.current; socket.current = null;
     if (ws && sendClose && ws.readyState === WebSocket.OPEN) { try { ws.send(JSON.stringify({ type: "session.close", reason: "user_stop" })); } catch {} }
     try { ws?.close(); } catch {}
-    if (playback.current) { void playback.current.close(); playback.current = null; }
+    if (playback.current) { void playback.current.close().catch(() => undefined); playback.current = null; }
     playbackAt.current = 0;
   }
   async function start() {
     if (isGuest || !userId) { onRequireAccount(); return; }
     if (active) return;
+    const epoch = ++sessionEpoch.current;
+    // Unlock playback AudioContext synchronously within the click gesture (required on iOS Safari).
+    unlockPlaybackAudio();
     muted.current = false; setMutedOn(false); setError(""); setCaption(""); setStatus("connecting"); setElapsed(0); onBusyChange?.(true);
+    const controller = new AbortController();
+    statusAbort.current = controller;
+    const statusTimeout = window.setTimeout(() => controller.abort(), 15_000);
     try {
-      const statusResponse = await fetch("/api/phone/status", { credentials: "same-origin", cache: "no-store" });
+      const statusResponse = await fetch("/api/phone/status", { credentials: "same-origin", cache: "no-store", signal: controller.signal });
+      window.clearTimeout(statusTimeout);
+      if (statusAbort.current === controller) statusAbort.current = null;
+      if (!mounted.current || sessionEpoch.current !== epoch) return;
       const available = await statusResponse.json() as { available?: boolean; error?: string };
       if (!statusResponse.ok || !available.available) throw new Error(available.error || "MiniCPM 电话服务尚未配置。");
+      if (!mounted.current || sessionEpoch.current !== epoch) return;
       const ws = new WebSocket(wsUrl()); socket.current = ws;
       let opened = false;
+      handshakeTimer.current = window.setTimeout(() => {
+        if (!opened && sessionEpoch.current === epoch) {
+          setError("语音接通超时，请检查网络后再拨一次。");
+          cleanupSocket(false);
+          if (mounted.current) { setStatus("ended"); onBusyChange?.(false); }
+        }
+      }, 15_000);
       ws.onmessage = event => {
+        if (sessionEpoch.current !== epoch) return;
         let message: SocketMessage; try { message = JSON.parse(String(event.data)); } catch { return; }
         if (message.type === "session.queue_done") {
           ws.send(JSON.stringify({ type: "session.init", payload: { system_prompt: systemPrompt, config: { length_penalty: 1.1 } } }));
         } else if (message.type === "session.created") {
-          opened = true; setStatus("connected"); void startCapture();
+          opened = true; clearHandshakeTimer(); setStatus("connected");
+          void startCapture(epoch).catch(failure => {
+            if (!mounted.current || sessionEpoch.current !== epoch) return;
+            setError(micErrorText(failure));
+            cleanupSocket(true);
+            setStatus("ended"); onBusyChange?.(false);
+          });
         } else if (message.type === "response.output.delta") {
           if (message.kind === "text" && message.text) setCaption(previous => `${previous}${message.text}`.slice(-1000));
           if (message.kind === "audio" && message.audio) playAudio(message.audio);
-          if (message.kind === "listen") setCaption("");
+          if (message.kind === "listen") { flushPlayback(); setCaption(""); }
         } else if (message.type === "error") setError(failureText(message));
       };
-      ws.onerror = () => setError(current => current || "MiniCPM 电话连接失败，请稍后重试。");
+      ws.onerror = () => {
+        if (sessionEpoch.current === epoch) setError(current => current || "MiniCPM 电话连接失败，请稍后重试。");
+      };
       ws.onclose = () => {
-        stopCapture();
+        if (sessionEpoch.current !== epoch) return;
+        cleanupSocket(false);
         if (!mounted.current) return;
         if (!opened) setError(current => current || "语音线路没有接通，请再拨一次。");
         setStatus("ended"); onBusyChange?.(false);
       };
       startedAt.current = Date.now();
-    } catch (failure) { cleanupSocket(false); setStatus("idle"); setError(failure instanceof Error ? failure.message : "电话服务暂时不可用。"); onBusyChange?.(false); }
+    } catch (failure) {
+      window.clearTimeout(statusTimeout);
+      if (sessionEpoch.current !== epoch) return;
+      cleanupSocket(false); setStatus("idle");
+      const message = failure instanceof DOMException && failure.name === "AbortError"
+        ? "语音服务响应超时，请稍后再试。"
+        : failure instanceof Error ? failure.message : "电话服务暂时不可用。";
+      setError(message); onBusyChange?.(false);
+    }
   }
-  function stop() { muted.current = false; setMutedOn(false); cleanupSocket(); setStatus("ended"); onBusyChange?.(false); }
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; cleanupSocket(false); }; }, []);
+  function stop() { sessionEpoch.current++; muted.current = false; setMutedOn(false); cleanupSocket(); setStatus("ended"); onBusyChange?.(false); }
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; sessionEpoch.current++; cleanupSocket(false); }; }, []);
   useEffect(() => { const timer = window.setInterval(() => { if (active && startedAt.current) setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)); }, 1000); return () => window.clearInterval(timer); }, [active]);
 
   const clock = `${String(Math.floor(elapsed / 60)).padStart(2, "0")}:${String(elapsed % 60).padStart(2, "0")}`;

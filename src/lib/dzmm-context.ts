@@ -134,25 +134,41 @@ export function prepareDzmmRequest(
     ...(options.memoryConfig ? { memoryConfig: options.memoryConfig } : {}),
   };
   const encoder = new TextEncoder();
-  function fits() {
+  const baseNonMessageChars = (request.preset?.length || 0)
+    + (request.userPersona?.length || 0)
+    + countDzmmContextText(request.storyMemory)
+    + countDzmmContextText(request.world);
+  const tailMessageChars = tail.map(message => message.content.length);
+  const suffixChars = new Array<number>(tail.length + 1).fill(0);
+  for (let i = tail.length - 1; i >= 0; i--) suffixChars[i] = suffixChars[i + 1] + tailMessageChars[i];
+
+  function fitsFrom(dropCount: number): boolean {
+    request.messages = dropCount === 0 ? tail : tail.slice(dropCount);
     // The xumeng prompt needs pre-activated lore; the tavern engine activates the
     // full book server-side and must keep every advanced field intact.
     if (characterBook) {
       request.character.characterBook = request.promptStyle === "tavern" ? characterBook : activateDzmmCharacterBook(characterBook,
         mergeDzmmOpeningMessages(opening, request.messages));
     }
-    const chars = countDzmmContextText(request.character) + (request.preset?.length || 0)
-      + (request.userPersona?.length || 0) + countDzmmContextText(request.storyMemory) + countDzmmContextText(request.world)
-      + request.messages.reduce((sum, message) => sum + message.content.length, 0);
+    const chars = countDzmmContextText(request.character) + baseNonMessageChars + suffixChars[dropCount];
     if (chars > DZMM_CONTEXT_LIMIT_CHARS || encoder.encode(JSON.stringify(request)).byteLength > DZMM_REQUEST_LIMIT_BYTES) return false;
     try { buildDzmmPromptPlan({ ...request, maxTokens: request.maxTokens ?? DZMM_DEFAULT_REPLY_TOKENS }); return true; }
     catch (error) { if (error instanceof DzmmValidationError) return false; throw error; }
   }
-  while (!fits()) {
-    if (request.messages.length === 1) {
+  if (!fitsFrom(0)) {
+    const maxDrop = tail.length - 1;
+    if (maxDrop === 0 || !fitsFrom(maxDrop)) {
       throw new DzmmValidationError("角色设定、预设与最后一条消息总量过大，请缩短设定或消息后重试。");
     }
-    request.messages.shift();
+    // Binary search for the smallest dropCount in [1, maxDrop] that fits.
+    let lo = 1;
+    let hi = maxDrop;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (fitsFrom(mid)) hi = mid;
+      else lo = mid + 1;
+    }
+    if (request.messages.length !== tail.length - lo) fitsFrom(lo);
   }
   validateDzmmChatInput(request);
   return request;

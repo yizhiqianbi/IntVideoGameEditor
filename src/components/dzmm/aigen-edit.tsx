@@ -42,7 +42,25 @@ export function AigenEdit({ kind, locale = "zh-Hans", onBack }: Props) {
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const alive = useRef(true);
-  useEffect(() => () => { alive.current = false; }, []);
+  const resultUrl = useRef<string | null>(null);
+  const taskAbort = useRef<AbortController | null>(null);
+  function replaceResult(url: string) {
+    if (resultUrl.current) URL.revokeObjectURL(resultUrl.current);
+    resultUrl.current = url || null;
+    setResult(url);
+  }
+  function cancelTask() {
+    taskAbort.current?.abort();
+    taskAbort.current = null;
+    setBusy(false);
+    setProgress("");
+    setError("");
+  }
+  useEffect(() => () => {
+    alive.current = false;
+    taskAbort.current?.abort();
+    if (resultUrl.current) { URL.revokeObjectURL(resultUrl.current); resultUrl.current = null; }
+  }, []);
 
   async function pick(file: File | undefined, useFace: boolean) {
     if (!file || busy) return;
@@ -60,42 +78,52 @@ export function AigenEdit({ kind, locale = "zh-Hans", onBack }: Props) {
     setError("");
     if (!scene) { setError(kind === "face" ? "先上传画面图。" : "先上传一张人物图。"); return; }
     if (kind === "face" && !face) { setError("再上传一张人脸图。"); return; }
-    setBusy(true); setProgress("正在提交…"); setResult("");
+    setBusy(true); setProgress("正在提交…"); replaceResult("");
+    const controller = new AbortController();
+    taskAbort.current = controller;
+    const started = Date.now();
     try {
       const images = kind === "face" ? [scene.data, face!.data] : [scene.data];
       const response = await fetch("/api/backend/v1/aigen/image-task", {
         method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ images, prompt }),
+        signal: controller.signal,
       });
       const payload = await response.json().catch(() => null) as { taskId?: string; error?: string } | null;
       if (!response.ok || !payload?.taskId) throw new Error(payload?.error || "提交失败，请稍后重试。");
       setProgress("正在生成，通常需要 20–90 秒…");
       for (let i = 0; i < 100; i++) {
-        await new Promise(resolve => setTimeout(resolve, 3000));
-        if (!alive.current) return;
-        const poll = await fetch(`/api/backend/v1/aigen/image-task/${encodeURIComponent(payload.taskId)}`, { credentials: "same-origin", cache: "no-store" });
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(resolve, 3000);
+          controller.signal.addEventListener("abort", () => { clearTimeout(timer); reject(new DOMException("Aborted", "AbortError")); }, { once: true });
+        });
+        if (!alive.current || controller.signal.aborted) return;
+        const elapsed = Math.floor((Date.now() - started) / 1000);
+        setProgress(`正在生成，已用时 ${elapsed} 秒…`);
+        const poll = await fetch(`/api/backend/v1/aigen/image-task/${encodeURIComponent(payload.taskId)}`, { credentials: "same-origin", cache: "no-store", signal: controller.signal });
         if (poll.status === 202) continue;
         if (!poll.ok) {
           const body = await poll.json().catch(() => null) as { error?: string } | null;
           throw new Error(body?.error || "生成失败，请重试。");
         }
         const blob = await poll.blob();
-        if (!alive.current) return;
-        setResult(URL.createObjectURL(blob));
+        if (!alive.current || controller.signal.aborted) return;
+        replaceResult(URL.createObjectURL(blob));
         setProgress("");
         return;
       }
       throw new Error("生成超时，请重试。");
     } catch (failure) {
+      if (controller.signal.aborted || !alive.current) return;
       setError(failure instanceof Error ? failure.message : "生成失败，请重试。");
       setProgress("");
-    } finally { if (alive.current) setBusy(false); }
+    } finally { if (taskAbort.current === controller) taskAbort.current = null; if (alive.current) setBusy(false); }
   }
 
   const needsFace = kind === "face";
   return <main className={s.page}>
     <header className={s.header}>
-      <button type="button" className={s.back} onClick={onBack} disabled={busy}><Icon name="back" size={16} />{copy.back}</button>
+      <button type="button" className={s.back} onClick={() => { if (busy) cancelTask(); onBack(); }}><Icon name="back" size={16} />{copy.back}</button>
       <div><h1>{needsFace ? "AI 换脸" : "换造型"}</h1><p>{needsFace ? "上传画面图和脸部图，只替换脸，保留原画面" : "上传一张图，按提示词换掉外层造型"}</p></div>
     </header>
     <section className={s.panel}>
@@ -114,14 +142,17 @@ export function AigenEdit({ kind, locale = "zh-Hans", onBack }: Props) {
       </label>
       {error && <p className={s.error} role="alert">{error}</p>}
       {progress && <p className={s.progress} role="status">{progress}</p>}
-      <button type="button" className={s.primary} disabled={busy || !scene || (needsFace && !face)} onClick={() => void submit()}>
-        {busy ? "生成中…" : needsFace ? "开始换脸" : "开始换造型"}
-      </button>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button type="button" className={s.primary} disabled={busy || !scene || (needsFace && !face)} onClick={() => void submit()}>
+          {busy ? "生成中…" : needsFace ? "开始换脸" : "开始换造型"}
+        </button>
+        {busy && <button type="button" className={s.back} onClick={cancelTask}><Icon name="stop" size={15} />取消生成</button>}
+      </div>
       {result && <div className={s.result}>
         <img src={result} alt="生成结果" />
         <div className={s.resultActions}>
           <a href={result} download={`xumeng-${kind}.png`}><Icon name="download" size={15} />保存图片</a>
-          <button type="button" onClick={() => { setResult(""); setProgress(""); }}>再生成一张</button>
+          <button type="button" onClick={() => { replaceResult(""); setProgress(""); }}>再生成一张</button>
         </div>
       </div>}
     </section>

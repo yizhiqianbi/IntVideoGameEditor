@@ -275,12 +275,11 @@ export default function AccountModal({ mode, initialReferralCode = "", locale = 
         {!forgotPassword && <div className={s.modeSwitch} role="group" aria-label={copy.accountActions}><button type="button" aria-pressed={mode === "login"} disabled={submitting} onClick={() => { if (mode !== "login") switchMode(); }}>{copy.login}</button><button type="button" aria-pressed={mode === "register"} disabled={submitting} onClick={() => { if (mode !== "register") switchMode(); }}>{copy.register}</button></div>}
         {intro && !forgotPassword && <p className={s.intro}>{intro}</p>}
         {signupGift && !forgotPassword && (mode === "register" || method === "email") && <p className={s.hint}>{xumengPageFill(copy.signupGiftHint, { credits: signupGift.credits.toLocaleString("zh-CN") })}</p>}
-        {!forgotPassword && <div className={s.social}>
-          <button type="button" onClick={() => void startSocial("google")} disabled={submitting || socialBusy !== null || !social?.google} title={social && !social.google ? copy.googleNotReady : undefined}>{socialBusy === "google" ? copy.goingGoogle : copy.continueGoogle}</button>
-          <button type="button" onClick={() => void startSocial("telegram")} disabled={submitting || socialBusy !== null || !social?.telegram} title={social && !social.telegram ? copy.telegramNotReady : undefined}>{socialBusy === "telegram" ? copy.goingTelegram : copy.continueTelegram}</button>
+        {!forgotPassword && (social?.google || social?.telegram) && <div className={s.social}>
+          {social.google && <button type="button" onClick={() => void startSocial("google")} disabled={submitting || socialBusy !== null}>{socialBusy === "google" ? copy.goingGoogle : copy.continueGoogle}</button>}
+          {social.telegram && <button type="button" onClick={() => void startSocial("telegram")} disabled={submitting || socialBusy !== null}>{socialBusy === "telegram" ? copy.goingTelegram : copy.continueTelegram}</button>}
         </div>}
-        {!forgotPassword && social && !social.google && !social.telegram && <p className={s.serviceNote} role="status">{copy.socialOff}</p>}
-        {!forgotPassword && <p className={s.divider}>{copy.orEmail}</p>}
+        {!forgotPassword && (social?.google || social?.telegram) && <p className={s.divider}>{copy.orEmail}</p>}
         {!forgotPassword && mode !== "register" && <div className={s.methods} role="group" aria-label={copy.signInMethod}><button type="button" aria-pressed={method === "email"} disabled={submitting} onClick={() => selectMethod("email")}>{copy.emailCode}</button><button type="button" aria-pressed={method === "password"} disabled={submitting} onClick={() => selectMethod("password")}>{copy.emailPassword}</button></div>}
         <p className={s.hint}>{forgotPassword ? copy.resetByCode : mode === "register" ? copy.registerKeepsGuest : copy.loginSyncs}</p>
         {mode !== "register" && (method === "email" || forgotPassword) && (configLoading || unavailable) && <p className={s.serviceNote} role="status">{configLoading ? copy.checkingCodeService : configError || configuration?.note || copy.codeNotConfigured}</p>}

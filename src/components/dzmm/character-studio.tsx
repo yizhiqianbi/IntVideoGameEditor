@@ -19,6 +19,8 @@ import { applyDzmmReaderNames } from "@/lib/dzmm-character-presentation";
 import { DZMM_BOOK_STARTERS, DZMM_DESCRIPTION_TEMPLATE, DZMM_INSTRUCTION_GROUPS, DZMM_OPENING_EXAMPLE, type DzmmBookStarter } from "../../lib/dzmm-authoring-templates";
 import { getXumengSpeechVoice, XUMENG_SPEECH_VOICE_GROUPS, XUMENG_SPEECH_VOICES, type XumengSpeechVoiceId } from "../../lib/xumeng-voices";
 import { initialXumengPanelValues, XUMENG_PANEL_FIELD_TYPES, XUMENG_PANEL_LIMITS, XUMENG_PANEL_PRESETS, type XumengInteractionTemplate, type XumengPanel, type XumengPanelField } from "../../lib/xumeng-interaction-panels";
+import { clearXumengCharacterRecovery, readXumengCharacterRecovery, writeXumengCharacterRecovery, type XumengCharacterRecoveryEntry } from "../../lib/xumeng-character-recovery";
+import { claimXumengAudioFocus, subscribeXumengAudioFocus } from "../../lib/xumeng-audio-mutex";
 import { XumengPanelGrid } from "./xumeng-interaction-panel";
 import CharacterIntroduction from "./character-introduction";
 import { xumengPage, xumengPageFill } from "../../lib/xumeng-page-copy";
@@ -121,21 +123,44 @@ function transfer<T>(items: T[], index: number, change: number) {
   if (target < 0 || target >= items.length) return items;
   const next = [...items]; [next[index], next[target]] = [next[target], next[index]]; return next;
 }
-function readiness(draft: Draft): string[] {
-  const issues: string[] = [];
-  if (!draft.name.trim()) issues.push("填写角色名称。");
-  if (!draft.messages.some((message) => message.role === "assistant" && message.content.trim())) issues.push("主开场至少需要一条角色消息。");
-  if (![draft.description, draft.personality, draft.scenario, draft.systemPrompt].some((value) => value.trim())) issues.push("详细描述、性格、场景或系统指令至少填写一项。");
-  if (draft.messages.length > 1) draft.messages.forEach((message, position) => { if (!message.content.trim()) issues.push(`填写或移除第 ${position + 1} 条开场消息。`); });
-  draft.greetings.forEach((greeting, position) => { if (!greeting.value.trim()) issues.push(`填写或移除备选开场 ${position + 1}。`); });
-  if (draft.book?.scanDepth !== undefined && (!Number.isInteger(draft.book.scanDepth) || draft.book.scanDepth < 1 || draft.book.scanDepth > 40)) issues.push("世界书扫描范围需要为 1–40 条消息。");
+type ReadinessIssue = {
+  id: string;
+  message: string;
+  step: Step;
+  field?: string;
+  entryKey?: string;
+  requiresPro?: boolean;
+};
+
+function readiness(draft: Draft): ReadinessIssue[] {
+  const issues: ReadinessIssue[] = [];
+  if (!draft.name.trim()) issues.push({ id: "name", message: "填写角色名称。", step: "opening", field: "name" });
+  if (!draft.messages.some((message) => message.role === "assistant" && message.content.trim())) {
+    issues.push({ id: "opening-assistant", message: "主开场至少需要一条角色消息。", step: "opening", field: "opening-0" });
+  }
+  if (![draft.description, draft.personality, draft.scenario, draft.systemPrompt].some((value) => value.trim())) {
+    issues.push({ id: "persona", message: "详细描述、性格、场景或系统指令至少填写一项。", step: "opening", field: "description" });
+  }
+  if (draft.messages.length > 1) draft.messages.forEach((message, position) => {
+    if (!message.content.trim()) issues.push({ id: `opening-${position}`, message: `填写或移除第 ${position + 1} 条开场消息。`, step: "opening", field: `opening-${position}` });
+  });
+  draft.greetings.forEach((greeting, position) => {
+    if (!greeting.value.trim()) issues.push({ id: `greeting-${position}`, message: `填写或移除备选开场 ${position + 1}。`, step: "opening", field: `greeting-${position}` });
+  });
+  if (draft.book?.scanDepth !== undefined && (!Number.isInteger(draft.book.scanDepth) || draft.book.scanDepth < 1 || draft.book.scanDepth > 40)) {
+    issues.push({ id: "book-scan-depth", message: "世界书扫描范围需要为 1–40 条消息。", step: "book", field: "book-scan-depth", requiresPro: true });
+  }
   draft.entries.forEach((item, position) => {
     const title = item.entry.name || `词条 ${position + 1}`;
-    if (!item.entry.content.trim()) issues.push(`${title}：填写词条内容，或删除空词条。`);
+    if (!item.entry.content.trim()) issues.push({ id: `entry-content-${item.key}`, message: `${title}：填写词条内容，或删除空词条。`, step: "book", field: "book-content", entryKey: item.key, requiresPro: true });
     const keys = split(item.keysText), secondaryKeys = split(item.secondaryText);
-    if (!item.entry.constant && !keys.length) issues.push(`${title}：填写触发关键词，或设为常驻词条。`);
-    if (keys.length > 20 || secondaryKeys.length > 20 || [...keys, ...secondaryKeys].some((key) => key.length > 120)) issues.push(`${title}：关键词每组最多 20 个，每个不超过 120 字。`);
-    if (item.entry.insertionOrder !== undefined && (!Number.isInteger(item.entry.insertionOrder) || item.entry.insertionOrder < 0 || item.entry.insertionOrder > 100000)) issues.push(`${title}：插入顺序需要为 0–100000 的整数。`);
+    if (!item.entry.constant && !keys.length) issues.push({ id: `entry-keys-${item.key}`, message: `${title}：填写触发关键词，或设为常驻词条。`, step: "book", field: "book-keywords", entryKey: item.key, requiresPro: true });
+    if (keys.length > 20 || secondaryKeys.length > 20 || [...keys, ...secondaryKeys].some((key) => key.length > 120)) {
+      issues.push({ id: `entry-key-limit-${item.key}`, message: `${title}：关键词每组最多 20 个，每个不超过 120 字。`, step: "book", field: "book-keywords", entryKey: item.key, requiresPro: true });
+    }
+    if (item.entry.insertionOrder !== undefined && (!Number.isInteger(item.entry.insertionOrder) || item.entry.insertionOrder < 0 || item.entry.insertionOrder > 100000)) {
+      issues.push({ id: `entry-order-${item.key}`, message: `${title}：插入顺序需要为 0–100000 的整数。`, step: "book", field: "book-order", entryKey: item.key, requiresPro: true });
+    }
   });
   return issues;
 }
@@ -166,6 +191,15 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
   const previewAudio = useRef<HTMLAudioElement | null>(null);
   const coverRequest = useRef<AbortController | null>(null);
   const id = useRef(character?.sourceKind === "original" ? character.id : `local-${uid()}`);
+  const recoveryAccountId = user?.id ?? "guest";
+  const recoveryKeyId = character?.sourceKind === "original" ? character.id : "new";
+  const [recoveryEntry, setRecoveryEntry] = useState<XumengCharacterRecoveryEntry<Draft> | null>(() =>
+    readXumengCharacterRecovery<Draft>(recoveryAccountId, recoveryKeyId));
+  useEffect(() => {
+    if (!dirtyRef.current) {
+      setRecoveryEntry(readXumengCharacterRecovery<Draft>(recoveryAccountId, recoveryKeyId));
+    }
+  }, [recoveryAccountId, recoveryKeyId]);
   const createdAt = useRef(character?.sourceKind === "original" ? character.createdAt : new Date().toISOString());
   const importInput = useRef<HTMLInputElement>(null);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -204,8 +238,20 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
     target.focus({ preventScroll: true });
     target.scrollIntoView({ behavior: "smooth", block: "center" });
     reviewDestination.current = null;
-  }, [step, professional]);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; previewAudio.current?.pause(); coverRequest.current?.abort(); }; }, []);
+  }, [step, professional, expandedEntry]);
+  useEffect(() => {
+    mounted.current = true;
+    const unsubAudio = subscribeXumengAudioFocus("character-voice-preview", () => {
+      previewAudio.current?.pause();
+      setPreviewing(null);
+    });
+    return () => {
+      mounted.current = false;
+      unsubAudio();
+      previewAudio.current?.pause();
+      coverRequest.current?.abort();
+    };
+  }, []);
   useEffect(() => { dirtyCallback.current = onDirtyChange; }, [onDirtyChange]);
   useEffect(() => { dirtyCallback.current?.(dirty); }, [dirty]);
   useEffect(() => () => { dirtyCallback.current?.(false); }, []);
@@ -218,6 +264,13 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
     window.addEventListener("beforeunload", beforeUnload);
     return () => window.removeEventListener("beforeunload", beforeUnload);
   }, [dirty]);
+  useEffect(() => {
+    if (!dirty) return;
+    const timer = window.setTimeout(() => {
+      writeXumengCharacterRecovery(recoveryAccountId, recoveryKeyId, draft);
+    }, 700);
+    return () => window.clearTimeout(timer);
+  }, [dirty, draft, recoveryAccountId, recoveryKeyId]);
   useEffect(() => {
     if (!leaving && !importCandidate) return;
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -258,9 +311,33 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
     setProfessional(true);
     selectStep(next);
   }
+  function jumpToIssue(issue: ReadinessIssue) {
+    reviewDestination.current = issue.field ?? "step-heading";
+    if (issue.entryKey) setExpandedEntry(issue.entryKey);
+    const targetStep = issue.step === "opening" && (issue.field === "name" || issue.field === "description") && professional
+      ? "identity"
+      : issue.step;
+    if (issue.requiresPro || targetStep === "identity" || targetStep === "book" || targetStep === "voice") {
+      setProfessional(true);
+    }
+    selectStep(targetStep);
+  }
   function toggleMode() { if (!professional && step !== "opening" && step !== "preview") setStep("identity"); if (professional && step !== "opening" && step !== "preview") setStep("opening"); setProfessional((value) => !value); }
   function requestClose() { if (pending.current) return; if (dirty) setLeaving(true); else onClose(); }
-  function discard() { if (pending.current) return; setDirty(false); dirtyCallback.current?.(false); setLeaving(false); onClose(); }
+  function discard() { if (pending.current) return; clearXumengCharacterRecovery(recoveryAccountId, recoveryKeyId); setRecoveryEntry(null); setDirty(false); dirtyCallback.current?.(false); setLeaving(false); onClose(); }
+  function restoreRecoveryDraft() {
+    if (!recoveryEntry || pending.current) return;
+    setDraft(recoveryEntry.draft);
+    dirtyRef.current = true;
+    setDirty(true);
+    setRecoveryEntry(null);
+    setNotice("已恢复本地角色草稿，确认后请记得点击保存。");
+  }
+  function dropRecoveryDraft() {
+    clearXumengCharacterRecovery(recoveryAccountId, recoveryKeyId);
+    setRecoveryEntry(null);
+    setNotice("已丢弃本地恢复副本。");
+  }
   async function saveAndClose() {
     const saved = await run("save", onSave);
     if (saved && mounted.current) { dirtyCallback.current?.(false); setLeaving(false); onClose(); }
@@ -353,9 +430,11 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
         setDraft(previous => ({ ...previous, messages: messages.length ? messages : [{ key: uid(), role: "assistant", content: "" }], greetings, entries }));
         if (expandedEntry && !entries.some(item => item.key === expandedEntry)) setExpandedEntry(null);
         const omitted = [omittedOpenings ? "空白开场项" : "", omittedEntries ? "空白世界书词条" : ""].filter(Boolean);
+        clearXumengCharacterRecovery(recoveryAccountId, recoveryKeyId);
+        setRecoveryEntry(null);
         setDirty(false); setNotice(card.authoringDraft ? "私人草稿已保存，未完成的世界书已保留，完善后可试聊和提交。" : omitted.length ? `私人草稿已保存，${omitted.join("和")}已略过。` : "私人草稿已保存。");
       }
-      if (kind === "submit") { setDirty(false); setSubmissionDone(true); setNotice("已提交审核，审核通过后会显示在公开角色广场。"); }
+      if (kind === "submit") { clearXumengCharacterRecovery(recoveryAccountId, recoveryKeyId); setRecoveryEntry(null); setDirty(false); setSubmissionDone(true); setNotice("已提交审核，审核通过后会显示在公开角色广场。"); }
       return true;
     } catch (failure) {
       if (mounted.current && scopeRef.current === scope) {
@@ -541,6 +620,7 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
     const voice = getXumengSpeechVoice(voiceId);
     previewAudio.current?.pause();
     if (previewing === voiceId || !voice || !("previewUrl" in voice)) { setPreviewing(null); return; }
+    claimXumengAudioFocus("character-voice-preview");
     const audio = new Audio(voice.previewUrl);
     previewAudio.current = audio; setPreviewing(voiceId);
     audio.onended = audio.onerror = () => { if (previewAudio.current === audio) setPreviewing(null); };
@@ -566,18 +646,18 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
           <button type="button" role="radio" aria-checked={activeEntry.entry.constant === true} className={activeEntry.entry.constant ? styles.modeCardOn : ""} disabled={busy} onClick={() => updateEntry(activeEntry.key, { constant: true })}><Icon name="book" size={16} /><strong>常驻模式</strong><span>开启后此条目始终生效，无需触发词</span></button>
           <button type="button" role="radio" aria-checked={activeEntry.entry.constant !== true} className={!activeEntry.entry.constant ? styles.modeCardOn : ""} disabled={busy} onClick={() => updateEntry(activeEntry.key, { constant: false })}><Icon name="sparkles" size={16} /><strong>触发词</strong><span>对话中出现匹配关键词时，条目内容才会被注入</span></button>
         </div>
-        {!activeEntry.entry.constant && <div className={styles.field}><span>触发词<small>{activeKeys.length} / 20</small></span><div className={styles.keywordBox}>{activeKeys.map((keyword) => <span key={keyword}>{keyword}<button type="button" disabled={busy} aria-label={`移除触发词 ${keyword}`} onClick={() => updateEntry(activeEntry.key, {}, { keysText: activeKeys.filter((item) => item !== keyword).join("，") })}><Icon name="close" size={10} /></button></span>)}<input aria-label="添加触发词" maxLength={120} disabled={busy || activeKeys.length >= 20} value={keywordInput} placeholder={activeKeys.length ? "继续添加…" : "如：战斗、打斗（回车或逗号添加）"} onChange={(event) => { const value = event.target.value; if (/[,，、]/.test(value)) addKeywords(activeEntry, value); else setKeywordInput(value); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addKeywords(activeEntry, keywordInput); } else if (event.key === "Backspace" && !keywordInput && activeKeys.length) updateEntry(activeEntry.key, {}, { keysText: activeKeys.slice(0, -1).join("，") }); }} onBlur={() => addKeywords(activeEntry, keywordInput)} /></div><em>对话里出现任意一个触发词，这条内容就会加入上下文。写玩家会说出口的叫法。</em></div>}
-        <Field title="内容 *" hint="满足触发条件时，此内容会被插入到对话中。" count={`${activeEntry.entry.content.length} / ${DZMM_WORLD_BOOK_ENTRY_LIMIT}`}><textarea rows={7} maxLength={DZMM_WORLD_BOOK_ENTRY_LIMIT} disabled={busy} value={activeEntry.entry.content} placeholder="输入条目内容…开头写名称，再用两三句话说清它是什么。" onChange={(event) => updateEntry(activeEntry.key, { content: event.target.value })} /></Field>
+        {!activeEntry.entry.constant && <div className={styles.field}><span>触发词<small>{activeKeys.length} / 20</small></span><div className={styles.keywordBox}>{activeKeys.map((keyword) => <span key={keyword}>{keyword}<button type="button" disabled={busy} aria-label={`移除触发词 ${keyword}`} onClick={() => updateEntry(activeEntry.key, {}, { keysText: activeKeys.filter((item) => item !== keyword).join("，") })}><Icon name="close" size={10} /></button></span>)}<input data-studio-field="book-keywords" aria-label="添加触发词" maxLength={120} disabled={busy || activeKeys.length >= 20} value={keywordInput} placeholder={activeKeys.length ? "继续添加…" : "如：战斗、打斗（回车或逗号添加）"} onChange={(event) => { const value = event.target.value; if (/[,，、]/.test(value)) addKeywords(activeEntry, value); else setKeywordInput(value); }} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addKeywords(activeEntry, keywordInput); } else if (event.key === "Backspace" && !keywordInput && activeKeys.length) updateEntry(activeEntry.key, {}, { keysText: activeKeys.slice(0, -1).join("，") }); }} onBlur={() => addKeywords(activeEntry, keywordInput)} /></div><em>对话里出现任意一个触发词，这条内容就会加入上下文。写玩家会说出口的叫法。</em></div>}
+        <Field title="内容 *" hint="满足触发条件时，此内容会被插入到对话中。" count={`${activeEntry.entry.content.length} / ${DZMM_WORLD_BOOK_ENTRY_LIMIT}`}><textarea data-studio-field="book-content" rows={7} maxLength={DZMM_WORLD_BOOK_ENTRY_LIMIT} disabled={busy} value={activeEntry.entry.content} placeholder="输入条目内容…开头写名称，再用两三句话说清它是什么。" onChange={(event) => updateEntry(activeEntry.key, { content: event.target.value })} /></Field>
         <details className={styles.advanced}><summary>高级选项</summary>
           <label className={styles.toggleRow}><span><strong>启用条目</strong><em>停用后，此条目将被忽略</em></span><input type="checkbox" checked={activeEntry.entry.enabled !== false} disabled={busy} onChange={(event) => updateEntry(activeEntry.key, { enabled: event.target.checked })} /></label>
-          <label className={styles.toggleRow}><span><strong>优先级</strong><em>多个条目同时生效时，值越小越先被模型看到</em></span><input type="number" min={0} max={100000} disabled={busy} value={activeEntry.entry.insertionOrder ?? activePosition} onChange={(event) => updateEntry(activeEntry.key, { insertionOrder: Number(event.target.value) })} /></label>
+          <label className={styles.toggleRow}><span><strong>优先级</strong><em>多个条目同时生效时，值越小越先被模型看到</em></span><input data-studio-field="book-order" type="number" min={0} max={100000} disabled={busy} value={activeEntry.entry.insertionOrder ?? activePosition} onChange={(event) => updateEntry(activeEntry.key, { insertionOrder: Number(event.target.value) })} /></label>
           <label className={styles.toggleRow}><span><strong>大小写敏感</strong><em>区分触发词的大小写，适合英文关键词场景</em></span><input type="checkbox" checked={activeEntry.entry.caseSensitive === true} disabled={busy} onChange={(event) => updateEntry(activeEntry.key, { caseSensitive: event.target.checked })} /></label>
           <label className={styles.toggleRow}><span><strong>同时匹配辅助词</strong><em>需要同时命中一个触发词和一个辅助词才生效</em></span><input type="checkbox" checked={activeEntry.entry.selective === true} disabled={busy} onChange={(event) => updateEntry(activeEntry.key, { selective: event.target.checked })} /></label>
           {(activeEntry.entry.selective || activeEntry.secondaryText) && <Field title="辅助词" hint="逗号分隔。"><input maxLength={2419} disabled={busy} value={activeEntry.secondaryText} onChange={(event) => updateEntry(activeEntry.key, {}, { secondaryText: event.target.value })} /></Field>}
         </details>
       </div>
     </div>}
-    {draft.book && <details className={styles.advanced}><summary>世界书整体设置</summary><div className={styles.bookMetadata}><Field title="世界书名称"><input maxLength={120} disabled={busy} value={draft.book.name ?? ""} onChange={(event) => update({ book: { ...draft.book, name: event.target.value } })} /></Field><Field title="扫描最近消息数" hint="1–40 条，用于匹配触发词。"><input type="number" min={1} max={40} disabled={busy} value={draft.book.scanDepth ?? DEFAULT_DZMM_CHARACTER_BOOK_SCAN_DEPTH} onChange={(event) => update({ book: { ...draft.book, scanDepth: Number(event.target.value) } })} /></Field></div><Field title="世界书说明"><textarea rows={3} maxLength={2000} disabled={busy} value={draft.book.description ?? ""} onChange={(event) => update({ book: { ...draft.book, description: event.target.value } })} /></Field></details>}
+    {draft.book && <details className={styles.advanced}><summary>世界书整体设置</summary><div className={styles.bookMetadata}><Field title="世界书名称"><input maxLength={120} disabled={busy} value={draft.book.name ?? ""} onChange={(event) => update({ book: { ...draft.book, name: event.target.value } })} /></Field><Field title="扫描最近消息数" hint="1–40 条，用于匹配触发词。"><input data-studio-field="book-scan-depth" type="number" min={1} max={40} disabled={busy} value={draft.book.scanDepth ?? DEFAULT_DZMM_CHARACTER_BOOK_SCAN_DEPTH} onChange={(event) => update({ book: { ...draft.book, scanDepth: Number(event.target.value) } })} /></Field></div><Field title="世界书说明"><textarea rows={3} maxLength={2000} disabled={busy} value={draft.book.description ?? ""} onChange={(event) => update({ book: { ...draft.book, description: event.target.value } })} /></Field></details>}
   </>;
   const selectedVoice = draft.speechVoice ? getXumengSpeechVoice(draft.speechVoice) : undefined;
   const voiceStep = <section className={styles.voicePicker}>
@@ -640,18 +720,32 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
     {coverError && <p className={styles.coverError} role="alert">{coverError}</p>}
   </section>;
   const textField = (field: "introduction" | "creatorNotes" | "description" | "personality" | "scenario" | "systemPrompt" | "postHistoryInstructions" | "messageExamples", title: string, hint: string, limit = DZMM_CHARACTER_PROSE_LIMIT, rows = 5, action?: ReactNode, placeholder?: string) => <Field title={title} hint={hint} action={action} count={`${draft[field].length} / ${limit}`}><textarea data-studio-field={field} rows={rows} maxLength={limit} disabled={busy} value={draft[field]} placeholder={placeholder} onChange={(event) => update({ [field]: event.target.value })} /></Field>;
-  const basicFields = <><Field title="角色名称 *"><input autoComplete="off" maxLength={120} disabled={busy} value={draft.name} placeholder="为角色或故事命名" onChange={(event) => update({ name: event.target.value })} /></Field>{textField("introduction", "角色卡介绍", "展示在角色卡上，AI 不会看到这段介绍。", DZMM_CHARACTER_PROSE_LIMIT, professional ? 4 : 3)}{textField("creatorNotes", "作者备注", "给玩家的致谢、玩法提示和更新说明；单独展示，不会发送给 AI。", DZMM_CHARACTER_PROSE_LIMIT, 3)}</>;
+  const basicFields = <>
+    <Field title="角色名称 *"><input data-studio-field="name" autoComplete="off" maxLength={120} disabled={busy} value={draft.name} placeholder="为角色或故事命名" onChange={(event) => update({ name: event.target.value })} /></Field>
+    {textField("introduction", "角色卡介绍", "展示在角色卡上，AI 不会看到这段介绍。", DZMM_CHARACTER_PROSE_LIMIT, professional ? 4 : 3)}
+    {professional
+      ? textField("creatorNotes", "作者备注", "给玩家的致谢、玩法提示和更新说明；单独展示，不会发送给 AI。", DZMM_CHARACTER_PROSE_LIMIT, 3)
+      : <details className={styles.advanced} open={Boolean(draft.creatorNotes.trim())}><summary>补充作者备注（可选，不会发送给 AI）</summary>{textField("creatorNotes", "作者备注", "给玩家的致谢、玩法提示和更新说明；单独展示，不会发送给 AI。", DZMM_CHARACTER_PROSE_LIMIT, 3)}</details>}
+  </>;
 
   return <main className={styles.studio}>
     <header className={styles.header}><div className={styles.heading}><button type="button" className={styles.back} aria-label={page.back} disabled={busy} onClick={requestClose}><Icon name="back" size={19} /></button><div><h1>{character?.sourceKind === "original" ? page.editRole : character ? page.copyRole : page.createRole}</h1><p>{dirty ? page.unsaved : page.privateOnly}</p></div></div><div className={styles.headerActions}><div className={styles.headerTools}><button type="button" className={styles.tool} disabled={busy} aria-label={page.importCard} title={page.importCard} onClick={() => importInput.current?.click()}><Icon name="upload" size={16} /></button><button type="button" className={styles.tool} disabled={busy} aria-label={page.export} title={page.export} onClick={exportCard}><Icon name="download" size={16} /></button></div><span className={styles.modeLabel}>{page.proMode}<button type="button" role="switch" aria-label={page.proMode} aria-checked={professional} disabled={busy} className={`${styles.switch} ${professional ? styles.switchOn : ""}`} onClick={toggleMode}><span /></button></span></div></header>
     <nav className={styles.steps} aria-label={page.studioSteps}>{steps.map((item, position) => <button type="button" key={item.id} aria-current={step === item.id ? "step" : undefined} disabled={busy} className={step === item.id ? styles.activeStep : ""} onClick={() => selectStep(item.id)}><span>{String(position + 1).padStart(2, "0")}</span>{item.name}</button>)}</nav>
     <div className={styles.workspace} ref={main}>
       <div className={styles.editor}>
+        {recoveryEntry && !dirty && <section className={styles.readiness} role="region" aria-label="未保存的本地角色草稿">
+          <h3>发现未保存的本地草稿{recoveryEntry.name ? `：${recoveryEntry.name}` : ""}</h3>
+          <p>保存于 {new Date(recoveryEntry.updatedAt).toLocaleString("zh-CN")}（仅存于当前浏览器、当前账号）。</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 10 }}>
+            <button type="button" className={styles.primary} disabled={busy} onClick={restoreRecoveryDraft}>恢复草稿</button>
+            <button type="button" className={styles.secondary} disabled={busy} onClick={dropRecoveryDraft}>丢弃副本</button>
+          </div>
+        </section>}
         <div className={styles.coverMakerPhone}>{coverMaker}</div>
         <div className={styles.sectionHeading}><span>{String(index + 1).padStart(2, "0")}</span><div><h2 tabIndex={-1} data-studio-field="step-heading">{stepName(step)}</h2><p>{step === "identity" ? page.stepIdentityHint : step === "opening" ? page.stepOpeningHint : step === "book" ? page.stepBookHint : step === "voice" ? page.stepVoiceHint : page.stepPreviewHint}</p></div></div>
         {step === "identity" && <>
           {basicFields}
-          <div className={styles.coverRow}><div className={styles.coverPreview}>{coverPreview ? <CoverVisual src={coverPreview} alt="角色封面预览" /> : <Icon name="user" size={36} />}</div><div><Field title="封面"><input maxLength={2048} disabled={busy} value={draft.cover} placeholder="图片或视频地址，或上传封面" onChange={(event) => update({ cover: event.target.value })} /></Field><button type="button" className={styles.tool} disabled={busy} aria-label={operation === "upload" ? "正在上传…" : "上传封面"} title={operation === "upload" ? "正在上传…" : "上传封面"} onClick={() => coverInput.current?.click()}><Icon name="image" size={16} /></button><p className={styles.help}>PNG、JPEG、WebP、GIF 最大 5 MB。MP4、WebM 最大 16 MB，上传后静音循环播放。画廊仍只接受图片。</p></div></div>
+          <div className={styles.coverRow}><div className={styles.coverPreview}>{coverPreview ? <CoverVisual src={coverPreview} alt="角色封面预览" /> : <Icon name="user" size={36} />}</div><div><Field title="封面"><input maxLength={2048} disabled={busy} value={draft.cover} placeholder="图片或视频地址，或上传封面" onChange={(event) => update({ cover: event.target.value })} /></Field><button type="button" className={styles.secondary} disabled={busy} onClick={() => coverInput.current?.click()}><Icon name="image" size={15} />{operation === "upload" ? "正在上传…" : "上传封面"}</button><p className={styles.help}>PNG、JPEG、WebP、GIF 最大 5 MB。MP4、WebM 最大 16 MB，上传后静音循环播放。画廊仍只接受图片。</p></div></div>
           <div className={styles.divider} />
           {textField("personality", "性格", "描述角色的性格特点、说话方式和行为习惯。", DZMM_CHARACTER_PROSE_LIMIT, 4, undefined, "嘴硬心软，说话带刺；紧张时会摸耳垂……")}
           {textField("scenario", "场景", "描述角色所处的环境、时间和地点。", DZMM_CHARACTER_PROSE_LIMIT, 4, undefined, "深夜的便利店，外面在下雨，店里只有你们两个人……")}
@@ -662,22 +756,24 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
             {activeTemplates && <div className={styles.templateList}><header>{activeTemplates.name}</header>{activeTemplates.templates.map((template) => <div key={template.id}><div><strong>{template.name}</strong><span>{template.summary}</span><p>{template.text}</p></div><button type="button" disabled={busy} onClick={() => appendText("systemPrompt", template.text)}>插入</button></div>)}</div>}
             {textField("systemPrompt", "系统指令内容", "可自由编辑；点上面的模板可以快速起步。", DZMM_CHARACTER_PROSE_LIMIT, 6)}
           </section>
-          {interactionEditor}
+          <details className={styles.advanced} open={interaction.panels.length > 0}><summary>互动状态面板（已配置 {interaction.panels.length} / {XUMENG_PANEL_LIMITS.panels} 个）</summary>{interactionEditor}</details>
           {tagFields}
           <div className={styles.divider} />
           {textField("description", "详细描述", "角色的背景故事、经历、能力特长等详细信息，AI 会看到这段设定。", DZMM_CHARACTER_PROSE_LIMIT, 7, descriptionTemplate)}
-          <details className={styles.advanced}><summary>高级提示设置</summary>{textField("postHistoryInstructions", "后置指令", "放在聊天历史之后的补充要求。", DZMM_CHARACTER_PROSE_LIMIT, 4)}{textField("messageExamples", "对话示例", "用人物对话展示语气和互动方式。", DZMM_CHARACTER_PROSE_LIMIT, 5)}</details>
-          <div className={styles.divider} /><div className={styles.groupHeading}><h3>角色画廊 <small>{draft.gallery.length} / 20</small></h3><button type="button" disabled={busy || draft.gallery.length >= 20} onClick={() => galleryInput.current?.click()}><Icon name="upload" size={14} />上传图片</button></div>
-          <p className={styles.help}>用图片补充人物和故事的氛围。首页封面会轮播封面和这些图，最多 12 张；详情页仍显示全部。</p>
-          {draft.gallery.length ? <div className={styles.gallery}>{draft.gallery.map((image) => <div key={image.key}>{previewImage(image.value) ? <img src={previewImage(image.value)!} alt="画廊图片" /> : <div className={styles.galleryPlaceholder}><Icon name="grid" size={24} /></div>}<button type="button" disabled={busy} aria-label="移除画廊图片" onClick={() => update({ gallery: draft.gallery.filter((item) => item.key !== image.key) })}><Icon name="close" size={13} /></button><input aria-label="画廊图片地址" maxLength={2048} disabled={busy} value={image.value} onChange={(event) => update({ gallery: draft.gallery.map((item) => item.key === image.key ? { ...item, value: event.target.value } : item) })} /></div>)}</div> : null}<button type="button" className={styles.inlineAdd} disabled={busy || draft.gallery.length >= 20} onClick={() => update({ gallery: [...draft.gallery, withKey("")] })}><Icon name="plus" size={14} />添加图片地址</button>
+          <details className={styles.advanced} open={Boolean(draft.postHistoryInstructions.trim() || draft.messageExamples.trim())}><summary>高级提示设置（后置指令 / 对话示例）</summary>{textField("postHistoryInstructions", "后置指令", "放在聊天历史之后的补充要求。", DZMM_CHARACTER_PROSE_LIMIT, 4)}{textField("messageExamples", "对话示例", "用人物对话展示语气和互动方式。", DZMM_CHARACTER_PROSE_LIMIT, 5)}</details>
+          <details className={styles.advanced} open={draft.gallery.length > 0}><summary>角色画廊（{draft.gallery.length} / 20 张）</summary>
+            <div className={styles.groupHeading}><h3>角色画廊 <small>{draft.gallery.length} / 20</small></h3><button type="button" disabled={busy || draft.gallery.length >= 20} onClick={() => galleryInput.current?.click()}><Icon name="upload" size={14} />上传图片</button></div>
+            <p className={styles.help}>用图片补充人物和故事的氛围。首页封面会轮播封面和这些图，最多 12 张；详情页仍显示全部。</p>
+            {draft.gallery.length ? <div className={styles.gallery}>{draft.gallery.map((image) => <div key={image.key}>{previewImage(image.value) ? <img src={previewImage(image.value)!} alt="画廊图片" /> : <div className={styles.galleryPlaceholder}><Icon name="grid" size={24} /></div>}<button type="button" disabled={busy} aria-label="移除画廊图片" onClick={() => update({ gallery: draft.gallery.filter((item) => item.key !== image.key) })}><Icon name="close" size={13} /></button><input aria-label="画廊图片地址" maxLength={2048} disabled={busy} value={image.value} onChange={(event) => update({ gallery: draft.gallery.map((item) => item.key === image.key ? { ...item, value: event.target.value } : item) })} /></div>)}</div> : null}<button type="button" className={styles.inlineAdd} disabled={busy || draft.gallery.length >= 20} onClick={() => update({ gallery: [...draft.gallery, withKey("")] })}><Icon name="plus" size={14} />添加图片地址</button>
+          </details>
         </>}
         {step === "opening" && <>
-          {!professional && <div className={styles.quickBasics}>{basicFields}{tagFields}{textField("description", "详细描述", "角色的背景、经历和回应方式；AI 会看到这段设定。", DZMM_CHARACTER_PROSE_LIMIT, 5, descriptionTemplate)}<Field title="封面"><input maxLength={2048} disabled={busy} value={draft.cover} placeholder="图片或视频地址" onChange={(event) => update({ cover: event.target.value })} /></Field><button type="button" className={styles.tool} disabled={busy} aria-label="上传封面" title="上传封面" onClick={() => coverInput.current?.click()}><Icon name="image" size={16} /></button><p className={styles.help}>PNG、JPEG、WebP、GIF 最大 5 MB。MP4、WebM 最大 16 MB，上传后静音循环播放。</p><div className={styles.divider} /></div>}
+          {!professional && <div className={styles.quickBasics}>{basicFields}{tagFields}{textField("description", "详细描述", "角色的背景、经历和回应方式；AI 会看到这段设定。", DZMM_CHARACTER_PROSE_LIMIT, 5, descriptionTemplate)}<Field title="封面"><input maxLength={2048} disabled={busy} value={draft.cover} placeholder="图片或视频地址" onChange={(event) => update({ cover: event.target.value })} /></Field><button type="button" className={styles.secondary} disabled={busy} onClick={() => coverInput.current?.click()}><Icon name="image" size={15} />{operation === "upload" ? "正在上传…" : "上传封面"}</button><p className={styles.help}>PNG、JPEG、WebP、GIF 最大 5 MB。MP4、WebM 最大 16 MB，上传后静音循环播放。</p><div className={styles.divider} /></div>}
           <div className={styles.groupHeading}><h3>主开场 <small>{draft.messages.length} / 20 条</small></h3><button type="button" disabled={busy || draft.messages.length >= 20} onClick={() => update({ messages: [...draft.messages, { key: uid(), role: "assistant", content: "" }] })}><Icon name="plus" size={14} />添加消息</button></div><p className={styles.help}>第一条角色消息就是开场白。先交代当下场景，再让角色说一句话或给出线索，最后留给玩家回应。后面可以交替加角色消息和用户消息，按顺序进入新会话。</p>
           <details className={styles.guide}><summary>开场白：给出场景，留一个能接住的话头</summary><ol><li>一两句交代时间、地点和正在发生的事。</li><li>让角色做一个动作或说一句话，带出性格。</li><li>结尾留一个问题或悬念，玩家一看就知道怎么接。</li></ol><blockquote>{DZMM_OPENING_EXAMPLE}</blockquote>{draft.messages.length === 1 && !draft.messages[0].content.trim() && <button type="button" className={styles.secondary} disabled={busy} onClick={() => update({ messages: [{ ...draft.messages[0], content: DZMM_OPENING_EXAMPLE }] })}>用这个示例起稿</button>}</details>
-          <div className={styles.messageList}>{draft.messages.map((message, position) => <div className={styles.messageEditor} key={message.key}><header><span>{String(position + 1).padStart(2, "0")}</span><select aria-label={`第 ${position + 1} 条消息的身份`} disabled={busy} value={message.role} onChange={(event) => update({ messages: draft.messages.map((item) => item.key === message.key ? { ...item, role: event.target.value as MessageDraft["role"] } : item) })}><option value="assistant">角色消息</option><option value="user">用户消息</option></select><div><button type="button" disabled={busy || position === 0} aria-label={`上移第 ${position + 1} 条消息`} onClick={() => update({ messages: transfer(draft.messages, position, -1) })}>↑</button><button type="button" disabled={busy || position === draft.messages.length - 1} aria-label={`下移第 ${position + 1} 条消息`} onClick={() => update({ messages: transfer(draft.messages, position, 1) })}>↓</button><button type="button" disabled={busy} aria-label={`删除第 ${position + 1} 条消息`} onClick={() => update({ messages: draft.messages.filter((item) => item.key !== message.key) })}><Icon name="close" size={14} /></button></div></header><textarea aria-label={`第 ${position + 1} 条开场消息`} rows={5} maxLength={DZMM_CHARACTER_PROSE_LIMIT} disabled={busy} placeholder={message.role === "assistant" ? "角色会说什么？故事从这里开始…" : "在角色回应前，用户已经做了什么或说了什么？"} value={message.content} onChange={(event) => update({ messages: draft.messages.map((item) => item.key === message.key ? { ...item, content: event.target.value } : item) })} /><footer>{message.content.length} / {DZMM_CHARACTER_PROSE_LIMIT}</footer></div>)}</div>
+          <div className={styles.messageList}>{draft.messages.map((message, position) => <div className={styles.messageEditor} key={message.key}><header><span>{String(position + 1).padStart(2, "0")}</span><select aria-label={`第 ${position + 1} 条消息的身份`} disabled={busy} value={message.role} onChange={(event) => update({ messages: draft.messages.map((item) => item.key === message.key ? { ...item, role: event.target.value as MessageDraft["role"] } : item) })}><option value="assistant">角色消息</option><option value="user">用户消息</option></select><div><button type="button" disabled={busy || position === 0} aria-label={`上移第 ${position + 1} 条消息`} onClick={() => update({ messages: transfer(draft.messages, position, -1) })}>↑</button><button type="button" disabled={busy || position === draft.messages.length - 1} aria-label={`下移第 ${position + 1} 条消息`} onClick={() => update({ messages: transfer(draft.messages, position, 1) })}>↓</button><button type="button" disabled={busy} aria-label={`删除第 ${position + 1} 条消息`} onClick={() => update({ messages: draft.messages.filter((item) => item.key !== message.key) })}><Icon name="close" size={14} /></button></div></header><textarea data-studio-field={`opening-${position}`} aria-label={`第 ${position + 1} 条开场消息`} rows={5} maxLength={DZMM_CHARACTER_PROSE_LIMIT} disabled={busy} placeholder={message.role === "assistant" ? "角色会说什么？故事从这里开始…" : "在角色回应前，用户已经做了什么或说了什么？"} value={message.content} onChange={(event) => update({ messages: draft.messages.map((item) => item.key === message.key ? { ...item, content: event.target.value } : item) })} /><footer>{message.content.length} / {DZMM_CHARACTER_PROSE_LIMIT}</footer></div>)}</div>
           <div className={styles.divider} /><div className={styles.groupHeading}><h3>备选开场 <small>{draft.greetings.length} / 20</small></h3><button type="button" disabled={busy || draft.greetings.length >= 20} onClick={() => update({ greetings: [...draft.greetings, withKey("")] })}><Icon name="plus" size={14} />添加开场</button></div><p className={styles.help}>每段备选开场开启另一种初次相遇，试聊时可以选择。</p>
-          {draft.greetings.map((greeting, position) => <div className={styles.alternate} key={greeting.key}><header><strong>备选开场 {position + 1}</strong><button type="button" disabled={busy} aria-label={`删除备选开场 ${position + 1}`} onClick={() => { update({ greetings: draft.greetings.filter((item) => item.key !== greeting.key) }); setSelectedOpening(0); }}><Icon name="close" size={14} /></button></header><textarea aria-label={`备选开场 ${position + 1}`} rows={4} maxLength={DZMM_CHARACTER_PROSE_LIMIT} disabled={busy} value={greeting.value} onChange={(event) => update({ greetings: draft.greetings.map((item) => item.key === greeting.key ? { ...item, value: event.target.value } : item) })} /></div>)}
+          {draft.greetings.map((greeting, position) => <div className={styles.alternate} key={greeting.key}><header><strong>备选开场 {position + 1}</strong><button type="button" disabled={busy} aria-label={`删除备选开场 ${position + 1}`} onClick={() => { update({ greetings: draft.greetings.filter((item) => item.key !== greeting.key) }); setSelectedOpening(0); }}><Icon name="close" size={14} /></button></header><textarea data-studio-field={`greeting-${position}`} aria-label={`备选开场 ${position + 1}`} rows={4} maxLength={DZMM_CHARACTER_PROSE_LIMIT} disabled={busy} value={greeting.value} onChange={(event) => update({ greetings: draft.greetings.map((item) => item.key === greeting.key ? { ...item, value: event.target.value } : item) })} /></div>)}
           <div className={styles.divider} /><div className={styles.groupHeading}><h3>建议回复 <small>{draft.replies.length} / 12</small></h3><button type="button" disabled={busy || draft.replies.length >= 12} onClick={() => update({ replies: [...draft.replies, withKey("")] })}><Icon name="plus" size={14} />添加回复</button></div><p className={styles.help}>供玩家选择的开场回应，点击后填入输入框，确认后发送。</p>{draft.replies.map((reply, position) => <div className={styles.replyInput} key={reply.key}><input aria-label={`建议回复 ${position + 1}`} maxLength={500} disabled={busy} value={reply.value} placeholder="一种可能的回应…" onChange={(event) => update({ replies: draft.replies.map((item) => item.key === reply.key ? { ...item, value: event.target.value } : item) })} /><button type="button" disabled={busy} aria-label={`删除建议回复 ${position + 1}`} onClick={() => update({ replies: draft.replies.filter((item) => item.key !== reply.key) })}><Icon name="close" size={14} /></button></div>)}
         </>}
         {step === "book" && <>
@@ -685,11 +781,11 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
         </>}
         {step === "voice" && voiceStep}
         {step === "preview" && <>
-          {issues.length > 0 && <section className={styles.readiness} aria-label="待完善内容"><h3>还有 {issues.length} 项待完善</h3><ul>{issues.map((issue, position) => <li key={`${position}:${issue}`}>{issue}</li>)}</ul><p>可以先保存私人草稿，完善后再试聊和提交。</p></section>}
+          {issues.length > 0 && <section className={styles.readiness} aria-label="待完善内容"><h3>还有 {issues.length} 项待完善（点击直达）</h3><ul className={styles.readinessList}>{issues.map((issue) => <li key={issue.id}><button type="button" className={styles.readinessJump} disabled={busy} onClick={() => jumpToIssue(issue)}><span>{issue.message}</span><em>去完善<Icon name="chevron" size={12} /></em></button></li>)}</ul><p>可以先保存私人草稿，完善后再试聊和提交。</p></section>}
           <section className={styles.previewDetails}><h3>{draft.name || "未命名角色"}</h3><CharacterIntroduction text={draft.introduction || draft.description} creatorNotes={draft.creatorNotes} characterName={draft.name} userName={nickname} fallback="还没有填写角色卡介绍。" /><div className={styles.previewSummary}><span><Icon name="chat" size={15} />{draft.messages.filter((message) => message.content.trim()).length} 条主开场消息</span><span><Icon name="book" size={15} />{draft.entries.filter((entry) => entry.entry.enabled !== false).length} 个启用词条</span><span><Icon name="grid" size={15} />{draft.gallery.filter((image) => image.value.trim()).length} 张画廊图片</span><span><Icon name="volume" size={15} />{selectedVoice ? `声优：${selectedVoice.label}` : "声优未配置"}</span></div></section>
           <Field title="预览开场"><select disabled={busy} value={selectedOpening} onChange={(event) => setSelectedOpening(Number(event.target.value))}><option value={0}>主开场</option>{draft.greetings.map((greeting, position) => <option key={greeting.key} value={position + 1}>备选开场 {position + 1}</option>)}</select></Field>
           <div className={styles.chatPreview}>{previewMessages.filter((message) => message.content.trim()).length ? previewMessages.filter((message) => message.content.trim()).map((message) => <div key={message.key} className={message.role === "user" ? styles.userMessage : styles.characterMessage}><span>{message.role === "user" ? nickname || "玩家" : draft.name || "角色"}</span><p>{applyDzmmReaderNames(message.content, { characterName: draft.name, userName: nickname })}</p></div>) : <div className={styles.empty}><p>填写开场对话后，这里会显示初次相遇的预览。</p></div>}</div>
-          <button type="button" className={styles.tool} disabled={busy || issues.length > 0} aria-label={operation === "test" ? "正在准备…" : "开始试聊"} title={operation === "test" ? "正在准备…" : "开始试聊"} onClick={() => void run("test", (card) => onTest(card, selectedOpening))}><Icon name="chat" size={16} /></button>
+          <button type="button" className={styles.secondary} disabled={busy || issues.length > 0} onClick={() => void run("test", (card) => onTest(card, selectedOpening))}><Icon name="chat" size={16} />{operation === "test" ? "正在准备…" : "开始试聊"}</button>
           <section className={styles.authoringReview} aria-label="创作检查">
             <div className={styles.reviewHeading}><h3>创作检查</h3><span>待作者复核</span></div>
             <p className={styles.reviewIntro}>根据当前填写内容列出复核方向；实际剧情表现需试聊确认。</p>
@@ -718,7 +814,7 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
             </article>
             {review.warnings.length > 0 && <div className={styles.reviewWarnings} aria-label="创作兼容提醒"><h4>兼容提醒</h4><ul>{review.warnings.map(warning => <li key={warning.id}><span>{warning.message}</span><button type="button" className={styles.textButton} disabled={busy} onClick={() => editReview(warning.target)}>修改相关内容</button></li>)}</ul><p>这些提醒不阻止保存私人草稿。</p></div>}
           </section>
-          <div className={styles.divider} /><section className={styles.publish}><h3>提交公开角色</h3><p>私人草稿不会自动公开。提交审核后，审核通过的版本会进入角色广场。</p>{submission && <div className={styles.submissionStatus}><strong>{submission.status === "pending" ? "审核中" : submission.status === "approved" ? "已有公开版本" : submission.status === "rejected" ? "需要修改" : "已撤回"}</strong>{submission.reason && <p>{submission.reason}</p>}</div>}{submissionDone && <p className={styles.submitted}>本次版本已提交审核。</p>}{registered ? <button type="button" className={styles.tool} disabled={busy || submissionDone || issues.length > 0} aria-label={operation === "submit" ? "正在提交…" : !conflictRecovery && retrySaveAvailable ? "重新同步并提交" : "提交审核"} title={operation === "submit" ? "正在提交…" : !conflictRecovery && retrySaveAvailable ? "重新同步并提交" : "提交审核"} onClick={() => void run("submit", onSubmit)}><Icon name="send" size={16} /></button> : <div className={styles.guest}><p>注册或登录前会先保存当前草稿。新注册保留游客记录；登录已有账号前，请用顶部“导出”带走角色卡，登录后导入继续创作。</p>{onRequireAccount ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => void requestAccount()}>注册或登录</button> : <span>请先注册或登录账号。</span>}</div>}</section>
+          <div className={styles.divider} /><section className={styles.publish}><h3>提交公开角色</h3><p>私人草稿不会自动公开。提交审核后，审核通过的版本会进入角色广场。</p>{submission && <div className={styles.submissionStatus}><strong>{submission.status === "pending" ? "审核中" : submission.status === "approved" ? "已有公开版本" : submission.status === "rejected" ? "需要修改" : "已撤回"}</strong>{submission.reason && <p>{submission.reason}</p>}</div>}{submissionDone && <p className={styles.submitted}>本次版本已提交审核。</p>}{registered ? <button type="button" className={styles.primary} disabled={busy || submissionDone || issues.length > 0} onClick={() => void run("submit", onSubmit)}><Icon name="send" size={15} />{operation === "submit" ? "正在提交…" : !conflictRecovery && retrySaveAvailable ? "重新同步并提交" : "提交审核"}</button> : <div className={styles.guest}><p>注册或登录前会先保存当前草稿。新注册保留游客记录；登录已有账号前，请用顶部“导出”带走角色卡，登录后导入继续创作。</p>{onRequireAccount ? <button type="button" className={styles.secondary} disabled={busy} onClick={() => void requestAccount()}>注册或登录</button> : <span>请先注册或登录账号。</span>}</div>}</section>
         </>}
         {error && <p ref={errorFeedback} className={styles.error} role="alert" tabIndex={-1}>{error}</p>}
         {conflictRecovery && onLoadCloud && !leaving && <div className={styles.field}><p className={styles.help}>加载云端版本后，这次编辑仍留在页面上，可以再次保存或提交。加载前的本地记录会留在恢复备份里。</p><button type="button" className={styles.secondary} disabled={busy} onClick={() => void loadCloudVersion()}>{operation === "sync" ? "正在加载…" : "加载云端版本"}</button></div>}
@@ -727,7 +823,7 @@ export default function CharacterStudio({ character, nickname, user, locale = "z
       </div>
       <aside className={styles.inspector}>{coverMaker}<div className={styles.inspectorHeading}>角色预览<span>私人草稿</span></div><div className={styles.rolePreview}>{coverPreview ? <CoverVisual src={coverPreview} alt={draft.name || "角色封面"} /> : <div className={styles.blankCover}><Icon name="user" size={45} /><span>添加角色封面</span></div>}<div><h3>{draft.name || "未命名角色"}</h3><span>由 {nickname} 创作</span><CharacterIntroduction text={draft.introduction || draft.description} creatorNotes={draft.creatorNotes} characterName={draft.name} userName={nickname} fallback="角色卡介绍会展示在这里" /><div className={styles.tags}>{split(draft.tags).slice(0, 6).map((tag) => <span key={tag}>#{tag}</span>)}</div></div></div><p className={styles.previewHelp}>这里展示玩家看到的角色卡。人物设定和系统指令会随试聊生效。</p></aside>
     </div>
-    <footer className={styles.footer}><div className={styles.progress}>{steps.map((item) => <span key={item.id} className={item.id === step ? styles.currentDot : ""} />)}<span>{index + 1} / {steps.length}</span></div><div className={styles.footerActions}><button type="button" className={`${styles.tool} ${styles.toolSave}`} disabled={busy} aria-label={operation === "save" ? "正在保存…" : "保存草稿"} title={operation === "save" ? "正在保存…" : "保存草稿"} onClick={() => void run("save", onSave)}><Icon name="check" size={16} /></button>{index > 0 && <button type="button" className={styles.secondary} disabled={busy} onClick={() => selectStep(steps[index - 1].id)}>上一步</button>}{index < steps.length - 1 && <button type="button" className={styles.primary} disabled={busy} onClick={() => selectStep(steps[index + 1].id)}>下一步<Icon name="chevron" size={14} /></button>}{index === steps.length - 1 && <button type="button" className={`${styles.secondary} ${styles.finish}`} disabled={busy} onClick={requestClose}>返回</button>}</div></footer>
+    <footer className={styles.footer}><div className={styles.progress}>{steps.map((item) => <span key={item.id} className={item.id === step ? styles.currentDot : ""} />)}<span>{index + 1} / {steps.length}</span></div><div className={styles.footerActions}><button type="button" className={styles.secondary} disabled={busy} onClick={() => void run("save", onSave)}><Icon name="check" size={15} />{operation === "save" ? "正在保存…" : "保存草稿"}</button>{index > 0 && <button type="button" className={styles.secondary} disabled={busy} onClick={() => selectStep(steps[index - 1].id)}>上一步</button>}{index < steps.length - 1 && <button type="button" className={styles.primary} disabled={busy} onClick={() => selectStep(steps[index + 1].id)}>下一步<Icon name="chevron" size={14} /></button>}{index === steps.length - 1 && <button type="button" className={`${styles.secondary} ${styles.finish}`} disabled={busy} onClick={requestClose}>返回</button>}</div></footer>
     {leaving && <div className={styles.leaveOverlay} onClick={(event) => { if (event.target === event.currentTarget && !busy) setLeaving(false); }}><div className={styles.leaveDialog} ref={leaveDialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="studio-leave-title" aria-describedby="studio-leave-description"><h2 id="studio-leave-title">有未保存的修改</h2><p id="studio-leave-description">保存草稿后再退出，或放弃本次修改。</p>{error && <p className={styles.error} role="alert">{error}</p>}<div className={styles.leaveActions}>{retrySaveAvailable && onRetrySave ? <button type="button" className={styles.primary} disabled={busy} onClick={() => void retrySaveAndClose()}>{operation === "save" ? "正在保存…" : "重新同步并保存后退出"}</button> : <button type="button" className={styles.primary} disabled={busy} onClick={() => void saveAndClose()}>{operation === "save" ? "正在保存…" : "保存并退出"}</button>}<button type="button" className={styles.secondary} disabled={busy} onClick={discard}>放弃修改</button><button type="button" className={styles.textButton} disabled={busy} data-continue="true" onClick={() => setLeaving(false)}>继续编辑</button></div></div></div>}
     {importCandidate && <div className={styles.leaveOverlay}><div className={styles.leaveDialog} ref={leaveDialog} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="studio-import-title" aria-describedby="studio-import-description"><h2 id="studio-import-title">导入前保留当前修改</h2><p id="studio-import-description">当前草稿有未保存的修改。已读取“{importCandidate.card.name}”，请选择怎样继续。保存失败时，当前草稿和待导入角色都会保留。</p>{error && <p className={styles.error} role="alert">{error}</p>}<div className={styles.leaveActions}><button type="button" className={styles.primary} disabled={working} onClick={() => void saveAndImport()}>{operation === "save" ? "正在保存…" : retrySaveAvailable && onRetrySave ? "重新同步保存当前草稿并导入" : "保存当前草稿并导入"}</button><button type="button" className={styles.secondary} disabled={working} onClick={discardAndImport}>放弃当前修改并导入</button><button type="button" className={styles.textButton} disabled={working} data-continue="true" onClick={cancelImport}>继续编辑当前草稿</button></div></div></div>}
     <input ref={importInput} type="file" accept=".json,application/json,.png,image/png" title="JSON 或带有角色卡的 PNG" hidden onChange={(event) => void importCard(event.target.files?.[0])} /><input ref={coverInput} type="file" accept={DZMM_COVER_FILE_ACCEPT} hidden onChange={(event) => void upload(event.target.files)} /><input ref={galleryInput} type="file" multiple accept={DZMM_GALLERY_FILE_ACCEPT} hidden onChange={(event) => void upload(event.target.files, true)} />

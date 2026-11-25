@@ -112,17 +112,25 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
     setPreviewId(item.id);
   };
   const stopPreview = (id: string) => setPreviewId(current => current === id ? null : current);
-  const posterCard = (item: GenerationTemplate) => <button type="button" className={`${s.card} ${s.poster}`} key={item.id}
-    disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}
-    onMouseEnter={() => startPreview(item)} onMouseLeave={() => stopPreview(item.id)}
-    onFocus={() => startPreview(item)} onBlur={() => stopPreview(item.id)}>
-    <span className={s.cardImage}><img src={item.demoPosterUrl} alt="" loading="lazy" decoding="async" />
-      {item.demoVideoUrl && previewId === item.id && <HoverPreview src={item.demoVideoUrl} poster={item.demoPosterUrl} />}
-      <strong>{item.label}</strong></span>
-  </button>;
+  let taggedFirstCard = false;
+  const posterCard = (item: GenerationTemplate) => {
+    const isFirst = !taggedFirstCard;
+    if (isFirst) taggedFirstCard = true;
+    return <button type="button" className={`${s.card} ${s.poster}`} key={item.id}
+      data-tour={isFirst ? "tpl-card" : undefined}
+      disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}
+      onMouseEnter={() => startPreview(item)} onMouseLeave={() => stopPreview(item.id)}
+      onFocus={() => startPreview(item)} onBlur={() => stopPreview(item.id)}>
+      <span className={s.cardImage}><img src={item.demoPosterUrl} alt="" loading="lazy" decoding="async" />
+        {item.demoVideoUrl && previewId === item.id && <HoverPreview src={item.demoVideoUrl} poster={item.demoPosterUrl} />}
+        {item.demoVideoUrl && <span className={s.videoChip} aria-hidden="true"><Icon name="play" size={10} />{locale === "en" ? "Motion" : "动效"}</span>}
+        <strong>{item.label}</strong></span>
+    </button>;
+  };
   const stillCard = (item: GenerationTemplate) => <button type="button" className={s.still} key={item.id}
     disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}>
     <strong>{item.label}</strong><span>{item.description}</span></button>;
+  const activeKind = ready ? filters.kind : "all";
   const videoPool = matching.filter(item => item.kind === "video" && item.demoVideoUrl);
   const videoGroups = KREA2_IMAGE_GROUPS.filter(group => videoPool.some(item => item.h3Lora?.group === group.id));
   const videos = videoGroup === "all" ? videoPool : videoPool.filter(item => item.h3Lora?.group === videoGroup);
@@ -130,15 +138,36 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
   const imagePool = matching.filter(item => item.kind === "image" && !item.studioFree);
   const imageGroups = KREA2_IMAGE_GROUPS.filter(group => imagePool.some(item => item.krea2Lora?.group === group.id));
   const images = imageGroup === "all" ? imagePool : imagePool.filter(item => item.krea2Lora?.group === imageGroup);
+  const showVideos = activeKind !== "image" && videos.length > 0;
+  const showImages = activeKind !== "video" && (imagePool.length > 0 || Boolean(freeStill));
+  const isEn = locale === "en";
 
   return <section className={s.library} hidden={!visible} aria-label={c.gsShelf} aria-busy={!ready}>
-    <div className={s.toolbar}>
+    <div className={s.howToStrip} aria-label={isEn ? "How to use templates" : "使用步骤"}>
+      <div className={s.howStep}><span>1</span><strong>{isEn ? "Pick a template" : "选动作或画风模板"}</strong></div>
+      <span className={s.howArrow} aria-hidden="true">→</span>
+      <div className={s.howStep}><span>2</span><strong>{isEn ? "Auto-fill character or upload photo" : "自动带入角色或传参考图"}</strong></div>
+      <span className={s.howArrow} aria-hidden="true">→</span>
+      <div className={s.howStep}><span>3</span><strong>{isEn ? "Quote & generate in 1 tap" : "实时估价 · 一键生成"}</strong></div>
+    </div>
+    <div className={s.toolbar} data-tour="tpl-search">
+      <div className={s.kindTabs} role="tablist" aria-label={isEn ? "Template type" : "模板类型"}>
+        <button type="button" role="tab" aria-selected={activeKind === "all"} aria-pressed={activeKind === "all"} disabled={!ready} onClick={() => updateFilters({ kind: "all" })}>
+          {isEn ? "All" : "全部"} <em>{videoPool.length + imagePool.length}</em>
+        </button>
+        <button type="button" role="tab" aria-selected={activeKind === "video"} aria-pressed={activeKind === "video"} disabled={!ready} onClick={() => updateFilters({ kind: "video" })}>
+          <Icon name="video" size={13} />{isEn ? "Video Motion" : "视频动作"} <em>{videoPool.length}</em>
+        </button>
+        <button type="button" role="tab" aria-selected={activeKind === "image"} aria-pressed={activeKind === "image"} disabled={!ready} onClick={() => updateFilters({ kind: "image" })}>
+          <Icon name="image" size={13} />{isEn ? "Image Style" : "图片风格"} <em>{imagePool.length}</em>
+        </button>
+      </div>
       <div className={s.search}><Icon name="search" size={17}/><input aria-label={c.gsSearchTemplates} disabled={!ready}
         maxLength={120} placeholder={c.gsSearchPh} value={query} onChange={event => updateFilters({ query: event.target.value })}/>
         {query && <button type="button" aria-label={c.gsClearSearch} disabled={!ready} onClick={() => updateFilters({ query: "" })}><Icon name="close" size={15}/></button>}</div>
     </div>
-    <div className={s.parts}>
-      {videos.length > 0 && <section className={s.part} aria-label={c.gsMakeVideos}>
+    <div className={`${s.parts} ${showVideos && showImages ? "" : s.partsSingle}`}>
+      {showVideos && <section className={s.part} aria-label={c.gsMakeVideos}>
         <div className={s.listHeader}><div><h2>{c.gsMakeVideos}</h2>
           <p>{c.gsVideoLead}</p></div><span>{videos.length}</span></div>
         <div className={s.groupTabs} role="tablist" aria-label={c.gsVideoCats}>
@@ -148,7 +177,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
         </div>
         <div className={s.posterGrid}>{videos.map(posterCard)}</div>
       </section>}
-      {(imagePool.length > 0 || freeStill) && <section className={s.part} aria-label={c.gsMakeImages}>
+      {showImages && <section className={s.part} aria-label={c.gsMakeImages}>
         <div className={s.listHeader}><div><h2>{c.gsMakeImages}</h2>
           <p>{c.gsImageLead}</p></div><span>{images.length}</span></div>
         {freeStill && <button type="button" className={s.freeEntry} disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: freeStill.label })}

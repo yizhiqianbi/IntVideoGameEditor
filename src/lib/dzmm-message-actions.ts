@@ -19,8 +19,15 @@ export function editDzmmConversationMessage(
   if (index < 0) throw new Error("这条消息已不存在，请重新打开消息菜单。");
   if (conversation.messages[index].content === content) return conversation;
 
-  const messages = conversation.messages.map((message, position) => ({ ...message,
-    ...(position === index ? { content } : {}) }));
+  const messages = conversation.messages.map((message, position) => {
+    if (position !== index) return { ...message };
+    if (message.swipes?.length) {
+      const activeIndex = Math.min(message.swipes.length - 1, Math.max(0, message.swipeIndex ?? 0));
+      const swipes = message.swipes.map((variant, i) => (i === activeIndex ? content : variant));
+      return { ...message, content, swipes, swipeIndex: activeIndex };
+    }
+    return { ...message, content };
+  });
   const { opening: previousOpening, storyMemory: previousMemory, worldState: previousWorld, ...rest } = conversation;
   const opening = previousOpening
     ? parseDzmmConversationOpening(reconcileDzmmConversationOpening(previousOpening, messages)) : undefined;
@@ -146,12 +153,13 @@ function withSwipeMessages(
   const updated = update(conversation.messages[index]);
   if (!updated || updated === conversation.messages[index]) return conversation;
   const messages = conversation.messages.map((message, position) => position === index ? updated : message);
-  const { opening, storyMemory: previousMemory, worldState: previousWorld, ...rest } = conversation;
+  const { opening: previousOpening, storyMemory: previousMemory, worldState: previousWorld, ...rest } = conversation;
+  const opening = previousOpening
+    ? parseDzmmConversationOpening(reconcileDzmmConversationOpening(previousOpening, messages)) : undefined;
   const storyMemory = matchesDzmmStoryMemory(previousMemory, messages) ? parseStoryMemory(previousMemory) : undefined;
   const worldState = pruneDzmmWorldJournal(previousWorld, messages);
-  void opening;
   return { ...rest, messages, updatedAt: now,
-    ...(storyMemory ? { storyMemory } : {}), ...(worldState ? { worldState } : {}) };
+    ...(opening ? { opening } : {}), ...(storyMemory ? { storyMemory } : {}), ...(worldState ? { worldState } : {}) };
 }
 
 /** Switch between stored swipe variants of one assistant turn. */
@@ -180,4 +188,24 @@ export function appendDzmmMessageSwipe(
     if (swipes.length >= DZMM_MESSAGE_SWIPE_LIMIT) throw new Error(`每条回复最多保存 ${DZMM_MESSAGE_SWIPE_LIMIT} 个版本。`);
     return { ...message, content, swipes: [...swipes, content], swipeIndex: swipes.length };
   }, options.now ?? Date.now());
+}
+
+/** Merge a newly regenerated assistant reply into an existing assistant turn as a swipe variant. */
+export function mergeDzmmRegeneratedAssistantMessage(
+  previous: Readonly<DzmmSavedConversation["messages"][number]>,
+  content: string,
+  speaker?: string,
+): DzmmSavedConversation["messages"][number] {
+  const existing = (previous.swipes?.length ? previous.swipes : [previous.content]).filter(Boolean);
+  const sameAsLast = existing.at(-1) === content;
+  let swipes = sameAsLast ? [...existing] : [...existing, content];
+  if (swipes.length > DZMM_MESSAGE_SWIPE_LIMIT) swipes = swipes.slice(-DZMM_MESSAGE_SWIPE_LIMIT);
+  const swipeIndex = swipes.length - 1;
+  return {
+    ...previous,
+    role: "assistant",
+    content,
+    ...(speaker ? { speaker } : {}),
+    ...(swipes.length >= 2 ? { swipes, swipeIndex } : {}),
+  };
 }

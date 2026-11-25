@@ -1,0 +1,172 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  pointer-events: auto;
+  animation: spotlightFade 0.2s ease;
+}
+
+.maskSvg {
+  position: fixed;
+  inset: 0;
+  display: block;
+  pointer-events: auto;
+}
+
+.spotlightRing {
+  position: fixed;
+  pointer-events: none;
+  border: 2px solid color-mix(in srgb, var(--pink, #e6497b) 88%, #fff);
+  box-shadow:
+    0 0 0 4px rgba(230, 73, 123, 0.24),
+    0 0 28px rgba(230, 73, 123, 0.45);
+  transition: left 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    width 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    height 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+  animation: spotlightPulse 2.2s ease-in-out infinite;
+}
+
+.card {
+  position: fixed;
+  z-index: 1402;
+  padding: 16px 18px 15px;
+  border-radius: 18px;
+  border: 1px solid rgba(255, 130, 172, 0.36);
+  background: linear-gradient(160deg, rgba(38, 17, 29, 0.96), rgba(20, 10, 16, 0.97));
+  color: #fff3f7;
+  box-shadow:
+    0 22px 54px rgba(0, 0, 0, 0.56),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  transition: left 0.24s cubic-bezier(0.22, 1, 0.36, 1),
+    top 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.cardTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.stepPill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ff9abb;
+  background: rgba(230, 73, 123, 0.18);
+  border: 1px solid rgba(255, 130, 172, 0.3);
+}
+
+.skipBtn {
+  border: 0;
+  background: transparent;
+  color: #c59aa9;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+
+.skipBtn:hover {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.title {
+  margin: 0 0 6px;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: #fff;
+}
+
+.body {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.62;
+  color: #dcc2cc;
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  transition: width 0.2s ease, background 0.2s ease;
+}
+
+.dotActive {
+  width: 18px;
+  background: linear-gradient(90deg, #ff6c9a, #e23f74);
+}
+
+.navBtns {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prevBtn {
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f3dce4;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.nextBtn {
+  height: 32px;
+  padding: 0 16px;
+  border-radius: 999px;
+  border: 0;
+  background: linear-gradient(135deg, #f05486, #c62f60);
+  color: #fff;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px -8px rgba(240, 84, 134, 0.85);
+}
+
+@keyframes spotlightFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes spotlightPulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(230, 73, 123, 0.24), 0 0 24px rgba(230, 73, 123, 0.42); }
+  50% { box-shadow: 0 0 0 7px rgba(230, 73, 123, 0.34), 0 0 34px rgba(230, 73, 123, 0.62); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .overlay,
+  .spotlightRing,
+  .card {
+    animation: none;
+    transition: none;
+  }
+}

@@ -269,6 +269,17 @@ export default defineConfig({
         main: resolve(frontendRoot, "index.html"),
         ops: resolve(frontendRoot, "ops.html"),
       },
+      output: {
+        codeSplitting: {
+          groups: [
+            {
+              name: "vendor-react",
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler)[\\/]/,
+              priority: 20,
+            },
+          ],
+        },
+      },
     },
   },
 });

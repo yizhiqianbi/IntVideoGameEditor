@@ -13,10 +13,11 @@ type Props = {
   locale?: XumengLocale;
   accountId: string; value: GenerationReference | null; disabled: boolean; isGuest: boolean;
   video: boolean; required?: boolean; actionParticipants?: number; onChange: (value: GenerationReference | null) => void;
+  onPrepared?: (prepared: { file: File; dataUrl: string; width: number; height: number; byteLength: number }) => void;
   onUploading: (value: boolean) => void; onError: (value: string) => void; onRequireAccount: () => void;
 };
 export default function GenerationReferenceInput({ locale = "zh-Hans", accountId, value, disabled, isGuest, video, required = false, actionParticipants,
-  onChange, onUploading, onError, onRequireAccount }: Props) {
+  onChange, onPrepared, onUploading, onError, onRequireAccount }: Props) {
   const controller = useRef<AbortController | null>(null);
   const alive = useRef(true);
   const [uploading, setUploading] = useState(false);
@@ -33,6 +34,7 @@ export default function GenerationReferenceInput({ locale = "zh-Hans", accountId
     try {
       const prepared = await prepareReferenceImage(file);
       if (!alive.current || next.signal.aborted) return;
+      onPrepared?.({ file: prepared.file, dataUrl: prepared.dataUrl, width: prepared.width, height: prepared.height, byteLength: prepared.file.size });
       const reference = await uploadGenerationReference(accountId, prepared.file, next.signal);
       if (!alive.current || next.signal.aborted) return;
       onChange(reference);

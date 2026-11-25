@@ -833,6 +833,15 @@ const ROWS = [
   ["playPersonality", "Personality", "性格", "性格", "性格", "성격"],
   ["playAppearance", "Appearance", "外貌", "外貌", "外見", "외모"],
   ["playInteraction", "Interaction", "互动设置", "互動設定", "やり取り", "상호작용"],
+  ["nvFinishFirst", "Finish or stop the novel action first.", "请先完成或停止小说创作操作。", "請先完成或停止小說創作操作。", "先に小説の操作を終えるか止めてください。", "먼저 소설 작업을 끝내거나 멈추세요."],
+  ["worksGuestHint", "Sign in to view cloud works and save novels or group scenarios.", "登录后可查看云端作品并保存小说和团本。", "登入後可查看雲端作品並儲存小說與團本。", "ログインするとクラウド作品の確認や小説・シナリオの保存ができます。", "로그인하면 클라우드 작품을 확인하고 소설과 시나리오를 저장할 수 있습니다."],
+  ["worksSignInCta", "Sign in / Register", "登录 / 注册", "登入 / 註冊", "ログイン / 登録", "로그인 / 회원가입"],
+  ["worksEmptyTitle", "Your first work starts here", "你的第一部作品，从这里开始", "你的第一部作品，從這裡開始", "最初の作品はここから", "첫 번째 작품은 여기서 시작합니다"],
+  ["worksEmptyBody", "Pick a mode on the Create page — saved works will show up here.", "从创作页选择一种方式，保存后会出现在这里。", "從創作頁選擇一種方式，儲存後會出現在這裡。", "作成ページで方法を選ぶと、保存後にここへ表示されます。", "만들기 페이지에서 방식을 고르면 저장 후 여기에 표시됩니다."],
+  ["worksNoMatchTitle", "No matching works found", "没有匹配的已加载作品", "沒有相符的已載入作品", "一致する作品が見つかりません", "일치하는 작품이 없습니다"],
+  ["worksNoMatchBody", "Try another keyword or category.", "换个词或选择其他类型。", "換個詞或選擇其他類型。", "別の言葉や種類を試してください。", "다른 검색어나 종류를 선택해 보세요."],
+  ["worksLoadingTitle", "Loading your works…", "正在加载作品", "正在載入作品", "作品を読み込み中…", "작품을 불러오는 중…"],
+  ["worksLoadFailedTitle", "Unable to load works right now", "暂时未能载入作品", "暫時未能載入作品", "作品を読み込めませんでした", "작품을 불러오지 못했습니다"],
 ] as const;
 
 type PageKey = (typeof ROWS)[number][0];

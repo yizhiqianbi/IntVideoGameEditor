@@ -6,6 +6,7 @@ import { attachXumengShortDramaCards, xumengShortDramaForDrama } from "@/lib/xum
 import type { XumengLocale } from "@/lib/xumeng-i18n";
 import { shareHookLine } from "@/lib/xumeng-share-poster";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
+import { claimXumengAudioFocus, subscribeXumengAudioFocus } from "@/lib/xumeng-audio-mutex";
 import Icon from "./icons";
 import { SharePoster, type XumengSharePoster } from "./share-game";
 import s from "./video-channel.module.css";
@@ -182,7 +183,10 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   const [error, setError] = useState("");
   const [catalogReload, setCatalogReload] = useState(0);
   const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(false);
+  const [userMuted, setUserMuted] = useState(false);
+  const [autoMuted, setAutoMuted] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [activeSlot, setActiveSlot] = useState<0 | 1>(0);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [scrubbing, setScrubbing] = useState(false);
@@ -203,8 +207,10 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   const [hookOpen, setHookOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const pointer = useRef<{ id: number; x: number; y: number } | null>(null);
+  const video0Ref = useRef<HTMLVideoElement>(null);
+  const video1Ref = useRef<HTMLVideoElement>(null);
+  const activeSlotRef = useRef<0 | 1>(0);
+  const pointer = useRef<{ id: number; x: number; y: number; axis: "none" | "x" | "y" } | null>(null);
   const seekGesture = useRef<{ id: number; startX: number; startTime: number; active: boolean } | null>(null);
   const [seekHud, setSeekHud] = useState<{ target: number; delta: number } | null>(null);
   const [creatingCard, setCreatingCard] = useState(false);
@@ -216,7 +222,8 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   const visualRef = useRef(0);
   const frameReady = useRef(false);
   const feedLengthRef = useRef(0);
-  const mutedRef = useRef(false);
+  const userMutedRef = useRef(false);
+  const autoMutedRef = useRef(false);
   const progressRef = useRef<Record<string, WatchProgress>>({});
   const lastProgressWriteRef = useRef(0);
 
@@ -247,10 +254,24 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     const clip = clipFor(item, playing?.dramaId ?? "", episodeId);
     return clip ? [{ item, place, clip }] : [];
   });
+  const effectiveMuted = userMuted || autoMuted;
+  const nextPreloadEpisode = useMemo(() => {
+    if (!playing || !episode) return null;
+    const at = playing.episodes.findIndex(item => item.id === episode.id);
+    if (at >= 0 && at < playing.episodes.length - 1) {
+      const nextEp = playing.episodes[at + 1];
+      const nextFree = nextEp.episodeNumber <= FREE_EPISODE_COUNT || (unlockedDrama === nextEp.dramaId && unlockedIds.has(nextEp.id));
+      if (nextFree) return nextEp;
+    }
+    const nextDrama = feed[index + 1];
+    const firstNext = nextDrama?.episodes[0] ?? null;
+    return firstNext && firstNext.episodeNumber <= FREE_EPISODE_COUNT ? firstNext : null;
+  }, [playing, episode, unlockedDrama, unlockedIds, feed, index]);
   indexRef.current = index;
   visualRef.current = visualIndex;
   feedLengthRef.current = feed.length;
-  mutedRef.current = muted;
+  userMutedRef.current = userMuted;
+  autoMutedRef.current = autoMuted;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -307,12 +328,20 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     if (node.videoWidth > 0 && node.videoHeight > 0) setLandscape(node.videoWidth > node.videoHeight);
   }
 
+  function slotVideo(slot: 0 | 1) {
+    return slot === 0 ? video0Ref.current : video1Ref.current;
+  }
+
   function currentVideo() {
-    return videoRef.current;
+    return slotVideo(activeSlotRef.current);
+  }
+
+  function standbyVideo() {
+    return slotVideo(activeSlotRef.current === 0 ? 1 : 0);
   }
 
   function revealFrame() {
-    const node = videoRef.current;
+    const node = currentVideo();
     if (!node || !frameReady.current || visualRef.current !== indexRef.current || node.videoWidth < 1) return;
     node.style.opacity = "1";
     setPaused(false);
@@ -323,24 +352,38 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       setPaused(false);
       return;
     }
-    node.muted = mutedRef.current;
+    node.muted = userMutedRef.current || autoMutedRef.current;
     const attempt = node.play();
     if (!attempt) return;
-    void attempt.then(() => setPaused(false)).catch((error: unknown) => {
+    void attempt.then(() => {
+      setPaused(false);
+      if (!node.muted) claimXumengAudioFocus("video-channel");
+    }).catch((error: unknown) => {
       if (!node.paused || (error instanceof DOMException && error.name === "AbortError")) return;
       node.muted = true;
-      mutedRef.current = true;
-      setMuted(true);
+      autoMutedRef.current = true;
+      setAutoMuted(true);
       void node.play().then(() => setPaused(false)).catch(() => setPaused(true));
     });
   }
 
+  useEffect(() => {
+    return subscribeXumengAudioFocus("video-channel", () => {
+      const node = currentVideo();
+      if (node && !node.paused && !node.muted) {
+        node.pause();
+        setPaused(true);
+      }
+    });
+  }, []);
+
   useLayoutEffect(() => {
     frameReady.current = false;
     setVideoError(false);
+    setBuffering(false);
     setCurrentTime(0);
     setDuration(0);
-    const node = videoRef.current;
+    const node = currentVideo();
     if (node) node.style.opacity = "0";
   }, [episode?.id]);
 
@@ -352,7 +395,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       track.style.transition = "none";
       track.style.transform = "translate3d(0, 0, 0)";
     }
-    const node = videoRef.current;
+    const node = currentVideo();
     if (node) node.style.transform = "translate3d(0, 0, 0)";
     revealFrame();
   }, [visualIndex]);
@@ -418,43 +461,94 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   }
 
   useLayoutEffect(() => {
-    const node = currentVideo();
-    if (!node || !episode) return;
+    const activeNode = currentVideo();
+    const standbyNode = standbyVideo();
+    if (!activeNode || !episode) return;
     if (!episodeOpen) {
-      node.pause();
-      node.style.opacity = "0";
-      if (node.currentSrc || node.src || node.getAttribute("src")) {
-        node.removeAttribute("src");
-        node.load();
+      activeNode.pause();
+      activeNode.style.opacity = "0";
+      if (activeNode.currentSrc || activeNode.src || activeNode.getAttribute("src")) {
+        activeNode.removeAttribute("src");
+        activeNode.load();
       }
-      node.dataset.clip = "";
+      activeNode.dataset.clip = "";
       setFrameShown(false);
+      setBuffering(false);
       setPaused(true);
       setDuration(0);
       setCurrentTime(0);
       setVideoError(false);
       return;
     }
+    // Dual-video fast path: if standby slot already preloaded this exact clip, swap slots instantaneously.
+    if (standbyNode && standbyNode.dataset.clip === episode.id && videoRetry === 0 && !standbyNode.error) {
+      activeNode.pause();
+      activeNode.style.opacity = "0";
+      activeNode.style.transform = "translate3d(0, 0, 0)";
+      const nextSlot: 0 | 1 = activeSlotRef.current === 0 ? 1 : 0;
+      activeSlotRef.current = nextSlot;
+      setActiveSlot(nextSlot);
+      standbyNode.style.transform = "translate3d(0, 0, 0)";
+      noteFrame(standbyNode);
+      if (Number.isFinite(standbyNode.duration) && standbyNode.duration > 0) {
+        setDuration(standbyNode.duration);
+        const saved = progressRef.current[episode.id];
+        if (saved && saved.currentTime >= 5 && saved.currentTime < standbyNode.duration - 2) {
+          standbyNode.currentTime = saved.currentTime;
+          setCurrentTime(saved.currentTime);
+          setToast(xumengPageFill(copy.resumeAt, { time: formatTime(saved.currentTime) }));
+        } else {
+          standbyNode.currentTime = 0;
+          setCurrentTime(0);
+        }
+      }
+      startPlayback(standbyNode);
+      if (standbyNode.readyState >= 2) {
+        frameReady.current = true;
+        setFrameShown(true);
+        setBuffering(false);
+        revealFrame();
+      }
+      return;
+    }
+    if (standbyNode) {
+      standbyNode.pause();
+      standbyNode.style.opacity = "0";
+    }
     const url = xumengVideoMediaUrl(episode.mediaKey);
-    if (node.dataset.clip !== episode.id || videoRetry > 0) {
+    if (activeNode.dataset.clip !== episode.id || videoRetry > 0) {
       frameReady.current = false;
       setFrameShown(false);
-      node.style.opacity = "0";
-      if (node.getAttribute("src")) {
-        node.pause();
-        node.removeAttribute("src");
-        node.load();
+      setBuffering(false);
+      activeNode.style.opacity = "0";
+      if (activeNode.getAttribute("src")) {
+        activeNode.pause();
+        activeNode.removeAttribute("src");
+        activeNode.load();
       }
-      node.dataset.clip = episode.id;
-      node.src = url;
-      node.load();
+      activeNode.dataset.clip = episode.id;
+      activeNode.src = url;
+      activeNode.load();
     }
-    startPlayback(node);
-    if (node.readyState >= 2) {
+    startPlayback(activeNode);
+    if (activeNode.readyState >= 2) {
       frameReady.current = true;
+      setFrameShown(true);
       revealFrame();
     }
   }, [episode?.id, episodeOpen, videoRetry]);
+
+  useEffect(() => {
+    const standbyNode = standbyVideo();
+    if (!standbyNode || !nextPreloadEpisode || !episode || nextPreloadEpisode.id === episode.id) return;
+    if (standbyNode.dataset.clip === nextPreloadEpisode.id) return;
+    standbyNode.pause();
+    standbyNode.muted = true;
+    standbyNode.style.opacity = "0";
+    standbyNode.dataset.clip = nextPreloadEpisode.id;
+    standbyNode.src = xumengVideoMediaUrl(nextPreloadEpisode.mediaKey);
+    standbyNode.load();
+  }, [nextPreloadEpisode?.id, nextPreloadEpisode?.mediaKey, episode?.id, activeSlot]);
 
   useEffect(() => {
     if (!toast) return;
@@ -500,7 +594,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       track.style.transition = "none";
       track.style.transform = "translate3d(0, 0, 0)";
     }
-    const video = videoRef.current;
+    const video = currentVideo();
     if (video) {
       video.style.transition = "none";
       video.style.transform = "translate3d(0, 0, 0)";
@@ -523,7 +617,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     const transform = `translate3d(0, ${y}px, 0)`;
     track.style.transition = animate ? `transform ${SWIPE_MS}ms ease-out` : "none";
     track.style.transform = transform;
-    const video = videoRef.current;
+    const video = currentVideo();
     if (includeVideo && video) {
       video.style.transition = track.style.transition;
       video.style.transform = transform;
@@ -538,7 +632,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       placeTrack(0, true);
       return;
     }
-    const video = videoRef.current;
+    const video = currentVideo();
     if (video) {
       video.style.opacity = "0";
       video.style.transition = "none";
@@ -632,10 +726,16 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     const node = currentVideo();
     if (!node || !episodeOpen) return;
     if (node.paused) {
-      node.muted = false;
-      mutedRef.current = false;
-      setMuted(false);
-      void node.play().then(() => setPaused(false)).catch(() => setPaused(true));
+      // Respect explicit userMuted choice; only clear browser autoplay-enforced autoMuted on user gesture.
+      if (autoMutedRef.current && !userMutedRef.current) {
+        autoMutedRef.current = false;
+        setAutoMuted(false);
+      }
+      node.muted = userMutedRef.current;
+      void node.play().then(() => {
+        setPaused(false);
+        if (!node.muted) claimXumengAudioFocus("video-channel");
+      }).catch(() => setPaused(true));
       return;
     }
     node.pause();
@@ -645,10 +745,21 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   function toggleMute() {
     const node = currentVideo();
     if (!node) return;
-    const next = !node.muted;
-    node.muted = next;
-    mutedRef.current = next;
-    setMuted(next);
+    const currentlyMuted = userMutedRef.current || autoMutedRef.current;
+    if (currentlyMuted) {
+      userMutedRef.current = false;
+      autoMutedRef.current = false;
+      setUserMuted(false);
+      setAutoMuted(false);
+      node.muted = false;
+      claimXumengAudioFocus("video-channel");
+    } else {
+      userMutedRef.current = true;
+      autoMutedRef.current = false;
+      setUserMuted(true);
+      setAutoMuted(false);
+      node.muted = true;
+    }
   }
 
   function seekTo(value: number) {
@@ -704,8 +815,8 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   function onPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (searchOpen || sheet || sliding.current || event.button !== 0) return;
     if ((event.target as HTMLElement).closest("button, input, a, label, [role='slider']")) return;
-    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY };
-    const node = videoRef.current;
+    pointer.current = { id: event.pointerId, x: event.clientX, y: event.clientY, axis: "none" };
+    const node = currentVideo();
     seekGesture.current = node && Number.isFinite(node.duration) && node.duration > 0
       ? { id: event.pointerId, startX: event.clientX, startTime: node.currentTime || 0, active: false }
       : null;
@@ -717,9 +828,18 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     if (!start || start.id !== event.pointerId || sliding.current) return;
     const dx = event.clientX - start.x, dy = event.clientY - start.y;
     const seek = seekGesture.current;
-    if (seek && !seek.active && Math.abs(dx) > 18 && Math.abs(dx) > Math.abs(dy) * 1.15) seek.active = true;
-    if (seek?.active) {
-      const node = videoRef.current;
+    // Axis lock after 10px deadzone so horizontal seek never wobbles the vertical reel and vice versa.
+    if (start.axis === "none") {
+      if (Math.hypot(dx, dy) < 10) return;
+      if (seek && Math.abs(dx) > Math.abs(dy) * 1.15) {
+        start.axis = "x";
+        seek.active = true;
+      } else {
+        start.axis = "y";
+      }
+    }
+    if (start.axis === "x" && seek?.active) {
+      const node = currentVideo();
       if (!node || !Number.isFinite(node.duration)) return;
       event.preventDefault();
       const width = Math.max(1, event.currentTarget.getBoundingClientRect().width);
@@ -729,7 +849,9 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       setSeekHud({ target: next, delta: next - seek.startTime });
       return;
     }
-    placeTrack(dy, false);
+    if (start.axis === "y") {
+      placeTrack(dy, false);
+    }
   }
 
   function onPointerUp(event: ReactPointerEvent<HTMLElement>) {
@@ -737,9 +859,9 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     if (!start || start.id !== event.pointerId) return;
     pointer.current = null;
     const seek = seekGesture.current; seekGesture.current = null;
-    if (seek?.id === event.pointerId && seek.active) { setSeekHud(null); return; }
+    if (start.axis === "x" || (seek?.id === event.pointerId && seek.active)) { setSeekHud(null); return; }
     const dx = event.clientX - start.x, dy = event.clientY - start.y;
-    if (Math.abs(dy) < SWIPE_DISTANCE || Math.abs(dy) < Math.abs(dx)) {
+    if (start.axis !== "y" || Math.abs(dy) < SWIPE_DISTANCE || Math.abs(dy) < Math.abs(dx)) {
       placeTrack(0, true);
       if (Math.abs(dx) < 12 && Math.abs(dy) < 12) togglePlay();
       return;
@@ -804,7 +926,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
 
   return <div className={s.shell}>
     <section ref={stageRef} className={s.stage} aria-label={copy.shorts} tabIndex={0} onKeyDown={onStageKeyDown} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}>
-      {seekHud && <div className={s.seekHud} aria-hidden="true"><div className={s.seekHudRow}><Icon name={seekHud.delta >= 0 ? "chevron" : "chevron"} size={18} /><strong>{formatTime(seekHud.target)}</strong><span>{seekHud.delta >= 0 ? "+" : ""}{Math.round(seekHud.delta)}s</span></div><div className={s.seekHudBar}><i style={{ width: `${duration > 0 ? Math.min(100, (seekHud.target / duration) * 100) : 0}%` }} /></div></div>}
+      {seekHud && <div className={s.seekHud} aria-hidden="true"><div className={s.seekHudRow} data-dir={seekHud.delta < 0 ? "back" : "forward"}><Icon name="chevron" size={18} /><strong>{formatTime(seekHud.target)}</strong><span>{seekHud.delta >= 0 ? "+" : ""}{Math.round(seekHud.delta)}s</span></div><div className={s.seekHudBar}><i style={{ width: `${duration > 0 ? Math.min(100, (seekHud.target / duration) * 100) : 0}%` }} /></div></div>}
       {loading && <p className={s.status}>{copy.openingShorts}</p>}
       {error && <div className={s.status} role="alert"><p>{error}</p><button type="button" onClick={() => setCatalogReload(value => value + 1)}>{copy.reloadShorts}</button></div>}
       {!loading && !error && !drama && (category === INTERACTIVE_CATEGORY
@@ -817,56 +939,88 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
             <div className={s.shade} />
           </article>)}
         </div>
-        <video
-          ref={videoRef}
-          className={landscape ? `${s.video} ${s.landscape}` : s.video}
-          poster={xumengVideoPosterUrl(episode.posterKey)}
-          playsInline
-          preload="auto"
-          aria-label={playing.title}
-          onLoadedMetadata={() => {
-            const node = videoRef.current;
-            if (node) {
-              noteFrame(node);
-              setDuration(Number.isFinite(node.duration) ? node.duration : 0);
-              const saved = episode ? progressRef.current[episode.id] : undefined;
-              const canResume = saved && saved.currentTime >= 5 && saved.currentTime < node.duration - 2;
-              if (canResume) {
-                node.currentTime = saved.currentTime;
-                setCurrentTime(saved.currentTime);
-                setToast(xumengPageFill(copy.resumeAt, { time: formatTime(saved.currentTime) }));
-              } else setCurrentTime(node.currentTime || 0);
-            }
-          }}
-          onDurationChange={() => {
-            const node = videoRef.current;
-            if (node) setDuration(Number.isFinite(node.duration) ? node.duration : 0);
-          }}
-          onTimeUpdate={() => {
-            const node = videoRef.current;
-            if (node) {
-              const nextTime = node.currentTime || 0;
-              setCurrentTime(nextTime);
-              if (episode && nextTime > 0 && Date.now() - lastProgressWriteRef.current >= 3000) {
-                lastProgressWriteRef.current = Date.now();
-                rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: Number.isFinite(node.duration) ? node.duration : 0, updatedAt: Date.now() });
+        {([0, 1] as const).map(slot => {
+          const isCurrent = activeSlot === slot;
+          const ref = slot === 0 ? video0Ref : video1Ref;
+          return <video
+            key={slot}
+            ref={ref}
+            className={`${s.video}${isCurrent && landscape ? ` ${s.landscape}` : ""}${!isCurrent ? ` ${s.standbyVideo}` : ""}`}
+            poster={isCurrent ? xumengVideoPosterUrl(episode.posterKey) : undefined}
+            playsInline
+            preload="auto"
+            aria-hidden={!isCurrent}
+            aria-label={isCurrent ? playing.title : undefined}
+            onLoadedMetadata={() => {
+              if (activeSlotRef.current !== slot) return;
+              const node = ref.current;
+              if (node) {
+                noteFrame(node);
+                setDuration(Number.isFinite(node.duration) ? node.duration : 0);
+                const saved = episode ? progressRef.current[episode.id] : undefined;
+                const canResume = saved && saved.currentTime >= 5 && saved.currentTime < node.duration - 2;
+                if (canResume) {
+                  node.currentTime = saved.currentTime;
+                  setCurrentTime(saved.currentTime);
+                  setToast(xumengPageFill(copy.resumeAt, { time: formatTime(saved.currentTime) }));
+                } else setCurrentTime(node.currentTime || 0);
               }
-            }
-          }}
-          onPlay={() => setPaused(false)}
-          onPause={() => setPaused(true)}
-          onLoadedData={() => { const node = videoRef.current; if (node) noteFrame(node); setVideoError(false); frameReady.current = true; setFrameShown(true); revealFrame(); }}
-          onError={() => { frameReady.current = false; setFrameShown(false); if (videoRef.current) videoRef.current.style.opacity = "0"; setPaused(true); setVideoError(true); }}
-          onEnded={() => {
-            if (episode) clearProgress(episode.id);
-            const at = playing.episodes.findIndex(entry => entry.id === episode.id);
-            const lastEpisode = at < 0 || at >= playing.episodes.length - 1;
-            if (!lastEpisode) { setEpisodeId(playing.episodes[at + 1].id); return; }
-            // 互动剧在结尾埋钩子：不自动滑走，先问「换你来选」
-            if (playing.category.includes(INTERACTIVE_CATEGORY) || playing.hook) { setHookOpen(true); setPaused(true); return; }
-            settle(1);
-          }}
-        />
+            }}
+            onDurationChange={() => {
+              if (activeSlotRef.current !== slot) return;
+              const node = ref.current;
+              if (node) setDuration(Number.isFinite(node.duration) ? node.duration : 0);
+            }}
+            onTimeUpdate={() => {
+              if (activeSlotRef.current !== slot) return;
+              const node = ref.current;
+              if (node) {
+                const nextTime = node.currentTime || 0;
+                setCurrentTime(nextTime);
+                if (episode && nextTime > 0 && Date.now() - lastProgressWriteRef.current >= 3000) {
+                  lastProgressWriteRef.current = Date.now();
+                  rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: Number.isFinite(node.duration) ? node.duration : 0, updatedAt: Date.now() });
+                }
+              }
+            }}
+            onPlay={() => { if (activeSlotRef.current === slot) setPaused(false); }}
+            onPlaying={() => { if (activeSlotRef.current === slot) { setPaused(false); setBuffering(false); } }}
+            onWaiting={() => { if (activeSlotRef.current === slot) setBuffering(true); }}
+            onStalled={() => { if (activeSlotRef.current === slot) setBuffering(true); }}
+            onCanPlay={() => { if (activeSlotRef.current === slot) setBuffering(false); }}
+            onPause={() => { if (activeSlotRef.current === slot) { setPaused(true); setBuffering(false); } }}
+            onLoadedData={() => {
+              if (activeSlotRef.current !== slot) return;
+              const node = ref.current;
+              if (node) noteFrame(node);
+              setVideoError(false);
+              setBuffering(false);
+              frameReady.current = true;
+              setFrameShown(true);
+              revealFrame();
+            }}
+            onError={() => {
+              if (activeSlotRef.current !== slot) return;
+              frameReady.current = false;
+              setFrameShown(false);
+              setBuffering(false);
+              if (ref.current) ref.current.style.opacity = "0";
+              setPaused(true);
+              setVideoError(true);
+            }}
+            onEnded={() => {
+              if (activeSlotRef.current !== slot) return;
+              setBuffering(false);
+              if (episode) clearProgress(episode.id);
+              const at = playing.episodes.findIndex(entry => entry.id === episode.id);
+              const lastEpisode = at < 0 || at >= playing.episodes.length - 1;
+              if (!lastEpisode) { setEpisodeId(playing.episodes[at + 1].id); return; }
+              // 互动剧在结尾埋钩子：不自动滑走，先问「换你来选」
+              if (playing.category.includes(INTERACTIVE_CATEGORY) || playing.hook) { setHookOpen(true); setPaused(true); return; }
+              settle(1);
+            }}
+          />;
+        })}
         {!episodeOpen && <div className={s.payGate} role="dialog" aria-label={copy.unlockEpisode} onPointerDown={event => event.stopPropagation()}>
           <p>{xumengPageFill(copy.episodeNeeds, { episode: episode?.episode ?? "", credits: EPISODE_CREDITS })}</p>
           {payError && <p className={s.payError} role="alert">{payError}</p>}
@@ -898,7 +1052,8 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
           <button type="button" className={s.play} aria-label={frameShown ? copy.play : copy.loadingFrame} onClick={togglePlay}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 7.2v9.6l8.2-4.8L9 7.2Z" fill="currentColor" /></svg></button>
           {!frameShown && <span>{copy.loadingDots}</span>}
         </div>}
-        {muted && !paused && <button type="button" className={s.unmute} onClick={() => { toggleMute(); }}>{copy.tapSound}</button>}
+        {episodeOpen && !videoError && frameShown && !paused && buffering && <div className={s.bufferPill} role="status" aria-live="polite"><i aria-hidden="true" /><span>缓冲中…</span></div>}
+        {effectiveMuted && !paused && <button type="button" className={s.unmute} onClick={() => { toggleMute(); }}>{userMuted ? "已静音 · 点按开启声音" : copy.tapSound}</button>}
         <div className={s.rail}>
           <div className={s.mark} aria-hidden="true"><span><img src="/assets/xumeng/brand/xumeng-mark.svg" alt="" /><i><Icon name="play" size={9} /></i></span><small>{copy.xumengShorts}</small></div>
           <RailButton name={copy.liked} label={liked ? "1" : ""} pressed={liked} onClick={() => toggleMark("likes")}><Heart filled={liked} /></RailButton>

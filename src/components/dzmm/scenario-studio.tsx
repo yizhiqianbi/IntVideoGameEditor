@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { createXumengScenario, exportXumengScenario, importXumengScenario, scenarioDraft, scenarioReadiness, type XumengScenarioDraft, type XumengScenarioPreview, type XumengScenarioRoom, type XumengScenarioRoomSummary, type XumengScenarioSummary } from "../../lib/xumeng-scenarios";
 import { clearScenarioRecovery, createXumengScenarioRoom, deleteXumengScenario, fetchXumengScenario, fetchXumengScenarioPreview, fetchXumengScenarioRoom, fetchXumengScenarioRooms, fetchXumengScenarios, generateXumengScenarioNarration, joinXumengScenarioRoom, mutateXumengScenarioRoom, readScenarioRecoveries, saveXumengScenario, writeScenarioRecovery, type XumengScenarioRecovery } from "../../lib/xumeng-scenarios-client";
 import Icon from "./icons";
+import { UnsavedLeaveDialog } from "./unsaved-leave-dialog";
 import styles from "./scenario-studio.module.css";
 
 export type ScenarioStudioProps = { userId: string | null; isGuest: boolean; onRequireAccount: () => void; onBack: () => void; onDirtyChange?: (dirty: boolean) => void; onBusyChange?: (busy: boolean) => void; initialId?: string | null; initialRoomCode?: string | null; onSaved?: (id: string) => void; onNavigate?: (id: string | null) => void; onRoom?: (code: string) => void; onGenerateNarration?: (roomId: string, onDelta: (delta: string) => void, signal: AbortSignal) => Promise<void> };
@@ -23,6 +24,7 @@ export function ScenarioStudio({ userId, isGuest, onRequireAccount, onBack, onDi
   const [inviteInput, setInviteInput] = useState(""), [message, setMessage] = useState(""), [kind, setKind] = useState<"speech" | "action" | "narration">("speech"), [aiDraft, setAiDraft] = useState("");
   const [aiContext, setAiContext] = useState<{ roomId: string; version: number; stageIndex: number } | null>(null);
   const [stageNarration, setStageNarration] = useState(""), [syncError, setSyncError] = useState<string | null>(null), [search, setSearch] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ title: string; description: string; confirmLabel: string; confirmTone?: "primary" | "danger"; onConfirm: () => void } | null>(null);
   const draftOwner = useRef<string | null>(null);
   const [scopeAccount, setScopeAccount] = useState(userId);
   const epoch = useRef(0), account = useRef(userId), active = useRef(true), busyRef = useRef(false), controller = useRef<AbortController | null>(null), recovery = useRef<XumengScenarioRecovery | null>(null), owner = useRef(crypto.randomUUID());
@@ -40,12 +42,22 @@ export function ScenarioStudio({ userId, isGuest, onRequireAccount, onBack, onDi
     finally { if (current()) { busyRef.current = false; setBusy(null); } }
   }
   async function refreshLibrary(id: string, signal: AbortSignal, current: () => boolean) { const [scripts, joined] = await Promise.all([fetchXumengScenarios(id, signal), fetchXumengScenarioRooms(id, signal)]); if (current()) { setLibrary(scripts.scenarios); setRooms(joined); } }
-  function canSwitch(): boolean { return !busyRef.current && ((!dirtyRef.current && !roomInputRef.current) || window.confirm("还有未保存的草稿或未发布的输入。离开后可从恢复副本找回团本草稿，房间输入将丢失。继续离开？")); }
+  function withSwitchCheck(proceed: () => void) {
+    if (busyRef.current) return;
+    if (!dirtyRef.current && !roomInputRef.current) { proceed(); return; }
+    setConfirmDialog({
+      title: "有未保存的修改或输入",
+      description: "离开后可从恢复副本找回团本草稿，房间内未发布的输入将丢失。确认离开吗？",
+      confirmLabel: "继续离开",
+      confirmTone: "danger",
+      onConfirm: proceed,
+    });
+  }
   function showDraft(next: XumengScenarioDraft, baseVersion: number | null, changed: boolean) { draftOwner.current = account.current; setDraft(next); setVersion(baseVersion); setDirty(changed); setRoom(null); setPreview(null); setMessage(""); setAiDraft(""); setStageNarration(""); setError(null); setNotice(null); roomCreation.current = null; onNavigate?.(baseVersion === null ? "new" : next.id); }
-  function create(template: boolean) { if (!canSwitch()) return; if (!loggedIn) { onRequireAccount(); return; } showDraft(createXumengScenario(template), null, true); }
+  function create(template: boolean) { withSwitchCheck(() => { if (!loggedIn) { onRequireAccount(); return; } showDraft(createXumengScenario(template), null, true); }); }
   function change(patch: Partial<XumengScenarioDraft>) { if (!draft || busyRef.current) return; setDraft({ ...draft, ...patch }); setDirty(true); setNotice(null); }
-  function openDraft(id: string) { if (!canSwitch()) return; void operation("读取团本", async (accountId, signal, current) => { const detail = await fetchXumengScenario(accountId, id, signal); if (current()) showDraft(scenarioDraft(detail.scenario), detail.scenario.version, false); }); }
-  function openRoom(id: string) { if (!canSwitch()) return; void operation("进入房间", async (accountId, signal, current) => { const next = await fetchXumengScenarioRoom(accountId, id, signal); if (current()) { applyRoom(next); setMessage(""); setAiDraft(""); setStageNarration(""); setKind("speech"); } }); }
+  function openDraft(id: string) { withSwitchCheck(() => { void operation("读取团本", async (accountId, signal, current) => { const detail = await fetchXumengScenario(accountId, id, signal); if (current()) showDraft(scenarioDraft(detail.scenario), detail.scenario.version, false); }); }); }
+  function openRoom(id: string) { withSwitchCheck(() => { void operation("进入房间", async (accountId, signal, current) => { const next = await fetchXumengScenarioRoom(accountId, id, signal); if (current()) { applyRoom(next); setMessage(""); setAiDraft(""); setStageNarration(""); setKind("speech"); } }); }); }
   async function saveCurrent(id: string, signal: AbortSignal, current: () => boolean) {
     if (!draft) throw new Error("请先创建团本。"); const snapshot = draft, saved = await saveXumengScenario(id, snapshot, version, signal);
     if (current()) { setDraft(scenarioDraft(saved.scenario)); setVersion(saved.scenario.version); setDirty(false); if (recovery.current) clearScenarioRecovery(recovery.current, id, owner.current); recovery.current = null; setRecoveries(readScenarioRecoveries(id)); setNotice("私人团本已保存。"); onSaved?.(saved.scenario.id); }
@@ -59,26 +71,75 @@ export function ScenarioStudio({ userId, isGuest, onRequireAccount, onBack, onDi
     const next = await createXumengScenarioRoom(id, saved.id, saved.version, roomCreation.current.roomId, signal);
     if (current()) { applyRoom(next); setNotice("房间已建立。邀请好友选择角色位，再开始团本。"); } await refreshLibrary(id, signal, current);
   }); }
-  function invitePreview(codeValue: string) { if (!canSwitch()) return; const match = codeValue.trim().match(/(?:\/room\/|^)([A-Za-z0-9_-]{20,32})(?:$|[?&])/); const code = match?.[1]; if (!code) { setError("请输入完整邀请链接或房间邀请码。"); return; }
-    void operation("读取邀请", async (id, signal, current) => { const owned = await fetchXumengScenarioRooms(id, signal), joined = owned.find(item => item.code === code); if (joined) { const detail = await fetchXumengScenarioRoom(id, joined.id, signal); if (current()) applyRoom(detail); return; } const brief = await fetchXumengScenarioPreview(id, code, signal); if (current()) { setDraft(null); setRoom(null); setDirty(false); setPreview(brief); setRoleId(brief.roles.find(role => !role.occupied)?.id ?? ""); } }); }
+  function invitePreview(codeValue: string) { withSwitchCheck(() => { const match = codeValue.trim().match(/(?:\/room\/|^)([A-Za-z0-9_-]{20,32})(?:$|[?&])/); const code = match?.[1]; if (!code) { setError("请输入完整邀请链接或房间邀请码。"); return; }
+    void operation("读取邀请", async (id, signal, current) => { const owned = await fetchXumengScenarioRooms(id, signal), joined = owned.find(item => item.code === code); if (joined) { const detail = await fetchXumengScenarioRoom(id, joined.id, signal); if (current()) applyRoom(detail); return; } const brief = await fetchXumengScenarioPreview(id, code, signal); if (current()) { setDraft(null); setRoom(null); setDirty(false); setPreview(brief); setRoleId(brief.roles.find(role => !role.occupied)?.id ?? ""); } }); }); }
   function join() { if (!preview || !roleId) return; void operation("加入团本", async (id, signal, current) => { const next = await joinXumengScenarioRoom(id, preview.code, roleId, preview.version, signal); if (current()) applyRoom(next); await refreshLibrary(id, signal, current); }); }
-  function mutate(action: "start" | "advance" | "end" | "leave") {
-    if (!room || (action === "end" && !window.confirm("结束本次团本？参与者仍可查看已发布记录，结束后不能再发言。")) || (action === "leave" && !canSwitch())) return;
+  function runMutate(action: "start" | "advance" | "end" | "leave") {
+    if (!room) return;
     void operation(action === "advance" ? "推进阶段" : "更新房间", async (id, signal, current) => { const next = await mutateXumengScenarioRoom(id, room.id, action, { version: room.version, ...(action === "advance" ? { content: stageNarration } : {}) }, signal); if (current()) { if (next) applyRoom(next); else { setRoom(null); setTab("rooms"); setMessage(""); setStageNarration(""); setAiDraft(""); setAiContext(null); onNavigate?.(null); } if (action === "advance") setStageNarration(""); } await refreshLibrary(id, signal, current); });
   }
-  function send(content = message, requestedKind = kind) { if (!room || !content.trim()) return; if (requestedKind === "narration" && content === aiDraft && aiContext && (aiContext.roomId !== room.id || aiContext.version !== room.version || aiContext.stageIndex !== room.stageIndex) && !window.confirm("生成草稿后房间已有新行动或阶段变化。请确认草稿仍符合当前剧情，再发布给参与者。继续发布？")) return; void operation("发布内容", async (id, signal, current) => {
-    if (messageId.current?.content !== content || messageId.current.kind !== requestedKind) messageId.current = { content, kind: requestedKind, id: crypto.randomUUID() };
-    const next = await mutateXumengScenarioRoom(id, room.id, "events", { version: room.version, clientId: messageId.current.id, kind: requestedKind, content }, signal);
-    if (current() && next) { applyRoom(next); if (requestedKind === "narration" && content === aiDraft) setAiDraft(""); else setMessage(""); messageId.current = null; }
-  }); }
-  function generate() { if (!room || !room.isHost || room.status !== "active") return; if (aiDraft.trim() && !window.confirm("已有未发布的 AI 草稿。重新生成会替换这份草稿并产生新的模型费用，建议先导出。继续重新生成？")) return; void operation("AI 叙事生成", async (id, signal, current) => {
-    setAiContext({ roomId: room.id, version: room.version, stageIndex: room.stageIndex }); setAiDraft(""); await (onGenerateNarration ?? generateXumengScenarioNarration)(room.id, delta => { if (current()) setAiDraft(value => value + delta); }, signal);
-    if (current()) setNotice("AI 草稿已生成，检查后发布给参与者。"); const fresh = await fetchXumengScenarioRoom(id, room.id, signal); if (current()) applyRoom(fresh);
-  }); }
+  function mutate(action: "start" | "advance" | "end" | "leave") {
+    if (!room) return;
+    if (action === "end") {
+      setConfirmDialog({
+        title: "结束本次团本？",
+        description: "参与者仍可查看已发布记录，结束后不能再发言。",
+        confirmLabel: "结束团本",
+        confirmTone: "danger",
+        onConfirm: () => runMutate("end"),
+      });
+      return;
+    }
+    if (action === "leave") { withSwitchCheck(() => runMutate("leave")); return; }
+    runMutate(action);
+  }
+  function runSend(content: string, requestedKind: "speech" | "action" | "narration") {
+    if (!room || !content.trim()) return;
+    void operation("发布内容", async (id, signal, current) => {
+      if (messageId.current?.content !== content || messageId.current.kind !== requestedKind) messageId.current = { content, kind: requestedKind, id: crypto.randomUUID() };
+      const next = await mutateXumengScenarioRoom(id, room.id, "events", { version: room.version, clientId: messageId.current.id, kind: requestedKind, content }, signal);
+      if (current() && next) { applyRoom(next); if (requestedKind === "narration" && content === aiDraft) setAiDraft(""); else setMessage(""); messageId.current = null; }
+    });
+  }
+  function send(content = message, requestedKind = kind) {
+    if (!room || !content.trim()) return;
+    if (requestedKind === "narration" && content === aiDraft && aiContext && (aiContext.roomId !== room.id || aiContext.version !== room.version || aiContext.stageIndex !== room.stageIndex)) {
+      setConfirmDialog({
+        title: "房间已有新进展",
+        description: "生成草稿后房间已有新行动或阶段变化。请确认草稿仍符合当前剧情，再发布给参与者。",
+        confirmLabel: "继续发布",
+        confirmTone: "primary",
+        onConfirm: () => runSend(content, requestedKind),
+      });
+      return;
+    }
+    runSend(content, requestedKind);
+  }
+  function runGenerate() {
+    if (!room || !room.isHost || room.status !== "active") return;
+    void operation("AI 叙事生成", async (id, signal, current) => {
+      setAiContext({ roomId: room.id, version: room.version, stageIndex: room.stageIndex }); setAiDraft(""); await (onGenerateNarration ?? generateXumengScenarioNarration)(room.id, delta => { if (current()) setAiDraft(value => value + delta); }, signal);
+      if (current()) setNotice("AI 草稿已生成，检查后发布给参与者。"); const fresh = await fetchXumengScenarioRoom(id, room.id, signal); if (current()) applyRoom(fresh);
+    });
+  }
+  function generate() {
+    if (!room || !room.isHost || room.status !== "active") return;
+    if (aiDraft.trim()) {
+      setConfirmDialog({
+        title: "重新生成叙事草稿？",
+        description: "已有未发布的 AI 草稿。重新生成会替换这份草稿并产生新的模型费用，建议先导出。",
+        confirmLabel: "重新生成",
+        confirmTone: "danger",
+        onConfirm: runGenerate,
+      });
+      return;
+    }
+    runGenerate();
+  }
   function refreshRoom() { if (!room) return; void operation("刷新房间", async (id, signal, current) => { const next = await fetchXumengScenarioRoom(id, room.id, signal); if (current()) applyRoom(next); }); }
   function older() { if (!room?.events.length) return; void operation("读取更早记录", async (id, signal, current) => { const next = await fetchXumengScenarioRoom(id, room.id, signal, room.events[0].seq); if (current()) setRoom(previous => previous ? { ...previous, events: [...new Map([...next.events, ...previous.events].map(event => [event.id, event])).values()].sort((a, b) => a.seq - b.seq), hasOlderEvents: next.hasOlderEvents } : previous); }); }
-  function exitWorkspace() { if (!canSwitch()) return; setDraft(null); setRoom(null); setPreview(null); setDirty(false); setMessage(""); setAiDraft(""); setStageNarration(""); setError(null); onNavigate?.(null); }
-  function back() { if (!canSwitch()) return; setDirty(false); onDirtyChange?.(false); onBack(); }
+  function exitWorkspace() { withSwitchCheck(() => { setDraft(null); setRoom(null); setPreview(null); setDirty(false); setMessage(""); setAiDraft(""); setStageNarration(""); setError(null); onNavigate?.(null); }); }
+  function back() { withSwitchCheck(() => { setDirty(false); onDirtyChange?.(false); onBack(); }); }
   useEffect(() => { onDirtyChange?.(dirty || Boolean(message.trim() || stageNarration.trim() || aiDraft.trim())); }, [dirty, message, stageNarration, aiDraft, onDirtyChange]);
   useEffect(() => { onBusyChange?.(!!busy); }, [busy, onBusyChange]);
   useEffect(() => { const listener = (event: BeforeUnloadEvent) => { if (dirtyRef.current || roomInputRef.current || busyRef.current) { event.preventDefault(); event.returnValue = ""; } }; window.addEventListener("beforeunload", listener); return () => window.removeEventListener("beforeunload", listener); }, []);
@@ -127,13 +188,28 @@ export function ScenarioStudio({ userId, isGuest, onRequireAccount, onBack, onDi
       : room ? <div className={styles.room}><main className={styles.timeline}><div className={styles.scene}><span>第 {room.stageIndex + 1} / {room.snapshot.stages.length} 阶段</span><h2>{stage?.title}</h2><p>{stage?.location}</p><p>{stage?.objective}</p></div>{syncError && <p className={styles.error} role="status">{syncError} <button onClick={refreshRoom}>重试同步</button></p>}{room.hasOlderEvents && <button className={styles.older} disabled={!!busy} onClick={older}>加载更早记录</button>}{!room.events.length && <p className={styles.empty}>{room.status === "waiting" ? "等待主持开始，开场会显示在这里。" : "还没有已发布的记录。"}</p>}{room.events.map(event => <article key={event.id} className={`${styles.event} ${event.kind === "system" ? styles.system : event.kind === "narration" || event.kind === "stage" ? styles.narration : ""}`}><div><strong>{event.kind === "system" ? "房间" : event.roleId ? room.snapshot.roles.find(role => role.id === event.roleId)?.name ?? event.nickname : event.nickname}</strong><span>{eventLabel[event.kind]} · {new Date(event.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></div><p>{event.content}</p></article>)}
         {room.status === "active" && <div className={styles.composer}><label>发送内容<select aria-label="内容类型" value={kind} onChange={event => setKind(event.target.value as typeof kind)} disabled={!!busy}><option value="speech">发言</option><option value="action">行动</option>{room.isHost && <option value="narration">主持叙事</option>}</select></label><textarea aria-label="团本发言" rows={4} maxLength={12000} value={message} disabled={!!busy} onChange={event => setMessage(event.target.value)} placeholder={kind === "action" ? "描述你准备采取的行动，结果由主持确认。" : "写下要对同伴说的话…"} /><button className={styles.primary} disabled={!!busy || !message.trim()} onClick={() => send()}>发布{eventLabel[kind]}</button></div>}{room.status === "ended" && <p className={styles.notice}>本次团本已结束，记录保留。</p>}
       </main><aside className={styles.inspector}><h2>参与者</h2><ul className={styles.members}>{room.members.map(member => <li key={member.userId}><strong>{member.nickname}{member.userId === userId ? "（你）" : ""}</strong><span>{member.isHost ? "主持" : room.snapshot.roles.find(role => role.id === member.roleId)?.name ?? "玩家"}</span></li>)}</ul><label>邀请链接<input aria-label="团本邀请链接" readOnly value={`${typeof location === "undefined" ? "https://xumengchat.top" : location.origin}/#studio/room/${room.code}`} /></label><button onClick={() => { void navigator.clipboard.writeText(`${location.origin}/#studio/room/${room.code}`).then(() => setNotice("邀请链接已复制。")).catch(() => setError("复制失败，请手动复制邀请链接。")); }}>复制邀请链接</button><details><summary>世界与目标</summary><p className={styles.pre}>{room.snapshot.world}</p><p className={styles.pre}>{room.snapshot.goal}</p></details>
-        {room.isHost && <><details><summary>主持笔记与角色秘密</summary><p className={styles.pre}>{room.snapshot.hostNotes}</p>{room.snapshot.roles.map(role => <div key={role.id}><h4>{role.name}</h4><p className={styles.pre}>{role.personality}</p></div>)}</details>{room.status === "waiting" && <button className={styles.primary} disabled={!!busy} onClick={() => mutate("start")}>开始团本</button>}{room.status === "active" && <><h3>AI 主持</h3><p className={styles.muted}>使用默认 Grok。生成先留在草稿，检查后再发布。</p><button disabled={!!busy} onClick={generate}>{aiDraft.trim() ? "重新生成叙事草稿" : "生成叙事草稿"}</button>{busy === "AI 叙事生成" && <button onClick={() => controller.current?.abort()}>停止生成</button>}{aiDraft && <label>AI 叙事草稿{aiContext && aiContext.version !== room.version && <small>草稿基于第 {aiContext.stageIndex + 1} 阶段、房间版本 {aiContext.version}。房间已有更新，请核对连续性。</small>}<textarea aria-label="AI 叙事草稿" rows={8} maxLength={12000} disabled={!!busy} value={aiDraft} onChange={event => setAiDraft(event.target.value)} /><button className={styles.primary} disabled={!!busy || !aiDraft.trim()} onClick={() => send(aiDraft, "narration")}>发布给参与者</button><span className={styles.actions}><button type="button" className={styles.tool} aria-label="导出草稿" title="导出草稿" onClick={() => download(`${room.title}.narration.json`, JSON.stringify({ roomId: room.id, context: aiContext, content: aiDraft }, null, 2))}><Icon name="download" size={16} /></button><button disabled={!!busy} onClick={() => { if (window.confirm("丢弃这份未发布的 AI 草稿？")) setAiDraft(""); }}>丢弃草稿</button></span></label>}{room.stageIndex + 1 < room.snapshot.stages.length && <><h3>下一阶段：{room.snapshot.stages[room.stageIndex + 1].title}</h3><label>转场叙事<textarea aria-label="转场叙事" maxLength={12000} rows={4} value={stageNarration} disabled={!!busy} onChange={event => setStageNarration(event.target.value)} placeholder="根据已发生的行动，说明为何来到下一幕。" /></label><button disabled={!!busy || !stageNarration.trim()} onClick={() => mutate("advance")}>发布并推进阶段</button></>}</>}{room.status === "ended" && aiDraft && <label>未发布的 AI 草稿<textarea aria-label="结束后 AI 草稿" rows={8} readOnly value={aiDraft} /><button type="button" className={styles.tool} aria-label="导出草稿" title="导出草稿" onClick={() => download(`${room.title}.narration.json`, JSON.stringify({ roomId: room.id, context: aiContext, content: aiDraft }, null, 2))}><Icon name="download" size={16} /></button></label>}{room.status !== "ended" && <button className={styles.danger} disabled={!!busy} onClick={() => mutate("end")}>结束团本</button>}</>}{!room.isHost && room.status !== "ended" && <button className={styles.danger} disabled={!!busy} onClick={() => mutate("leave")}>离开团本</button>}
+        {room.isHost && <><details><summary>主持笔记与角色秘密</summary><p className={styles.pre}>{room.snapshot.hostNotes}</p>{room.snapshot.roles.map(role => <div key={role.id}><h4>{role.name}</h4><p className={styles.pre}>{role.personality}</p></div>)}</details>{room.status === "waiting" && <button className={styles.primary} disabled={!!busy} onClick={() => mutate("start")}>开始团本</button>}{room.status === "active" && <><h3>AI 主持</h3><p className={styles.muted}>使用默认 Grok。生成先留在草稿，检查后再发布。</p><button disabled={!!busy} onClick={generate}>{aiDraft.trim() ? "重新生成叙事草稿" : "生成叙事草稿"}</button>{busy === "AI 叙事生成" && <button onClick={() => controller.current?.abort()}>停止生成</button>}{aiDraft && <label>AI 叙事草稿{aiContext && aiContext.version !== room.version && <small>草稿基于第 {aiContext.stageIndex + 1} 阶段、房间版本 {aiContext.version}。房间已有更新，请核对连续性。</small>}<textarea aria-label="AI 叙事草稿" rows={8} maxLength={12000} disabled={!!busy} value={aiDraft} onChange={event => setAiDraft(event.target.value)} /><button className={styles.primary} disabled={!!busy || !aiDraft.trim()} onClick={() => send(aiDraft, "narration")}>发布给参与者</button><span className={styles.actions}><button type="button" className={styles.tool} aria-label="导出草稿" title="导出草稿" onClick={() => download(`${room.title}.narration.json`, JSON.stringify({ roomId: room.id, context: aiContext, content: aiDraft }, null, 2))}><Icon name="download" size={16} /></button><button disabled={!!busy} onClick={() => setConfirmDialog({ title: "丢弃 AI 草稿？", description: "这份未发布的 AI 叙事草稿将被清空。", confirmLabel: "确认丢弃", confirmTone: "danger", onConfirm: () => setAiDraft("") })}>丢弃草稿</button></span></label>}{room.stageIndex + 1 < room.snapshot.stages.length && <><h3>下一阶段：{room.snapshot.stages[room.stageIndex + 1].title}</h3><label>转场叙事<textarea aria-label="转场叙事" maxLength={12000} rows={4} value={stageNarration} disabled={!!busy} onChange={event => setStageNarration(event.target.value)} placeholder="根据已发生的行动，说明为何来到下一幕。" /></label><button disabled={!!busy || !stageNarration.trim()} onClick={() => mutate("advance")}>发布并推进阶段</button></>}</>}{room.status === "ended" && aiDraft && <label>未发布的 AI 草稿<textarea aria-label="结束后 AI 草稿" rows={8} readOnly value={aiDraft} /><button type="button" className={styles.tool} aria-label="导出草稿" title="导出草稿" onClick={() => download(`${room.title}.narration.json`, JSON.stringify({ roomId: room.id, context: aiContext, content: aiDraft }, null, 2))}><Icon name="download" size={16} /></button></label>}{room.status !== "ended" && <button className={styles.danger} disabled={!!busy} onClick={() => mutate("end")}>结束团本</button>}</>}{!room.isHost && room.status !== "ended" && <button className={styles.danger} disabled={!!busy} onClick={() => mutate("leave")}>离开团本</button>}
       </aside></div>
       : <><div className={styles.toolbar}><div className={styles.tabs}><button aria-pressed={tab === "scenarios"} onClick={() => setTab("scenarios")}>我的剧本</button><button aria-pressed={tab === "rooms"} onClick={() => setTab("rooms")}>参加的房间</button></div><div className={styles.actions}><button type="button" className={styles.tool} aria-label="导入团本" title="导入团本" onClick={() => fileInput.current?.click()} disabled={!!busy}><Icon name="upload" size={16} /></button><button type="button" className={styles.tool} aria-label="空白团本" title="空白团本" onClick={() => create(false)} disabled={!!busy}><Icon name="plus" size={16} /></button><button className={styles.primary} onClick={() => create(true)} disabled={!!busy}>使用冒险模板</button></div></div>
-        <input ref={fileInput} type="file" accept="application/json,.json" className={styles.hidden} aria-label="导入团本备份" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (!file || !canSwitch()) return; void operation("导入备份", async (_id, _signal, current) => { if (file.size > 192 * 1024) throw new Error("导入文件过大。"); const imported = importXumengScenario(await file.text()); if (current()) showDraft(imported, null, true); }); }} />
-        {recoveries.length > 0 && <details className={styles.recoveries}><summary>发现 {recoveries.length} 份未保存的团本草稿</summary>{recoveries.map(entry => <div key={entry.key}><span>{entry.draft.title || "未命名团本"} · {new Date(entry.updatedAt).toLocaleString()}</span><button disabled={!!busy} onClick={() => { if (canSwitch()) showDraft(entry.draft, entry.version, true); }}>恢复草稿</button><button type="button" className={styles.tool} aria-label="导出" title="导出" onClick={() => download(`${entry.draft.title || "团本"}.recovery.json`, exportXumengScenario(entry.draft))}><Icon name="download" size={16} /></button></div>)}</details>}
+        <input ref={fileInput} type="file" accept="application/json,.json" className={styles.hidden} aria-label="导入团本备份" onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; if (!file) return; withSwitchCheck(() => { void operation("导入备份", async (_id, _signal, current) => { if (file.size > 192 * 1024) throw new Error("导入文件过大。"); const imported = importXumengScenario(await file.text()); if (current()) showDraft(imported, null, true); }); }); }} />
+        {recoveries.length > 0 && <details className={styles.recoveries}><summary>发现 {recoveries.length} 份未保存的团本草稿</summary>{recoveries.map(entry => <div key={entry.key}><span>{entry.draft.title || "未命名团本"} · {new Date(entry.updatedAt).toLocaleString()}</span><button disabled={!!busy} onClick={() => withSwitchCheck(() => showDraft(entry.draft, entry.version, true))}>恢复草稿</button><button type="button" className={styles.tool} aria-label="导出" title="导出" onClick={() => download(`${entry.draft.title || "团本"}.recovery.json`, exportXumengScenario(entry.draft))}><Icon name="download" size={16} /></button></div>)}</details>}
         <div className={styles.joinRow}><label>通过邀请加入<input value={inviteInput} onChange={event => setInviteInput(event.target.value)} placeholder="邀请链接或邀请码" /></label><button disabled={!!busy || !inviteInput.trim()} onClick={() => invitePreview(inviteInput)}>查看邀请</button><button type="button" className={styles.tool} aria-label="刷新列表" title="刷新列表" disabled={!!busy} onClick={() => { void operation("刷新列表", refreshLibrary); }}><Icon name="refresh" size={16} /></button></div>
-        {tab === "scenarios" ? <><label className={styles.search}>搜索团本<input value={search} onChange={event => setSearch(event.target.value)} placeholder="标题或简介" /></label><div className={styles.list}>{filtered.map(item => <article key={item.id}><div><h2>{item.title || "未命名团本"}</h2><p>{item.synopsis || "尚未填写简介"}</p><span>{item.roleCount} 个角色位 · {item.stageCount} 个阶段 · {new Date(item.updatedAt).toLocaleDateString()}</span></div><div className={styles.actions}><button className={styles.primary} disabled={!!busy} onClick={() => openDraft(item.id)}>继续创作</button><button type="button" className={`${styles.tool} ${styles.toolDanger}`} aria-label="删除" title="删除" disabled={!!busy} onClick={() => { if (!window.confirm(`删除私人团本“${item.title || "未命名团本"}”？已经建立的房间和记录会保留。`)) return; void operation("删除团本", async (id, signal, current) => { await deleteXumengScenario(id, item.id, item.version, signal); await refreshLibrary(id, signal, current); }); }}><Icon name="trash" size={16} /></button></div></article>)}</div>{!filtered.length && <p className={styles.empty}>{search ? "没有找到对应团本。" : "还没有私人团本。使用冒险模板开始，或导入自己的备份。"}</p>}</> : <><div className={styles.list}>{rooms.map(item => <article key={item.id}><div><h2>{item.title}</h2><p>{statusLabel[item.status]} · {item.isHost ? "主持" : "玩家"} · {item.memberCount} 人</p><span>{new Date(item.updatedAt).toLocaleString()}</span></div><button className={styles.primary} disabled={!!busy} onClick={() => openRoom(item.id)}>{item.status === "ended" ? "查看记录" : "进入房间"}</button></article>)}</div>{!rooms.length && <p className={styles.empty}>还没有参加的房间。保存自己的剧本开房，或使用好友的邀请链接加入。</p>}</>}
+        {tab === "scenarios" ? <><label className={styles.search}>搜索团本<input value={search} onChange={event => setSearch(event.target.value)} placeholder="标题或简介" /></label><div className={styles.list}>{filtered.map(item => <article key={item.id}><div><h2>{item.title || "未命名团本"}</h2><p>{item.synopsis || "尚未填写简介"}</p><span>{item.roleCount} 个角色位 · {item.stageCount} 个阶段 · {new Date(item.updatedAt).toLocaleDateString()}</span></div><div className={styles.actions}><button className={styles.primary} disabled={!!busy} onClick={() => openDraft(item.id)}>继续创作</button><button type="button" className={`${styles.tool} ${styles.toolDanger}`} aria-label="删除" title="删除" disabled={!!busy} onClick={() => setConfirmDialog({ title: `删除私人团本“${item.title || "未命名团本"}”？`, description: "已经建立的房间和记录会保留。", confirmLabel: "确认删除", confirmTone: "danger", onConfirm: () => { void operation("删除团本", async (id, signal, current) => { await deleteXumengScenario(id, item.id, item.version, signal); await refreshLibrary(id, signal, current); }); } })}><Icon name="trash" size={16} /></button></div></article>)}</div>{!filtered.length && <p className={styles.empty}>{search ? "没有找到对应团本。" : "还没有私人团本。使用冒险模板开始，或导入自己的备份。"}</p>}</> : <><div className={styles.list}>{rooms.map(item => <article key={item.id}><div><h2>{item.title}</h2><p>{statusLabel[item.status]} · {item.isHost ? "主持" : "玩家"} · {item.memberCount} 人</p><span>{new Date(item.updatedAt).toLocaleString()}</span></div><button className={styles.primary} disabled={!!busy} onClick={() => openRoom(item.id)}>{item.status === "ended" ? "查看记录" : "进入房间"}</button></article>)}</div>{!rooms.length && <p className={styles.empty}>还没有参加的房间。保存自己的剧本开房，或使用好友的邀请链接加入。</p>}</>}
       </>}
+    <UnsavedLeaveDialog
+      open={Boolean(confirmDialog)}
+      title={confirmDialog?.title ?? ""}
+      description={confirmDialog?.description ?? ""}
+      confirmLabel={confirmDialog?.confirmLabel ?? "确认"}
+      confirmTone={confirmDialog?.confirmTone ?? "danger"}
+      cancelLabel="取消"
+      busy={Boolean(busy)}
+      onCancel={() => setConfirmDialog(null)}
+      onConfirm={() => {
+        const next = confirmDialog;
+        setConfirmDialog(null);
+        next?.onConfirm();
+      }}
+    />
   </section>;
 }

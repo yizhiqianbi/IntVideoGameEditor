@@ -317,7 +317,9 @@ export function readDzmmExplicitTimeJump(userText: string): DzmmExplicitTimeJump
   for (let index = 0; index < fragments.length; index++) {
     const part = fragments[index];
     const leading = part.length - part.trimStart().length;
-    const fragment = part.trim();
+    const rawFragment = part.trim();
+    const unwrapped = rawFragment.replace(/^[（(]\s*/, "").replace(/\s*[）)]$/, "").trim();
+    const fragment = unwrapped.replace(/^时间流逝\s*(?:——|—|-|:|：)?\s*/, "").trim();
     const match = fragment.match(pattern);
     if (match && (match[1] || match[4]) && !/[?？]/.test(fragments[index + 1] || "")) {
       const prefix = masked.slice(0, offset).split(/[。.!！?？;；\n]/).at(-1) || "";
@@ -332,7 +334,7 @@ export function readDzmmExplicitTimeJump(userText: string): DzmmExplicitTimeJump
         const minutes = number === undefined ? NaN : number * unitMinutes[match[3]];
         if (Number.isSafeInteger(minutes) && minutes > 0 && minutes <= DZMM_WORLD_MAX_EXPLICIT_JUMP_MINUTES) {
           const start = offset + leading;
-          return { advanceMinutes: minutes, quote: userText.slice(start, start + fragment.length) };
+          return { advanceMinutes: minutes, quote: userText.slice(start, start + rawFragment.length) };
         }
       }
     }

@@ -2,7 +2,11 @@ import { samplesToSpeechWav, SPEECH_INPUT_MAX_MS } from "@/lib/dzmm-speech-input
 
 export type SpeechRecorder = { stop: () => Promise<Uint8Array | null>; cancel: () => void };
 
-export async function openSpeechRecorder(maxMs = SPEECH_INPUT_MAX_MS, onAutoStop?: () => void): Promise<SpeechRecorder> {
+export async function openSpeechRecorder(
+  maxMs = SPEECH_INPUT_MAX_MS,
+  onAutoStop?: () => void,
+  onLevel?: (level: number) => void,
+): Promise<SpeechRecorder> {
   if (typeof navigator === "undefined" || !navigator.mediaDevices?.getUserMedia) throw new Error("unsupported");
   const context = new AudioContext();
   const resume = context.resume();
@@ -24,8 +28,23 @@ export async function openSpeechRecorder(maxMs = SPEECH_INPUT_MAX_MS, onAutoStop
   const mute = context.createGain();
   mute.gain.value = 0;
   const chunks: Float32Array[] = [];
+  let lastLevelAt = 0;
+  let smoothed = 0;
   processor.onaudioprocess = (event) => {
-    chunks.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+    const channel = event.inputBuffer.getChannelData(0);
+    chunks.push(new Float32Array(channel));
+    if (onLevel) {
+      const now = performance.now();
+      if (now - lastLevelAt >= 80) {
+        lastLevelAt = now;
+        let sum = 0;
+        for (let i = 0; i < channel.length; i += 4) sum += channel[i] * channel[i];
+        const rms = Math.sqrt(sum / Math.max(1, Math.ceil(channel.length / 4)));
+        const normalized = Math.min(1, rms * 6.5);
+        smoothed = smoothed * 0.45 + normalized * 0.55;
+        onLevel(smoothed);
+      }
+    }
   };
   source.connect(processor);
   processor.connect(mute);

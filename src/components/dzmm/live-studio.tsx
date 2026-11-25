@@ -287,7 +287,7 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
       if (!owned) throw new Error("请先拨打电话。");
       body = { ...body, id: owned.id };
     }
-    return requestXumengLive(xumengLiveLeasePath(lease, action), { method: "POST", body });
+    return requestXumengLive(xumengLiveLeasePath(lease, action), { method: "POST", body, timeoutMs: action === "start" ? 45_000 : 15_000 });
   }
   async function release(lease: XumengLiveLease | null, keepalive = false) { if (lease) await releaseXumengLiveLease(lease, keepalive); }
   function addMessage(value: Message) {
@@ -613,11 +613,15 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
     if (event.type === "closed") { setMiniCpmConnected(false); setSession(null); setMediaStatus("电话已结束"); }
   }
   function start() {
-    const micReady = primeMicrophone();
+    if (workingRef.current) return;
+    if (importingCharacter) { setError("人物形象正在导入，请稍候。"); return; }
+    if (!selectedCharacter && (!manualName.trim() || !manualBackground.trim())) { setError("请填写对方的名字和背景。"); return; }
+    if (selectedCharacter && !persona.trim()) { setError("请填写人物设定。"); return; }
+    if (!miniCpmMode && !avatar) { setError("请先上传人物形象。"); return; }
+    if (!miniCpmMode && !canCall) { setError("请先登录后再拨打视频通话。"); return; }
+    const micReady = miniCpmMode ? Promise.resolve(false) : primeMicrophone();
     void action("start", async (generation, lease) => {
-    if (importingCharacter) throw new Error("人物形象正在导入，请稍候。");
-    if (!selectedCharacter && (!manualName.trim() || !manualBackground.trim())) throw new Error("请填写对方的名字和背景。");
-    if (selectedCharacter && !persona.trim()) throw new Error("请填写人物设定。");
+    try {
     if (miniCpmMode) {
       releaseMicPrime();
       const livePersona = buildXumengMiniCpmPrompt(selectedCharacter ? persona : buildXumengManualPhonePersona(manualName, manualBackground), contactName, sceneRef.current.situation);
@@ -628,16 +632,14 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
       setMiniCpmConnected(true); setMiniCpmMuted(false); setSession({ id: `minicpm-${Date.now()}`, mode: "real", control: "performance", status: "ready", startedAt: Date.now() }); setMediaStatus("MiniCPM 已接通 · 正在听"); log("MiniCPM-o 4.5 电话已接通；视频工作台保持独立。");
       return;
     }
-    if (!avatar) throw new Error("请先上传人物形象。");
     if (!await micReady) log("手机还没允许麦克风。接通后点「打开麦克风」，在弹窗里允许录音。");
-    if (!canCall) throw new Error("请先登录后再拨打视频通话。");
     commandRevision.current++;
     const livePersona = buildXumengLiveStartPersona(selectedCharacter ? persona : buildXumengManualPhonePersona(manualName, manualBackground), sceneRef.current, getXumengPhoneCallReference(selectedCharacter, selectedSource));
     const portrait = await compactCallPortrait(avatar);
     setMediaStatus("正在整理时间、地点和穿着，并画出接通画面");
     const result = await control("start", { mode: "real", avatar: portrait, persona: livePersona, voice, voiceProvider: getXumengLiveVoice(voice)?.provider, control: "performance", prepareFrame: true }, lease);
     if (object(result.callFrame) && typeof result.callFrame.image === "string" && result.callFrame.image.startsWith("https://")) setAvatar(result.callFrame.image);
-    if (!current(generation, lease)) return;
+    if (!current(generation, lease)) { releaseMicPrime(); return; }
     const started = parseXumengLiveSession(result.session); if (!started) throw new Error("拨号结果缺少会话，请刷新状态核对。");
     updateSession(started); setRecording(""); setNow(Date.now()); setAudioSubscribed(false); setAudioAllowed(false); setAudioEvidence(null); setVideoEvidence(null);
     if (started.mode === "real") {
@@ -648,12 +650,18 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
         setMediaStatus(started.status === "ready" ? "控制已连接 · 正在加入播放器" : "等待 S2 控制就绪");
         connectPendingRtc();
       } catch (failure) {
+        releaseMicPrime();
         try { await requestStop(generation, lease); } catch (stopFailure) { throw new Error(`${friendly(failure)}；结束请求未确认：${friendly(stopFailure)}。请继续点击结束核对。`); }
         throw failure;
       }
     } else {
+      releaseMicPrime();
       await requestStop(generation, lease);
       throw new Error("服务返回的会话不支持实时通话，已请求挂断。请刷新状态后重试。");
+    }
+    } catch (failure) {
+      releaseMicPrime();
+      throw failure;
     }
   }); }
   function back() { void action("back", async (generation, lease) => {
@@ -767,8 +775,8 @@ export default function LiveStudio({ userId, isGuest, isSuper, userName, onRequi
           <small>{miniCpmMode ? "MiniCPM-o 4.5 原生双工音频 · 麦克风只在通话中开启" : "按 Vidu 通话时长结算，当前不扣本站 金币 · 通话保持到挂断或离开页面"}</small>
         </div>
         {active && <div className={s.stageTools}>
-          {!miniCpmMode && <button disabled={disabled || !engine.current} onClick={() => { void action("audio", async (generation, lease) => { const rtc = engine.current; if (!rtc) return; rtc.muteAllRemoteAudioPlaying(false); for (const uid of remoteUsers.current) rtc.resumeRemoteAudioStream(uid); for (const video of remote.current?.querySelectorAll("video") ?? []) { if (video.dataset.uid) rtc.resumeRemoteMediaStream(video.dataset.uid, Number(video.dataset.track) === 2 ? 2 : 1); video.muted = false; await video.play(); } if (current(generation, lease) && engine.current === rtc) { setAudioAllowed(true); notify("已允许有声播放，请确认是否听到人物声音。"); } }); }}><Icon name="volume" size={16} />{audioAllowed ? "声音已开启" : "开启声音"}</button>}
-          {!miniCpmMode && <button disabled={disabled || !engine.current || micOpen} onClick={() => { const opening = primeMicrophone(); void action("microphone", async (generation, lease) => { const rtc = engine.current; if (!rtc || !current(generation, lease)) return; if (!await opening) throw new Error("请在浏览器弹窗里允许使用麦克风。"); await openCallMicrophone(rtc); if (current(generation, lease) && engine.current === rtc) { setMicOpen(true); notify("麦克风已打开，对方可以听到你说话。"); } }); }}><Icon name="phone" size={16} />{micOpen ? "麦克风已开" : "打开麦克风"}</button>}
+          {!miniCpmMode && <button aria-pressed={audioAllowed} disabled={disabled || !engine.current} onClick={() => { void action("audio", async (generation, lease) => { const rtc = engine.current; if (!rtc) return; const nextAllowed = !audioAllowed; rtc.muteAllRemoteAudioPlaying(!nextAllowed); if (nextAllowed) { for (const uid of remoteUsers.current) rtc.resumeRemoteAudioStream(uid); } for (const video of remote.current?.querySelectorAll("video") ?? []) { if (nextAllowed && video.dataset.uid) rtc.resumeRemoteMediaStream(video.dataset.uid, Number(video.dataset.track) === 2 ? 2 : 1); video.muted = !nextAllowed; if (nextAllowed) await video.play(); } if (current(generation, lease) && engine.current === rtc) { setAudioAllowed(nextAllowed); notify(nextAllowed ? "已开启通话声音。" : "已静音对方声音。"); } }); }}><Icon name="volume" size={16} />{audioAllowed ? "静音对方" : "开启声音"}</button>}
+          {!miniCpmMode && <button aria-pressed={micOpen} disabled={disabled || !engine.current} onClick={() => { if (micOpen) { void action("microphone", async (generation, lease) => { const rtc = engine.current; if (!rtc || !current(generation, lease)) return; try { await rtc.publishLocalAudioStream(false); } catch {} try { await rtc.stopAudioCapture?.(); } catch {} releaseMicPrime(); if (current(generation, lease) && engine.current === rtc) { setMicOpen(false); notify("麦克风已静音。"); } }); return; } const opening = primeMicrophone(); void action("microphone", async (generation, lease) => { const rtc = engine.current; if (!rtc || !current(generation, lease)) { releaseMicPrime(); return; } if (!await opening) { releaseMicPrime(); throw new Error("请在浏览器弹窗里允许使用麦克风。"); } await openCallMicrophone(rtc); if (current(generation, lease) && engine.current === rtc) { setMicOpen(true); notify("麦克风已打开，对方可以听到你说话。"); } }); }}><Icon name="phone" size={16} />{micOpen ? "静音麦克风" : "打开麦克风"}</button>}
           {miniCpmMode && <button disabled={disabled} onClick={() => { miniCpm.current?.mute(!miniCpmMuted); setMiniCpmMuted(value => !value); setMediaStatus(miniCpmMuted ? "MiniCPM 正在听" : "麦克风已静音"); }}>{miniCpmMuted ? "开启麦克风" : "静音麦克风"}</button>}
           <button disabled={disabled} onClick={() => { void action("fullscreen", async () => { if (!stage.current?.requestFullscreen) throw new Error("当前浏览器不支持全屏。"); await stage.current.requestFullscreen(); }); }}><Icon name="grid" size={16} />全屏</button>
           <button disabled={!ready || disabled} onClick={() => { if (miniCpmMode) { miniCpm.current?.interrupt(); setMediaStatus("MiniCPM 已发送打断"); return; } void action("interrupt", async (generation, lease) => { await control("interrupt", {}, lease); if (current(generation, lease)) notify("已发送打断请求。"); }); }}>打断回应</button>

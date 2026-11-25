@@ -19,6 +19,14 @@
 .iconButton.iconGold:hover:not(:disabled) { color:var(--gold,#b47a45); border-color:var(--gold,#b47a45); background:color-mix(in srgb,var(--gold,#b47a45) 22%,var(--surface,#fff)); }
 .iconButton.iconDanger { color:#cf4a64; border-color:color-mix(in srgb,#cf4a64 35%,var(--line)); background:transparent; }
 .iconButton.iconDanger:hover:not(:disabled) { color:#cf4a64; background:#cf4a6414; }
+.actionBtn { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:36px; padding:0 12px; border-radius:9px; border:1px solid var(--line); background:transparent; color:var(--text); font:inherit; font-size:12.5px; font-weight:500; white-space:nowrap; cursor:pointer; transition:background .16s ease, border-color .16s ease, color .16s ease; }
+.actionBtn:hover:not(:disabled) { background:var(--soft); }
+.actionBtn:disabled { opacity:.5; cursor:default; }
+.actionBtn:focus-visible { outline:2px solid var(--pink); outline-offset:2px; }
+.actionBtn.iconGold { color:var(--gold,#d49860); border-color:color-mix(in srgb,var(--gold,#b47a45) 55%,var(--line)); background:color-mix(in srgb,var(--gold,#b47a45) 14%,var(--surface,#fff)); }
+.actionBtn.iconGold:hover:not(:disabled) { border-color:var(--gold,#b47a45); background:color-mix(in srgb,var(--gold,#b47a45) 22%,var(--surface,#fff)); }
+.actionBtn.iconDanger { color:#cf4a64; border-color:color-mix(in srgb,#cf4a64 38%,var(--line)); background:transparent; }
+.actionBtn.iconDanger:hover:not(:disabled) { background:#cf4a6414; border-color:#cf4a64; }
 .actions:has(.iconButton) { flex:none; flex-wrap:nowrap; gap:6px; }
 .row:has(> .iconButton), .row:has(.actions .iconButton) { flex-wrap:nowrap; }
 .row:has(> .iconButton) .content, .row:has(.actions .iconButton) .content { min-width:0; }

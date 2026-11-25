@@ -1,5 +1,5 @@
 /** Public review copy only. This module never reads an account or enables checkout. */
-export const XUMENG_PAYMENT_INFO_DRAFT = true;
+export { XUMENG_PAYMENT_INFO_DRAFT } from "./xumeng-payment-info-links";
 export const XUMENG_PAYMENT_INFO_UPDATED = "2026-10-15";
 
 export type XumengPaymentInfoPath = "/pricing" | "/terms" | "/privacy" | "/refund-policy" | "/support";

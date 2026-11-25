@@ -38,7 +38,7 @@ function CoverThumb({ src }: { src: string }) {
 
 function RowAction({ label, name, tone, disabled, onClick }: { label: string; name: IconName; tone?: "gold" | "danger"; disabled?: boolean; onClick: () => void }) {
   const toneClass = tone === "gold" ? s.iconGold : tone === "danger" ? s.iconDanger : "";
-  return <button type="button" className={toneClass ? `${s.iconButton} ${toneClass}` : s.iconButton} aria-label={label} title={label} disabled={disabled} onClick={onClick}><Icon name={name} size={16} /></button>;
+  return <button type="button" className={toneClass ? `${s.actionBtn} ${toneClass}` : s.actionBtn} title={label} disabled={disabled} onClick={onClick}><Icon name={name} size={15} /><span>{label}</span></button>;
 }
 type AuthorTab = "drafts" | DzmmPublishingFilter;
 function date(value: number) { return new Date(value).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }); }
