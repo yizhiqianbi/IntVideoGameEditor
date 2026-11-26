@@ -2048,9 +2048,12 @@
   grid-area: bar;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   min-height: 32px;
+  overflow-x: auto;
+  scrollbar-width: none;
 }
+.composerBar::-webkit-scrollbar { display: none; }
 .composerContinue {
   display: inline-flex;
   align-items: center;
@@ -2062,6 +2065,8 @@
   color: var(--pink);
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -2085,6 +2090,8 @@
   color: color-mix(in srgb, var(--gold, #d7ad78) 88%, var(--text));
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -2108,6 +2115,8 @@
   color: color-mix(in srgb, var(--pink, #ff5f94) 86%, var(--text));
   font-size: 12px;
   font-weight: 600;
+  white-space: nowrap;
+  flex-shrink: 0;
   cursor: pointer;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
@@ -2133,6 +2142,7 @@
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
   transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
 }
 .composerVisualMode:hover:not(:disabled) {
@@ -2153,6 +2163,13 @@
   margin-left: auto;
   color: var(--muted);
   font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+@media (max-width: 1480px) {
+  .chatBesideStage .composerHint {
+    display: none;
+  }
 }
 .composer textarea {
   grid-area: input;
