@@ -1,4 +1,4 @@
-import { dzmmModelCostPolicy, findDzmmProviderModel } from "../../../src/lib/dzmm-models";
+import { dzmmModelCostPolicy, findDzmmProviderModel, isDzmmDirectTariffModel } from "../../../src/lib/dzmm-models";
 import { digest, tokenFrom } from "./auth";
 import { ApiError } from "./http";
 import type { Env, UserRecord } from "./types";
@@ -92,12 +92,12 @@ function requestValue(value: unknown): CreditUsageRequest {
   return { requestId: input.requestId.toLowerCase(), operation: input.operation, model: input.model,
     requestFingerprint: input.requestFingerprint, inputTokenUpperBound: input.inputTokenUpperBound, maxOutputTokens: input.maxOutputTokens };
 }
-function requestCostPolicy(config: CreditBillingConfig, model: string): DzmmCreditCostPolicy | undefined {
+function requestCostPolicy(config: CreditBillingConfig, model: string, operation: CreditOperation = "chat"): DzmmCreditCostPolicy | undefined {
   const option = findDzmmProviderModel(model);
   if (!config.costPolicy && option && option.id !== "grok") {
     throw new ApiError(503, "当前模型的实际成本计费尚未配置，请选择默认模型或联系管理员。");
   }
-  return config.costPolicy ? dzmmModelCostPolicy(config.costPolicy, model) : undefined;
+  return config.costPolicy ? dzmmModelCostPolicy(config.costPolicy, model, { applyMinCredits: operation === "chat" }) : undefined;
 }
 function nowValue(options: Options): number {
   const now = (options.now ?? Date.now)();
@@ -142,7 +142,7 @@ async function finalizeSuperUsage(env:Env,input:Record<string,unknown>,usage:{pr
     .bind(input.reservationId,input.accountId,authorization,input.claimToken).first<UsageRow>();
   if(!previous)throw new ApiError(404,"计费请求不存在或结算授权无效。");
   const policy=frozenCostPolicy(previous),valid=input.hasValidOutput?1:0;
-  const directTariff=Boolean(policy&&usage&&usage.providerCostUsd===undefined&&findDzmmProviderModel(previous.model)?.route==="sealion");
+  const directTariff=Boolean(policy&&usage&&usage.providerCostUsd===undefined&&isDzmmDirectTariffModel(previous.model));
   const pending=valid===1&&(!usage||(policy!==undefined&&usage.providerCostUsd===undefined&&!directTariff));
   const persisted=pending?null:usage,status=pending?'pending':valid?'settled':'released',generation=input.generationId??null;
   await env.DB.batch([
@@ -213,7 +213,7 @@ export async function quoteCreditUsage(request: Request, env: Env, user: UserRec
     throw new ApiError(503, "模型 Credit 费率配置无效，请稍后重试。");
   if (!integer(available.balance, 0, Number.MAX_SAFE_INTEGER) || !integer(available.reserved_credits, 0, Number.MAX_SAFE_INTEGER))
     throw new ApiError(503, "账户 Credit 余额需要核对，请联系管理员。");
-  const costPolicy = requestCostPolicy(config, input.model);
+  const costPolicy = requestCostPolicy(config, input.model, input.operation);
   const required = (maxOutputTokens: number) => costPolicy
     ? reserveDzmmCreditCost(input.inputTokenUpperBound, maxOutputTokens, costPolicy)
     : chargeDzmmCreditTokens(input.inputTokenUpperBound, maxOutputTokens, config.inputCreditsPer1000!, config.outputCreditsPer1000!);
@@ -267,7 +267,7 @@ export async function reserveCreditUsage(request: Request, env: Env, user: UserR
   const config = creditBillingConfig(env);
   if (!config.enabled || !config.revision || !config.inputCreditsPer1000 || !config.outputCreditsPer1000)
     throw new ApiError(503, "模型 Credit 计费尚未启用。");
-  const costPolicy = requestCostPolicy(config, input.model);
+  const costPolicy = requestCostPolicy(config, input.model, input.operation);
   const estimated = costPolicy ? reserveDzmmCreditCost(input.inputTokenUpperBound, input.maxOutputTokens, costPolicy)
     : chargeDzmmCreditTokens(input.inputTokenUpperBound, input.maxOutputTokens, config.inputCreditsPer1000, config.outputCreditsPer1000);
   const spendable = input.operation === "chat"
@@ -323,7 +323,7 @@ export async function finalizeCreditUsage(env: Env, value: unknown, options: Opt
     .bind(input.reservationId, input.accountId, authorization, input.claimToken).first<UsageRow>();
   if (!previous) return finalizeSuperUsage(env,input,usage,now);
   const costPolicy = frozenCostPolicy(previous);
-  const directTariff = Boolean(costPolicy && usage && usage.providerCostUsd === undefined && findDzmmProviderModel(previous.model)?.route === "sealion");
+  const directTariff = Boolean(costPolicy && usage && usage.providerCostUsd === undefined && isDzmmDirectTariffModel(previous.model));
   const valid = input.hasValidOutput ? 1 : 0, pending = valid === 1 && (!usage || (costPolicy !== undefined && usage.providerCostUsd === undefined && !directTariff));
   // The existing pending schema deliberately keeps tokens unknown. In cost
   // mode, tokens without a trusted dollar cost must never trigger estimation.

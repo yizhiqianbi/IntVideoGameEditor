@@ -81,8 +81,10 @@ export async function readDzmmJsonBody(request: Request): Promise<unknown> {
 
 export async function handleDzmmChatGet(env: DzmmChatEnvironment): Promise<Response> {
   const config = readDzmmProviderConfig(env);
+  const whatstokenConfigured = Boolean(env.WHATSTOKEN_API_KEY?.trim())
+    && env.DZMM_WHATSTOKEN_CHAT_ENABLED?.trim().toLowerCase() !== "false";
   return Response.json({
-    configured: config.configured,
+    configured: config.configured || whatstokenConfigured,
     model: config.models.balanced,
     models: config.models,
   }, { headers: RESPONSE_HEADERS });
@@ -148,11 +150,15 @@ export async function handleDzmmChatPost(
     }
   }
   const config = readDzmmProviderConfig(env);
-  if (!config.configured) {
-    return failure("模型服务未配置。请在服务端设置 DZMM_API_KEY 或 OPENROUTER_API_KEY，并检查模型服务地址。", 503);
-  }
   const upstream = resolveDzmmChatUpstream(env, input.model, config);
-  if (!upstream.configured) return failure("这个模型还没配好，请稍后再试。", 503);
+  if (!upstream.configured) {
+    return failure(
+      upstream.direct
+        ? "这个模型还没配好，请稍后再试。"
+        : "模型服务未配置。请在服务端设置 DZMM_API_KEY 或 OPENROUTER_API_KEY，并检查模型服务地址。",
+      503,
+    );
+  }
 
   let maxPrice: ReturnType<typeof readDzmmProviderMaxPrice>;
   try { maxPrice = upstream.direct ? undefined : readDzmmProviderMaxPrice(env, config.baseUrl, upstream.model); }
@@ -248,7 +254,7 @@ export async function handleDzmmChatPost(
 
   try {
     if (request.signal.aborted) throw new Error("Cancelled before provider request");
-    const prepared = await prepareDzmmBillingRequest("chat", config.models[input.model], plan.messages,
+    const prepared = await prepareDzmmBillingRequest("chat", upstream.model, plan.messages,
       input.maxTokens, buildProviderBody, options.billing);
     effectiveMaxTokens = prepared.maxOutputTokens;
     if (request.signal.aborted || abortController.signal.aborted) throw new Error("Cancelled before billing reservation");

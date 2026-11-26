@@ -75,6 +75,10 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const currentWallet = !isGuest && config && wallet?.accountId === userId && wallet.mode === config.mode && wallet.provider === config.provider ? wallet : null;
   const currentOrder = !isGuest && config && order?.accountId === userId && order.mode === config.mode && order.id === activeOrderId ? order : null;
   const custom = config?.customAmount;
+  const ICEBREAKER_ID = "__cny_icebreaker_6";
+  const ICEBREAKER_MINOR = 600;
+  const hasSmallFixed = (config?.packages ?? []).some(item => item.amountMinor <= 1000);
+  const icebreakerAvailable = Boolean(custom && !hasSmallFixed && custom.minMinor <= ICEBREAKER_MINOR && custom.maxMinor >= ICEBREAKER_MINOR && ICEBREAKER_MINOR % custom.stepMinor === 0);
   const bestBonusId = (config?.packages ?? []).reduce((best, item) => {
     const bonus = item.bonusCredits ?? 0;
     const ratio = item.credits > 0 ? bonus / item.credits : 0;
@@ -83,8 +87,10 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const popularId = config && config.packages.length >= 3
     ? config.packages[Math.min(2, config.packages.length - 1)]?.id ?? ""
     : config?.packages[0]?.id ?? "";
-  const defaultPackageId = popularId || bestBonusId || config?.packages[0]?.id || "";
-  const packageId = config?.packages.some(item => item.id === selected) || (custom && selected === custom.id)
+  const defaultPackageId = popularId || bestBonusId || config?.packages[0]?.id || (icebreakerAvailable ? ICEBREAKER_ID : "");
+  const packageId = config?.packages.some(item => item.id === selected)
+    || (icebreakerAvailable && selected === ICEBREAKER_ID)
+    || (custom && selected === custom.id)
     ? selected
     : defaultPackageId;
   const maxBonusPct = (config?.packages ?? []).reduce((max, item) => {
@@ -95,20 +101,27 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   }, 0);
   const customMinor = /^\d{1,6}$/.test(customYuan) ? Number(customYuan) * 100 : NaN;
   const customValid = !!custom && customMinor >= custom.minMinor && customMinor <= custom.maxMinor && customMinor % custom.stepMinor === 0;
-  const selectedPackage = custom && packageId === custom.id
-    ? customValid ? { id: custom.id, amountMinor: customMinor, currency: config?.currency ?? "cny", credits: customMinor } : undefined
-    : config?.packages.find(item => item.id === packageId);
-  const cnyCheckout = config?.provider === "guagua";
-  const wechatMethods = config?.methods.filter(item => item.id === "wxpay") ?? [];
-  const wechatReady = cnyCheckout && wechatMethods.length > 0;
-  const methodId = wechatMethods.some(item => item.id === selectedMethod) ? selectedMethod : wechatMethods[0]?.id ?? "";
+  const isIcebreaker = icebreakerAvailable && packageId === ICEBREAKER_ID;
+  const selectedPackage = isIcebreaker && custom
+    ? { id: custom.id, amountMinor: ICEBREAKER_MINOR, currency: config?.currency ?? "cny", credits: ICEBREAKER_MINOR }
+    : custom && packageId === custom.id
+      ? customValid ? { id: custom.id, amountMinor: customMinor, currency: config?.currency ?? "cny", credits: customMinor } : undefined
+      : config?.packages.find(item => item.id === packageId);
+  const cnyCheckout = config?.provider === "guagua" || config?.provider === "zpay";
+  const availableMethods = config?.provider === "guagua"
+    ? (config.methods.filter(item => item.id === "wxpay"))
+    : (config?.methods ?? []);
+  const methodReady = cnyCheckout && availableMethods.length > 0;
+  const methodId = availableMethods.some(item => item.id === selectedMethod) ? selectedMethod : availableMethods[0]?.id ?? "";
+  const activeMethodLabel = availableMethods.find(item => item.id === methodId)?.label ?? "微信支付";
   const firstHalf = currentWallet?.firstRechargeHalfAvailable === true;
-  /** 首单半价只作用于固定档位，自定义金额不参与；与后端按分取整保持一致。 */
+  /** 首单半价只作用于固定档位，自定义金额（含破冰体验充）不参与；与后端按分取整保持一致。 */
   const payAmount = (item: { id: string; amountMinor: number }) =>
     firstHalf && item.id !== "cny_custom" ? Math.max(100, Math.round(item.amountMinor / 2)) : item.amountMinor;
-  const canResume = (entry: DzmmPaymentOrder) => XUMENG_PAYMENTS_ENABLED && !!config?.enabled && entry.provider === "guagua"
+  const canResume = (entry: DzmmPaymentOrder) => XUMENG_PAYMENTS_ENABLED && !!config?.enabled
+    && (entry.provider === "guagua" || entry.provider === "zpay")
     && entry.provider === config.provider && entry.mode === config.mode && entry.status === "pending" && !!entry.checkoutUrl
-    && entry.method === "wxpay" && config.methods.some(item => item.id === entry.method);
+    && !!entry.method && availableMethods.some(item => item.id === entry.method);
 
   const refresh = useCallback(async () => {
     const epoch = ++generation.current;
@@ -191,18 +204,19 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   async function checkout() {
     if (!XUMENG_PAYMENTS_ENABLED || pending.current || loading || checkoutBusy) return;
     if (isGuest) { onRequireAccount(); return; }
-    if (!config?.enabled || config.provider !== "guagua" || !selectedPackage || methodId !== "wxpay" || paymentContext.current !== paymentKey) return;
+    if (!config?.enabled || (config.provider !== "guagua" && config.provider !== "zpay") || !selectedPackage || !methodId || paymentContext.current !== paymentKey) return;
     pending.current = true; setCheckoutBusy(true); setError("");
     const captured = accountKey;
     const capturedContext = paymentKey;
-    const requestKey = `${capturedContext}:${methodId}:${packageId}:${selectedPackage.amountMinor}`;
+    const submitPackageId = selectedPackage.id;
+    const requestKey = `${capturedContext}:${methodId}:${submitPackageId}:${selectedPackage.amountMinor}`;
     let redirecting = false;
     const controller = new AbortController();
     checkoutController.current = controller;
     try {
       let requestId = requestIds.current.get(requestKey);
       if (!requestId) { requestId = crypto.randomUUID(); requestIds.current.set(requestKey, requestId); }
-      const body = { packageId, ...(custom && packageId === custom.id ? { amountMinor: selectedPackage.amountMinor } : {}), accountId: userId, requestId, mode: config.mode, provider: "guagua" as const, method: methodId as DzmmPaymentMethod };
+      const body = { packageId: submitPackageId, ...(custom && submitPackageId === custom.id ? { amountMinor: selectedPackage.amountMinor } : {}), accountId: userId, requestId, mode: config.mode, provider: config.provider, method: methodId as DzmmPaymentMethod };
       const result = await createDzmmCheckout(body, controller.signal, selectedPackage);
       if (controller.signal.aborted || !mounted.current || account.current !== captured || paymentContext.current !== capturedContext) return;
       if (result.order.status !== "pending") {
@@ -266,8 +280,8 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const working = loading || checkoutBusy;
   const dueLabel = selectedPackage ? money(payAmount(selectedPackage), selectedPackage.currency) : "";
   const checkoutLabel = checkoutBusy ? "正在创建订单…" : !config?.enabled
-    ? "微信支付暂未开通"
-    : isGuest ? "登录后充值" : dueLabel ? `微信支付 ${dueLabel}` : "立即支付";
+    ? "充值通道暂未开通"
+    : isGuest ? "登录后充值" : dueLabel ? `${activeMethodLabel} ${dueLabel}` : "立即支付";
   const cancelledReturn = cancelled && activeOrderId === returnOrderId;
   let orderMessage = verifying ? "正在向服务器核对订单，支付返回链接本身不会增加余额。" : "订单状态以服务器记录为准。";
   if (currentOrder?.status === "paid") orderMessage = `已确认到账 ${points(currentOrder.credits)} 充值点数。余额已读取服务器最新记录。`;
@@ -285,10 +299,10 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
     return { base, bonus: bonus > 0 && bonus < item.credits ? bonus : 0, total: item.credits, pct };
   };
   const playEstimate = (totalCredits: number) => {
-    const rounds = Math.max(15, Math.round(totalCredits / 15));
-    const pics = Math.max(4, Math.round(totalCredits / 50));
+    const rounds = Math.max(10, Math.floor(totalCredits / 8));
+    const pics = Math.max(1, Math.floor(totalCredits / 100));
     const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n);
-    return `约深聊 ${fmt(rounds)} 轮 · 生图 ${fmt(pics)} 张`;
+    return `微光约聊 ${fmt(rounds)} 轮 · 剧情图 ${fmt(pics)} 张`;
   };
 
   const channelName = (provider: string, method: string | null) => method === "wxpay" || provider === "guagua" ? "微信支付" : provider === "nowpayments" ? "USDT" : "历史订单";
@@ -390,8 +404,24 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
         {firstHalf && <span className={s.purchasePromoNote}><Icon name="sparkles" size={13} />已自动应用首单 5 折</span>}
       </div>
       {config ? config.packages.length ? <>
-        <fieldset className={s.packages} disabled={working}>
+        <fieldset className={`${s.packages} ${config.packages.length + (icebreakerAvailable ? 1 : 0) === 4 ? s.packagesFour : ""}`} disabled={working}>
           <legend className={s.srOnly}>金币购买档位</legend>
+          {icebreakerAvailable && <label className={`${s.package} ${s.packageIcebreaker} ${isIcebreaker ? s.selected : ""}`} key={ICEBREAKER_ID}>
+            <input type="radio" name="recharge-package" value={ICEBREAKER_ID} checked={isIcebreaker} onChange={() => setSelected(ICEBREAKER_ID)} />
+            <div className={s.packageTopRow}>
+              <em className={`${s.badge} ${s.badgeIcebreaker}`}><Icon name="zap" size={11} />破冰首试</em>
+              <span className={`${s.selectRing} ${isIcebreaker ? s.selectRingOn : ""}`} aria-hidden="true">
+                {isIcebreaker && <Icon name="check" size={11} />}
+              </span>
+            </div>
+            <span className={s.packageCredits}><CoinIcon size={20} />{points(ICEBREAKER_MINOR)}</span>
+            <span className={s.packageSplit}>低门槛尝鲜体验</span>
+            <span className={s.packageUsage}>{playEstimate(ICEBREAKER_MINOR)}</span>
+            <div className={s.priceRow}>
+              <span className={s.pricePill}>{money(ICEBREAKER_MINOR, config.currency)}</span>
+              <em className={s.icebreakerNote}>随时可充</em>
+            </div>
+          </label>}
           {config.packages.map(item => {
             const offer = granted(item);
             const isSelected = packageId === item.id;
@@ -417,7 +447,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
               </div>
               <span className={s.packageCredits}><CoinIcon size={20} />{points(offer.total)}</span>
               <span className={`${s.packageSplit} ${offer.bonus ? s.packageSplitBonus : ""}`}>
-                {offer.bonus ? <>含加赠 <b>+{points(offer.bonus)}</b> 金币</> : "1,000 金币入门体验"}
+                {offer.bonus ? <>含加赠 <b>+{points(offer.bonus)}</b> 金币</> : `${points(offer.total)} 金币即刻畅玩`}
               </span>
               <span className={s.packageUsage}>{playEstimate(offer.total)}</span>
               <div className={s.priceRow}>
@@ -435,7 +465,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
               {customValid && <em className={s.customValue}><CoinIcon size={14} />{points(customMinor)} 金币</em>}
             </div>
             <div className={s.customChips}>
-              {[10, 30, 50, 100, 200].filter(value => value * 100 >= custom.minMinor && value * 100 <= custom.maxMinor).map(value =>
+              {[6, 10, 30, 50, 100, 200].filter(value => value * 100 >= custom.minMinor && value * 100 <= custom.maxMinor).map(value =>
                 <button type="button" key={value} className={customYuan === String(value) ? s.chipOn : ""} onClick={event => { event.stopPropagation(); setCustomYuan(String(value)); setSelected(custom.id); }}>¥{value}</button>)}
             </div>
             <label className={s.customField}>¥<input inputMode="numeric" aria-label="自定义充值金额（元）" placeholder={`${custom.minMinor / 100}–${custom.maxMinor / 100}`}
@@ -444,6 +474,18 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
             {packageId === custom.id && !customValid && <p className={s.customHint}>请输入 {custom.minMinor / 100}–{custom.maxMinor / 100} 元之间的金额</p>}
           </div>}
         </fieldset>
+        {availableMethods.length > 1 && <div className={s.methodPicker} role="radiogroup" aria-label="选择支付方式">
+          <span className={s.methodPickerLabel}>支付方式</span>
+          <div className={s.methodPills}>
+            {availableMethods.map(item => (
+              <button type="button" key={item.id} role="radio" aria-checked={methodId === item.id}
+                className={`${s.methodPill} ${methodId === item.id ? s.methodPillOn : ""}`}
+                onClick={() => setSelectedMethod(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>}
         <div className={s.paybar}>
           <div className={s.payInfo}>
             <span className={s.payTotalLine}>
@@ -452,9 +494,9 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
             </span>
             {savedMinor > 0 && selectedPackage
               ? <span className={s.promoOld}>首单 5 折已立省 {money(savedMinor, selectedPackage.currency)}（原价 {money(selectedPackage.amountMinor, selectedPackage.currency)}）</span>
-              : <span><Icon name="shield" size={12} />微信安全收银台 · 支付成功即刻自动到账</span>}
+              : <span><Icon name="shield" size={12} />{activeMethodLabel}安全收银台 · 支付成功即刻自动到账</span>}
           </div>
-          <button type="button" className={`${s.primary} ${s.payCta}`} disabled={working || !wechatReady || !config.enabled || !selectedPackage} onClick={() => void checkout()}>
+          <button type="button" className={`${s.primary} ${s.payCta}`} disabled={working || !methodReady || !config.enabled || !selectedPackage} onClick={() => void checkout()}>
             <Icon name="zap" size={16} />
             <span>{checkoutLabel}</span>
           </button>

@@ -66,9 +66,13 @@ export async function handleDzmmMemoryPost(request: Request, env: DzmmChatEnviro
   try { input = validateDzmmMemoryInput(await readDzmmJsonBody(request)); }
   catch (error) { return Response.json({ error: error instanceof DzmmValidationError ? error.message : "无法读取剧情记忆请求。" }, { status: 400, headers: HEADERS }); }
   const config = readDzmmProviderConfig(env);
-  if (!config.configured) return Response.json({ error: "模型服务未配置，无法整理历史。" }, { status: 503, headers: HEADERS });
   const upstream = resolveDzmmChatUpstream(env, input.model, config);
-  if (!upstream.configured) return Response.json({ error: "这个模型还没配好，请稍后再试。" }, { status: 503, headers: HEADERS });
+  if (!upstream.configured) {
+    return Response.json(
+      { error: upstream.direct ? "这个模型还没配好，请稍后再试。" : "模型服务未配置，无法整理历史。" },
+      { status: 503, headers: HEADERS },
+    );
+  }
   const profileInstruction = tavernMemoryProfileInstruction(input.profile);
   const providerMessages = [{ role: "system", content: profileInstruction ? `${MEMORY_INSTRUCTION}\n${profileInstruction}` : MEMORY_INSTRUCTION }, { role: "user", content: JSON.stringify({
     previousState: input.previousState ?? null, historicalMessages: input.messages,

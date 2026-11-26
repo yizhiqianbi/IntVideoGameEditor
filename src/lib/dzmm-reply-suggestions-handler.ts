@@ -24,14 +24,13 @@ export async function handleDzmmReplySuggestionsPost(request: Request, env: Dzmm
   catch (error) { return failure(error instanceof DzmmValidationError ? error.message : "无法读取建议请求。", 400); }
   const { input, messages } = preparedInput;
   const config = readDzmmProviderConfig(env);
-  if (!config.configured) return failure("模型服务未配置，无法生成建议。", 503);
   const upstream = resolveDzmmChatUpstream(env, input.model, config);
-  if (!upstream.configured) return failure("这个模型还没配好，请稍后再试。", 503);
+  if (!upstream.configured) return failure(upstream.direct ? "这个模型还没配好，请稍后再试。" : "模型服务未配置，无法生成建议。", 503);
   let maxPrice: ReturnType<typeof readDzmmProviderMaxPrice>;
   try { maxPrice = upstream.direct ? undefined : readDzmmProviderMaxPrice(env, config.baseUrl, upstream.model); }
   catch (error) { return failure(error instanceof DzmmBillingError ? error.message : "模型成本上限配置无效，请联系站主。", 503, "BILLING_UNAVAILABLE"); }
   const model = upstream.model;
-  const plainJson = findDzmmProviderModel(model)?.id === "venice" || findDzmmProviderModel(model)?.route === "sealion";
+  const plainJson = upstream.direct || findDzmmProviderModel(model)?.id === "venice";
   const buildBody = (maxOutputTokens: number) => JSON.stringify({ model, stream: false,
     ...dzmmModelTemperature(model, 0.6), ...dzmmModelReasoning(model), max_tokens: maxOutputTokens, messages,
     response_format: plainJson ? { type: "json_object" } : DZMM_REPLY_SUGGESTIONS_RESPONSE_FORMAT,

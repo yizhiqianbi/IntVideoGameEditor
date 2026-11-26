@@ -10,6 +10,8 @@ export type DzmmCreditCostPolicy = {
   outputUsdPerMillion: number;
   maxInputUsdPerMillion: number;
   maxOutputUsdPerMillion: number;
+  /** Story chat floor in credits (8 * model tier multiplier). Absent on legacy rows & memory calls. */
+  minCredits?: number;
 };
 
 const RATE_PLACES = 6;
@@ -40,20 +42,27 @@ export function parseDzmmProviderCostUsd(value: unknown): number | undefined {
 }
 
 export function parseDzmmCreditCostPolicy(value: unknown): DzmmCreditCostPolicy | undefined {
-  const allowed = ["version", "multiplier", "usdToCny", "creditsPerCny", "inputUsdPerMillion", "outputUsdPerMillion",
+  const requiredKeys = ["version", "multiplier", "usdToCny", "creditsPerCny", "inputUsdPerMillion", "outputUsdPerMillion",
     "maxInputUsdPerMillion", "maxOutputUsdPerMillion"];
+  const allowedKeys = [...requiredKeys, "minCredits"];
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const input = value as Record<string, unknown>;
-  if (Object.keys(input).length !== allowed.length || Object.keys(input).some(key => !allowed.includes(key))
+  const keys = Object.keys(input);
+  if (keys.some(key => !allowedKeys.includes(key)) || requiredKeys.some(key => !Object.hasOwn(input, key))
     || input.version !== 1 || (input.multiplier !== 3 && input.multiplier !== 5) || input.creditsPerCny !== 100
     || decimal(input.usdToCny, RATE_PLACES, 0.000001, 1_000_000) === undefined) return undefined;
   const prices = [input.inputUsdPerMillion, input.outputUsdPerMillion, input.maxInputUsdPerMillion, input.maxOutputUsdPerMillion];
   if (prices.some(price => parseDzmmProviderCostUsd(price) === undefined || (price as number) <= 0)
     || (input.maxInputUsdPerMillion as number) < (input.inputUsdPerMillion as number)
     || (input.maxOutputUsdPerMillion as number) < (input.outputUsdPerMillion as number)) return undefined;
+  const hasMinCredits = Object.hasOwn(input, "minCredits") && input.minCredits !== undefined;
+  if (hasMinCredits && (!Number.isSafeInteger(input.minCredits) || (input.minCredits as number) < 1 || (input.minCredits as number) > 10_000)) {
+    return undefined;
+  }
   return { version: 1, multiplier: input.multiplier as DzmmCreditMarkup, usdToCny: input.usdToCny as number, creditsPerCny: 100,
     inputUsdPerMillion: input.inputUsdPerMillion as number, outputUsdPerMillion: input.outputUsdPerMillion as number,
-    maxInputUsdPerMillion: input.maxInputUsdPerMillion as number, maxOutputUsdPerMillion: input.maxOutputUsdPerMillion as number };
+    maxInputUsdPerMillion: input.maxInputUsdPerMillion as number, maxOutputUsdPerMillion: input.maxOutputUsdPerMillion as number,
+    ...(hasMinCredits ? { minCredits: input.minCredits as number } : {}) };
 }
 
 function tokens(value: number): bigint {
@@ -82,8 +91,9 @@ export function chargeDzmmCreditTokens(promptTokens: number, completionTokens: n
 
 export function chargeDzmmProviderCostUsd(costUsd: number, policy: DzmmCreditCostPolicy): number {
   const value = policyValue(policy);
-  return ceiling(required(decimal(costUsd, USD_PLACES, 0, 1_000_000))
+  const actual = ceiling(required(decimal(costUsd, USD_PLACES, 0, 1_000_000))
     * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n, USD_SCALE * RATE_SCALE);
+  return value.minCredits !== undefined ? Math.max(value.minCredits, actual) : actual;
 }
 
 /** Site tariff for a direct host that does not send an invoice. Uses the frozen
@@ -92,14 +102,16 @@ export function chargeDzmmTariffTokens(promptTokens: number, completionTokens: n
   const value = policyValue(policy);
   const estimatedUsd = tokens(promptTokens) * required(decimal(value.inputUsdPerMillion, USD_PLACES, 0, 1_000_000))
     + tokens(completionTokens) * required(decimal(value.outputUsdPerMillion, USD_PLACES, 0, 1_000_000));
-  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
+  const actual = ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
     1_000_000n * USD_SCALE * RATE_SCALE);
+  return value.minCredits !== undefined && (promptTokens > 0 || completionTokens > 0) ? Math.max(value.minCredits, actual) : actual;
 }
 
 export function reserveDzmmCreditCost(inputTokens: number, maxOutputTokens: number, policy: DzmmCreditCostPolicy): number {
   const value = policyValue(policy);
   const estimatedUsd = tokens(inputTokens) * required(decimal(value.maxInputUsdPerMillion, USD_PLACES, 0, 1_000_000))
     + tokens(maxOutputTokens) * required(decimal(value.maxOutputUsdPerMillion, USD_PLACES, 0, 1_000_000));
-  return ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
+  const estimated = ceiling(estimatedUsd * required(decimal(value.usdToCny, RATE_PLACES, 0.000001, 1_000_000)) * BigInt(value.multiplier) * 100n,
     1_000_000n * USD_SCALE * RATE_SCALE);
+  return value.minCredits !== undefined && (inputTokens > 0 || maxOutputTokens > 0) ? Math.max(value.minCredits, estimated) : estimated;
 }

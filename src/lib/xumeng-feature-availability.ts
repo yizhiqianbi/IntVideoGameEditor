@@ -1,7 +1,7 @@
 /** Image and video creation. Server routes follow GENERATION_ENABLED. */
 export const XUMENG_GENERATION_WORKSPACE_ENABLED = true;
 
-/** Credit recharge uses the Guagua Alipay checkout. */
+/** Credit recharge and VIP checkout use configured live payment methods. */
 export const XUMENG_PAYMENTS_ENABLED = true;
 
 /** Public forum. Set this to true to show the forum again. Posts stay stored either way. */

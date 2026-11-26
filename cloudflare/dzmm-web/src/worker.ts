@@ -13,7 +13,7 @@ import { handleDzmmNovelPost } from "../../../src/lib/dzmm-novel-handler";
 import { handleDzmmReplySuggestionsPost } from "../../../src/lib/dzmm-reply-suggestions-handler";
 import { handleDzmmIllustrationsPost } from "../../../src/lib/dzmm-illustration-handler";
 import { handleCoverCaptionPost } from "../../../src/lib/dzmm-cover-caption-handler";
-import { dzmmModelCostPolicy, findDzmmProviderModel } from "../../../src/lib/dzmm-models";
+import { dzmmModelCostPolicy, findDzmmProviderModel, isDzmmDirectTariffModel } from "../../../src/lib/dzmm-models";
 import { DzmmBillingError, readDzmmProviderMaxPrice, type DzmmBillingLifecycle, type DzmmBillingRpcBinding } from "../../../src/lib/dzmm-generation-billing";
 import { readDzmmProviderConfig } from "../../../src/lib/dzmm-chat";
 import { recoverBillingGenerationSoon, runBillingMaintenance } from "./billing-maintenance";
@@ -69,6 +69,8 @@ export interface Env extends LiveGatewayEnvironment, MiniCpmPhoneEnvironment, Co
   TAVERN_MEMORY?: string;
   KREA2_ACTIONS_URL?: string;
   WHATSTOKEN_API_KEY?: string;
+  WHATSTOKEN_BASE_URL?: string;
+  DZMM_WHATSTOKEN_CHAT_ENABLED?: string;
   H3_COMFY_URL?: string;
   H3_COMFY_TOKEN?: string;
   MEDIA?: R2Bucket;
@@ -1202,6 +1204,9 @@ function chatEnvironment(env: Env): DzmmChatEnvironment {
     DZMM_API_KEY: env.DZMM_API_KEY,
     SEALION_API_KEY: env.SEALION_API_KEY,
     SEALION_BASE_URL: env.SEALION_BASE_URL,
+    WHATSTOKEN_API_KEY: env.WHATSTOKEN_API_KEY,
+    WHATSTOKEN_BASE_URL: env.WHATSTOKEN_BASE_URL,
+    DZMM_WHATSTOKEN_CHAT_ENABLED: env.DZMM_WHATSTOKEN_CHAT_ENABLED,
     DZMM_BASE_URL: env.DZMM_BASE_URL,
     DZMM_MODEL: env.DZMM_MODEL,
     DZMM_FAST_MODEL: env.DZMM_FAST_MODEL,
@@ -1281,16 +1286,20 @@ function billingLifecycle(request: Request, env: Env, accountId: string, request
     if (costPolicy || (registeredModel && registeredModel.id !== "grok")) {
       try {
         if (registeredModel) {
-          const expectedPolicy = costPolicy ? dzmmModelCostPolicy(costPolicy, preflight.model) : undefined;
+          const expectedPolicy = costPolicy
+            ? dzmmModelCostPolicy(costPolicy, preflight.model, { applyMinCredits: preflight.operation === "chat" })
+            : undefined;
           if (!costPolicy || value.receipt.model !== preflight.model || !expectedPolicy
-            || ["inputUsdPerMillion", "outputUsdPerMillion", "maxInputUsdPerMillion", "maxOutputUsdPerMillion"]
+            || ["inputUsdPerMillion", "outputUsdPerMillion", "maxInputUsdPerMillion", "maxOutputUsdPerMillion", "minCredits"]
               .some(field => costPolicy[field as keyof typeof costPolicy] !== expectedPolicy[field as keyof typeof expectedPolicy])) {
             throw new DzmmBillingError(503, "当前模型与冻结计费记录不一致，请联系站主检查服务配置。");
           }
         }
-        const caps = readDzmmProviderMaxPrice(chatEnvironment(env), readDzmmProviderConfig(chatEnvironment(env)).baseUrl, preflight.model);
-        if (!costPolicy || !caps || caps.prompt > costPolicy.maxInputUsdPerMillion || caps.completion > costPolicy.maxOutputUsdPerMillion) {
-          throw new DzmmBillingError(503, "模型成本上限与计费配置不一致，请联系站主检查服务配置。");
+        if (!isDzmmDirectTariffModel(preflight.model)) {
+          const caps = readDzmmProviderMaxPrice(chatEnvironment(env), readDzmmProviderConfig(chatEnvironment(env)).baseUrl, preflight.model);
+          if (!costPolicy || !caps || caps.prompt > costPolicy.maxInputUsdPerMillion || caps.completion > costPolicy.maxOutputUsdPerMillion) {
+            throw new DzmmBillingError(503, "模型成本上限与计费配置不一致，请联系站主检查服务配置。");
+          }
         }
       } catch (failure) {
         // A grant already holds funds. Configuration rejection must release it

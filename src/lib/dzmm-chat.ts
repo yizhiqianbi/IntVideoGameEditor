@@ -576,6 +576,7 @@ export function readDzmmProviderConfig(env: Record<string, string | undefined> =
 }
 
 const SEALION_CHAT_BASE = "https://open-sealion.aiaigirl.com/v1";
+const WHATSTOKEN_CHAT_BASE = "https://www.whatstoken.ai/v1";
 
 export type DzmmChatUpstream = {
   endpoint: string;
@@ -595,15 +596,38 @@ function validSealionBase(baseUrl: string): boolean {
   } catch { return false; }
 }
 
-/** OpenRouter stays the default. One direct model uses its own host and secret. */
+function validWhatsTokenBase(baseUrl: string): boolean {
+  try {
+    const parsed = new URL(baseUrl);
+    return parsed.protocol === "https:"
+      && (parsed.hostname === "www.whatstoken.ai" || parsed.hostname === "whatstoken.ai")
+      && parsed.pathname.replace(/\/$/, "") === "/v1"
+      && !parsed.username && !parsed.password && !parsed.search && !parsed.hash;
+  } catch { return false; }
+}
+
+/** Resolve upstream host per model:
+ * 1. Sealion direct models always use SEALION_API_KEY.
+ * 2. Non-Gemma models with a verified WhatsToken channel prefer WHATSTOKEN_API_KEY
+ *    (unless DZMM_WHATSTOKEN_CHAT_ENABLED === "false"), keeping CN access reliable.
+ * 3. Remaining models (Gemma / fallback) stay on OpenRouter. */
 export function resolveDzmmChatUpstream(env: Record<string, string | undefined>, preset: DzmmModelPreset, config: DzmmProviderConfig): DzmmChatUpstream {
   const model = config.models[preset];
-  const direct = DZMM_MODEL_OPTIONS.find(option => option.id === preset)?.route === "sealion";
-  if (!direct) return { endpoint: `${config.baseUrl}/chat/completions`, baseUrl: config.baseUrl, apiKey: config.apiKey, model, direct: false, configured: true };
-  const apiKey = env.SEALION_API_KEY?.trim() || "";
-  const baseUrl = (env.SEALION_BASE_URL?.trim() || SEALION_CHAT_BASE).replace(/\/+$/, "");
-  const configured = Boolean(apiKey) && !/[\r\n]/.test(apiKey) && validSealionBase(baseUrl);
-  return { endpoint: `${baseUrl}/chat/completions`, baseUrl, apiKey, model, direct: true, configured };
+  const option = DZMM_MODEL_OPTIONS.find(entry => entry.id === preset);
+  if (option?.route === "sealion") {
+    const apiKey = env.SEALION_API_KEY?.trim() || "";
+    const baseUrl = (env.SEALION_BASE_URL?.trim() || SEALION_CHAT_BASE).replace(/\/+$/, "");
+    const configured = Boolean(apiKey) && !/[\r\n]/.test(apiKey) && validSealionBase(baseUrl);
+    return { endpoint: `${baseUrl}/chat/completions`, baseUrl, apiKey, model, direct: true, configured };
+  }
+  const wtEnabled = env.DZMM_WHATSTOKEN_CHAT_ENABLED?.trim().toLowerCase() !== "false";
+  const wtKey = env.WHATSTOKEN_API_KEY?.trim() || "";
+  if (option?.whatstoken && wtEnabled && wtKey) {
+    const baseUrl = (env.WHATSTOKEN_BASE_URL?.trim() || WHATSTOKEN_CHAT_BASE).replace(/\/+$/, "");
+    const configured = !/[\r\n]/.test(wtKey) && validWhatsTokenBase(baseUrl);
+    return { endpoint: `${baseUrl}/chat/completions`, baseUrl, apiKey: wtKey, model: option.whatstoken.model, direct: true, configured };
+  }
+  return { endpoint: `${config.baseUrl}/chat/completions`, baseUrl: config.baseUrl, apiKey: config.apiKey, model, direct: false, configured: config.configured };
 }
 
 export function dzmmUpstreamHeaders(apiKey: string, direct: boolean, title: string): Record<string, string> {

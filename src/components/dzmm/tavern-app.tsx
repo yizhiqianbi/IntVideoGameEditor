@@ -116,7 +116,7 @@ import { xumengPerformanceFromCard, type XumengPerformanceCharacter } from "@/li
 import { buildXumengLiveConversationHandoff } from "@/lib/xumeng-live-conversation";
 import { xumengVideoDramaIdFromRoute } from "@/lib/xumeng-video-catalog";
 import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_CHARACTER_VOICE_ENABLED, XUMENG_FORUM_ENABLED, XUMENG_FORUM_LOCKED_MESSAGE, XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
-import { DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
+import { DZMM_BASE_TURN_CREDITS, DZMM_MODEL_TIERS, DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
 import { SignupWelcome } from "./signup-welcome";
 import { chatImageAutoMode } from "@/lib/tavern/image-generation";
 import { XumengStatusCard, type MomentSection } from "./xumeng-moment-status";
@@ -178,6 +178,7 @@ const GenerationHistory = lazy(() => import("./generation-history"));
 const TaskHub = lazy(() => import("./task-hub").then((module) => ({ default: module.TaskHub })));
 const InstallApp = lazy(() => import("./install-app").then((module) => ({ default: module.InstallApp })));
 const Recharge = lazy(() => import("./recharge").then((module) => ({ default: module.Recharge })));
+const QuickRechargeModal = lazy(() => import("./quick-recharge-modal").then((module) => ({ default: module.QuickRechargeModal })));
 const DailyCheckin = lazy(() => import("./daily-checkin").then((module) => ({ default: module.DailyCheckin })));
 const CheckinModal = lazy(() => import("./checkin-modal").then((module) => ({ default: module.CheckinModal })));
 
@@ -326,14 +327,6 @@ const SOCIAL_MARKS = {
   telegram: "M21.5 4.4 2.8 11.2c-1.3.5-1.2 1.2-.2 1.5l4.8 1.5 11.1-7c.5-.3 1-.1.6.2l-9 8.1-.3 4.8c.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.8-1.2-1.3z",
 } as const;
 
-const RAIL_SOCIALS = [
-  ["youtube", "YouTube"],
-  ["x", "X"],
-  ["discord", "Discord"],
-  ["tiktok", "TikTok"],
-  ["instagram", "Instagram"],
-] as const satisfies ReadonlyArray<readonly [keyof typeof SOCIAL_MARKS, string]>;
-
 function SocialMark({ name }: { name: keyof typeof SOCIAL_MARKS }) {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
@@ -352,11 +345,13 @@ const NAV: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
 ];
 const NAV_TOOLS: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
   ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ view: "generation" as const, labelKey: "navTemplates" as const, icon: "grid" as const }] : []),
-  { view: "invite", labelKey: "navInvite", icon: "users" },
-  { view: "novels", labelKey: "navNovels", icon: "book" },
-  { view: "voice", labelKey: "navVoice", icon: "volume" },
   { view: "tasks", labelKey: "navTasks", icon: "trophy" },
+  { view: "invite", labelKey: "navInvite", icon: "users" },
   ...(XUMENG_PAYMENTS_ENABLED ? [{ view: "recharge" as const, labelKey: "navRecharge" as const, icon: "wallet" as const }, { view: "vip" as const, labelKey: "navVip" as const, icon: "crown" as const }] : [{ view: "recharge" as const, labelKey: "navRecharge" as const, icon: "sun" as const }]),
+];
+const NAV_SECONDARY_TOOLS: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
+  { view: "novels", labelKey: "navNovels", icon: "book" },
+  ...(XUMENG_CHARACTER_VOICE_ENABLED ? [{ view: "voice" as const, labelKey: "navVoice" as const, icon: "volume" as const }] : []),
   { view: "presets", labelKey: "navPresets", icon: "sliders" },
   { view: "settings", labelKey: "navSettings", icon: "user" },
   { view: "app", labelKey: "navInstallApp", icon: "download" },
@@ -902,6 +897,10 @@ export default function TavernApp() {
   const [rechargeNeeded, setRechargeNeeded] = useState(false);
   const [coinGuide, setCoinGuide] = useState(false);
   const [rechargeMessage, setRechargeMessage] = useState("");
+  const openQuickRecharge = (reason?: string) => {
+    setRechargeMessage(reason?.trim() ?? "");
+    setRechargeNeeded(true);
+  };
   const [editingMessage, setEditingMessage] = useState<{ accountId: string | null; conversationId: string; messageId: string; original: string } | null>(null);
   const detailReturn = useRef<View>("characters");
   const detailReturnHash = useRef("characters");
@@ -1153,6 +1152,7 @@ export default function TavernApp() {
   const accountLabel = cloud.user?.isGuest && (!storedName || storedName === "游客") ? t("guestName") : (storedName || t("navProfile"));
   const localizedNav = NAV.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedTools = NAV_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
+  const localizedSecondaryTools = NAV_SECONDARY_TOOLS.map(item => ({ ...item, label: t(item.labelKey) }));
   const localizedAdmin = { view: "admin" as const, label: t("navAdmin"), icon: "sliders" as const };
   // The mobile bar keeps four text tabs and lifts 创作 out as a round centre button.
   const mobileNavItems = localizedNav.filter(item => item.view !== "studio");
@@ -3707,20 +3707,14 @@ export default function TavernApp() {
           <a href="#checkin" className={view === "checkin" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("checkin"); }}><Icon name="sun" size={18} />{t("utilityDailyCheckIn")}</a>
           <a href="#invite" className={view === "invite" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("invite"); }}><Icon name="users" size={18} />{t("navInvite")}</a>
           {XUMENG_PAYMENTS_ENABLED && <a href="#recharge" className={`${s.railRecharge} ${view === "recharge" || view === "vip" ? s.navActive : ""}`} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}><Icon name="wallet" size={18} /><span>{t("utilityRechargeVip")}</span><em className={s.railPromoTag}>5折</em></a>}
-          <a href="#app" className={view === "app" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("app"); }}><Icon name="download" size={18} />{t("utilityInstallApp")}</a>
         </nav>
         <div className={s.railDock}>
           <div className={s.railSocial} role="group" aria-label={copy.socialLinks}>
-            {RAIL_SOCIALS.map(([name, label]) => (
-              <button key={name} type="button" className={s.railSocialItem} aria-disabled="true" aria-label={label} title={copy.socialSoon} onClick={(event) => event.preventDefault()}>
-                <SocialMark name={name} />
-              </button>
-            ))}
             <a className={`${s.railSocialItem} ${s.railSocialLive}`} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title={copy.telegramJoin}><SocialMark name="telegram" /></a>
-            <button type="button" className={s.railSocialMore} aria-disabled="true" aria-label={copy.socialMore} title={copy.socialSoon} onClick={(event) => event.preventDefault()}>
-              <Icon name="more" size={14} />
-              <span>{copy.socialMore}</span>
-            </button>
+            <a href="#app" className={`${s.railSocialMore}`} onClick={(event) => { event.preventDefault(); navigate("app"); }} title={t("utilityInstallApp")}>
+              <Icon name="download" size={13} />
+              <span>{t("utilityInstallApp")}</span>
+            </a>
           </div>
           <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
             <span className={s.avatar}><AccountAvatar src={state.preferences.avatar} className={s.avatarImage} /></span>
@@ -3775,7 +3769,7 @@ export default function TavernApp() {
             <strong>{t("navEarnCredit")}</strong>
           </a>
         </nav>
-        <ResponsiveNavigation key={view} items={localizedNav} tools={cloud.user?.role === "super" ? [...localizedTools, localizedAdmin] : localizedTools}
+        <ResponsiveNavigation key={view} items={localizedNav} tools={localizedTools} secondaryTools={cloud.user?.role === "super" ? [...localizedSecondaryTools, localizedAdmin] : localizedSecondaryTools}
           currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "scenarios" || view === "novels" || view === "generation" || view === "aigen" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
           footer={<><button type="button" className={s.navDrawerTool} onClick={() => setActiveTour(view === "chat" && activeId ? "chat" : view === "generation" ? "generation" : "discover")}><Icon name="help" size={18} /><span>{locale === "en" ? "Guided tour" : "新手引导"}</span></button><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
@@ -4141,35 +4135,81 @@ export default function TavernApp() {
                       disabled={busy}
                       onClick={() => { if (!activeReplyActive()) { setChatToolsOpen(false); setPlaySheetOpen(false); setModelMenuOpen((open) => !open); } }}
                     >
-                      {MODEL_MODES.find(mode => mode.id === normalizeDzmmModelSelection(state.preferences.model))?.label}
+                      {(() => {
+                        const selectedMode = MODEL_MODES.find(mode => mode.id === normalizeDzmmModelSelection(state.preferences.model)) ?? MODEL_MODES[0];
+                        return selectedMode ? <>
+                          <span className={s.modelButtonLabel}>{selectedMode.label}</span>
+                          <em className={s.modelButtonRate} data-tier={selectedMode.tier}>{selectedMode.rateMultiplier}×</em>
+                        </> : null;
+                      })()}
                       <Icon name="chevron" size={12} />
                     </button>
                     {modelMenuOpen && typeof document !== "undefined" && createPortal((
-                      <div className={`${s.modelMenu} ${s.modelMenuPortal}`} ref={modelMenuRef} role="dialog" aria-label={copy.aiModels}>
+                      <div
+                        className={`${s.modelMenu} ${s.modelMenuPortal}`}
+                        ref={modelMenuRef}
+                        role="dialog"
+                        aria-label={copy.aiModels}
+                        style={(() => {
+                          if (typeof window === "undefined" || window.innerWidth <= 767) return undefined;
+                          const rect = modelPickerRef.current?.getBoundingClientRect();
+                          if (!rect) return undefined;
+                          const menuWidth = Math.min(396, window.innerWidth - 32);
+                          const left = Math.max(240, Math.min(rect.left, window.innerWidth - menuWidth - 16));
+                          const top = Math.min(rect.bottom + 8, Math.max(64, window.innerHeight - 420));
+                          return { left: `${left}px`, top: `${top}px`, width: `${menuWidth}px` };
+                        })()}
+                      >
                         <div className={s.modelMenuTitle}>
-                          {copy.aiModels}
+                          <span>{copy.aiModels}<small className={s.modelMenuSub}>按品阶倍率 · {DZMM_BASE_TURN_CREDITS} 金币/轮起</small></span>
                           <button className={s.iconButton} aria-label={copy.closeModelMenu} onClick={() => setModelMenuOpen(false)}>
                             <Icon name="close" size={14} />
                           </button>
                         </div>
                         <div role="listbox" aria-label={copy.modelModes}>
-                          {MODEL_MODES.map((mode) => (
-                            <button
-                              key={mode.id}
-                              role="option"
-                              aria-selected={normalizeDzmmModelSelection(state.preferences.model) === mode.id}
-                              disabled={busy}
-                              onClick={() => {
-                                if (activeReplyActive()) return;
-                                setState((previous) => ({ ...previous, preferences: { ...previous.preferences, model: mode.id } }));
-                                setModelMenuOpen(false);
-                              }}
-                            >
-                              <span><strong>{mode.label}</strong><small>{xumengModelBlurb(locale, mode.id, mode.description)}</small></span>
-                              <span>{normalizeDzmmModelSelection(state.preferences.model) === mode.id && <Icon name="check" size={15} />}</span>
-                            </button>
-                          ))}
+                          {DZMM_MODEL_TIERS.map((tier) => {
+                            const tierModes = MODEL_MODES.filter((mode) => mode.tier === tier.id);
+                            if (!tierModes.length) return null;
+                            return (
+                              <div key={tier.id} className={s.modelTierGroup}>
+                                <div className={s.modelTierHead} data-tier={tier.id}>
+                                  <strong>{tier.name}</strong>
+                                  <span>{tier.subtitle}</span>
+                                </div>
+                                {tierModes.map((mode) => {
+                                  const isSelected = normalizeDzmmModelSelection(state.preferences.model) === mode.id;
+                                  return (
+                                    <button
+                                      key={mode.id}
+                                      role="option"
+                                      aria-selected={isSelected}
+                                      disabled={busy}
+                                      onClick={() => {
+                                        if (activeReplyActive()) return;
+                                        setState((previous) => ({ ...previous, preferences: { ...previous.preferences, model: mode.id } }));
+                                        setModelMenuOpen(false);
+                                      }}
+                                    >
+                                      <span>
+                                        <span className={s.modelOptionHead}>
+                                          <strong>{mode.label}</strong>
+                                          {mode.badge && <em className={s.modelOptionBadge} data-tier={mode.tier}>{mode.badge}</em>}
+                                        </span>
+                                        <small>{xumengModelBlurb(locale, mode.id, mode.description)}</small>
+                                      </span>
+                                      <span className={s.modelOptionRight}>
+                                        <em className={s.modelRateChip} data-tier={mode.tier}>{mode.rateMultiplier}×</em>
+                                        <small className={s.modelFloorText}>{mode.minCredits} 金币起</small>
+                                        {isSelected && <Icon name="check" size={14} />}
+                                      </span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
                         </div>
+                        <p className={s.modelMenuFoot}>故事聊天每轮至少消耗对应倍率金币（1× = {DZMM_BASE_TURN_CREDITS} 金币），超长上下文按实际用量结算。</p>
                       </div>
                     ), document.body)}
                   </div>
@@ -4275,11 +4315,11 @@ export default function TavernApp() {
                 <div className={s.messageScroll} ref={messageScrollRef} data-message-scroll="">
                   <Suspense fallback={<div className={s.messageList} />}>
                   <ChatMediaProvider key={`${cloud.user?.id ?? "offline"}:${active.id}`} accountId={cloud.user?.id}
-                    conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} saveNow={cloud.saveNow}
+                    conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} refreshKey={billingRefresh} saveNow={cloud.saveNow}
                     onRequireAccount={() => openAccount("login")}
                     onCharged={() => setBillingRefresh(value => value + 1)}
                     imageTemplate={state.preferences.imageGeneration?.enabled ? state.preferences.imageGeneration : undefined}
-                    onRecharge={() => navigate("recharge")}>
+                    onRecharge={(reason) => openQuickRecharge(reason)}>
                   <div className={s.messageList}>
                     {active.messages.map((m, index) => (
                       <div
@@ -4402,7 +4442,7 @@ export default function TavernApp() {
                     }}>{copy.remove}</button></details>}
                   <ChatBillingStatus key={cloud.user?.id ?? "offline"} accountId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true}
                     enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onUsage={usage => setChatBalance(usage ? usage.availableBalance : null)}
-                    onRequireAccount={() => openAccount("login")} onRecharge={() => navigate("recharge")} />
+                    onRequireAccount={() => openAccount("login")} onRecharge={() => openQuickRecharge("当前聊天页原位快捷充值，支付成功后无需刷新即可继续对话。")} />
                   <form
                     className={s.composer}
                     onSubmit={(e) => {
@@ -4429,6 +4469,21 @@ export default function TavernApp() {
                         >
                           <Icon name="sparkles" size={12} />
                           {locale === "en" ? "Continue" : "续写"}
+                        </button>
+                      )}
+                      {XUMENG_GENERATION_WORKSPACE_ENABLED && !busy && active.messages.some(message => message.role === "assistant" && message.content.trim()) && (
+                        <button
+                          type="button"
+                          className={s.composerIllustrate}
+                          disabled={!loaded || cloud.authBusy}
+                          onClick={() => {
+                            const last = [...active.messages].reverse().find(message => message.role === "assistant" && message.content.trim());
+                            if (last) setAutoImageTarget(last.id);
+                          }}
+                          title={locale === "en" ? "Illustrate the latest character scene" : "把角色最新一轮剧情生成专属高清画面（100 金币）"}
+                        >
+                          <Icon name="image" size={12} />
+                          {locale === "en" ? "Scene art" : "此刻生图"}
                         </button>
                       )}
                       <span className={s.composerHint}>{enterSends ? copy.enterHint : copy.clickSendHint}</span>
@@ -4527,7 +4582,7 @@ export default function TavernApp() {
       <Deferred>
       {view === "videos" && !detail && <VideoChannel locale={locale} signedIn={Boolean(cloud.user && !cloud.user.isGuest)} characters={characters} onOpenCharacter={id => { const character = characters.find(item => item.id === id); if (character) showDetail(character); }} onOpenPlay={() => navigate("characters")} onOpenStory={id => { if (cloud.user?.isGuest) { setNotice(copy.guestMustRegister); openAccount("register"); return; } const character = characters.find(item => item.id === id); if (character) startChat(character); }} onCreateCharacter={createCharacterFromVideo} onRequireAccount={() => openAccount("login")} />}
       {view === "aigen" && !detail && <Suspense fallback={null}><AigenVercel locale={locale} userId={cloud.user?.id} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRoute={openCreatorRoute} onBack={() => navigate("studio")} /></Suspense>}
-      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? <GenerationStudio locale={locale} key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? "guest"} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => navigate("recharge") : undefined} onOpenAigen={() => navigate("aigen")} onLaunchTour={() => setActiveTour("generation")} onBack={() => navigate("studio")} /> : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
+      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? <GenerationStudio locale={locale} key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? "guest"} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => openQuickRecharge("当前工坊页原位快捷充值，到账后可立刻继续生图与视频。") : undefined} onOpenAigen={() => navigate("aigen")} onLaunchTour={() => setActiveTour("generation")} onBack={() => navigate("studio")} /> : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
 
       {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} locale={locale} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {view === "app" && !detail && <InstallApp locale={locale} onBack={() => navigate("characters")} />}
@@ -4739,34 +4794,22 @@ export default function TavernApp() {
       {activeCharacter && editingMessage && editingMessage.accountId === activeAccount.current && editingMessage.conversationId === active?.id && view === "chat" &&
         <Suspense fallback={null}><ChatMessageEditor key={`${editingMessage.conversationId}:${editingMessage.messageId}`} content={splitXumengMomentTail(splitXumengPanelTail(editingMessage.original).body).body} disabled={busy}
           onSave={saveEditedMessage} onClose={() => setEditingMessage(null)} /></Suspense>}
-      {rechargeNeeded && <div className={s.overlay} role="presentation" onClick={() => setRechargeNeeded(false)}>
-        <div className={s.balanceDialog} role="dialog" aria-modal="true" aria-labelledby="balance-gate-title" onClick={event => event.stopPropagation()}>
-          <div className={s.balanceCrest} aria-hidden="true">
-            <Icon name="crown" size={24} />
-          </div>
-          <div className={s.balanceHead}>
-            <span className={s.balancePromoChip}><Icon name="gift" size={12} />首充享 5 折 · 金币永不过期</span>
-            <h2 id="balance-gate-title">{copy.lowBalance}</h2>
-            <p>{rechargeMessage || copy.lowBalanceBody}
-              {(!cloud.user || cloud.user.isGuest) && copy.guestCreditsUsed}</p>
-          </div>
-          <ul className={s.balancePerks}>
-            <li><Icon name="zap" size={14} />微信直充秒到账，剧情不断档</li>
-            <li><Icon name="sparkles" size={14} />开通 VIP 每天免费领金币 + 语音/生图额度</li>
-          </ul>
-          {!cloud.user || cloud.user.isGuest ? <div className={s.balanceActions}>
-            <button type="button" className={`${s.primary} ${s.balancePrimaryCta}`} onClick={() => { setRechargeNeeded(false); openAccount("register"); }}><Icon name="gift" size={15} />{copy.registerGift}</button>
-            <button type="button" className={s.balanceSubCta} onClick={() => { setRechargeNeeded(false); openAccount("login"); }}>{copy.haveAccount}</button>
-          </div> : <div className={s.balanceActions}>
-            <button type="button" className={`${s.primary} ${s.balancePrimaryCta}`} onClick={() => { setRechargeNeeded(false); navigate("recharge"); }}><Icon name="gem" size={15} />{XUMENG_PAYMENTS_ENABLED ? copy.topUp : copy.viewBalance}</button>
-            <div className={s.balanceSubRow}>
-              <button type="button" className={s.balanceSubCta} onClick={() => { setRechargeNeeded(false); navigate("checkin"); }}><Icon name="sun" size={14} />{copy.goCheckin}</button>
-              <button type="button" className={s.balanceSubCta} onClick={() => { setRechargeNeeded(false); navigate("invite"); }}><Icon name="users" size={14} />{copy.goInvite}</button>
-            </div>
-          </div>}
-          <button type="button" className={s.secondary} onClick={() => setRechargeNeeded(false)}>{copy.stay}</button>
-        </div>
-      </div>}
+      {rechargeNeeded && (
+        <Suspense fallback={null}>
+          <QuickRechargeModal
+            userId={cloud.user?.id}
+            isGuest={!cloud.user || cloud.user.isGuest}
+            locale={locale}
+            message={rechargeMessage}
+            onClose={() => setRechargeNeeded(false)}
+            onRequireAccount={(mode) => openAccount(mode)}
+            onPaid={() => setBillingRefresh(value => value + 1)}
+            onOpenFullRecharge={(focusVip) => navigate(focusVip ? "vip" : "recharge")}
+            onCheckin={() => navigate("checkin")}
+            onInvite={() => navigate("invite")}
+          />
+        </Suspense>
+      )}
       {groupChatTarget && <Suspense fallback={null}><GroupChatDialog primary={groupChatTarget} candidates={characters}
         onClose={() => setGroupChatTarget(null)} onConfirm={members => startGroupChat(members)} /></Suspense>}
       {checkinPrompt && cloud.user && !cloud.user.isGuest && <Suspense fallback={null}>

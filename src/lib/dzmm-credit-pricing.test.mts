@@ -59,3 +59,19 @@ test("reserves merge USD price ceilings before conversion and never round interm
   assert.equal(reserveDzmmCreditCost(1000, 1000, { ...policy(), usdToCny: 1, maxInputUsdPerMillion: 2, maxOutputUsdPerMillion: 6 }), 3);
   assert.throws(() => reserveDzmmCreditCost(1, 1, { ...policy(), usdToCny: 0 }));
 });
+
+test("story chat minCredits floor enforces tier minimums while still charging higher actual token usage", () => {
+  const floored = { ...policy(), multiplier: 5 as const, minCredits: 8 };
+  assert.deepEqual(parseDzmmCreditCostPolicy(floored), floored);
+  for (const invalid of [0, -8, 1.5, 10_001, "8"]) {
+    assert.equal(parseDzmmCreditCostPolicy({ ...floored, minCredits: invalid }), undefined);
+  }
+  // Low actual usage is raised to the 8-credit (¥0.08) floor.
+  assert.equal(chargeDzmmProviderCostUsd(0.0004, floored), 8);
+  assert.equal(chargeDzmmProviderCostUsd(0, floored), 8);
+  assert.equal(reserveDzmmCreditCost(1, 1, floored), 8);
+  assert.equal(reserveDzmmCreditCost(0, 0, floored), 0);
+  // Long-context / flagship turns exceeding the floor still bill actual cost to protect margin.
+  assert.equal(chargeDzmmProviderCostUsd(0.05, floored), 168);
+  assert.equal(reserveDzmmCreditCost(1000, 8000, { ...floored, minCredits: 48 }), 369);
+});

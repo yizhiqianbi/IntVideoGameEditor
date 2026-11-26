@@ -9,11 +9,12 @@ import { xumengTranslate, type XumengLocale } from "@/lib/xumeng-i18n";
 type NavigationItem<T extends string> = { view: T; label: string; icon: IconName };
 
 export default function ResponsiveNavigation<T extends string>({
-  items, tools, currentView, onNavigate, onHome, footer,
+  items, tools, secondaryTools, currentView, onNavigate, onHome, footer,
   locale = "zh-Hans",
 }: {
   items: NavigationItem<T>[];
   tools: NavigationItem<T>[];
+  secondaryTools?: NavigationItem<T>[];
   currentView: string;
   onNavigate: (target: T) => boolean;
   onHome?: () => boolean;
@@ -92,6 +93,12 @@ export default function ResponsiveNavigation<T extends string>({
             {links(items)}
             <div className={styles.navDivider} role="separator" />
             {links(tools)}
+            {secondaryTools && secondaryTools.length > 0 && (
+              <details className={styles.navMoreFold} open={secondaryTools.some(item => item.view === currentView)}>
+                <summary>{locale === "en" ? "More tools" : "更多工具与设置"}</summary>
+                <div className={styles.navMoreBody}>{links(secondaryTools)}</div>
+              </details>
+            )}
           </nav>
           {footer && <div className={styles.navDrawerFooter}>{footer}</div>}
         </div>

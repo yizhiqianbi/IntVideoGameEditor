@@ -81,8 +81,11 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
   const currentIntent = !isGuest && purchaseIntent?.request.accountId === userId ? purchaseIntent : null;
   const recoveredOrder = !isGuest && recoveryOrder?.accountId === userId ? recoveryOrder : null;
   const plan = config?.plans.find(entry => entry.id === selected) ?? config?.plans[0];
-  const wechatMethods = config?.methods.filter(entry => entry.id === "wxpay") ?? [];
-  const methodId = wechatMethods.some(entry => entry.id === selectedMethod) ? selectedMethod : wechatMethods[0]?.id ?? "";
+  const availableMethods = paymentConfig?.provider === "guagua"
+    ? (config?.methods.filter(entry => entry.id === "wxpay") ?? [])
+    : (config?.methods ?? []);
+  const methodId = availableMethods.some(entry => entry.id === selectedMethod) ? selectedMethod : availableMethods[0]?.id ?? "";
+  const activeMethodLabel = availableMethods.find(entry => entry.id === methodId)?.label ?? "微信支付";
   const activeSubscription = current?.subscriptions.find(entry => entry.status === "active");
   const claimedSubscription = current?.subscriptions.find(entry => entry.id === current.checkin.subscriptionId);
   const lastSubscription = current?.subscriptions.filter(entry => entry.status === "expired" || entry.status === "revoked")
@@ -512,7 +515,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         <div className={s.vipHeroText}>
           <span className={s.vipCrownPill}><Icon name="crown" size={14} />叙梦尊享 VIP</span>
           <h3>{activeSubscription || queued.length ? "续订 VIP · 延续每日特权" : "开通 VIP · 每天领金币 + 全站特权"}</h3>
-          <p>微信一次性支付，绝不自动续费扣款；每日免费语音、剧情生图与全站短剧畅看全解锁。</p>
+          <p>{availableMethods.length > 1 ? "支持微信 / 支付宝一次性支付" : `${activeMethodLabel}一次性支付`}，绝不自动续费扣款；每日免费语音、剧情生图与全站短剧畅看全解锁。</p>
         </div>
         {embedded && <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新"}</button>}
       </div>
@@ -558,15 +561,27 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
             </label>;
           })}
         </fieldset>
+        {availableMethods.length > 1 && <div className={s.methodPicker} role="radiogroup" aria-label="选择 VIP 支付方式">
+          <span>支付方式</span>
+          <div className={s.methodPills}>
+            {availableMethods.map(item => (
+              <button type="button" key={item.id} role="radio" aria-checked={methodId === item.id}
+                className={`${s.methodPill} ${methodId === item.id ? s.methodPillOn : ""}`}
+                onClick={() => setSelectedMethod(item.id)}>
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>}
         <div className={s.purchase}>
           <div><strong>{plan ? `${plan.label} · ${money(plan.amountMinor)} / ${plan.durationDays} 天` : "选择会员"}</strong>
-            <p>{methodId ? "微信安全收银台一次性支付，不自动续费，开通后每日可领金币。" : "微信支付暂未开通。USDT 在下方。"}</p>
+            <p>{methodId ? `${activeMethodLabel}安全收银台一次性支付，不自动续费，开通后每日可领金币。` : "当前支付通道暂未开通。USDT 在下方。"}</p>
           </div>
           <button type="button" className={`${s.primary} ${s.vipCta}`} disabled={busy || purchaseBlocked || !config.enabled || !plan || !methodId} onClick={() => void purchase()}>
             <Icon name="crown" size={16} />
-            <span>{acting === "purchase" ? "读取订单…" : !methodId ? "微信支付暂未开通" : !config.enabled ? "购买暂未开放" : isGuest ? "登录后开通 VIP"
+            <span>{acting === "purchase" ? "读取订单…" : !methodId ? "支付通道暂未开通" : !config.enabled ? "购买暂未开放" : isGuest ? "登录后开通 VIP"
               : purchaseBlocked ? currentIntent ? "先处理原购买记录" : "先恢复购买记录"
-              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${plan ? money(plan.amountMinor) : "微信支付"}`}</span>
+              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${plan ? money(plan.amountMinor) : activeMethodLabel}`}</span>
           </button>
         </div>
       </> : <p className={s.empty}>{loading || !paymentConfig ? "正在读取 VIP 套餐…"

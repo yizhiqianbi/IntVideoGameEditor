@@ -6,22 +6,46 @@ import chatModule from "./dzmm-chat";
 import storageModule from "./dzmm-storage";
 import billingModule from "./dzmm-generation-billing";
 import pricingModule from "./dzmm-credit-pricing";
-const { DZMM_MODEL_OPTIONS, DZMM_OFFERED_MODEL_OPTIONS, DZMM_DEFAULT_MODEL, isDzmmModelPreset, normalizeDzmmModelSelection,
-  matchesDzmmFrozenProviderModel, dzmmModelCostPolicy } = modelsModule as typeof import("./dzmm-models");
-const { readDzmmProviderConfig, validateDzmmChatInput } = chatModule as typeof import("./dzmm-chat");
+const { DZMM_MODEL_OPTIONS, DZMM_OFFERED_MODEL_OPTIONS, DZMM_DEFAULT_MODEL, DZMM_BASE_TURN_CREDITS, DZMM_MODEL_TIERS,
+  isDzmmModelPreset, normalizeDzmmModelSelection, matchesDzmmFrozenProviderModel, dzmmModelCostPolicy,
+  findDzmmProviderModel, isDzmmWhatsTokenModel, isDzmmDirectTariffModel, dzmmModelReasoning } = modelsModule as typeof import("./dzmm-models");
+const { readDzmmProviderConfig, resolveDzmmChatUpstream, validateDzmmChatInput } = chatModule as typeof import("./dzmm-chat");
 const { DZMM_INITIAL_STATE, hydrateDzmmState } = storageModule as typeof import("./dzmm-storage");
 const { readDzmmProviderMaxPrice } = billingModule as typeof import("./dzmm-generation-billing");
 const { parseDzmmCreditCostPolicy } = pricingModule as typeof import("./dzmm-credit-pricing");
 const policy = { version: 1 as const, multiplier: 3 as const, usdToCny: 6.704588, creditsPerCny: 100 as const,
   inputUsdPerMillion: 2, outputUsdPerMillion: 6, maxInputUsdPerMillion: 4.4, maxOutputUsdPerMillion: 13.2 };
 
-test("fixed selections agree with the official catalogue, including canonical identities and highest cache/context tiers", async () => {
-  const evidence = JSON.parse(await readFile(new URL("../../output/xumeng/multi-models/openrouter-catalog-20261008.json", import.meta.url), "utf8"));
-  assert.equal(evidence.source, "https://openrouter.ai/api/v1/models");
-  assert.equal(DZMM_DEFAULT_MODEL, "gemma31"); assert.equal(DZMM_MODEL_OPTIONS.length, 15);
-  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["gemma31", "deepseek", "qwen", "gemini4a", "gemini4c", "gemini31", "grok", "grok46", "gemini", "claude", "gpt", "heretic", "gemma26", "cydonia", "venice"]);
-  assert.equal(normalizeDzmmModelSelection("qwen"), "qwen");
+test("curated Oriental Dreamland tiers enforce 8-credit base floor and 1x-6x multipliers", () => {
+  assert.equal(DZMM_DEFAULT_MODEL, "gemma31");
+  assert.equal(DZMM_MODEL_OPTIONS.length, 15);
+  assert.equal(DZMM_BASE_TURN_CREDITS, 8);
+  assert.equal(DZMM_MODEL_TIERS.length, 4);
+  assert.deepEqual(DZMM_OFFERED_MODEL_OPTIONS.map(option => option.id), ["gemma31", "qwen", "deepseek", "gemini31", "gemini", "grok", "claude", "gemini4c"]);
+  assert.equal(normalizeDzmmModelSelection("deepseek"), "deepseek");
   assert.equal(normalizeDzmmModelSelection("claude"), "claude");
+  assert.equal(normalizeDzmmModelSelection("gemini4c"), "gemini4c");
+  assert.equal(normalizeDzmmModelSelection("qwen"), "qwen");
+  assert.equal(normalizeDzmmModelSelection("heretic"), "gemma31");
+  assert.equal(normalizeDzmmModelSelection("gpt"), "gemma31");
+  for (const option of DZMM_MODEL_OPTIONS) {
+    assert.equal(option.minCredits, DZMM_BASE_TURN_CREDITS * option.rateMultiplier);
+    assert.ok(option.minCredits >= 8);
+    assert.ok(DZMM_MODEL_TIERS.some(tier => tier.id === option.tier));
+    assert.ok(Object.isFrozen(option));
+  }
+});
+
+test("fixed selections agree with the official catalogue, including canonical identities and highest cache/context tiers", async (t) => {
+  let evidenceRaw: string;
+  try {
+    evidenceRaw = await readFile(new URL("../../output/xumeng/multi-models/openrouter-catalog-20261008.json", import.meta.url), "utf8");
+  } catch {
+    t.skip("local OpenRouter snapshot is not checked into the workspace");
+    return;
+  }
+  const evidence = JSON.parse(evidenceRaw);
+  assert.equal(evidence.source, "https://openrouter.ai/api/v1/models");
   for (const option of DZMM_MODEL_OPTIONS) {
     if (option.route === "sealion") {
       assert.equal(option.providerModel, "gemma4-26b-a4b-ultra-heretic");
@@ -80,10 +104,67 @@ test("provider caps and frozen tariff come from the same exact model, retaining 
     });
     assert.equal(frozen.maxInputUsdPerMillion, option.maxInputUsdPerMillion);
     assert.equal(frozen.maxOutputUsdPerMillion, option.maxOutputUsdPerMillion);
+    assert.equal(frozen.minCredits, option.minCredits);
+    const memoryPolicy = dzmmModelCostPolicy(policy, option.providerModel, { applyMinCredits: false });
+    assert.equal(memoryPolicy.minCredits, undefined);
+    assert.ok(parseDzmmCreditCostPolicy(memoryPolicy));
     assert.ok(matchesDzmmFrozenProviderModel(option.canonicalModel, option.providerModel));
     assert.equal(matchesDzmmFrozenProviderModel(`${option.canonicalModel}-future`, option.providerModel), false);
   }
   assert.deepEqual(dzmmModelCostPolicy(policy, "provider/unknown"), policy);
   assert.deepEqual(policy, { version: 1, multiplier: 3, usdToCny: 6.704588, creditsPerCny: 100,
     inputUsdPerMillion: 2, outputUsdPerMillion: 6, maxInputUsdPerMillion: 4.4, maxOutputUsdPerMillion: 13.2 });
+});
+
+test("non-Gemma flagship models route through WhatsToken when configured, keep Gemma on OpenRouter, and guard SSRF", () => {
+  const wtExpectedIds = ["qwen", "deepseek", "gemini31", "gemini", "grok", "claude", "gemini4c"] as const;
+  for (const id of wtExpectedIds) {
+    const option = DZMM_MODEL_OPTIONS.find(entry => entry.id === id);
+    assert.ok(option?.whatstoken, `${id} should have a WhatsToken mapping`);
+    const wt = option.whatstoken;
+    assert.equal(findDzmmProviderModel(wt.model)?.id, id);
+    assert.equal(isDzmmWhatsTokenModel(wt.model), true);
+    assert.equal(isDzmmDirectTariffModel(wt.model), true);
+    assert.deepEqual(dzmmModelReasoning(wt.model), {});
+    const frozen = dzmmModelCostPolicy(policy, wt.model);
+    assert.ok(parseDzmmCreditCostPolicy(frozen));
+    assert.equal(frozen.inputUsdPerMillion, wt.inputUsdPerMillion);
+    assert.equal(frozen.outputUsdPerMillion, wt.outputUsdPerMillion);
+    assert.equal(frozen.maxInputUsdPerMillion, wt.maxInputUsdPerMillion);
+    assert.equal(frozen.maxOutputUsdPerMillion, wt.maxOutputUsdPerMillion);
+    assert.equal(frozen.minCredits, option.minCredits);
+    assert.equal(dzmmModelCostPolicy(policy, wt.model, { applyMinCredits: false }).minCredits, undefined);
+  }
+  for (const id of ["gemma31", "gemma26", "heretic", "gpt"] as const) {
+    const option = DZMM_MODEL_OPTIONS.find(entry => entry.id === id);
+    assert.equal(option?.whatstoken, undefined);
+  }
+  const envWithWt = { DZMM_API_KEY: "openrouter-key", WHATSTOKEN_API_KEY: "wt-secret-key" };
+  const config = readDzmmProviderConfig(envWithWt);
+  const top = resolveDzmmChatUpstream(envWithWt, "gemini4c", config);
+  assert.equal(top.endpoint, "https://www.whatstoken.ai/v1/chat/completions");
+  assert.equal(top.model, "gemini-4-carbon-economy");
+  assert.equal(top.direct, true);
+  assert.equal(top.configured, true);
+
+  const ds = resolveDzmmChatUpstream(envWithWt, "deepseek", config);
+  assert.equal(ds.endpoint, "https://www.whatstoken.ai/v1/chat/completions");
+  assert.equal(ds.model, "deepseek-v4-1-flash");
+  assert.equal(ds.direct, true);
+  assert.equal(ds.configured, true);
+
+  const gemma = resolveDzmmChatUpstream(envWithWt, "gemma31", config);
+  assert.equal(gemma.endpoint, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(gemma.model, "google/gemma-4-31b-it");
+  assert.equal(gemma.direct, false);
+  assert.equal(gemma.configured, true);
+
+  const fallback = resolveDzmmChatUpstream({ ...envWithWt, DZMM_WHATSTOKEN_CHAT_ENABLED: "false" }, "claude", config);
+  assert.equal(fallback.endpoint, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(fallback.model, "anthropic/claude-sonnet-5.5");
+  assert.equal(fallback.direct, false);
+
+  const ssrf = resolveDzmmChatUpstream({ ...envWithWt, WHATSTOKEN_BASE_URL: "https://evil.example/v1" }, "gemini4c", config);
+  assert.equal(ssrf.direct, true);
+  assert.equal(ssrf.configured, false);
 });

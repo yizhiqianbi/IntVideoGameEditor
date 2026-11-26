@@ -305,3 +305,53 @@ test("the direct heretic model uses its own host, omits OpenRouter routing, and 
   assert.equal(missing.status, 503);
   assert.equal(calls, 0);
 });
+
+test("WhatsToken routes non-Gemma models directly without OpenRouter key while keeping Gemma on OpenRouter", async () => {
+  const bill = costChatBilling();
+  let sent: { url: string; headers: Headers; body: Record<string, unknown> } | undefined;
+  const wtOnlyEnv = { WHATSTOKEN_API_KEY: "wt-test-key" };
+  const response = await handleDzmmChatPost(costChatRequest({ ...actualCostChatInput, model: "deepseek" }),
+    wtOnlyEnv, { ...bill, providerFetch: async (url, init) => {
+      sent = { url: String(url), headers: new Headers(init?.headers), body: JSON.parse(String(init?.body)) };
+      return new Response(costChatFrames(9) + "data: [DONE]\n\n", { headers: { "Content-Type": "text/event-stream" } });
+    } });
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "保管员展开地图。");
+  assert.equal(sent?.url, "https://www.whatstoken.ai/v1/chat/completions");
+  assert.equal(sent?.headers.get("authorization"), "Bearer wt-test-key");
+  assert.equal(sent?.body.model, "deepseek-v4-1-flash");
+  assert.deepEqual(sent?.body.stream_options, { include_usage: true });
+  assert.equal(sent?.body.provider, undefined);
+  assert.equal(sent?.body.reasoning, undefined);
+  assert.equal(bill.quotes[0].model, "deepseek-v4-1-flash");
+  assert.deepEqual(bill.completions[0].usage, { promptTokens: 300, completionTokens: 40 });
+
+  // Gemma stays on OpenRouter even when WHATSTOKEN_API_KEY is bound.
+  const gemmaBill = costChatBilling();
+  let gemmaSent: { url: string; body: Record<string, unknown> } | undefined;
+  const gemmaRes = await handleDzmmChatPost(costChatRequest({ ...actualCostChatInput, model: "gemma31" }),
+    { ...actualCostEnvironment, WHATSTOKEN_API_KEY: "wt-test-key" }, { ...gemmaBill, providerFetch: async (url, init) => {
+      gemmaSent = { url: String(url), body: JSON.parse(String(init?.body)) };
+      return new Response(costChatFrames(0.002) + "data: [DONE]\n\n", { headers: { "Content-Type": "text/event-stream" } });
+    } });
+  assert.equal(gemmaRes.status, 200);
+  assert.equal(await gemmaRes.text(), "保管员展开地图。");
+  assert.equal(gemmaSent?.url, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(gemmaSent?.body.model, "google/gemma-4-31b-it");
+  assert.equal(gemmaBill.quotes[0].model, "google/gemma-4-31b-it");
+
+  // Opting out falls back to OpenRouter cleanly.
+  const fallbackBill = costChatBilling();
+  let fallbackSent: { url: string; body: Record<string, unknown> } | undefined;
+  const fallbackRes = await handleDzmmChatPost(costChatRequest({ ...actualCostChatInput, model: "claude" }),
+    { ...actualCostEnvironment, WHATSTOKEN_API_KEY: "wt-test-key", DZMM_WHATSTOKEN_CHAT_ENABLED: "false" },
+    { ...fallbackBill, providerFetch: async (url, init) => {
+      fallbackSent = { url: String(url), body: JSON.parse(String(init?.body)) };
+      return new Response(costChatFrames(0.01) + "data: [DONE]\n\n", { headers: { "Content-Type": "text/event-stream" } });
+    } });
+  assert.equal(fallbackRes.status, 200);
+  assert.equal(await fallbackRes.text(), "保管员展开地图。");
+  assert.equal(fallbackSent?.url, "https://openrouter.ai/api/v1/chat/completions");
+  assert.equal(fallbackSent?.body.model, "anthropic/claude-sonnet-5.5");
+  assert.equal(fallbackBill.quotes[0].model, "anthropic/claude-sonnet-5.5");
+});
