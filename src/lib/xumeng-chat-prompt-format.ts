@@ -10,23 +10,25 @@ export const CHAT_CLIP_MODEL = "minimax-h3-i2va";
 export const H3_I2VA_FIRST_LINE = "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.";
 
 const SEEDREAM_CHAT_SYSTEM = [
-  "你是 Seedream 的提示词编辑。下游模型是 seedream-5-0-flash，会另外收到参考图。参考图按传入顺序使用，提示词要写明第一张的角色。",
-  "只输出一条提示词。用这一条回复的语言。写成一段话，不要分行，不要编号，不要解释，不要用引号包住整段。",
-  "第一句写第一张参考图的角色：它负责这个人的脸、发型和画面里已经有的风格，这些保持不变。不要描写五官，不要另写画风或媒介。",
-  "后面只写这一条回复里此刻看得见的衣着、姿势、动作、接触、表情和地点。没有写到的衣着、动作、地点和性行为不要补。已经写明的身体接触用直接说法。",
+  "你是 Seedream 的摄影导演与提示词编辑。下游模型是 seedream-5-0-flash，会另外收到参考图。参考图按传入顺序使用，提示词第一句必须明确指向第一张参考图里的角色。",
+  "只输出一条提示词。用这一条回复的语言。写成一段自然流畅的画面描述，不要分行，不要编号，不要解释，不要用引号包住整段。",
+  "第一句写第一张参考图的角色：保持第一张参考图中人物的脸部特征、发型与原有画风媒介不变。不要重描五官，不要另起冲突画风。",
+  "若输入提供了前情上下文或角色固有外貌，只用来延续此刻所在地点、时间光线与尚未脱换的衣着，绝对不要把前情里已经结束的旧动作画进当前帧。",
+  "正文聚焦这一条回复里此刻定格的瞬间，按自然语序写清衣着状态与材质、人物姿态动作与身体接触（已写明的成人向接触直接如实描写，未写的不要自行臆造）、微表情与视线方向、所处具体环境与前景道具。",
+  "自然融入一条电影摄影级导演指令：明确景别（特写、近景、半身、中景或全身）与机位角度（微俯、平视、侧逆光或过肩），写清主光源方向、冷暖色温氛围与前后景虚实景深，避免平光正脸证件照。",
   "说出来的话不要写进画面。只有印在物体上的文字才加引号，并写它的位置。",
-  "不要写 8K、masterpiece、best quality，也不要写一串不要什么。",
+  "不要写 8K、masterpiece、best quality，也不要写一长串不要什么。",
 ].join("");
 
 const H3_I2VA_CHAT_SYSTEM = [
-  "你是 MiniMax H3 的 I2VA 提示词编辑。下游是 5 秒图生视频。参考图是 0.00 秒的第一帧，会另外传入。",
+  "你是 MiniMax H3 的 I2VA 提示词编辑。下游是 5 秒图生视频。参考图是 0.00 秒的第一帧（可能是角色封面或本轮已生成的剧情画面），会另外传入。",
   "只输出下面的结构，不要解释。画面用英文写。对白保留原句和原语言。",
   `第一行必须是：${H3_I2VA_FIRST_LINE}`,
   "空一行后，按这个顺序写三个字段：",
-  "integrated_multimodal_description: [Shot 1] 从 <Picture 1> 里的人、衣着和构图开始，脸和画面风格保持不变。只接这一条回复里已经发生的一个连续动作：起始姿势，中间一次动作，结束姿势。一个景别，一种运镜，写成英文，例如 The camera holds a static shot。不要写 [Shot 2]。有对白就写 (S1) says: <d>[Chinese] 原句</d>，原句一字不改。没有对白就不要写 <d>。不要描写五官。",
-  "overall_soundscape: 一到两句英文，只写听得见的环境声和动作声。不要把对白再写一遍。没有声音就写 N/A。",
+  "integrated_multimodal_description: [Shot 1] 从 <Picture 1> 里的人物、衣着、场景光线和构图自然承接，脸部与画风保持不变。若提供了前情上下文，仅用于延续氛围与未更换的衣着。聚焦这一条回复里已经发生的一个连贯动作：起始姿态，中间带细微神态、呼吸与衣料晃动的变化过程，结束姿态。写清一个景别和一种平滑电影运镜，写成英文，例如 The camera slowly pushes in 或 The camera holds a steady medium close-up。不要写 [Shot 2]。有对白就写 (S1) says: <d>[Chinese] 原句</d>，原句一字不改。没有对白就不要写 <d>。不要描写五官。",
+  "overall_soundscape: 一到两句英文，只写听得见的环境声、衣料摩擦与动作声。不要把对白再写一遍。没有声音就写 N/A。",
   "non_diegetic_music: 没有配乐就写 N/A。",
-  "没有的动作不要补。已经写明的身体接触用直接说法。动作要能在 5 秒里做完。",
+  "没有的动作不要补。已经写明的身体接触用直接说法。动作要能在 5 秒里完整自然做完。",
 ].join("");
 
 export type ChatPromptFormat = {
@@ -52,11 +54,15 @@ function stripped(value: string): string {
 }
 
 function finishSeedream(raw: string): string | null {
-  const prompt = stripped(raw).replace(/\s*\n+\s*/g, " ").replace(/[ \t]+/g, " ").trim().slice(0, 800);
-  if (prompt.length < 5) return null;
-  if (/主体：|动作：|身体：|integrated_multimodal_description|8K|masterpiece|best quality/i.test(prompt)) return null;
-  if (!/参考图|reference image/i.test(prompt)) return null;
-  return prompt;
+  const cleaned = stripped(raw).replace(/\s*\n+\s*/g, " ").replace(/[ \t]+/g, " ").trim();
+  if (cleaned.length < 5) return null;
+  if (/主体：|动作：|身体：|integrated_multimodal_description|8K|masterpiece|best quality/i.test(cleaned)) return null;
+  const anchored = /参考图|reference image/i.test(cleaned)
+    ? cleaned
+    : (/\p{Script=Han}/u.test(cleaned)
+      ? `保持第一张参考图中的角色脸部、发型与画面风格不变，${cleaned}`
+      : `Keep the face, hairstyle, and visual style of the character in the first reference image unchanged, ${cleaned}`);
+  return anchored.slice(0, 800);
 }
 
 function finishH3I2va(raw: string): string | null {

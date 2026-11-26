@@ -106,6 +106,31 @@ test("chat stills and clips use the format of the model that will render them", 
   assert.equal(called, false);
 });
 
+test("chat stills pass multi-turn context and gracefully anchor missing reference phrase", async () => {
+  const seen: { user?: string } = {};
+  const fetchImpl: typeof fetch = async (_url, init) => {
+    const body = JSON.parse(String(init?.body)) as { messages?: Array<{ content?: string }> };
+    seen.user = body.messages?.[1]?.content;
+    return new Response(JSON.stringify({
+      choices: [{ message: { content: "近景微俯镜头，她身穿米色针织衫坐在靠窗木桌旁，暖色午后侧逆光勾勒发丝轮廓，背景虚化。" } }],
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+  };
+  const image = await refineChatScenePrompt("她端起桂花茶轻抿一口。", CHAT_STILL_MODEL, OPENROUTER, fetchImpl, {
+    appearance: "黑长直发，米色针织衫",
+    scenario: "王都老画廊",
+    recentContext: "用户：进来喝杯茶吧 / 角色：她微笑着坐到窗边木桌旁",
+  });
+  assert.equal(image.ok, true);
+  assert.match(seen.user ?? "", /角色固有外貌与穿搭参考.*米色针织衫/);
+  assert.match(seen.user ?? "", /世界与场景背景：王都老画廊/);
+  assert.match(seen.user ?? "", /前情上下文.*窗边木桌旁/);
+  assert.match(seen.user ?? "", /这一条回复：她端起桂花茶轻抿一口。/);
+  if (image.ok) {
+    assert.match(image.prompt, /保持第一张参考图/);
+    assert.match(image.prompt, /暖色午后侧逆光/);
+  }
+});
+
 test("blocked lines and a missing key never call the model", async () => {
   let called = false;
   const fetchImpl: typeof fetch = async () => { called = true; return new Response("no"); };

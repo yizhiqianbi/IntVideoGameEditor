@@ -13,6 +13,10 @@ test("private voice and image metadata keeps message identity and partial narrat
   const image = { ...asset, kind: "image", mimeType: "image/png" };
   assert.equal(parseDzmmChatMediaAsset(image, "conversation-1").kind, "image");
   assert.equal(parseDzmmChatMediaAsset({ ...asset, mimeType: "audio/wav" }, "conversation-1").mimeType, "audio/wav");
+  const video = { ...asset, kind: "video", mimeType: "video/mp4" };
+  assert.equal(parseDzmmChatMediaAsset(video, "conversation-1").kind, "video");
+  assert.equal(parseDzmmChatMediaAsset(video, "conversation-1").mimeType, "video/mp4");
+  assert.throws(() => parseDzmmChatMediaAsset({ ...video, mimeType: "image/png" }, "conversation-1"));
 });
 test("foreign-account and foreign-conversation responses cannot reach a media panel", () => {
   assert.throws(() => parseDzmmChatMediaOverview(overview, "account-2", "conversation-1"));

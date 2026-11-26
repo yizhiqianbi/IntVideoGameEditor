@@ -2096,6 +2096,29 @@
   opacity: 0.48;
   cursor: default;
 }
+.composerVideo {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--pink, #ff5f94) 48%, var(--line));
+  background: color-mix(in srgb, var(--pink, #ff5f94) 14%, transparent);
+  color: color-mix(in srgb, var(--pink, #ff5f94) 86%, var(--text));
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.composerVideo:hover:not(:disabled) {
+  background: var(--pink, #ff5f94);
+  border-color: var(--pink, #ff5f94);
+  color: #fff;
+}
+.composerVideo:disabled {
+  opacity: 0.48;
+  cursor: default;
+}
 .composerHint {
   margin-left: auto;
   color: var(--muted);
@@ -3217,7 +3240,8 @@
   }
   .composerBar::-webkit-scrollbar { display: none; }
   .composerContinue,
-  .composerIllustrate {
+  .composerIllustrate,
+  .composerVideo {
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -3565,7 +3589,8 @@
   }
   .composerBar::-webkit-scrollbar { display: none; }
   .composerContinue,
-  .composerIllustrate {
+  .composerIllustrate,
+  .composerVideo {
     white-space: nowrap;
     flex-shrink: 0;
   }

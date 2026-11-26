@@ -9,7 +9,7 @@ export type ChatMediaDirectoryPage = {
   version: 1; limit: number; scannedRows: number; upper: Tuple | null; after: Tuple | null; nextCursor: string | null;
 };
 export type ChatMediaDirectoryRow = {
-  id: string; user_id: string; conversation_id: string; message_id: string; kind: "audio" | "image";
+  id: string; user_id: string; conversation_id: string; message_id: string; kind: "audio" | "image" | "video";
   source_hash: string; status: "pending" | "ready" | "failed"; processing_token: string; object_key: string;
   mime_type: string | null; byte_length: number | null; audio_text_chars: number | null; total_text_chars: number | null;
   created_at: number; role: string; pending_expires_at: number | null;
@@ -17,7 +17,7 @@ export type ChatMediaDirectoryRow = {
 const AUDIO_SPEECH_REVISION = "spoken-quotes-v2";
 
 /** Audio is keyed apart from the raw message so an older full-text reading is not replayed. */
-export function chatMediaSourceHash(content: string, kind: "audio" | "image"): string {
+export function chatMediaSourceHash(content: string, kind: "audio" | "image" | "video"): string {
   const base = digest(content);
   return kind === "audio" ? digest(`${base}:${AUDIO_SPEECH_REVISION}`) : base;
 }

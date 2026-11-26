@@ -41,6 +41,20 @@ export async function rememberChatImage(env: Env, userId: string, assetId: strin
     ON CONFLICT(user_id, source_asset_id) DO UPDATE SET object_key=excluded.object_key, mime_type=excluded.mime_type, created_at=excluded.created_at`).bind(crypto.randomUUID(), createdAt, assetId, userId, ALBUM_LIMIT).run();
 }
 
+export async function rememberChatVideo(env: Env, userId: string, assetId: string, createdAt: number): Promise<void> {
+  await env.DB.prepare(`INSERT INTO relationship_album (id, user_id, character_id, kind, object_key, mime_type, created_at, source_asset_id)
+    SELECT ?, a.user_id, c.character_id, 'video', a.object_key, a.mime_type, ?, a.id
+    FROM chat_media_assets a
+    JOIN conversations c ON c.user_id = a.user_id AND c.id = a.conversation_id
+    WHERE a.id = ? AND a.user_id = ? AND a.status = 'ready' AND a.kind = 'video'
+      AND a.mime_type = 'video/mp4'
+      AND length(c.character_id) BETWEEN 1 AND 120
+      AND instr(c.character_id, char(0)) = 0
+      AND length(a.object_key) BETWEEN 1 AND 512
+      AND (SELECT COUNT(*) FROM relationship_album r WHERE r.user_id = a.user_id AND r.character_id = c.character_id) < ?
+    ON CONFLICT(user_id, source_asset_id) DO UPDATE SET object_key=excluded.object_key, mime_type=excluded.mime_type, created_at=excluded.created_at`).bind(crypto.randomUUID(), createdAt, assetId, userId, ALBUM_LIMIT).run();
+}
+
 async function readAlbumAsset(env: Env, user: UserRecord, id: string): Promise<Response | null> {
   if (!env.MEDIA) throw new ApiError(503, "相册暂时无法打开。");
   const row = await env.DB.prepare("SELECT id, kind, mime_type, created_at, object_key FROM relationship_album WHERE id=? AND user_id=?")

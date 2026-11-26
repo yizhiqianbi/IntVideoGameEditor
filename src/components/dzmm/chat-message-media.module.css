@@ -1,8 +1,9 @@
 .message { max-width: 100%; min-width: 0; outline-offset: 4px; }
 .tools { position: relative; display: flex; align-items: center; flex-wrap: wrap; gap: 2px; margin-top: 4px; max-width: 100%; }
-.clip { margin: 8px 0 0; max-width: min(280px, 100%); }
-.clip video { display: block; width: 100%; border-radius: 12px; background: #12080e; }
-.clip figcaption { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.clip { margin: 8px 0 0; max-width: min(320px, 100%); border-radius: 14px; overflow: hidden; background: var(--soft); border: 1px solid rgba(255, 255, 255, 0.08); }
+.clip video { display: block; width: 100%; background: #12080e; }
+.clip figcaption { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px; padding: 8px 11px; color: var(--muted); font-size: 11px; }
+.clipBar span { display: inline-flex; align-items: center; gap: 5px; }
 .userTools { justify-content: flex-end; }
 .action { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 3px; width: 32px; height: 32px; min-height: 32px; padding: 0; color: var(--muted); border-radius: 8px; transition: background 120ms ease, color 120ms ease; }
 .priced { width: auto; min-width: 32px; padding: 0 6px 0 7px; }
@@ -13,10 +14,31 @@
 .voice { width: min(280px, 100%); margin-top: 8px; }
 .partial { display: block; color: var(--muted); font-size: 10px; margin-top: 6px; }
 .picture { margin: 9px 0 0; max-width: min(480px, 100%); border-radius: 18px; overflow: hidden; background: var(--soft); contain: layout paint; }
-.picture button { display: block; width: 100%; }
+.picture > button { display: block; width: 100%; }
 .picture img { display: block; width: 100%; height: auto; object-fit: contain; transition: filter 150ms ease; }
-.picture button:hover img { filter: brightness(1.06); }
-.picture figcaption { display: flex; align-items: center; gap: 6px; padding: 9px 12px; font-size: 10px; color: var(--muted); }
+.picture > button:hover img { filter: brightness(1.06); }
+.picture figcaption { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; padding: 9px 12px; font-size: 11px; color: var(--muted); }
+.pictureBar > span { display: inline-flex; align-items: center; gap: 5px; }
+.pictureActions { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; }
+.pictureChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 118, 166, 0.28);
+  background: rgba(255, 118, 166, 0.1);
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 140ms ease, border-color 140ms ease;
+}
+.pictureChip:hover:not(:disabled) { background: rgba(255, 118, 166, 0.22); border-color: rgba(255, 118, 166, 0.52); }
+.pictureChip:disabled { opacity: .45; cursor: default; }
+.lightboxFooter { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
+.lightboxFooter p { margin: 0; text-align: left; }
 .progress { display: flex; align-items: center; gap: 8px; font-size: 12px; margin-top: 10px; color: var(--muted); }
 .loader { width: 13px; height: 13px; border: 2px solid var(--line); border-top-color: var(--pink); border-radius: 50%; animation: spin 800ms linear infinite; }
 .feedback { margin-top: 7px; font-size: 12px; color: var(--muted); }

@@ -119,8 +119,8 @@ export function getXumengTourSteps(tourId: XumengTourId, locale: XumengLocale): 
           {
             id: "chat-composer",
             selector: '[data-tour="chat-composer"]',
-            title: "Director Palette · Continue · Scene Art",
-            body: "Tap { } to insert narration, inner thoughts, or OOC; tap Continue to let the story flow; or tap Scene Art to illustrate the latest moment.",
+            title: "Director Palette · Scene Art & Video",
+            body: "Tap { } for narration/OOC cues, use Reply Ideas when stuck, or tap Scene Art / Scene Video to turn the latest beat into a 2K still or 5s voiced clip.",
             icon: "braces",
             padding: 8,
           },
@@ -153,8 +153,8 @@ export function getXumengTourSteps(tourId: XumengTourId, locale: XumengLocale): 
           {
             id: "chat-composer",
             selector: '[data-tour="chat-composer"]',
-            title: "导演面板 · 一键续写 · 此刻生图",
-            body: "点 { } 快捷插入旁白、内心或 OOC 指令；想不出怎么接可点「续写」或气泡下方的「灵感回复」；点「此刻生图」可为当前一幕生成高清插画。",
+            title: "导演面板 · 此刻生图 · 此刻生视频",
+            body: "点 { } 快捷插入旁白或 OOC 指令；气泡下「灵感回复」随时帮你接戏；点「此刻生图」定格 2K 高清画面，点「此刻生视频」一键让这一幕动起来并云端保存。",
             icon: "braces",
             padding: 8,
           },

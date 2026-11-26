@@ -1036,14 +1036,19 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   if (!limit.success) return json({ error: "视频请求太频繁，请稍后再试。" }, 429);
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "请求格式无效。" }, 400); }
-  const record = body && typeof body === "object" ? body as { prompt?: unknown; image?: unknown } : {};
+  const record = body && typeof body === "object"
+    ? body as { prompt?: unknown; image?: unknown; conversationId?: unknown; messageId?: unknown; recentContext?: unknown }
+    : {};
   const source = typeof record.prompt === "string" ? record.prompt : "";
+  const recentContext = typeof record.recentContext === "string" ? record.recentContext.slice(0, 800) : "";
+  const conversationId = typeof record.conversationId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(record.conversationId) ? record.conversationId : "";
+  const messageId = typeof record.messageId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(record.messageId) ? record.messageId : "";
   const refined = await refineChatScenePrompt(source, CHAT_CLIP_MODEL, {
     OPENROUTER_API_KEY: env.DZMM_API_KEY,
     OPENROUTER_BASE_URL: env.DZMM_BASE_URL,
     SEALION_API_KEY: env.SEALION_API_KEY,
     SEALION_BASE_URL: env.SEALION_BASE_URL,
-  });
+  }, fetch, recentContext ? { recentContext } : undefined);
   if (!refined.ok && refined.status !== 503) return json({ error: refined.error }, refined.status);
   const prompt = refined.ok ? refined.prompt : source.replace(/\s+/g, " ").trim();
   if (!prompt) return json({ error: "这一段不能生成视频。" }, 400);
@@ -1069,6 +1074,32 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   }
   const headers = new Headers(video.headers);
   headers.set("X-Charged-Credits", String(hold.credits));
+  if (conversationId && messageId) {
+    const mp4Bytes = await video.arrayBuffer();
+    try {
+      const saveHeaders = backendHeaders(request);
+      saveHeaders.set("Content-Type", "video/mp4");
+      saveHeaders.set("X-Conversation-Id", conversationId);
+      saveHeaders.set("X-Message-Id", messageId);
+      const saved = await env.BACKEND.fetch(new Request(`${BACKEND_ORIGIN}/v1/chat-media/video`, {
+        method: "POST",
+        headers: saveHeaders,
+        body: mp4Bytes,
+        redirect: "manual",
+      }));
+      if (saved.ok) {
+        const meta = await saved.json().catch(() => null) as { asset?: { id?: string; url?: string } } | null;
+        if (meta?.asset?.id && meta?.asset?.url) {
+          headers.set("X-Chat-Media-Asset-Id", meta.asset.id);
+          headers.set("X-Chat-Media-Asset-Url", meta.asset.url);
+        }
+      }
+    } catch {
+      // Never lose a paid video if persistence transiently fails; still stream bytes to client.
+    }
+    headers.set("Content-Length", String(mp4Bytes.byteLength));
+    return new Response(mp4Bytes, { status: video.status, headers });
+  }
   return new Response(video.body, { status: video.status, headers });
 }
 

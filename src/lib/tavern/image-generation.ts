@@ -42,9 +42,9 @@ export const DEFAULT_TAVERN_IMAGE_GENERATION: TavernImageGeneration = Object.fre
   autoMode: "off",
   interval: 3,
   size: "3:4",
-  promptPrefix: "masterpiece, best quality, cinematic lighting",
+  promptPrefix: "",
   mainPrompt: "",
-  negativePrompt: "lowres, bad anatomy, bad hands, text, watermark, blurry",
+  negativePrompt: "",
   injectCharacter: true,
   injectScenario: false,
 });

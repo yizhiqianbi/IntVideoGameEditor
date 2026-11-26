@@ -15,13 +15,14 @@ import { chatMediaSourceHash, parseChatMediaDirectoryRequest, readChatMediaDirec
 export { chatMediaSourceHash };
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
 import { isDzmmCoverVideoUrl } from "../../../src/lib/dzmm-cover-media";
-import { rememberChatImage } from "./relationship-album";
+import { rememberChatImage, rememberChatVideo } from "./relationship-album";
 import { refineChatScenePrompt } from "../../../src/lib/xumeng-aigen-prompt";
 import { CHAT_STILL_MODEL } from "../../../src/lib/xumeng-chat-prompt-format";
 import { composeTavernImagePrompt, parseTavernImageGeneration, type TavernImageGeneration } from "../../../src/lib/tavern/image-generation";
 import { readTavernFlags } from "../../../src/lib/tavern/flags";
 
-type Kind = "audio" | "image";
+type GenerateKind = "audio" | "image";
+type Kind = GenerateKind | "video";
 type AiRunner = { run(model: string, input: Record<string, unknown>): Promise<unknown> };
 export type ChatMediaOptions = { now?: () => number; audioTimeoutMs?: number; imageTimeoutMs?: number; fetch?: typeof fetch };
 export type ChatMediaAsset = {
@@ -42,7 +43,7 @@ type MessageRow = { content: string; role: string };
 const LIMITS = { audio: 20, image: 5, maxVoiceChars: 800 } as const;
 const CREDIT_COST = { audio: 20, image: 100 } as const;
 const TIMEOUTS = { audio: 90_000, image: 180_000 } as const;
-const MAX_BYTES = { audio: 12 * 1024 * 1024, image: 10 * 1024 * 1024 } as const;
+const MAX_BYTES = { audio: 12 * 1024 * 1024, image: 10 * 1024 * 1024, video: 30 * 1024 * 1024 } as const;
 const SAFE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 
 // Standalone character reading shares the provider validation and the daily
@@ -169,9 +170,9 @@ async function expirePending(env: Env, userId: string, now: number) {
 }
 async function usage(env: Env, userId: string, now: number) {
   const rows = await env.DB.prepare(`SELECT kind,COUNT(*) AS count FROM chat_media_usage
-    WHERE user_id=? AND day_key=? AND status IN ('pending','ready') GROUP BY kind`).bind(userId, dayKey(now)).all<{ kind: Kind; count: number }>();
+    WHERE user_id=? AND day_key=? AND status IN ('pending','ready') GROUP BY kind`).bind(userId, dayKey(now)).all<{ kind: GenerateKind; count: number }>();
   const result = { audio: 0, image: 0 };
-  for (const row of rows.results) result[row.kind] = row.count;
+  for (const row of rows.results) if (row.kind === "audio" || row.kind === "image") result[row.kind] = row.count;
   return result;
 }
 async function minuteLimit(env: Env, userId: string, now: number) {
@@ -330,6 +331,29 @@ async function readCover(response: Response): Promise<Uint8Array | null> {
   if (bytes.byteLength < 32 || bytes.byteLength > COVER_BYTES || !imageSignature(bytes)) return null;
   return bytes;
 }
+/** Recent preceding turns (up to 4) condensed so Seedream keeps location/clothing continuity across turns. */
+async function recentVisualContext(env: Env, userId: string, conversationId: string, messageId: string): Promise<string> {
+  try {
+    const current = await env.DB.prepare("SELECT position FROM messages WHERE user_id=? AND conversation_id=? AND id=?")
+      .bind(userId, conversationId, messageId).first<{ position: number }>();
+    if (!current || typeof current.position !== "number") return "";
+    const rows = await env.DB.prepare(`SELECT role, content FROM messages
+      WHERE user_id=? AND conversation_id=? AND position<? ORDER BY position DESC LIMIT 4`)
+      .bind(userId, conversationId, current.position).all<MessageRow>();
+    const turns = (rows.results ?? []).reverse()
+      .map(row => {
+        const cleaned = cleanChatMediaText(row.content).replace(/\s+/g, " ").trim();
+        if (!cleaned) return "";
+        const speaker = row.role === "assistant" ? "角色" : "用户";
+        return `${speaker}：${Array.from(cleaned).slice(0, 150).join("")}`;
+      })
+      .filter(Boolean);
+    return Array.from(turns.join(" / ")).slice(0, 620).join("");
+  } catch {
+    return "";
+  }
+}
+
 /** Character fields injected into SillyTavern-style image prompt templates. */
 async function characterImageContext(env: Env, userId: string, conversationId: string): Promise<{
   name: string; description: string; personality: string; scenario: string; appearance: string;
@@ -490,12 +514,15 @@ function outputType(bytes: Uint8Array, kind: Kind): string {
       }
       if (formatValid && dataValid) return "audio/wav";
     }
+  } else if (kind === "video") {
+    if (bytes.length >= 24 && new TextDecoder().decode(bytes.subarray(4, 8)) === "ftyp") return "video/mp4";
   } else {
     if (bytes.length >= 24 && [137,80,78,71,13,10,26,10].every((value,index) => bytes[index] === value)
       && new TextDecoder().decode(bytes.subarray(12,16)) === "IHDR"
       && new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(16)>0
       && new DataView(bytes.buffer,bytes.byteOffset,bytes.byteLength).getUint32(20)>0) return "image/png";
     if (bytes.length >= 16 && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255 && bytes.at(-2) === 255 && bytes.at(-1) === 217) return "image/jpeg";
+    if (bytes.length >= 12 && new TextDecoder().decode(bytes.subarray(0, 4)) === "RIFF" && new TextDecoder().decode(bytes.subarray(8, 12)) === "WEBP") return "image/webp";
   }
   const signature = new TextDecoder().decode(bytes.subarray(0,4));
   console.warn("chat-media-output", { kind, byteLength: bytes.byteLength,
@@ -517,7 +544,7 @@ async function fail(env: Env, userId: string, assetId: string, token: string, no
 async function generate(request: Request, env: Env, user: UserRecord, now: number, options: ChatMediaOptions): Promise<Response> {
   const illustrated = new URL(request.url).pathname === "/v1/chat-media/illustrate";
   const body = await readJson(request, illustrated ? 12_000 : 4096);
-  let conversationId: string, messageId: string, kind: Kind, stillOverride: string | null = null, rememberImage = true, regenerate = false;
+  let conversationId: string, messageId: string, kind: GenerateKind, stillOverride: string | null = null, rememberImage = true, regenerate = false;
   const tavernFlags = readTavernFlags(env as unknown as Record<string, string | undefined>);
   let imageTemplate: TavernImageGeneration | undefined;
   let imageRatio = "3:4";
@@ -535,7 +562,8 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   } else {
     if (Object.keys(body).length < 4 || Object.keys(body).length > 6 || Object.keys(body).some(key => !["accountId","conversationId","messageId","kind","regenerate","imagePreset","imageTemplate"].includes(key))
       || ![body.accountId,body.conversationId,body.messageId].every(value => typeof value === "string" && SAFE_ID.test(value))
-      || (body.kind !== "audio" && body.kind !== "image") || (body.regenerate !== undefined && body.regenerate !== true)) throw new ApiError(400,"素材请求参数无效。");
+      || (body.kind !== "audio" && body.kind !== "image") || (body.regenerate !== undefined && body.regenerate !== true)
+      || (body.imagePreset !== undefined && typeof body.imagePreset !== "string")) throw new ApiError(400,"素材请求参数无效。");
     if (body.accountId !== user.id) throw new ApiError(409,"账户已切换，请刷新后重试。");
     if (body.imageTemplate !== undefined) {
       imageTemplate = parseTavernImageGeneration(body.imageTemplate);
@@ -544,7 +572,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     }
     conversationId = body.conversationId as string;
     messageId = body.messageId as string;
-    kind = body.kind as Kind;
+    kind = body.kind as GenerateKind;
     regenerate = body.regenerate === true;
   }
   if (user.isGuest) throw new ApiError(403,kind === "audio" ? "请先登录正式账户，再生成语音。" : "请先登录正式账户，再生成剧情图片。");
@@ -596,18 +624,23 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     if (!built) throw new ApiError(400, stillOverride === null
       ? ((minor || blocked) ? "这条消息不能生成图片。" : "这条消息没有可生成的正文。")
       : (minor ? "这条画面不能生成图片。" : "这条画面没有可生成的正文。"));
+    const recentContext = stillOverride === null ? await recentVisualContext(env, user.id, conversationId, messageId) : "";
+    const charContext = await characterImageContext(env, user.id, conversationId);
     const refined = await refineChatScenePrompt(built, CHAT_STILL_MODEL, {
       GENERATION_OPENROUTER_API_KEY: env.GENERATION_OPENROUTER_API_KEY,
       SEALION_API_KEY: env.SEALION_API_KEY,
       SEALION_BASE_URL: env.SEALION_BASE_URL,
-    }, options.fetch ?? fetch);
+    }, options.fetch ?? fetch, {
+      recentContext,
+      appearance: status.appearance || charContext.appearance,
+      scenario: charContext.scenario,
+    });
     if (!refined.ok && refined.status !== 503) throw new ApiError(refined.status, refined.error);
     const scenePrompt = refined.ok ? refined.prompt : built;
     if (imageTemplate && tavernFlags.imagePresets !== false) {
-      const context = await characterImageContext(env, user.id, conversationId);
       const templated = composeTavernImagePrompt({ base: scenePrompt, generation: imageTemplate,
-        context: { characterName: context.name || "角色", userName: user.nickname || "你",
-          description: context.description, personality: context.personality, scenario: context.scenario, appearance: context.appearance } });
+        context: { characterName: charContext.name || "角色", userName: user.nickname || "你",
+          description: charContext.description, personality: charContext.personality, scenario: charContext.scenario, appearance: charContext.appearance } });
       imagePrompt = templated.prompt;
       imageRatio = templated.size;
     } else {
@@ -670,7 +703,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
         return outputBytes(output,kind,streamAbort.signal);
       }
       stage = "provider";
-      return qwenStill(env, imagePrompt, reference, streamAbort.signal, options);
+      return qwenStill(env, imagePrompt, reference, streamAbort.signal, options, imageRatio);
     })(),timeout,() => streamAbort.abort());
     const mimeType = outputType(bytes,kind);
     stage = "storage";
@@ -727,6 +760,46 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   }
 }
 
+async function storeVideoAsset(request: Request, env: Env, user: UserRecord, now: number): Promise<Response> {
+  if (user.isGuest) throw new ApiError(403, "请先登录正式账户，再保存剧情视频。");
+  if (!env.MEDIA) throw new ApiError(503, "素材存储暂时不可用。");
+  const conversationId = request.headers.get("x-conversation-id")?.trim() ?? "";
+  const messageId = request.headers.get("x-message-id")?.trim() ?? "";
+  if (!SAFE_ID.test(conversationId) || !SAFE_ID.test(messageId)) throw new ApiError(400, "视频素材参数无效。");
+  const authToken = tokenFrom(request);
+  if (!authToken) throw new ApiError(401, "登录状态已失效，请重新登录。");
+  const sessionHash = digest(authToken), sqlNow = "CAST((julianday('now')-2440587.5)*86400000 AS INTEGER)";
+  const sessionOk = await env.DB.prepare(`SELECT 1 AS ok FROM sessions WHERE token_hash=? AND user_id=? AND expires_at>MAX(?,${sqlNow})`).bind(sessionHash, user.id, now).first();
+  if (!sessionOk) throw new ApiError(401, "登录状态已失效，请重新登录。");
+  const source = await message(env, user.id, conversationId, messageId);
+  if (!source || source.role !== "assistant") throw new ApiError(404, "请先保存这条剧情消息，再保存视频。");
+  const declared = Number(request.headers.get("content-length") || 0);
+  if (declared > MAX_BYTES.video) throw new ApiError(413, "视频文件过大。");
+  const bytes = new Uint8Array(await request.arrayBuffer());
+  const mimeType = outputType(bytes, "video");
+  const sourceHash = chatMediaSourceHash(source.content, "video");
+  const existing = await env.DB.prepare("SELECT * FROM chat_media_assets WHERE user_id=? AND conversation_id=? AND message_id=? AND kind='video' AND source_hash=?")
+    .bind(user.id, conversationId, messageId, sourceHash).first<AssetRow>();
+  const id = existing?.id ?? crypto.randomUUID();
+  const token = crypto.randomUUID();
+  const objectKey = `chat-media/${user.id}/${id}/${token}.video`;
+  await env.MEDIA.put(objectKey, bytes, {
+    httpMetadata: { contentType: mimeType },
+    customMetadata: { ownerId: user.id, assetId: id, sourceHash },
+  });
+  await env.DB.prepare(`INSERT INTO chat_media_assets(id,user_id,conversation_id,message_id,kind,source_hash,status,processing_token,object_key,mime_type,byte_length,created_at,updated_at)
+    VALUES (?,?,?,?,?,?,'ready',?,?,?,?,?,?)
+    ON CONFLICT(user_id,conversation_id,message_id,kind,source_hash) DO UPDATE SET
+      status='ready',processing_token=excluded.processing_token,object_key=excluded.object_key,
+      mime_type=excluded.mime_type,byte_length=excluded.byte_length,updated_at=excluded.updated_at`)
+    .bind(id, user.id, conversationId, messageId, "video", sourceHash, token, objectKey, mimeType, bytes.byteLength, now, now).run();
+  try { await rememberChatVideo(env, user.id, id, now); }
+  catch { console.warn("relationship-album-video-skip"); }
+  const saved = await env.DB.prepare("SELECT * FROM chat_media_assets WHERE id=? AND user_id=?").bind(id, user.id).first<AssetRow>();
+  if (!saved) throw new ApiError(500, "视频素材保存失败。");
+  return json({ accountId: user.id, asset: publicAsset(saved) }, 201);
+}
+
 async function getAsset(request: Request,env:Env,user:UserRecord,id:string,now:number): Promise<Response> {
   if (!env.MEDIA) throw new ApiError(503,"素材存储暂时不可用。");
   const row = await env.DB.prepare("SELECT * FROM chat_media_assets WHERE id=? AND user_id=? AND status='ready'").bind(id,user.id).first<AssetRow>();
@@ -734,10 +807,11 @@ async function getAsset(request: Request,env:Env,user:UserRecord,id:string,now:n
   const source = await message(env,user.id,row.conversation_id,row.message_id);
   if (!source || source.role !== "assistant" || chatMediaSourceHash(source.content, row.kind) !== row.source_hash) throw new ApiError(404,"素材不存在。");
   const range = request.headers.get("Range");
+  const rangeSupported = row.kind === "audio" || row.kind === "video";
   if (range) {
     const parsed = /^bytes=(\d*)-(\d*)$/.exec(range), size = row.byte_length!;
     const start = parsed?.[1] ? Number(parsed[1]) : null, end = parsed?.[2] ? Number(parsed[2]) : null;
-    if (row.kind !== "audio" || !parsed || (start === null && end === null)
+    if (!rangeSupported || !parsed || (start === null && end === null)
       || (start !== null && (!Number.isSafeInteger(start) || start >= size))
       || (end !== null && (!Number.isSafeInteger(end) || (start === null ? end <= 0 : end < start))))
       return new Response(null,{status:416,headers:{"Content-Range":`bytes */${size}`,"Cache-Control":"private, no-store","X-Content-Type-Options":"nosniff"}});
@@ -751,9 +825,12 @@ async function getAsset(request: Request,env:Env,user:UserRecord,id:string,now:n
   }
   const latest = await message(env,user.id,row.conversation_id,row.message_id);
   if (!latest || latest.role !== "assistant" || chatMediaSourceHash(latest.content, row.kind) !== row.source_hash) throw new ApiError(404,"素材不存在。");
+  const ext = row.kind === "video" ? "mp4"
+    : row.kind === "audio" ? (row.mime_type === "audio/wav" ? "wav" : "mp3")
+    : row.mime_type === "image/png" ? "png" : row.mime_type === "image/webp" ? "webp" : "jpg";
   const headers = new Headers({"Content-Type":row.mime_type!,"Cache-Control":"private, max-age=604800","X-Content-Type-Options":"nosniff",
-    "Content-Security-Policy":"default-src 'none'; sandbox","Content-Disposition":`inline; filename="${id}.${row.kind === "audio" ? row.mime_type === "audio/wav" ? "wav" : "mp3" : row.mime_type === "image/png" ? "png" : "jpg"}"`});
-  if (row.kind === "audio") headers.set("Accept-Ranges","bytes");
+    "Content-Security-Policy":"default-src 'none'; sandbox","Content-Disposition":`inline; filename="${id}.${ext}"`});
+  if (rangeSupported) headers.set("Accept-Ranges","bytes");
   if (range && object.range && "offset" in object.range && "length" in object.range) {
     const offset = object.range.offset ?? 0, length = object.range.length ?? object.size;
     headers.set("Content-Range",`bytes ${offset}-${offset+length-1}/${object.size}`);
@@ -771,6 +848,10 @@ export async function handleChatMedia(request:Request,env:Env,user:UserRecord,op
   if (path === "/v1/chat-media/generate" || path === "/v1/chat-media/illustrate") {
     if (request.method !== "POST") throw new ApiError(405,"此接口仅支持 POST。");
     return generate(request,env,user,now,options);
+  }
+  if (path === "/v1/chat-media/video") {
+    if (request.method !== "POST") throw new ApiError(405,"此接口仅支持 POST。");
+    return storeVideoAsset(request,env,user,now);
   }
   const assetPath = /^\/v1\/chat-media\/assets\/([A-Za-z0-9_-]{1,128})$/.exec(path);
   if (assetPath) {

@@ -3,7 +3,7 @@
 /* eslint-disable @next/next/no-img-element -- Private generated media is served by the authenticated Worker. */
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { fetchDzmmChatMedia, fingerprintDzmmChatMedia, generateDzmmChatIllustration, generateDzmmChatMedia, resolveDzmmChatMediaResult, DzmmChatMediaError,
-  type DzmmChatMediaAsset, type DzmmChatMediaKind, type DzmmChatMediaOverview, type DzmmChatMediaTarget } from "../../lib/dzmm-chat-media";
+  type DzmmChatMediaAsset, type DzmmChatMediaGenerateKind, type DzmmChatMediaKind, type DzmmChatMediaOverview, type DzmmChatMediaTarget } from "../../lib/dzmm-chat-media";
 import type { DzmmIllustrationDraft } from "../../lib/dzmm-illustration";
 import { dzmmCloudRequest } from "../../lib/dzmm-cloud";
 import { fetchDzmmPaymentWallet } from "../../lib/dzmm-payments";
@@ -98,15 +98,18 @@ function rememberMediaOverview(accountId: string, conversationId: string, value:
 }
 
 type MediaContext = {
+  conversationId: string;
   overview: DzmmChatMediaOverview | null;
   credits: number | null;
-  generation: { messageId: string; kind: DzmmChatMediaKind } | null;
+  generation: { messageId: string; kind: DzmmChatMediaGenerateKind } | null;
   error: DzmmChatMediaTarget & { text: string; credits: boolean; recovery?: boolean } | null;
   unconfirmed: DzmmChatMediaTarget[];
   reading: boolean;
   readError: string | null;
   reload: () => Promise<boolean>;
-  generate: (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate?: boolean) => Promise<void>;
+  saveNow: () => Promise<void>;
+  refreshCredits: () => void;
+  generate: (messageId: string, kind: DzmmChatMediaGenerateKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate?: boolean) => Promise<void>;
   requireAccount: () => boolean;
   onRecharge: (reason?: string) => void;
 };
@@ -212,7 +215,16 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, refreshK
     if (!accountId || isGuest) { onRequireAccount(); return true; }
     return false;
   }, [accountId, isGuest, onRequireAccount]);
-  const generate = useCallback(async (messageId: string, kind: DzmmChatMediaKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate = false) => {
+  const refreshCredits = useCallback(() => {
+    if (!accountId || isGuest) return;
+    void fetchDzmmPaymentWallet().then(wallet => {
+      if (wallet.accountId !== accountId) return;
+      creditsRef.current = wallet.balance;
+      setCredits(wallet.balance);
+      onCharged?.();
+    }).catch(() => {});
+  }, [accountId, isGuest, onCharged]);
+  const generate = useCallback(async (messageId: string, kind: DzmmChatMediaGenerateKind, sourceText: string, draft?: DzmmIllustrationDraft, regenerate = false) => {
     if (!accountId || isGuest) { onRequireAccount(); return; }
     if (generating.current) return;
     generating.current = true;
@@ -301,7 +313,7 @@ export function ChatMediaProvider({ accountId, conversationId, isGuest, refreshK
     }
   }, [accountId, conversationId, isGuest, onRequireAccount, onCharged, saveNow, acceptOverview]);
 
-  return <Context.Provider value={{ overview, credits, generation, error, unconfirmed, reading, readError, reload, generate, requireAccount, onRecharge }}>
+  return <Context.Provider value={{ conversationId, overview, credits, generation, error, unconfirmed, reading, readError, reload, saveNow, refreshCredits, generate, requireAccount, onRecharge }}>
     {readError && <div className={`${s.feedback} ${s.readNotice}`} role="alert"><p>{readError}</p>
       <button type="button" disabled={reading || Boolean(generation)} onClick={() => { void reload(); }}>重新加载素材</button></div>}
     {reading && <div className={`${s.progress} ${s.readNotice}`} role="status">正在加载会话素材…</div>}
@@ -330,23 +342,26 @@ function MessageAudio({ asset, reload, busy }: { asset: DzmmChatMediaAsset; relo
   </div>;
 }
 
-function MessagePicture({ asset, reload, onExpand, busy }: {
-  asset: DzmmChatMediaAsset; reload: () => Promise<boolean>; onExpand?: () => void; busy: boolean;
+function MessagePicture({ asset, reload, onExpand, busy, original = false }: {
+  asset: DzmmChatMediaAsset; reload: () => Promise<boolean>; onExpand?: () => void; busy: boolean; original?: boolean;
 }) {
   const [failed, setFailed] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [preview, setPreview] = useState<{ url: string; attempt: number; src: string } | null>(null);
-  const cachedNow = attempt === 0 ? chatPhotoPreviewCache.get(asset.url) ?? null : null;
-  const displayUrl = preview && preview.url === asset.url && preview.attempt === attempt ? preview.src : cachedNow;
+  const cachedNow = !original && attempt === 0 ? chatPhotoPreviewCache.get(asset.url) ?? null : null;
+  const displayUrl = original
+    ? (attempt > 0 ? `${asset.url}?r=${attempt}` : asset.url)
+    : (preview && preview.url === asset.url && preview.attempt === attempt ? preview.src : cachedNow);
   useEffect(() => {
+    if (original) return;
     if (attempt === 0 && chatPhotoPreviewCache.get(asset.url)) return;
     let active = true;
     void chatPhotoPreview(asset.url, attempt > 0).then(next => {
       if (active) setPreview({ url: asset.url, attempt, src: next });
     }).catch(() => { if (active) setPreview({ url: asset.url, attempt, src: asset.url }); });
     return () => { active = false; };
-  }, [asset.url, attempt]);
+  }, [asset.url, attempt, original]);
   if (failed) return <div className={`${s.feedback} ${s.pictureFailure}`} role="alert"><p className={s.error}>剧情图片加载失败。</p>
     {busy && <p>正在生成素材，完成后可重新加载。</p>}
     <button type="button" disabled={retrying || busy} onClick={() => {
@@ -355,24 +370,27 @@ function MessagePicture({ asset, reload, onExpand, busy }: {
         .finally(() => setRetrying(false));
     }}>{retrying ? "正在重新加载…" : "重新加载图片"}</button></div>;
   if (!displayUrl) return <div className={s.progress} role="status"><span className={s.loader} />正在整理画面…</div>;
-  const picture = <img key={`${attempt}:${displayUrl}`} src={displayUrl} alt={onExpand ? "根据这条消息生成的剧情场景" : "剧情场景大图"}
+  const picture = <img key={`${original ? "orig" : "thumb"}:${attempt}:${displayUrl}`} src={displayUrl} alt={onExpand ? "根据这条消息生成的剧情场景" : "剧情场景 2K 原图"}
     decoding="async" loading={onExpand ? "lazy" : "eager"} onError={() => setFailed(true)} />;
-  return onExpand ? <button type="button" aria-label="放大剧情图片" onClick={onExpand}>{picture}</button> : picture;
+  return onExpand ? <button type="button" aria-label="放大查看 2K 原图" onClick={onExpand}>{picture}</button> : picture;
 }
 
-export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, onSwipe, autoGenerate, onAutoGenerated, children, label, moment, referenceImage, locale = XUMENG_DEFAULT_LOCALE, extra }: {
+export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenerate, onSwipe, autoGenerate, onAutoGenerated, autoVideo, onAutoVideoDone, recentContext, children, label, moment, referenceImage, locale = XUMENG_DEFAULT_LOCALE, extra }: {
   message: DzmmSavedMessage; disabled: boolean; onCopy: () => void; onEdit: () => void;
   onRegenerate?: () => void; onSwipe?: (direction: -1 | 1) => void;
   autoGenerate?: boolean; onAutoGenerated?: (messageId: string) => void;
+  autoVideo?: boolean; onAutoVideoDone?: (messageId: string) => void;
+  recentContext?: string;
   children: ReactNode; label: string;
   moment?: { name: string; fields: MomentField[]; sections?: MomentSection[]; open?: boolean; pending?: boolean };
   referenceImage?: string;
   locale?: XumengLocale; extra?: ReactNode;
 }) {
   const media = useContext(Context);
-  const [fingerprint, setFingerprint] = useState<{ text: string; audio: string; image: string } | null>(null);
+  const [fingerprint, setFingerprint] = useState<{ text: string; audio: string; image: string; video: string } | null>(null);
   const [expanded, setExpanded] = useState<DzmmChatMediaAsset | null>(null);
   const [segmentUrl, setSegmentUrl] = useState<string | null>(null);
+  const [segmentSource, setSegmentSource] = useState<"scene" | "cover" | null>(null);
   const [segmentBusy, setSegmentBusy] = useState(false);
   const [segmentError, setSegmentError] = useState<string | null>(null);
   const wrapper = useRef<HTMLDivElement>(null);
@@ -391,7 +409,8 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
     void Promise.all([
       fingerprintDzmmChatMedia(message.content, "audio"),
       fingerprintDzmmChatMedia(message.content, "image"),
-    ]).then(([audio, image]) => { if (active) setFingerprint({ text: message.content, audio, image }); }).catch(() => {});
+      fingerprintDzmmChatMedia(message.content, "video"),
+    ]).then(([audio, image, video]) => { if (active) setFingerprint({ text: message.content, audio, image, video }); }).catch(() => {});
     return () => { active = false; };
   }, [message.content, hasRecord]);
   useEffect(() => () => { if (segmentUrl) URL.revokeObjectURL(segmentUrl); }, [segmentUrl]);
@@ -403,12 +422,13 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   }, [expanded]);
   const sameSource = (item: { messageId: string; kind: DzmmChatMediaKind; sourceHash: string }) => {
     if (!fingerprint || fingerprint.text !== message.content) return false;
-    return item.messageId === message.id && item.sourceHash === (item.kind === "audio" ? fingerprint.audio : fingerprint.image);
+    const expected = item.kind === "audio" ? fingerprint.audio : item.kind === "video" ? fingerprint.video : fingerprint.image;
+    return item.messageId === message.id && item.sourceHash === expected;
   };
   const assets = fingerprint ? media?.overview?.assets.filter(sameSource) ?? [] : [];
   const pending = fingerprint ? media?.overview?.pending?.filter(sameSource) ?? [] : [];
   const unconfirmed = fingerprint ? media?.unconfirmed.filter(sameSource) ?? [] : [];
-  const audio = assets.find(asset => asset.kind === "audio"), image = assets.find(asset => asset.kind === "image");
+  const audio = assets.find(asset => asset.kind === "audio"), image = assets.find(asset => asset.kind === "image"), video = assets.find(asset => asset.kind === "video");
   const audioPending = !audio && pending.some(item => item.kind === "audio"), imagePending = !image && pending.some(item => item.kind === "image");
   const audioUnconfirmed = !audio && unconfirmed.some(item => item.kind === "audio"), imageUnconfirmed = !image && unconfirmed.some(item => item.kind === "image");
   const generating = media?.generation?.messageId === message.id ? media.generation.kind : null;
@@ -426,6 +446,7 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   const imageAction = generating === "image" || imagePending ? copy.msgImageBusy : image ? copy.msgImageView : imageUnconfirmed ? copy.msgImageHold : copy.msgImage;
   const showImageAction = XUMENG_GENERATION_WORKSPACE_ENABLED || Boolean(image || imagePending || imageUnconfirmed);
   const autoImageRef = useRef(false);
+  const autoVideoRef = useRef(false);
   useEffect(() => {
     if (!autoGenerate || autoImageRef.current || message.role !== "assistant" || !media) return;
     if (!message.content.trim() || image || imagePending || generating) return;
@@ -448,53 +469,104 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
   }
   function handleImage(regenerate = false) {
     if (image && !regenerate) { setExpanded(image); return; }
-    if (imageShort && media) {
-      media.onRecharge(`当前可用 ${media.credits ?? 0} 金币，解锁此刻剧情画面需要 ${MEDIA_CREDIT_COST.image} 金币。充值后立即继续。`);
+    if ((imageShort || (regenerate && typeof media?.credits === "number" && media.credits < MEDIA_CREDIT_COST.image)) && media) {
+      media.onRecharge(`当前可用 ${media.credits ?? 0} 金币，${regenerate ? "重新绘制此刻画面" : "解锁此刻剧情画面"}需要 ${MEDIA_CREDIT_COST.image} 金币。充值后立即继续。`);
       return;
     }
+    if (regenerate) setExpanded(null);
     void media?.generate(message.id, "image", message.content, undefined, regenerate);
   }
-  async function handleSegmentVideo() {
+  const handleSegmentVideo = useCallback(async () => {
     if (!media || media.requireAccount() || segmentBusy || mutationDisabled) return;
     const prompt = segmentVideoPrompt(message.content);
     if (!prompt) { setSegmentError("这一段不能生成视频。"); return; }
-    if (!referenceImage) { setSegmentError("需要角色封面才能生成视频。"); return; }
+    const firstFrameHref = image?.url || referenceImage;
+    const usedSceneImage = Boolean(image?.url);
+    if (!firstFrameHref) { setSegmentError("需要剧情图或角色封面才能生成视频。"); return; }
     if (typeof media.credits === "number" && media.credits < SEGMENT_VIDEO_CREDITS) {
-      const reason = `当前可用 ${media.credits} 金币，生成上一段视频需要 ${SEGMENT_VIDEO_CREDITS} 金币。`;
+      const reason = `当前可用 ${media.credits} 金币，生成此刻 5 秒动态视频需要 ${SEGMENT_VIDEO_CREDITS} 金币。`;
       setSegmentError(reason);
       if (XUMENG_PAYMENTS_ENABLED) media.onRecharge(`${reason}原位充值后即可生成。`);
       return;
     }
     setSegmentError(null);
     setSegmentBusy(true);
+    setSegmentSource(usedSceneImage ? "scene" : "cover");
     try {
-      const image = await referenceDataUrl(referenceImage);
+      await media.saveNow().catch(() => undefined);
+      let frameDataUrl: string;
+      try {
+        frameDataUrl = await referenceDataUrl(firstFrameHref);
+      } catch (frameErr) {
+        if (usedSceneImage && referenceImage) {
+          setSegmentSource("cover");
+          frameDataUrl = await referenceDataUrl(referenceImage);
+        } else {
+          throw frameErr;
+        }
+      }
       const response = await fetch("/api/h3/canvas", {
         method: "POST",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, image, seconds: SEGMENT_VIDEO_SECONDS }),
+        body: JSON.stringify({
+          prompt,
+          image: frameDataUrl,
+          seconds: SEGMENT_VIDEO_SECONDS,
+          conversationId: media.conversationId,
+          messageId: message.id,
+          ...(recentContext ? { recentContext } : {}),
+        }),
       });
       if (!response.ok || !response.headers.get("Content-Type")?.includes("video/mp4")) {
         const payload = await response.json().catch(() => null) as { error?: unknown } | null;
         throw new Error(typeof payload?.error === "string" ? payload.error : "视频没有完成。");
       }
+      const persistedUrl = response.headers.get("X-Chat-Media-Asset-Url");
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
-      setSegmentUrl(url);
+      setSegmentUrl(previous => {
+        if (previous) URL.revokeObjectURL(previous);
+        return url;
+      });
+      media.refreshCredits();
+      if (persistedUrl) {
+        void media.reload();
+      }
     } catch (failure) {
       setSegmentError(failure instanceof Error ? failure.message : "视频没有完成。");
     } finally {
       setSegmentBusy(false);
     }
-  }
+  }, [media, segmentBusy, mutationDisabled, message.content, message.id, image?.url, referenceImage, recentContext]);
+  useEffect(() => {
+    if (!autoVideo) { autoVideoRef.current = false; return; }
+    if (autoVideoRef.current || message.role !== "assistant" || !media) return;
+    autoVideoRef.current = true;
+    void handleSegmentVideo().finally(() => onAutoVideoDone?.(message.id));
+  }, [autoVideo, message.role, message.id, media, handleSegmentVideo, onAutoVideoDone]);
+  const activeVideoSrc = video?.url ?? segmentUrl;
+  const videoPersisted = Boolean(video?.url);
   return <div ref={wrapper} className={s.message} tabIndex={0} aria-label={label}>
     {children}
     {moment && message.role === "assistant" && <XumengMomentStatusCard name={moment.name} fields={moment.fields} sections={moment.sections} defaultOpen={false} pending={moment.pending} inlineActions
       imageLabel={image ? "查看此刻画面" : imageAction === copy.msgImage ? "解锁此刻画面" : imageAction}
       imageHint={image ? "这一轮剧情已经画好" : imageShort ? `可用 金币 不足，解锁需要 ${MEDIA_CREDIT_COST.image} 金币` : "根据这一轮剧情生成 · 100 金币"}
       disabled={!showImageAction || imageDisabled} onImage={handleImage}
-      slot={image && media ? <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} /></figure>
+      slot={image && media ? <figure className={s.picture}>
+          <MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} />
+          <figcaption className={s.pictureBar}>
+            <span><Icon name="image" size={13} />这一幕 · 2K 原图可放大</span>
+            <div className={s.pictureActions}>
+              <button type="button" className={s.pictureChip} disabled={mutationDisabled || segmentBusy} onClick={() => void handleSegmentVideo()} title={`以这张剧情图为首帧生成 5 秒带原声视频 · ${credits(SEGMENT_VIDEO_CREDITS)}`}>
+                <Icon name="video" size={12} />{segmentBusy ? "生成视频中…" : "动起来"}
+              </button>
+              <button type="button" className={s.pictureChip} disabled={imageDisabled || segmentBusy} onClick={() => handleImage(true)} title={`重新绘制一版 · ${credits(imageCost)}`}>
+                <Icon name="refresh" size={12} />换一版
+              </button>
+            </div>
+          </figcaption>
+        </figure>
         : generating === "image" ? <div className={s.progress} role="status"><span className={s.loader} />正在绘制这一幕…</div> : null} />}
     {message.role === "assistant" && message.swipes && message.swipes.length > 1 && onSwipe && (
       <div className={s.swipes} role="group" aria-label={label}>
@@ -506,12 +578,12 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
     <div className={message.role === "user" ? `${s.tools} ${s.userTools}` : s.tools}>
       {message.role === "assistant" && <>
         <button type="button" className={s.action} disabled={!showImageAction || imageDisabled || segmentBusy}
-          title={image ? "查看当前状态图" : `生成当前状态图 · ${credits(imageCost)}`}
-          aria-label={`${label}${image ? "查看当前状态图" : "生成当前状态图"}`}
+          title={image ? "查看 2K 剧情原图" : `生成此刻剧情图 · ${credits(imageCost)}`}
+          aria-label={`${label}${image ? "查看剧情原图" : "生成此刻剧情图"}`}
           onClick={() => handleImage()}><Icon name="image" size={15} /></button>
         <button type="button" className={s.action} disabled={mutationDisabled || segmentBusy || !message.content.trim()}
-          title={segmentBusy ? "正在用 MiniMax H3 生成上一段视频…" : `生成上一段视频 · MiniMax H3 · ${credits(SEGMENT_VIDEO_CREDITS)}`}
-          aria-label={`${label}生成上一段视频`}
+          title={segmentBusy ? "正在用 MiniMax H3 生成 5 秒动态视频…" : `${image ? "以当前剧情图为首帧" : "以角色封面为首帧"}生成 5 秒带原声视频 · MiniMax H3 · ${credits(SEGMENT_VIDEO_CREDITS)}`}
+          aria-label={`${label}生成动态视频`}
           onClick={() => void handleSegmentVideo()}><Icon name="video" size={15} /></button>
       </>}
       <button type="button" className={s.action} title={copy.msgCopy} aria-label={`${copy.msgCopy}${label}`} onClick={onCopy}>
@@ -536,16 +608,51 @@ export function ChatMessageMedia({ message, disabled, onCopy, onEdit, onRegenera
         {media.reading ? "正在检查…" : "检查生成结果"}</button>
     </div>}
     {audio && media && <MessageAudio key={`${audio.id}:${audio.createdAt}`} asset={audio} reload={media.reload} busy={Boolean(media.generation)} />}
-    {image && media && !moment && <figure className={s.picture}><MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} />
-      <figcaption><Icon name="image" size={13} />这一幕 · AI 生成</figcaption></figure>}
-    {segmentBusy && <div className={s.progress} role="status"><span className={s.loader} />正在用 MiniMax H3 生成上一段视频…</div>}
-    {segmentUrl && <figure className={s.clip}><video src={segmentUrl} controls playsInline preload="metadata" /><figcaption>上一段 · MiniMax H3</figcaption></figure>}
+    {image && media && !moment && <figure className={s.picture}>
+      <MessagePicture key={`${image.id}:${image.createdAt}`} asset={image} reload={media.reload} busy={Boolean(media.generation)} onExpand={() => setExpanded(image)} />
+      <figcaption className={s.pictureBar}>
+        <span><Icon name="image" size={13} />这一幕 · AI 2K 剧情图</span>
+        <div className={s.pictureActions}>
+          <button type="button" className={s.pictureChip} disabled={mutationDisabled || segmentBusy} onClick={() => void handleSegmentVideo()} title={`以这张剧情图为首帧生成 5 秒带原声视频 · ${credits(SEGMENT_VIDEO_CREDITS)}`}>
+            <Icon name="video" size={12} />{segmentBusy ? "生成中…" : "让这一幕动起来"}
+          </button>
+          <button type="button" className={s.pictureChip} disabled={imageDisabled || segmentBusy} onClick={() => handleImage(true)} title={`重新绘制一版 · ${credits(imageCost)}`}>
+            <Icon name="refresh" size={12} />换一版
+          </button>
+        </div>
+      </figcaption>
+    </figure>}
+    {segmentBusy && <div className={s.progress} role="status"><span className={s.loader} />{segmentSource === "scene" ? "正在以当前剧情图为首帧，用 MiniMax H3 生成 5 秒带原声视频…" : "正在用 MiniMax H3 生成 5 秒带原声视频…"}</div>}
+    {activeVideoSrc && <figure className={s.clip}>
+      <video key={activeVideoSrc} src={activeVideoSrc} controls playsInline preload="metadata" />
+      <figcaption className={s.clipBar}>
+        <span><Icon name="video" size={12} />{videoPersisted ? "已云端保存 · MiniMax H3 5s" : "这一幕 · MiniMax H3 5s"}</span>
+        <div className={s.pictureActions}>
+          <a className={s.pictureChip} href={activeVideoSrc} download={`xumeng-${message.id.slice(0, 8)}.mp4`}>下载</a>
+          <button type="button" className={s.pictureChip} disabled={mutationDisabled || segmentBusy} onClick={() => void handleSegmentVideo()} title={`重新生成 5 秒视频 · ${credits(SEGMENT_VIDEO_CREDITS)}`}>
+            <Icon name="refresh" size={12} />重生成
+          </button>
+        </div>
+      </figcaption>
+    </figure>}
     {segmentError && <div className={s.feedback} role="status"><p>{segmentError}</p>{segmentError.includes("金币") && media && XUMENG_PAYMENTS_ENABLED && <button type="button" onClick={() => media.onRecharge(segmentError)}>快捷充值<Icon name="chevron" size={14} /></button>}</div>}
     {error && media && <div className={s.feedback} role="status"><p>{error.text}</p>{error.credits && XUMENG_PAYMENTS_ENABLED && <button type="button" onClick={() => media.onRecharge(error.text)}>充值 金币<Icon name="chevron" size={14} /></button>}</div>}
-    {expanded && media && <dialog ref={dialog} className={s.lightbox} aria-label="剧情图片预览" onClose={() => setExpanded(null)}
+    {expanded && media && <dialog ref={dialog} className={s.lightbox} aria-label="剧情原图预览" onClose={() => setExpanded(null)}
       onClick={event => { if (event.target === event.currentTarget) setExpanded(null); }}>
       <button className={s.lightboxClose} type="button" aria-label="关闭图片预览" onClick={() => setExpanded(null)}><Icon name="close" size={22} /></button>
-      <MessagePicture key={`${expanded.id}:${expanded.createdAt}`} asset={expanded} reload={media.reload} busy={Boolean(media.generation)} /><p>AI 生成的剧情场景</p>
+      <MessagePicture original key={`${expanded.id}:${expanded.createdAt}`} asset={expanded} reload={media.reload} busy={Boolean(media.generation)} />
+      <div className={s.lightboxFooter}>
+        <p>AI 生成的 2K 剧情原图</p>
+        <div className={s.pictureActions}>
+          <button type="button" className={s.pictureChip} disabled={mutationDisabled || segmentBusy} onClick={() => { setExpanded(null); void handleSegmentVideo(); }}>
+            <Icon name="video" size={12} />让这一幕动起来（{credits(SEGMENT_VIDEO_CREDITS)}）
+          </button>
+          <button type="button" className={s.pictureChip} disabled={imageDisabled || segmentBusy} onClick={() => handleImage(true)}>
+            <Icon name="refresh" size={12} />换一版（{credits(imageCost)}）
+          </button>
+          <a className={s.pictureChip} href={expanded.url} download={`xumeng-${expanded.id.slice(0, 8)}.jpg`}>下载原图</a>
+        </div>
+      </div>
     </dialog>}
   </div>;
 

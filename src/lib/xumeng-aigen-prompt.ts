@@ -184,8 +184,24 @@ export function chatScenePromptSource(value: string): string {
   return String(value || "").replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 1200);
 }
 
+export type ChatScenePromptContext = {
+  recentContext?: string;
+  appearance?: string;
+  scenario?: string;
+};
+
+function clipSceneMeta(value: string | undefined, max: number): string {
+  return String(value || "").replace(/[\u0000-\u001f]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+}
+
 /** Rewrite the current reply into the prompt format of the model that will render it. */
-export async function refineChatScenePrompt(textValue: string, model: string, env: AigenPromptEnv, fetchImpl: typeof fetch = fetch): Promise<AigenPromptResult> {
+export async function refineChatScenePrompt(
+  textValue: string,
+  model: string,
+  env: AigenPromptEnv,
+  fetchImpl: typeof fetch = fetch,
+  context?: ChatScenePromptContext,
+): Promise<AigenPromptResult> {
   const format = chatPromptFormat(model);
   if (!format) return { ok: false, error: "这个模型还没有对应的提示词格式。", status: 400 };
   const source = chatScenePromptSource(textValue);
@@ -194,6 +210,14 @@ export async function refineChatScenePrompt(textValue: string, model: string, en
   const endpoint = aigenImagePromptEndpoint(env);
   if (!endpoint) return { ok: false, error: "提示词优化还没配上。", status: 503 };
   if ("error" in endpoint) return { ok: false, error: endpoint.error, status: 503 };
+  const appearance = clipSceneMeta(context?.appearance, 220);
+  const scenario = clipSceneMeta(context?.scenario, 240);
+  const recent = clipSceneMeta(context?.recentContext, 680);
+  const sections: string[] = [];
+  if (appearance && !BLOCKED.test(appearance)) sections.push(`角色固有外貌与穿搭参考（仅在本轮未说明衣着时沿用）：${appearance}`);
+  if (scenario && !BLOCKED.test(scenario)) sections.push(`世界与场景背景：${scenario}`);
+  if (recent && !BLOCKED.test(recent)) sections.push(`前情上下文（仅用于延续地点、时间光线与未脱换的衣着，不要把旧动作画进当前帧）：${recent}`);
+  sections.push(`这一条回复：${source}`);
   let response: Response;
   try {
     response = await fetchImpl(endpoint.url, {
@@ -205,7 +229,7 @@ export async function refineChatScenePrompt(textValue: string, model: string, en
         reasoning: { effort: "low" },
         messages: [
           { role: "system", content: format.system },
-          { role: "user", content: `这一条回复：${source}` },
+          { role: "user", content: sections.join("\n") },
         ],
       }),
       redirect: "manual",

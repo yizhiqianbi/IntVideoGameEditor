@@ -1,6 +1,7 @@
 import type { DzmmIllustrationDraft } from "./dzmm-illustration";
 
-export type DzmmChatMediaKind = "audio" | "image";
+export type DzmmChatMediaKind = "audio" | "image" | "video";
+export type DzmmChatMediaGenerateKind = "audio" | "image";
 export type DzmmChatMediaAsset = {
   id: string; conversationId: string; messageId: string; kind: DzmmChatMediaKind;
   url: string; sourceHash: string; createdAt: number; mimeType: string;
@@ -99,10 +100,10 @@ async function readDirectoryJson(response: Response, signal: AbortSignal, bytes:
 
 export function parseDzmmChatMediaAsset(value: unknown, conversationId: string): DzmmChatMediaAsset {
   if (!record(value) || !id(value.id) || !/^[A-Za-z0-9_-]+$/.test(value.id) || value.conversationId !== conversationId
-    || !id(value.messageId) || (value.kind !== "audio" && value.kind !== "image")
+    || !id(value.messageId) || (value.kind !== "audio" && value.kind !== "image" && value.kind !== "video")
     || value.url !== `${API}/assets/${value.id}` || typeof value.sourceHash !== "string" || !/^[a-f0-9]{64}$/.test(value.sourceHash)
     || !timestamp(value.createdAt) || typeof value.mimeType !== "string"
-    || !(value.kind === "audio" ? ["audio/mpeg", "audio/wav"] : ["image/jpeg", "image/png", "image/webp"]).includes(value.mimeType)
+    || !(value.kind === "audio" ? ["audio/mpeg", "audio/wav"] : value.kind === "video" ? ["video/mp4"] : ["image/jpeg", "image/png", "image/webp"]).includes(value.mimeType)
     || (value.audioTextChars !== undefined && !count(value.audioTextChars))
     || (value.totalTextChars !== undefined && !count(value.totalTextChars))) throw invalid();
   return { id: value.id, conversationId, messageId: value.messageId, kind: value.kind, url: value.url,
@@ -245,7 +246,7 @@ export async function fetchDzmmChatMedia(accountId: string, conversationId: stri
 }
 
 export async function generateDzmmChatMedia(accountId: string, conversationId: string, messageId: string,
-  kind: DzmmChatMediaKind, signal?: AbortSignal, regenerate = false,
+  kind: DzmmChatMediaGenerateKind, signal?: AbortSignal, regenerate = false,
   imageTemplate?: unknown): Promise<DzmmChatMediaAsset> {
   const preset = readImagePreset();
   const value = await request("/generate", signal, { accountId, conversationId, messageId, kind,
