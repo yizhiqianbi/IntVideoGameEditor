@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useMemo, useState } from "react";
+import { useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
 import Icon, { type IconName } from "./icons";
@@ -78,9 +78,12 @@ export default function SpotlightGuide({
   onFinish,
 }: SpotlightGuideProps) {
   const maskId = useId();
+  const cardRef = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const [rect, setRect] = useState<CutoutRect | null>(null);
   const [viewport, setViewport] = useState({ w: 1280, h: 800 });
+  const [cardHeight, setCardHeight] = useState(212);
+  const [nudge, setNudge] = useState(false);
 
   // Filter to steps whose DOM target currently exists & is visible on screen
   const activeSteps = useMemo(() => {
@@ -168,6 +171,12 @@ export default function SpotlightGuide({
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [open, index, activeSteps.length, tourId, onFinish]);
 
+  useLayoutEffect(() => {
+    if (!open || !cardRef.current) return;
+    const h = cardRef.current.offsetHeight;
+    if (h > 40) setCardHeight(h);
+  }, [open, index, current, viewport.w]);
+
   if (!open || !current || typeof document === "undefined") return null;
 
   const isEn = locale === "en";
@@ -178,9 +187,9 @@ export default function SpotlightGuide({
     onFinish();
   }
 
-  // Compute smart clamped tooltip position (below or above target)
-  const cardWidth = Math.min(340, viewport.w - 24);
-  const estimatedHeight = 196;
+  // Compute smart clamped tooltip position (below or above target) using real measured card height
+  const cardWidth = Math.min(348, viewport.w - 24);
+  const estimatedHeight = cardHeight;
   let cardLeft = Math.round((viewport.w - cardWidth) / 2);
   let cardTop = Math.round((viewport.h - estimatedHeight) / 2);
 
@@ -200,7 +209,16 @@ export default function SpotlightGuide({
 
   return createPortal(
     <div className={s.overlay} role="dialog" aria-modal="true" aria-label={current.title}>
-      <svg className={s.maskSvg} width={viewport.w} height={viewport.h} aria-hidden="true">
+      <svg
+        className={s.maskSvg}
+        width={viewport.w}
+        height={viewport.h}
+        aria-hidden="true"
+        onClick={() => {
+          setNudge(true);
+          window.setTimeout(() => setNudge(false), 360);
+        }}
+      >
         <defs>
           <mask id={maskId}>
             <rect x="0" y="0" width={viewport.w} height={viewport.h} fill="white" />
@@ -242,7 +260,8 @@ export default function SpotlightGuide({
       )}
 
       <div
-        className={s.card}
+        ref={cardRef}
+        className={`${s.card} ${nudge ? s.cardNudge : ""}`}
         style={{
           left: `${cardLeft}px`,
           top: `${cardTop}px`,
@@ -286,6 +305,7 @@ export default function SpotlightGuide({
             </button>
           </div>
         </div>
+        <p className={s.keyHint}>{isEn ? "← → Navigate · Esc Skip" : "快捷键：← → 切换 · Esc 跳过"}</p>
       </div>
     </div>,
     document.body,

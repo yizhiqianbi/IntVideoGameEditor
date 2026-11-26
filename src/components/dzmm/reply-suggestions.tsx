@@ -15,10 +15,11 @@ type Props = {
   onAutomaticStart: () => void;
   onGenerate: (signal: AbortSignal) => Promise<DzmmReplySuggestion[]>;
   onChoose: (reply: string) => boolean | Promise<boolean>;
+  onFill?: (reply: string) => void;
 };
 type Result = { key: string; options?: DzmmReplySuggestion[]; error?: string; pending?: boolean; dismissed?: boolean };
 
-export default function ReplySuggestions({ contextKey, accountId, automatic, label, disabled, historical, locale = XUMENG_DEFAULT_LOCALE, onAutomaticStart, onGenerate, onChoose }: Props) {
+export default function ReplySuggestions({ contextKey, accountId, automatic, label, disabled, historical, locale = XUMENG_DEFAULT_LOCALE, onAutomaticStart, onGenerate, onChoose, onFill }: Props) {
   const [result, setResult] = useState<Result | null>(null);
   const [expanded, setExpanded] = useState<boolean | null>(null);
   const [sending, setSending] = useState(false);
@@ -96,20 +97,50 @@ export default function ReplySuggestions({ contextKey, accountId, automatic, lab
     }
   }
   const copy = xumengPage(locale);
+  const isEn = locale === "en";
   const thinkText = current?.pending ? copy.msgThinking : copy.msgThink;
+  const triggerLabel = current?.pending
+    ? (isEn ? "Thinking…" : "思考中…")
+    : visible && current?.options
+      ? (isEn ? "Hide ideas" : "收起灵感")
+      : (isEn ? "Reply ideas" : "灵感回复");
   if (historical) return null;
   return <>
-    <button type="button" className={s.trigger} title={thinkText} aria-label={xumengPageFill(copy.msgThinkAria, { label })} disabled={disabled || current?.pending || sending}
+    <button type="button" className={`${s.trigger} ${visible && current ? s.triggerActive : ""}`} title={thinkText} aria-label={xumengPageFill(copy.msgThinkAria, { label })} disabled={disabled || current?.pending || sending}
       aria-expanded={visible && Boolean(current)} onClick={() => { if (current?.options) setExpanded(!visible); else void generate(); }}>
-      <Icon name="sparkles" size={15} />
+      <Icon name="sparkles" size={14} />
+      <span>{triggerLabel}</span>
     </button>
     {visible && current && <div ref={panelRef} className={s.panel} aria-busy={Boolean(current.pending)}>
-      <header><span>选择一句回复</span>{current.options && <button type="button" disabled={disabled || sending} onClick={() => void generate()}>换一组</button>}</header>
-      {current.options && <div className={s.options}>{current.options.map((option, index) => <button type="button" key={`${index}:${option.direction}`}
-        className={s.option} disabled={disabled || sending} aria-label={`${option.direction}：${option.reply}`} onClick={() => { void choose(option.reply); }}>
-        {splitXumengSpeech(option.reply).map((part, j) => <span key={j} className={part.speech ? s.speech : s.action}>{part.text}</span>)}
-      </button>)}</div>}
-      {current.error && <p className={s.error} role="alert">{current.error}{!current.options && <button type="button" disabled={disabled} onClick={() => void generate()}>重试</button>}</p>}
+      <header>
+        <span>{current.pending ? (isEn ? "Drafting 3 reply ideas…" : "正在构思 3 个剧情走向…") : (isEn ? "Tap to send, or fill to edit" : "点选直接发送 · 右侧可填入微调")}</span>
+        {current.options && <button type="button" disabled={disabled || sending} onClick={() => void generate()}>{isEn ? "Refresh" : "换一组"}</button>}
+      </header>
+      {current.pending && !current.options && (
+        <div className={s.skeletons} aria-hidden="true">
+          <div className={s.skeletonLine} />
+          <div className={s.skeletonLine} />
+          <div className={s.skeletonLine} />
+        </div>
+      )}
+      {current.options && <div className={s.options}>{current.options.map((option, index) => <div key={`${index}:${option.direction}`} className={s.optionRow}>
+        <button type="button" className={s.option} disabled={disabled || sending} aria-label={`${option.direction}：${option.reply}`} onClick={() => { void choose(option.reply); }}>
+          {splitXumengSpeech(option.reply).map((part, j) => <span key={j} className={part.speech ? s.speech : s.action}>{part.text}</span>)}
+        </button>
+        {onFill && (
+          <button
+            type="button"
+            className={s.fillBtn}
+            disabled={disabled || sending}
+            title={isEn ? "Fill into composer to edit" : "填入输入框微调后再发送"}
+            aria-label={isEn ? "Fill into composer" : "填入输入框"}
+            onClick={() => { onFill(option.reply); setExpanded(false); }}
+          >
+            <Icon name="edit" size={13} />
+          </button>
+        )}
+      </div>)}</div>}
+      {current.error && <p className={s.error} role="alert">{current.error}{!current.options && <button type="button" disabled={disabled} onClick={() => void generate()}>{isEn ? "Retry" : "重试"}</button>}</p>}
     </div>}
   </>;
 }

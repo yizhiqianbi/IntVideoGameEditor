@@ -10,6 +10,9 @@ export type ChatBillingStatusProps = {
   isGuest: boolean;
   enabled: boolean;
   refreshKey: number;
+  modelMinCredits?: number;
+  modelLabel?: string;
+  onSwitchEconomy?: () => void;
   onRequireAccount: () => void;
   onRecharge?: () => void;
   onUsage?: (usage: DzmmBillingUsage | null) => void;
@@ -29,7 +32,18 @@ function hasUnsettledUsage(usage: DzmmBillingUsage, readAt: number) {
     (item.status === "reserved" || item.status === "pending") && item.expiresAt > readAt);
 }
 
-export function ChatBillingStatus({ accountId, isGuest, enabled, refreshKey, onRequireAccount, onRecharge, onUsage }: ChatBillingStatusProps) {
+export function ChatBillingStatus({
+  accountId,
+  isGuest,
+  enabled,
+  refreshKey,
+  modelMinCredits = 8,
+  modelLabel,
+  onSwitchEconomy,
+  onRequireAccount,
+  onRecharge,
+  onUsage,
+}: ChatBillingStatusProps) {
   const [retry, setRetry] = useState(0);
   const [balanceRead, setBalanceRead] = useState<BalanceRead | null>(null);
   // Guard render as well as completion: an account switch must never show an
@@ -78,25 +92,44 @@ export function ChatBillingStatus({ accountId, isGuest, enabled, refreshKey, onR
 
   const usage = currentRead?.usage;
   const loading = !currentRead || currentRead.loading;
-  const needsAttention = Boolean(currentRead?.error) || Boolean(usage && (usage.availableBalance <= 0 || usage.debtCredits > 0));
+  const floor = Math.max(8, modelMinCredits);
+  const belowCurrentModel = Boolean(usage && usage.availableBalance > 0 && usage.availableBalance < floor);
+  const lowBalance = Boolean(usage && usage.availableBalance >= floor && usage.availableBalance < Math.max(floor * 2, 24));
+  const emptyOrDebt = Boolean(usage && (usage.availableBalance <= 0 || usage.debtCredits > 0));
+  const canSwitchEconomy = belowCurrentModel && floor > 8 && Boolean(usage && usage.availableBalance >= 8) && Boolean(onSwitchEconomy);
+  const needsAttention = Boolean(currentRead?.error) || emptyOrDebt || belowCurrentModel || lowBalance;
   if (!needsAttention) return null;
-  return <div className={s.status} aria-busy={loading}>
+
+  return <div className={`${s.status} ${emptyOrDebt ? s.statusAlert : belowCurrentModel || lowBalance ? s.statusWarn : ""}`} aria-busy={loading}>
     <div className={s.balance} role="status" aria-live="polite">
       {usage ? <>
         <p>可用 <strong>{points(usage.availableBalance)} 金币</strong>
+          {belowCurrentModel && <span className={s.hint}> · 当前「{modelLabel ?? "所选模型"}」需 {floor} 金币起</span>}
+          {lowBalance && <span className={s.hint}> · 约还可聊 1 轮</span>}
           {loading && <span> · 刷新中…</span>}
         </p>
         {usage.debtCredits > 0 && <p className={s.pending}>待补足 {points(usage.debtCredits)} 金币，请查看余额与消费记录。{!XUMENG_PAYMENTS_ENABLED && "收款暂时关闭。"}</p>}
       </> : <p className={currentRead?.error ? s.error : undefined}>
-        {currentRead?.error || "正在读取 金币 余额…"}
+        {currentRead?.error || "正在读取金币余额…"}
       </p>}
     </div>
     <div className={s.actions}>
-      <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>
-        {loading ? "读取中…" : currentRead?.error ? "重试余额" : "刷新余额"}
-      </button>
+      {canSwitchEconomy && (
+        <button type="button" className={s.switchBtn} onClick={onSwitchEconomy}>
+          切微光 1×（8币起）
+        </button>
+      )}
+      {(currentRead?.error || emptyOrDebt) && (
+        <button type="button" disabled={loading} onClick={() => setRetry(value => value + 1)}>
+          {loading ? "读取中…" : currentRead?.error ? "重试余额" : "刷新"}
+        </button>
+      )}
       {currentRead?.requiresAccount && <button type="button" onClick={onRequireAccount}>重新登录</button>}
-      {onRecharge && <button type="button" onClick={onRecharge}>{XUMENG_PAYMENTS_ENABLED ? "充值" : "余额与明细"}</button>}
+      {onRecharge && (
+        <button type="button" className={s.rechargeBtn} onClick={onRecharge}>
+          {XUMENG_PAYMENTS_ENABLED ? "快捷充值（¥6 起）" : "余额与明细"}
+        </button>
+      )}
     </div>
   </div>;
 }

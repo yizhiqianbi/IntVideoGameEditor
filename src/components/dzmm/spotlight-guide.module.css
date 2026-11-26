@@ -152,6 +152,29 @@
   box-shadow: 0 8px 20px -8px rgba(240, 84, 134, 0.85);
 }
 
+.keyHint {
+  margin: 10px 0 0;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  font-size: 11px;
+  color: rgba(220, 194, 204, 0.72);
+  text-align: center;
+}
+
+.cardNudge {
+  animation: cardNudge 0.34s ease;
+}
+
+@keyframes cardNudge {
+  0%, 100% { transform: translateX(0); }
+  28% { transform: translateX(-4px); }
+  64% { transform: translateX(4px); }
+}
+
+@media (max-width: 760px) {
+  .keyHint { display: none; }
+}
+
 @keyframes spotlightFade {
   from { opacity: 0; }
   to { opacity: 1; }

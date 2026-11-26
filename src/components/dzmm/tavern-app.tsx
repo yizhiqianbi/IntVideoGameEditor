@@ -1061,6 +1061,32 @@ export default function TavernApp() {
     setChatCommentsOpen(false);
   }, [activeId, view]);
   useEffect(() => {
+    if (!bgPeek) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setBgPeek(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [bgPeek]);
+  useEffect(() => {
+    const onSlashSearch = (event: KeyboardEvent) => {
+      if (event.key !== "/" || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.tagName === "SELECT" || target.isContentEditable)) return;
+      if (activeTour || accountMode || checkinPrompt || rechargeNeeded || chatSettingsOpen) return;
+      const input = searchInputRef.current;
+      if (!input || input.offsetParent === null) return;
+      event.preventDefault();
+      input.focus();
+      input.select();
+    };
+    window.addEventListener("keydown", onSlashSearch);
+    return () => window.removeEventListener("keydown", onSlashSearch);
+  }, [activeTour, accountMode, checkinPrompt, rechargeNeeded, chatSettingsOpen]);
+  useEffect(() => {
     if (view !== "chat" || !activeId || activeTour || detail || accountMode || checkinPrompt || chatSettingsOpen) return;
     if (isXumengTourDone("chat")) return;
     const timer = window.setTimeout(() => {
@@ -1074,6 +1100,7 @@ export default function TavernApp() {
   const anyReplyActive = () => replyRequests.current.size > 0;
   const activeReplyActive = () => Boolean(activeIdRef.current && replyRequests.current.has(activeIdRef.current));
   const appRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const messageScrollRef = useRef<HTMLDivElement>(null);
   const modelPickerRef = useRef<HTMLDivElement>(null);
   const modelMenuRef = useRef<HTMLDivElement>(null);
@@ -3690,7 +3717,7 @@ export default function TavernApp() {
           <img src="/assets/xumeng/brand/xumeng-mark.svg" width="36" height="36" alt="" />
           <span>叙梦<small>XUMENG</small></span>
         </a>
-        <nav>
+        <nav data-tour="discover-nav">
           {localizedNav.map((n) => (
             <a key={n.view} href={`#${n.view}`}
               onClick={(e) => { e.preventDefault(); openNav(n.view); }}
@@ -3743,7 +3770,7 @@ export default function TavernApp() {
             叙梦 <small>XUMENG</small>
           </span>
         </a>
-        <nav className={s.mainNav} aria-label={copy.mainNav}>
+        <nav className={s.mainNav} aria-label={copy.mainNav} data-tour="discover-nav">
           {localizedNav.map((n) => (
             <a
               key={n.view}
@@ -3777,23 +3804,32 @@ export default function TavernApp() {
         {showGlobalSearch && <label className={s.search} data-tour="discover-search">
           <Icon name="search" size={20} />
           <input
+            ref={searchInputRef}
             aria-label={t("searchAll")}
             placeholder={t("searchAllPlaceholder")}
             maxLength={DZMM_GLOBAL_QUERY_MAX_LENGTH}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(event) => { if (event.key === "Enter") { if (navigate("search")) location.hash = `search/${encodeURIComponent(query.trim())}`; } }}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") { if (navigate("search")) location.hash = `search/${encodeURIComponent(query.trim())}`; }
+              else if (event.key === "Escape") {
+                if (query) { setQuery(""); if (view === "search") location.hash = "search"; }
+                else event.currentTarget.blur();
+              }
+            }}
           />
-          {query && (
+          {query ? (
             <button aria-label={t("clearSearch")} onClick={() => { setQuery(""); if (view === "search") location.hash = "search"; }}>
               <Icon name="close" size={14} />
             </button>
+          ) : (
+            <kbd className={s.searchKbd} aria-hidden="true">/</kbd>
           )}
         </label>}
         <a href="#invite" className={s.referralTopEntry} aria-label={copy.inviteAria} onClick={event => { event.preventDefault(); navigate("invite"); }}>
           <Icon name="users" size={16} /><span>{copy.inviteFriends}</span><strong>{copy.earnCredit}</strong>
         </a>
-        <div className={s.topPrefs} data-tour="discover-nav">
+        <div className={s.topPrefs}>
           <button
             type="button"
             className={s.themeToggle}
@@ -4186,8 +4222,14 @@ export default function TavernApp() {
                                       disabled={busy}
                                       onClick={() => {
                                         if (activeReplyActive()) return;
+                                        const changed = normalizeDzmmModelSelection(state.preferences.model) !== mode.id;
                                         setState((previous) => ({ ...previous, preferences: { ...previous.preferences, model: mode.id } }));
                                         setModelMenuOpen(false);
+                                        if (changed) {
+                                          setNotice(locale === "en"
+                                            ? `Switched to ${mode.label} (${mode.rateMultiplier}× · ${mode.minCredits}+ coins/turn)`
+                                            : `已切换至 ${mode.label}（${mode.rateMultiplier}× · ${mode.minCredits} 金币/轮起）`);
+                                        }
                                       }}
                                     >
                                       <span>
@@ -4294,7 +4336,7 @@ export default function TavernApp() {
                   >
                     <span className={s.peekExitPill}>
                       <Icon name="eyeOff" size={14} />
-                      <span>{locale === "en" ? "Tap anywhere to return to chat" : "点击任意处返回对话"}</span>
+                      <span>{locale === "en" ? "Tap anywhere or press Esc to return" : "点击任意处或按 Esc 返回对话"}</span>
                     </span>
                   </button>
                 )}
@@ -4354,7 +4396,14 @@ export default function TavernApp() {
                               accountId={profileUser.id} onAutomaticStart={() => {}} automatic={false} locale={locale}
                               label={fill(copy.replyN, { n: index + 1 })} disabled={busy || cloud.authBusy || (billingConfig?.enabled === true && !!cloud.user && !cloud.user.isGuest && chatBalance === 0)}
                               historical={index !== active.messages.length - 1} onGenerate={signal => generateReplySuggestions(m.id, signal)}
-                              onChoose={reply => chooseReplySuggestion(m.id, reply)} /> : undefined}>
+                              onChoose={reply => chooseReplySuggestion(m.id, reply)}
+                              onFill={reply => {
+                                setDraft(reply);
+                                requestAnimationFrame(() => {
+                                  const el = composerInputRef.current;
+                                  if (el) { el.focus(); el.setSelectionRange(reply.length, reply.length); }
+                                });
+                              }} /> : undefined}>
                           <div className={s.messageBubble} data-message-text>
                             {m.role === "assistant" && activeOpening?.source === "template"
                               && activeOpening.messages[index]?.content.trim() === m.content.trim() ? <CharacterIntroduction text={m.content}
@@ -4376,18 +4425,71 @@ export default function TavernApp() {
                       </div>
                     )}
                     {busy && summarizing && <p className={s.memoryProgress} role="status">{copy.summarizing}</p>}
-                    {!busy && !active.messages.some(message => message.role === "user") && (
-                      <div className={s.quickStarts}>
-                        <button
-                          type="button"
-                          disabled={cloud.authBusy}
-                          onClick={() => { void sendSuggested("请随机生成我的身份和起始地点，从第一场事件开始。"); }}
-                        >
-                          {copy.randomStart} <Icon name="shuffle" size={12} />
-                        </button>
-                      </div>
-                    )}
-                    {!busy && !active.messages.some(message => message.role === "user") && Boolean(activeCharacter.suggestedReplies?.length) && <div className={s.quickStarts} aria-label={copy.suggestedReplies}>{activeCharacter.suggestedReplies?.map((reply, index) => <button key={`${index}:${reply}`} type="button" disabled={cloud.authBusy} onClick={() => { void sendSuggested(reply); }}>{reply}</button>)}</div>}
+                    {!busy && !active.messages.some(message => message.role === "user") && (() => {
+                      const starterReplies = activeCharacter.suggestedReplies?.length
+                        ? activeCharacter.suggestedReplies
+                        : locale === "en"
+                          ? [
+                              "(Stepping closer with a calm smile) Looks like we finally meet.",
+                              "(Glancing around the scene) Tell me what happened just before I arrived.",
+                              "(Tilting my head slightly) You seem to have been waiting for someone.",
+                            ]
+                          : [
+                              "（走近半步，含笑看向对方）看来我们来得正是时候。",
+                              "（环顾四周，轻声试探来意）刚才这里发生了什么？",
+                              "（微微颔首，接过话茬）你像是在等什么人很久了。",
+                            ];
+                      return (
+                        <div className={s.icebreakerCard} aria-label={copy.suggestedReplies}>
+                          <div className={s.icebreakerHead}>
+                            <span>
+                              <Icon name="sparkles" size={13} />
+                              {locale === "en"
+                                ? "Start the story · speak naturally or wrap actions in ( )"
+                                : "破冰开局 · 直接说话，或用 （动作/神态） 推动剧情"}
+                            </span>
+                            <button
+                              type="button"
+                              className={s.icebreakerShuffle}
+                              disabled={cloud.authBusy}
+                              onClick={() => { void sendSuggested("请随机生成我的身份和起始地点，从第一场事件开始。"); }}
+                            >
+                              {copy.randomStart} <Icon name="shuffle" size={12} />
+                            </button>
+                          </div>
+                          <div className={s.quickStarts}>
+                            {starterReplies.map((reply, index) => (
+                              <div key={`${index}:${reply}`} className={s.quickStartItem}>
+                                <button
+                                  type="button"
+                                  className={s.quickStartSend}
+                                  disabled={cloud.authBusy}
+                                  onClick={() => { void sendSuggested(reply); }}
+                                >
+                                  {reply}
+                                </button>
+                                <button
+                                  type="button"
+                                  className={s.quickStartFill}
+                                  disabled={cloud.authBusy}
+                                  title={locale === "en" ? "Edit in composer first" : "填入输入框微调"}
+                                  aria-label={locale === "en" ? "Fill into composer" : "填入输入框"}
+                                  onClick={() => {
+                                    setDraft(reply);
+                                    requestAnimationFrame(() => {
+                                      const el = composerInputRef.current;
+                                      if (el) { el.focus(); el.setSelectionRange(reply.length, reply.length); }
+                                    });
+                                  }}
+                                >
+                                  <Icon name="edit" size={12} />
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      );
+                    })()}
                     <div ref={endRef} />
                   </div>
                   </ChatMediaProvider>
@@ -4440,9 +4542,27 @@ export default function TavernApp() {
                         return { ...previous, [activeId]: rest };
                       });
                     }}>{copy.remove}</button></details>}
-                  <ChatBillingStatus key={cloud.user?.id ?? "offline"} accountId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true}
-                    enabled={billingConfig?.enabled ?? false} refreshKey={billingRefresh} onUsage={usage => setChatBalance(usage ? usage.availableBalance : null)}
-                    onRequireAccount={() => openAccount("login")} onRecharge={() => openQuickRecharge("当前聊天页原位快捷充值，支付成功后无需刷新即可继续对话。")} />
+                  {(() => {
+                    const activeMode = MODEL_MODES.find(mode => mode.id === normalizeDzmmModelSelection(state.preferences.model)) ?? MODEL_MODES[0];
+                    return (
+                      <ChatBillingStatus
+                        key={cloud.user?.id ?? "offline"}
+                        accountId={cloud.user?.id}
+                        isGuest={cloud.user?.isGuest ?? true}
+                        enabled={billingConfig?.enabled ?? false}
+                        refreshKey={billingRefresh}
+                        modelMinCredits={activeMode?.minCredits ?? DZMM_BASE_TURN_CREDITS}
+                        modelLabel={activeMode?.label}
+                        onSwitchEconomy={activeMode && activeMode.minCredits > DZMM_BASE_TURN_CREDITS ? () => {
+                          setState((previous) => ({ ...previous, preferences: { ...previous.preferences, model: "gemma31" } }));
+                          setNotice("已切回 微光 · 轻语（1× · 8 金币/轮起），可继续对话。");
+                        } : undefined}
+                        onUsage={usage => setChatBalance(usage ? usage.availableBalance : null)}
+                        onRequireAccount={() => openAccount("login")}
+                        onRecharge={() => openQuickRecharge("当前聊天页原位快捷充值，支付成功后无需刷新即可继续对话。")}
+                      />
+                    );
+                  })()}
                   <form
                     className={s.composer}
                     onSubmit={(e) => {
@@ -4485,6 +4605,11 @@ export default function TavernApp() {
                           <Icon name="image" size={12} />
                           {locale === "en" ? "Scene art" : "此刻生图"}
                         </button>
+                      )}
+                      {draft.length >= 1500 && (
+                        <span className={`${s.composerCount} ${draft.length >= 10800 ? s.composerCountWarn : ""}`}>
+                          {draft.length.toLocaleString("zh-CN")} / 12,000
+                        </span>
                       )}
                       <span className={s.composerHint}>{enterSends ? copy.enterHint : copy.clickSendHint}</span>
                     </div>
@@ -4666,7 +4791,7 @@ export default function TavernApp() {
         forumModeration={<ForumView locale={locale} key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />} />}
       </Deferred>
 
-      <nav className={s.mobileNav} aria-label={copy.mainNav}>
+      <nav className={s.mobileNav} aria-label={copy.mainNav} data-tour="discover-nav">
         {mobileNavItems.slice(0, mobileNavSplit).map((n) => (
           <a
             href={`#${n.view}`}
