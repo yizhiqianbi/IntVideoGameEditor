@@ -40,10 +40,10 @@ const JSON_CHUNK_BYTES = 256 * 1024;
 const PREFERENCE_EXTRA_FIELDS = ["bio", "gender", "theme", "homeLayout", "showFloatingChat", "floatingSize",
   "floatingOpacity", "blockedTags", "followedAuthors", "presets", "maxTokens", "worldClockMode", "locale",
   "personas", "conversationPersonas", "enterKey", "chatFontSize", "chatFont", "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground",
-  "promptStyle", "sampler", "imagePreset", "imageGeneration", "memoryProfile", "memoryDepth", "avatar"] as const;
+  "promptStyle", "sampler", "imagePreset", "imageGeneration", "chatVisualMode", "memoryProfile", "memoryDepth", "avatar"] as const;
 /** Pages loaded before these settings existed omit them on save; keep the stored values. */
 const RETAINED_PREFERENCE_FIELDS = ["worldClockMode", "personas", "conversationPersonas", "enterKey", "chatFontSize", "chatFont",
-  "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground", "promptStyle", "sampler", "imagePreset", "imageGeneration", "memoryProfile", "memoryDepth", "avatar"] as const;
+  "userBubbleColor", "assistantBubbleColor", "bubbleOpacity", "chatBackground", "promptStyle", "sampler", "imagePreset", "imageGeneration", "chatVisualMode", "memoryProfile", "memoryDepth", "avatar"] as const;
 type Row = Record<string, unknown>;
 type Delta = { table: "characters" | "conversations" | "messages" | "favorites"; remove: Row[]; upsert: Row[] };
 

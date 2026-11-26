@@ -58,6 +58,7 @@ import {
   type DzmmChatMember,
   type DzmmSavedConversation,
   type DzmmSavedMessage,
+  type DzmmChatVisualMode,
   type DzmmPreferences,
 } from "@/lib/dzmm-storage";
 import { dzmmCloudRequest, uploadDzmmCover, useDzmmCloud, type DzmmAccountValues } from "@/lib/dzmm-cloud";
@@ -118,7 +119,7 @@ import { xumengVideoDramaIdFromRoute } from "@/lib/xumeng-video-catalog";
 import { XUMENG_CALLS_ENABLED, XUMENG_CALLS_LOCKED_MESSAGE, XUMENG_CHARACTER_VOICE_ENABLED, XUMENG_FORUM_ENABLED, XUMENG_FORUM_LOCKED_MESSAGE, XUMENG_GENERATION_WORKSPACE_ENABLED, XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
 import { DZMM_BASE_TURN_CREDITS, DZMM_MODEL_TIERS, DZMM_OFFERED_MODEL_OPTIONS, normalizeDzmmModelSelection } from "@/lib/dzmm-models";
 import { SignupWelcome } from "./signup-welcome";
-import { chatImageAutoMode } from "@/lib/tavern/image-generation";
+import { chatImageAutoMode, DEFAULT_TAVERN_IMAGE_GENERATION } from "@/lib/tavern/image-generation";
 import { XumengStatusCard, type MomentSection } from "./xumeng-moment-status";
 import { ChatBillingStatus } from "./chat-billing-status";
 import { peelXumengLabeledStatusTail, plainXumengStoryText, splitXumengMessagePresentation, splitXumengSpeech, xumengConversationPreview, xumengReplyStatus, type XumengMessagePresentation } from "@/lib/xumeng-message-presentation";
@@ -146,6 +147,7 @@ const AccountModal = lazy(() => import("./account-modal"));
 const ChatSettings = lazy(() => import("./chat-settings"));
 const ChatAlbum = lazy(() => import("./chat-album"));
 const ChatMessageEditor = lazy(() => import("./chat-message-editor"));
+import type { ChatSceneStageMedia } from "./chat-message-media";
 const ChatMediaProvider = lazy(() => import("./chat-message-media").then((module) => ({ default: module.ChatMediaProvider })));
 const ChatMessageMedia = lazy(() => import("./chat-message-media").then((module) => ({ default: module.ChatMessageMedia })));
 const DiscoveryTagPicker = lazy(() => import("./discovery-views").then((module) => ({ default: module.DiscoveryTagPicker })));
@@ -854,9 +856,27 @@ export default function TavernApp() {
   }, [state.preferences.imagePreset]);
   const [autoImageTarget, setAutoImageTarget] = useState<string | null>(null);
   const [autoVideoTarget, setAutoVideoTarget] = useState<string | null>(null);
+  const [stageSceneMedia, setStageSceneMedia] = useState<{ conversationId: string; media: ChatSceneStageMedia | null }>({ conversationId: "", media: null });
+  const [stageShowCover, setStageShowCover] = useState(false);
   const autoImageSeen = useRef<string | null>(null);
   const autoImageStreamSaw = useRef(false);
   const autoImageConversation = useRef<string | null>(null);
+  const chatVisualMode: DzmmChatVisualMode = state.preferences.chatVisualMode
+    ?? (chatImageAutoMode(state.preferences.imageGeneration) === "off" ? "manual" : "image");
+  const selectChatVisualMode = (next: DzmmChatVisualMode) => {
+    const baseImageGen = state.preferences.imageGeneration ?? DEFAULT_TAVERN_IMAGE_GENERATION;
+    const nextImageGen = next === "manual"
+      ? { ...baseImageGen, autoMode: "off" as const, autoOptOut: true }
+      : next === "image"
+        ? { ...baseImageGen, autoMode: baseImageGen.autoMode === "interval" ? "interval" as const : "each" as const, autoOptOut: false }
+        : baseImageGen;
+    savePreferences({ ...state.preferences, chatVisualMode: next, imageGeneration: nextImageGen });
+  };
+  const cycleChatVisualMode = () => {
+    const order: DzmmChatVisualMode[] = ["manual", "image", "video"];
+    const next = order[(order.indexOf(chatVisualMode) + 1) % order.length];
+    selectChatVisualMode(next);
+  };
   // Daily login reward sheet: once per Beijing day for signed-in accounts.
   useEffect(() => {
     if (!loaded || !cloud.user || cloud.user.isGuest || view === "checkin") return;
@@ -1798,26 +1818,30 @@ export default function TavernApp() {
   const statusBar = activeCharacter?.statusBar ?? playChrome[activeCharacter?.id ?? ""]?.statusBar;
   const statusBarLabels = useMemo(() => statusBar ? xumengStatusBarLabels(statusBar) : EMPTY_STATUS_LABELS, [statusBar]);
   const streamingAssistantId = busy && !summarizing && (!activeId || generating[activeId] !== "regenerating") && active?.messages.at(-1)?.role === "assistant" ? active.messages.at(-1)?.id ?? null : null;
-  // SillyTavern-style auto generation: only after a reply finishes streaming in
-  // this session, so revisiting old chats never bills images.
+  // Tipsy-style independent dual-track auto trigger: after a reply finishes streaming
+  // in this session, either run the still-image track OR the Ref2VA video track (never chained).
   useEffect(() => {
     if (streamingAssistantId) {
       autoImageStreamSaw.current = true;
       autoImageConversation.current = active?.id ?? null;
       return;
     }
-    const settings = state.preferences.imageGeneration;
-    const autoMode = chatImageAutoMode(settings);
-    if (!autoImageStreamSaw.current || autoMode === "off" || !active) return;
+    if (!autoImageStreamSaw.current || chatVisualMode === "manual" || !active) return;
     if (autoImageConversation.current !== active.id) return;
     const last = [...active.messages].reverse().find(message => message.role === "assistant");
     if (!last?.content.trim() || autoImageSeen.current === last.id) return;
     autoImageSeen.current = last.id;
-    const replies = active.messages.filter(message => message.role === "assistant").length;
-    if (autoMode === "interval" && replies % Math.max(1, settings?.interval ?? 3) !== 0) { autoImageStreamSaw.current = false; return; }
     autoImageStreamSaw.current = false;
+    if (chatVisualMode === "video") {
+      setAutoVideoTarget(last.id);
+      return;
+    }
+    const settings = state.preferences.imageGeneration;
+    const autoMode = chatImageAutoMode(settings);
+    const replies = active.messages.filter(message => message.role === "assistant").length;
+    if (autoMode === "interval" && replies % Math.max(1, settings?.interval ?? 3) !== 0) return;
     setAutoImageTarget(last.id);
-  }, [streamingAssistantId, active, state.preferences.imageGeneration]);
+  }, [streamingAssistantId, active, state.preferences.imageGeneration, chatVisualMode]);
 
   const turnStatus = useMemo(() => {
     const latest = [...(active?.messages ?? [])].reverse().find(message => message.role === "assistant" && message.content.trim());
@@ -4087,10 +4111,17 @@ export default function TavernApp() {
               {copy.importSession}
             </button>}
           </aside>
-          {storyOpen && activeCharacter && <aside className={s.playStage} data-open={playSheetOpen ? "true" : "false"}>
-            {boundMotion && boundCover
-              ? <CoverVisual className={s.playStageImage} src={boundMotion} poster={boundCover} alt="" play />
-              : !isDzmmCoverVideoUrl(activeCharacter.cover) && <Cover character={activeCharacter} className={s.playStageImage} />}
+          {storyOpen && activeCharacter && (() => {
+            const activeStageMedia = active && stageSceneMedia.conversationId === active.id ? stageSceneMedia.media : null;
+            const showingSceneMedia = Boolean(activeStageMedia && !stageShowCover);
+            return <aside className={s.playStage} data-open={playSheetOpen ? "true" : "false"}>
+            {showingSceneMedia && activeStageMedia?.kind === "video"
+              ? <video key={activeStageMedia.url} className={s.playStageImage} src={activeStageMedia.url} autoPlay loop muted playsInline />
+              : showingSceneMedia && activeStageMedia?.kind === "image"
+                ? <img key={activeStageMedia.url} className={s.playStageImage} src={activeStageMedia.url} alt={`${activeCharacter.name} 此刻剧情画面`} />
+                : boundMotion && boundCover
+                  ? <CoverVisual className={s.playStageImage} src={boundMotion} poster={boundCover} alt="" play />
+                  : !isDzmmCoverVideoUrl(activeCharacter.cover) && <Cover character={activeCharacter} className={s.playStageImage} />}
             <div className={s.playStageBar}>
               <button type="button" aria-label={copy.backToList} onClick={() => {
                 if (window.matchMedia("(max-width: 767px)").matches && playSheetOpen) { setPlaySheetOpen(false); return; }
@@ -4099,7 +4130,19 @@ export default function TavernApp() {
                 try { sessionStorage.setItem("xumeng-chat-list", "open"); } catch { /* The list still opens for this visit. */ }
                 setActiveId(null);
               }}><Icon name="back" size={16} /></button>
-              <button type="button" aria-pressed={playSheetOpen} onClick={() => { setModelMenuOpen(false); setChatToolsOpen(false); setPlaySheetOpen(open => !open); }}>{playSheetOpen ? copy.hideProfile : copy.showProfile}</button>
+              <div className={s.playStageBarGroup}>
+                {activeStageMedia && (
+                  <button
+                    type="button"
+                    aria-pressed={showingSceneMedia}
+                    onClick={() => setStageShowCover(previous => !previous)}
+                    title={showingSceneMedia ? "切回角色原封面立绘" : activeStageMedia.kind === "video" ? "在舞台播放最新剧情短片" : "在舞台查看最新剧情画面"}
+                  >
+                    {showingSceneMedia ? (locale === "en" ? "Portrait" : "切回立绘") : activeStageMedia.kind === "video" ? (locale === "en" ? "Scene video" : "此刻短片") : (locale === "en" ? "Scene art" : "此刻画面")}
+                  </button>
+                )}
+                <button type="button" aria-pressed={playSheetOpen} onClick={() => { setModelMenuOpen(false); setChatToolsOpen(false); setPlaySheetOpen(open => !open); }}>{playSheetOpen ? copy.hideProfile : copy.showProfile}</button>
+              </div>
             </div>
             <PlayCharacterSheet
               character={activeCharacter}
@@ -4113,7 +4156,8 @@ export default function TavernApp() {
               onAuthor={() => showCharacterAuthor(activeCharacter)}
               onOpenDetail={() => showDetail(activeCharacter)}
             />
-          </aside>}
+          </aside>;
+          })()}
           <button
             type="button"
             className={s.chatListToggle}
@@ -4361,6 +4405,9 @@ export default function TavernApp() {
                     conversationId={active.id} isGuest={cloud.user?.isGuest ?? true} refreshKey={billingRefresh} saveNow={cloud.saveNow}
                     onRequireAccount={() => openAccount("login")}
                     onCharged={() => setBillingRefresh(value => value + 1)}
+                    onSceneMedia={(cid, media) => {
+                      setStageSceneMedia(previous => previous.conversationId === cid && previous.media?.url === media?.url && previous.media?.kind === media?.kind ? previous : { conversationId: cid, media });
+                    }}
                     imageTemplate={state.preferences.imageGeneration?.enabled ? state.preferences.imageGeneration : undefined}
                     onRecharge={(reason) => openQuickRecharge(reason)}>
                   <div className={s.messageList}>
@@ -4387,6 +4434,9 @@ export default function TavernApp() {
                           <ChatMessageMedia message={m} disabled={busy} locale={locale} label={fill(copy.messageN, { n: index + 1 })}
                             moment={m.id === momentMessageId ? { name: activeCharacter.name, fields: m.id === streamingAssistantId ? [] : momentFields, sections: m.id === streamingAssistantId ? [] : momentSections, open: false, pending: m.id === streamingAssistantId } : undefined}
                             referenceImage={xumengCardCoverUrl(activeCharacter.cover || XUMENG_FALLBACK_COVER)}
+                            characterName={activeCharacter.name}
+                            appearance={activeCharacter.description?.replace(/\s+/g, " ").trim().slice(0, 220) || undefined}
+                            scenario={activeCharacter.scenario?.replace(/\s+/g, " ").trim().slice(0, 240) || undefined}
                             recentContext={m.role === "assistant" && index > 0
                               ? active.messages.slice(Math.max(0, index - 3), index)
                                   .map(turn => `${turn.role === "assistant" ? activeCharacter.name : playUserName}：${splitXumengMomentTail(splitXumengPanelTail(turn.content).body).body.replace(/\s+/g, " ").trim().slice(0, 140)}`)
@@ -4584,6 +4634,13 @@ export default function TavernApp() {
                         else setNotice("先有一段角色回复，才能生成画面。");
                         return;
                       }
+                      if (draft.trim().toLowerCase() === "/video") {
+                        const last = active ? [...active.messages].reverse().find(message => message.role === "assistant") : undefined;
+                        setDraft("");
+                        if (last?.content.trim()) setAutoVideoTarget(last.id);
+                        else setNotice("先有一段角色回复，才能生成视频。");
+                        return;
+                      }
                       send();
                     }}
                   >
@@ -4611,7 +4668,7 @@ export default function TavernApp() {
                               const last = [...active.messages].reverse().find(message => message.role === "assistant" && message.content.trim());
                               if (last) setAutoImageTarget(last.id);
                             }}
-                            title={locale === "en" ? "Illustrate the latest character scene (2K HD · 100 coins)" : "把角色最新一轮剧情生成专属 2K 高清画面（100 金币）"}
+                            title={locale === "en" ? "Generate 2K still image from the latest scene (Seedream 5 · 100 coins)" : "独立生图通道：生成最新一轮剧情的 2K 静帧剧照（Seedream 5 · 100 金币）"}
                           >
                             <Icon name="image" size={12} />
                             {locale === "en" ? "Scene art" : "此刻生图"}
@@ -4624,10 +4681,26 @@ export default function TavernApp() {
                               const last = [...active.messages].reverse().find(message => message.role === "assistant" && message.content.trim());
                               if (last) setAutoVideoTarget(last.id);
                             }}
-                            title={locale === "en" ? "Animate the latest scene into a 5s voiced video (MiniMax H3 · 300 coins)" : "让最新一轮剧情动起来（优先以当前剧情图为首帧 · 5 秒带原声 · 300 金币）"}
+                            title={locale === "en" ? "Direct character-ref 5s voiced scene video (MiniMax H3 Ref2VA · 300 coins)" : "独立生视频通道：用角色参考直出 5 秒带原声剧情短片（MiniMax H3 Ref2VA · 300 金币，无需先生图）"}
                           >
                             <Icon name="video" size={12} />
                             {locale === "en" ? "Scene video" : "此刻生视频"}
+                          </button>
+                          <button
+                            type="button"
+                            className={`${s.composerVisualMode} ${chatVisualMode === "video" ? s.composerVisualModeVideo : chatVisualMode === "image" ? s.composerVisualModeImage : ""}`}
+                            disabled={!loaded || cloud.authBusy}
+                            onClick={cycleChatVisualMode}
+                            title={locale === "en"
+                              ? `Auto visual mode: ${chatVisualMode}. Click to switch between Manual / Auto Photo / Auto Video.`
+                              : `画面自动模式：${chatVisualMode === "video" ? "每轮自动生视频（300 金币）" : chatVisualMode === "image" ? "每轮自动生图（100 金币）" : "仅手动点击"}。点击在「手动 / 自动生图 / 自动生视频」之间切换。`}
+                          >
+                            <Icon name="sliders" size={11} />
+                            {chatVisualMode === "video"
+                              ? (locale === "en" ? "Auto: Video" : "自动:视频")
+                              : chatVisualMode === "image"
+                                ? (locale === "en" ? "Auto: Art" : "自动:生图")
+                                : (locale === "en" ? "Auto: Off" : "自动:关")}
                           </button>
                         </>
                       )}

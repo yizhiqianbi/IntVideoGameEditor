@@ -185,6 +185,7 @@ export function chatScenePromptSource(value: string): string {
 }
 
 export type ChatScenePromptContext = {
+  characterName?: string;
   recentContext?: string;
   appearance?: string;
   scenario?: string;
@@ -210,10 +211,12 @@ export async function refineChatScenePrompt(
   const endpoint = aigenImagePromptEndpoint(env);
   if (!endpoint) return { ok: false, error: "提示词优化还没配上。", status: 503 };
   if ("error" in endpoint) return { ok: false, error: endpoint.error, status: 503 };
+  const characterName = clipSceneMeta(context?.characterName, 60);
   const appearance = clipSceneMeta(context?.appearance, 220);
   const scenario = clipSceneMeta(context?.scenario, 240);
   const recent = clipSceneMeta(context?.recentContext, 680);
   const sections: string[] = [];
+  if (characterName && !BLOCKED.test(characterName)) sections.push(`主角姓名（<Picture 1> 中的角色）：${characterName}`);
   if (appearance && !BLOCKED.test(appearance)) sections.push(`角色固有外貌与穿搭参考（仅在本轮未说明衣着时沿用）：${appearance}`);
   if (scenario && !BLOCKED.test(scenario)) sections.push(`世界与场景背景：${scenario}`);
   if (recent && !BLOCKED.test(recent)) sections.push(`前情上下文（仅用于延续地点、时间光线与未脱换的衣着，不要把旧动作画进当前帧）：${recent}`);

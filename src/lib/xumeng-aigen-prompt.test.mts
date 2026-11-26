@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { AIGEN_IMAGE_OPTIMIZE_SYSTEM, AIGEN_VIDEO_OPTIMIZE_SYSTEM, aigenImagePromptEndpoint, cleanAigenImagePrompt, omitAbsentVideoOrgans, optimizeAigenImagePrompt, optimizeAigenPrompt, refineChatScenePrompt } from "./xumeng-aigen-prompt.ts";
-import { CHAT_CLIP_MODEL, CHAT_STILL_MODEL, chatPromptFormat, H3_I2VA_FIRST_LINE } from "./xumeng-chat-prompt-format.ts";
+import { CHAT_CLIP_I2VA_MODEL, CHAT_CLIP_MODEL, CHAT_STILL_MODEL, chatPromptFormat, H3_I2VA_FIRST_LINE } from "./xumeng-chat-prompt-format.ts";
 
 const OPENROUTER = { OPENROUTER_API_KEY: "openrouter-test-key-0001", OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1" };
 
@@ -61,15 +61,18 @@ test("video optimize writes a shot list and drops organs that are not in the sce
   assert.equal(omitAbsentVideoOrgans("身体：阴茎与阴唇接触。", "她转身"), "身体：与阴唇接触。");
 });
 
-test("chat stills and clips use the format of the model that will render them", async () => {
+test("chat stills and clips use independent model formats (Seedream still vs H3 Ref2VA video)", async () => {
   const still = chatPromptFormat(CHAT_STILL_MODEL);
   const clip = chatPromptFormat(CHAT_CLIP_MODEL);
-  assert.ok(still && clip);
+  const legacyI2va = chatPromptFormat(CHAT_CLIP_I2VA_MODEL);
+  assert.ok(still && clip && legacyI2va);
   assert.match(still.system, /Seedream/);
   assert.match(still.system, /参考图/);
   assert.equal(/主体：|动作：|身体：|二次元/.test(still.system), false);
-  assert.match(clip.system, /I2VA/);
-  assert.match(clip.system, /integrated_multimodal_description/);
+  assert.match(clip.system, /Ref2VA/);
+  assert.match(clip.system, /\[reference generation\]/);
+  assert.match(clip.system, /subject_definitions/);
+  assert.match(legacyI2va.system, /I2VA/);
   assert.equal(chatPromptFormat("some-other-model"), null);
   const seen: { system?: string; user?: string; maxTokens?: number } = {};
   const fetchImpl: typeof fetch = async (_url, init) => {
@@ -77,9 +80,18 @@ test("chat stills and clips use the format of the model that will render them", 
     seen.system = body.messages?.[0]?.content;
     seen.user = body.messages?.[1]?.content;
     seen.maxTokens = body.max_tokens;
-    const content = seen.system?.includes("I2VA")
-      ? `${H3_I2VA_FIRST_LINE}\n\nintegrated_multimodal_description: [Shot 1] She keeps the person in <Picture 1> and sets the umbrella against the counter. The camera holds a static shot.\n\noverall_soundscape: The umbrella taps the counter once.\n\nnon_diegetic_music: N/A`
-      : "第一张参考图里的人和画面风格保持不变。她把伞靠在便利店柜台边，白衬衫，夜里的灯照着门口。";
+    const content = seen.system?.includes("Ref2VA")
+      ? [
+        "subject_definitions: <Subject 1> is the adult character from <Picture 1>, keeping her face, hair, and original visual style unchanged.",
+        "summary: [reference generation] A 5-second single-shot scene in a rainy convenience store as <Subject 1> leans an umbrella against the counter.",
+        "retention_analysis: Only <Subject 1>'s face, hairstyle, and visual style are referenced from <Picture 1>; the framing and store environment are freshly generated.",
+        "detailed_description: [Shot 1] Medium close-up inside a warm-lit convenience store at night. <Subject 1> in a white shirt sets her wet umbrella against the counter and turns toward the viewer with a soft smile. (S1) says: <d>[Chinese] 雨停了再走吧。</d> The camera slowly pushes in.",
+        "overall_soundscape: Soft rain outside the glass door and the quiet tap of an umbrella against the counter.",
+        "non_diegetic_music: N/A",
+      ].join("\n\n")
+      : seen.system?.includes("I2VA")
+        ? `${H3_I2VA_FIRST_LINE}\n\nintegrated_multimodal_description: [Shot 1] She keeps the person in <Picture 1> and sets the umbrella against the counter. The camera holds a static shot.\n\noverall_soundscape: The umbrella taps the counter once.\n\nnon_diegetic_music: N/A`
+        : "第一张参考图里的人和画面风格保持不变。她把伞靠在便利店柜台边，白衬衫，夜里的灯照着门口。";
     return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200, headers: { "Content-Type": "application/json" } });
   };
   const image = await refineChatScenePrompt("她把伞靠在柜台边。衣着：白衬衫。", CHAT_STILL_MODEL, OPENROUTER, fetchImpl);
@@ -88,10 +100,20 @@ test("chat stills and clips use the format of the model that will render them", 
   assert.equal(seen.maxTokens, 500);
   assert.match(seen.user ?? "", /这一条回复：她把伞靠在柜台边/);
   assert.match(seen.system ?? "", /seedream-5-0-flash/);
-  const video = await refineChatScenePrompt("她把伞靠在柜台边。", CHAT_CLIP_MODEL, OPENROUTER, fetchImpl);
+  const video = await refineChatScenePrompt("她把伞靠在柜台边，轻声说：「雨停了再走吧。」", CHAT_CLIP_MODEL, OPENROUTER, fetchImpl, {
+    characterName: "林霜",
+  });
   assert.equal(video.ok, true);
-  if (video.ok) assert.match(video.prompt, new RegExp(H3_I2VA_FIRST_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
-  assert.equal(seen.maxTokens, 900);
+  if (video.ok) {
+    assert.match(video.prompt, /^subject_definitions:/);
+    assert.match(video.prompt, /\[reference generation\]/);
+    assert.match(video.prompt, /<d>\[Chinese\] 雨停了再走吧。<\/d>/);
+  }
+  assert.match(seen.user ?? "", /主角姓名.*林霜/);
+  assert.equal(seen.maxTokens, 1600);
+  const legacyVideo = await refineChatScenePrompt("她把伞靠在柜台边。", CHAT_CLIP_I2VA_MODEL, OPENROUTER, fetchImpl);
+  assert.equal(legacyVideo.ok, true);
+  if (legacyVideo.ok) assert.match(legacyVideo.prompt, new RegExp(H3_I2VA_FIRST_LINE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
   const rejected = await refineChatScenePrompt("她把伞靠在柜台边。", CHAT_CLIP_MODEL, OPENROUTER, async () => new Response(JSON.stringify({
     choices: [{ message: { content: "她把伞靠在柜台边。" } }],
   }), { status: 200, headers: { "Content-Type": "application/json" } }));

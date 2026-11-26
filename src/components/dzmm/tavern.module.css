@@ -1372,6 +1372,7 @@
 }
 .playStageImage { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: center 16%; }
 .playStageBar { position: absolute; z-index: 3; top: 12px; right: 12px; left: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.playStageBarGroup { display: inline-flex; align-items: center; gap: 6px; }
 .playStageBar button { height: 32px; padding: 0 12px; border: 1px solid color-mix(in srgb, var(--gold) 55%, transparent); border-radius: 16px; background: color-mix(in srgb, var(--bg) 62%, transparent); color: #fff; font-size: 12px; font-weight: 600; backdrop-filter: blur(10px); box-shadow: 0 6px 16px rgba(18, 6, 12, .28); }
 .playStageBar button:hover,
 .playStageBar button[aria-pressed="true"] { border-color: color-mix(in srgb, var(--pink) 70%, #fff); background: color-mix(in srgb, var(--pink-deep) 72%, transparent); color: #fff; }
@@ -2118,6 +2119,35 @@
 .composerVideo:disabled {
   opacity: 0.48;
   cursor: default;
+}
+.composerVisualMode {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+  background: color-mix(in srgb, var(--surface-alt, #18131a) 72%, transparent);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 140ms ease, color 140ms ease, border-color 140ms ease;
+}
+.composerVisualMode:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--text) 40%, var(--line));
+  color: var(--text);
+}
+.composerVisualModeImage {
+  border-color: color-mix(in srgb, var(--gold, #d7ad78) 52%, var(--line));
+  background: color-mix(in srgb, var(--gold, #d7ad78) 12%, transparent);
+  color: color-mix(in srgb, var(--gold, #d7ad78) 88%, var(--text));
+}
+.composerVisualModeVideo {
+  border-color: color-mix(in srgb, var(--pink, #ff5f94) 52%, var(--line));
+  background: color-mix(in srgb, var(--pink, #ff5f94) 14%, transparent);
+  color: color-mix(in srgb, var(--pink, #ff5f94) 88%, var(--text));
 }
 .composerHint {
   margin-left: auto;
@@ -3241,7 +3271,8 @@
   .composerBar::-webkit-scrollbar { display: none; }
   .composerContinue,
   .composerIllustrate,
-  .composerVideo {
+  .composerVideo,
+  .composerVisualMode {
     white-space: nowrap;
     flex-shrink: 0;
   }
@@ -3590,7 +3621,8 @@
   .composerBar::-webkit-scrollbar { display: none; }
   .composerContinue,
   .composerIllustrate,
-  .composerVideo {
+  .composerVideo,
+  .composerVisualMode {
     white-space: nowrap;
     flex-shrink: 0;
   }

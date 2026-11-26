@@ -87,11 +87,14 @@ export type DzmmPreferences = {
   imagePreset?: string;
   /** SillyTavern-style image generation templates, negative prompt and triggers. */
   imageGeneration?: TavernImageGeneration;
+  /** Tipsy-style independent chat visual track: manual, auto still images, or auto Ref2VA videos. */
+  chatVisualMode?: DzmmChatVisualMode;
   /** Summarizer verbosity and memory injection depth (SillyTavern-style memory). */
   memoryProfile?: TavernMemoryProfile;
   memoryDepth?: number;
 };
 
+export type DzmmChatVisualMode = "manual" | "image" | "video";
 export type DzmmSavedPreset = { id: string; name: string; content: string };
 export type DzmmSavedPersona = { id: string; name: string; content: string };
 export type DzmmChatFontSize = "small" | "medium" | "large" | "xlarge";
@@ -351,11 +354,13 @@ function hydratePreferences(
   const chatFont = enumeration("chatFont", ["system", "serif", "kai"] as const);
   const chatBackground = enumeration("chatBackground", ["site", "cover", "plain"] as const);
   const promptStyle = enumeration("promptStyle", ["xumeng", "tavern"] as const);
+  const chatVisualMode = enumeration("chatVisualMode", ["manual", "image", "video"] as const);
   if (enterKey !== undefined) preferences.enterKey = enterKey;
   if (chatFontSize !== undefined) preferences.chatFontSize = chatFontSize;
   if (chatFont !== undefined) preferences.chatFont = chatFont;
   if (chatBackground !== undefined) preferences.chatBackground = chatBackground;
   if (promptStyle !== undefined) preferences.promptStyle = promptStyle;
+  if (chatVisualMode !== undefined) preferences.chatVisualMode = chatVisualMode;
   if (value.imagePreset !== undefined) {
     const preset = parseTavernImagePresetId(value.imagePreset);
     if (preset) preferences.imagePreset = preset;

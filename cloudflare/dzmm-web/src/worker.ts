@@ -40,7 +40,8 @@ import { characterShareCoverResponse, characterShareResponse } from "./character
 import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
 import { XUMENG_USER_CARD_ASSET_PATHS } from "./user-card-assets";
 import { h3Query, h3Upstream } from "./h3-channel";
-import { runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
+import { h3CanvasSize, runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
+import { writeH3OfficialPrompt } from "./h3-official-prompt";
 import { TAVERN_ENGINE_SOURCE_TEXT } from "./tavern-notice";
 export { ViduLiveStudio } from "./vidu-live-studio";
 
@@ -1037,29 +1038,71 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   let body: unknown;
   try { body = await request.json(); } catch { return json({ error: "请求格式无效。" }, 400); }
   const record = body && typeof body === "object"
-    ? body as { prompt?: unknown; image?: unknown; conversationId?: unknown; messageId?: unknown; recentContext?: unknown }
+    ? body as {
+      prompt?: unknown;
+      image?: unknown;
+      ratio?: unknown;
+      characterName?: unknown;
+      appearance?: unknown;
+      scenario?: unknown;
+      recentContext?: unknown;
+      conversationId?: unknown;
+      messageId?: unknown;
+    }
     : {};
-  const source = typeof record.prompt === "string" ? record.prompt : "";
-  const recentContext = typeof record.recentContext === "string" ? record.recentContext.slice(0, 800) : "";
+  const source = typeof record.prompt === "string" ? record.prompt.replace(/\s+/g, " ").trim().slice(0, 1200) : "";
+  const characterName = typeof record.characterName === "string"
+    ? record.characterName.replace(/[\u0000-\u001f\r\n]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40)
+    : "";
+  const appearance = typeof record.appearance === "string" ? record.appearance.replace(/\s+/g, " ").trim().slice(0, 220) : "";
+  const scenario = typeof record.scenario === "string" ? record.scenario.replace(/\s+/g, " ").trim().slice(0, 240) : "";
+  const recentContext = typeof record.recentContext === "string" ? record.recentContext.replace(/\s+/g, " ").trim().slice(0, 680) : "";
+  const ratio = typeof record.ratio === "string" ? record.ratio : "9:16";
+  const frame = h3CanvasSize(ratio);
+  if (!frame) return json({ error: "画面比例需要是 9:16、3:4、1:1、4:3 或 16:9。" }, 400);
   const conversationId = typeof record.conversationId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(record.conversationId) ? record.conversationId : "";
   const messageId = typeof record.messageId === "string" && /^[A-Za-z0-9_-]{1,128}$/.test(record.messageId) ? record.messageId : "";
-  const refined = await refineChatScenePrompt(source, CHAT_CLIP_MODEL, {
-    OPENROUTER_API_KEY: env.DZMM_API_KEY,
-    OPENROUTER_BASE_URL: env.DZMM_BASE_URL,
-    SEALION_API_KEY: env.SEALION_API_KEY,
-    SEALION_BASE_URL: env.SEALION_BASE_URL,
-  }, fetch, recentContext ? { recentContext } : undefined);
-  if (!refined.ok && refined.status !== 503) return json({ error: refined.error }, refined.status);
-  const prompt = refined.ok ? refined.prompt : source.replace(/\s+/g, " ").trim();
-  if (!prompt) return json({ error: "这一段不能生成视频。" }, 400);
+  const blockedClip = /未成年|幼态|幼女|幼童|萝莉|正太|小学生|初中生|高中生|校服|学生服|学生妹|loli|shota|underage|\bchild\b|\bteen\b|真人照片|真人脸|本人照片|明星脸|公众人物|real person|real photo/i;
+  if (!source || blockedClip.test(source)) return json({ error: "这一段不能生成视频。" }, 400);
+  const characterLabel = `角色·${characterName || "主角"}`;
+  const briefParts = [
+    `请以 <Picture 1>（${characterLabel}）作为角色身份参考（[reference generation]，不要当成 0.00 秒锁死首帧），自由构图并直出一段 ${CHAT_SEGMENT_VIDEO_SECONDS} 秒单镜头带原声剧情短片。`,
+  ];
+  if (appearance && !blockedClip.test(appearance)) briefParts.push(`角色固有外貌与穿搭参考（仅本轮未说明衣着时沿用）：${appearance}`);
+  if (scenario && !blockedClip.test(scenario)) briefParts.push(`故事场景背景：${scenario}`);
+  if (recentContext && !blockedClip.test(recentContext)) briefParts.push(`前情上下文（仅用于延续地点、时间光线与未更换的衣着，不要演旧动作）：${recentContext}`);
+  briefParts.push(`本轮剧情（动作表演与原句对白以此为准）：${source}`);
+  const directorBrief = briefParts.join("\n").slice(0, 1750);
   const hold = await reserveChatSegmentVideo(request, env);
   if (hold instanceof Response) return hold;
   const video = await runH3CanvasVideo({
     base: env.H3_COMFY_URL ?? "",
     token: env.H3_COMFY_TOKEN ?? "",
-    prompt,
+    prompt: directorBrief,
     image: typeof record.image === "string" ? record.image : "",
+    labels: [characterLabel],
     seconds: CHAT_SEGMENT_VIDEO_SECONDS,
+    ratio,
+    rewrite: async (rawPrompt, references) => {
+      const official = await writeH3OfficialPrompt(env, rawPrompt, references, {
+        seconds: CHAT_SEGMENT_VIDEO_SECONDS,
+        width: frame.width,
+        height: frame.height,
+      }).catch(() => null);
+      if (official) return official;
+      const fallback = await refineChatScenePrompt(source, CHAT_CLIP_MODEL, {
+        OPENROUTER_API_KEY: env.DZMM_API_KEY,
+        OPENROUTER_BASE_URL: env.DZMM_BASE_URL,
+        SEALION_API_KEY: env.SEALION_API_KEY,
+        SEALION_BASE_URL: env.SEALION_BASE_URL,
+      }, fetch, {
+        ...(characterName ? { characterName } : {}),
+        ...(appearance ? { appearance } : {}),
+        ...(scenario ? { scenario } : {}),
+        ...(recentContext ? { recentContext } : {}),
+      });
+      return fallback.ok ? fallback.prompt : null;
+    },
   });
   if (!video.ok) {
     await video.body?.cancel();
@@ -1074,6 +1117,7 @@ async function h3CanvasVideo(request: Request, env: Env): Promise<Response> {
   }
   const headers = new Headers(video.headers);
   headers.set("X-Charged-Credits", String(hold.credits));
+  headers.set("X-H3-Mode", "ref2va");
   if (conversationId && messageId) {
     const mp4Bytes = await video.arrayBuffer();
     try {
