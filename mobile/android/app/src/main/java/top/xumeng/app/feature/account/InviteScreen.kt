@@ -74,8 +74,8 @@ fun InviteScreen() {
                     Text(url, color = Ink.muted, fontSize = 13.sp)
                     Text("复制链接", color = Ink.accent, modifier = Modifier.clickable { clipboard.setText(AnnotatedString(url)) }.padding(vertical = 8.dp))
                 }
-                Text("已邀请 ${card.invited} 人 · 已得 ${card.earned} Credit", color = Ink.text, modifier = Modifier.padding(top = 12.dp))
-                Text("每人注册奖励 ${card.reward} Credit", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
+                Text("已邀请 ${card.invited} 人 · 已得 ${card.earned} 金币", color = Ink.text, modifier = Modifier.padding(top = 12.dp))
+                Text("每人注册奖励 ${card.reward} 金币", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                 if (card.rebate > 0) Text("返利 ${card.rebate}%", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
                 Text("打开 ${card.opens} · 注册 ${card.registrations} · 开始聊天 ${card.chats}", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp))
                 failure?.let { Text(it, color = Color(0xFFFF8AA3), fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)) }

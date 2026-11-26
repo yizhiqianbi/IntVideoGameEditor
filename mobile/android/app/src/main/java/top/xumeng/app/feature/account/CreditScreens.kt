@@ -1,7 +1,10 @@
 package top.xumeng.app.feature.account
 
+import android.content.Intent
+import androidx.core.net.toUri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -17,6 +21,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.ViewModel
@@ -120,10 +125,16 @@ fun WalletScreen() {
     val membership by model.membership.collectAsState()
     val membershipFailure by model.membershipFailure.collectAsState()
     val busy by model.busy.collectAsState()
+    val context = LocalContext.current
+    val openWeb: (String) -> Unit = { hash ->
+        runCatching {
+            context.startActivity(Intent(Intent.ACTION_VIEW, "${BuildConfig.WEB_ORIGIN}/$hash".toUri()))
+        }
+    }
     Column(Modifier.fillMaxSize().background(Ink.background)) {
         Row(Modifier.padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
             Mark("wallet", size = 22.dp, color = Ink.accent)
-            Text("Credit", color = Ink.text, fontSize = 22.sp, modifier = Modifier.padding(start = 10.dp))
+            Text("充值与 VIP", color = Ink.text, fontSize = 22.sp, modifier = Modifier.padding(start = 10.dp))
         }
         val book = wallet
         when {
@@ -131,15 +142,44 @@ fun WalletScreen() {
             book == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(failure ?: "", color = Ink.muted, modifier = Modifier.clickable { model.refresh() }.padding(20.dp)) }
             else -> LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                 item {
-                    Text("${book.available}", color = Ink.text, fontSize = 36.sp)
-                    Text("可用 · 预留 ${book.reserved} · 已消费 ${book.spent}", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 12.dp))
+                    Column(
+                        Modifier
+                            .fillMaxWidth()
+                            .padding(bottom = 14.dp)
+                            .background(Ink.surface, RoundedCornerShape(16.dp))
+                            .padding(16.dp),
+                    ) {
+                        Text("当前可用金币", color = Ink.muted, fontSize = 12.sp)
+                        Text("${book.available}", color = Ink.text, fontSize = 36.sp, modifier = Modifier.padding(top = 4.dp))
+                        Text("预留 ${book.reserved} · 已消费 ${book.spent}", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp, bottom = 12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            Text(
+                                "立即充值（¥6 起）",
+                                color = Color.White,
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(Ink.accent, RoundedCornerShape(999.dp))
+                                    .clickable { openWeb("#recharge") }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                            )
+                            Text(
+                                "开通 VIP（5 折）",
+                                color = Color(0xFFF3D59B),
+                                fontSize = 13.sp,
+                                modifier = Modifier
+                                    .background(Color(0x28D7AD78), RoundedCornerShape(999.dp))
+                                    .clickable { openWeb("#vip") }
+                                    .padding(horizontal = 14.dp, vertical = 8.dp),
+                            )
+                        }
+                    }
                     MembershipBlock(membership, membershipFailure, busy, model::claim)
                     failure?.let { Text(it, color = Color(0xFFFF8AA3), fontSize = 13.sp, modifier = Modifier.padding(top = 8.dp)) }
                 }
                 items(book.lines) { line ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                         Text(line.model, color = Ink.text, fontSize = 15.sp)
-                        Text("${line.status} · 已扣 ${line.charged} · 预留 ${line.reserved}", color = Ink.muted, fontSize = 12.sp)
+                        Text("${line.status} · 已扣 ${line.charged} 金币 · 预留 ${line.reserved}", color = Ink.muted, fontSize = 12.sp)
                     }
                 }
             }
@@ -157,13 +197,13 @@ private fun MembershipBlock(member: Membership?, failure: String?, busy: Boolean
         else -> {
             Text(member.label, color = Ink.text, fontSize = 15.sp)
             Text(
-                "${membershipStatus(member.status)} · 每日 ${member.dailyCredits} · 已领 ${member.claims}/${member.maxClaims}",
+                "${membershipStatus(member.status)} · 每日 ${member.dailyCredits} 金币 · 已领 ${member.claims}/${member.maxClaims}",
                 color = Ink.muted,
                 fontSize = 13.sp,
                 modifier = Modifier.padding(top = 4.dp),
             )
             when {
-                member.claimable -> Text(if (busy) "领取中" else "领取今日 ${member.reward} Credit", color = Ink.accent, modifier = Modifier.clickable(enabled = !busy, onClick = claim).padding(vertical = 8.dp))
+                member.claimable -> Text(if (busy) "领取中" else "领取今日 ${member.reward} 金币", color = Ink.accent, modifier = Modifier.clickable(enabled = !busy, onClick = claim).padding(vertical = 8.dp))
                 member.claimed -> Text("今日已领取", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(vertical = 8.dp))
             }
             failure?.let { Text(it, color = Color(0xFFFF8AA3), fontSize = 13.sp) }
@@ -194,12 +234,12 @@ fun TaskScreen() {
             board == null && failure == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("正在读取任务", color = Ink.muted) }
             board == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text(failure ?: "", color = Ink.muted, modifier = Modifier.clickable { model.refresh() }.padding(20.dp)) }
             else -> LazyColumn(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
-                item { Text("任务 Credit ${board.balance}", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)) }
+                item { Text("任务金币 ${board.balance}", color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(bottom = 8.dp)) }
                 items(board.tasks, key = { it.id }) { task ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 12.dp)) {
                         Text(task.title, color = Ink.text, fontSize = 16.sp)
                         Text(task.description, color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 4.dp))
-                        Text("${task.progress} / ${task.target} · ${task.reward} Credit", color = Ink.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
+                        Text("${task.progress} / ${task.target} · ${task.reward} 金币", color = Ink.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 4.dp))
                         if (task.claimable) Text("领取", color = Ink.accent, modifier = Modifier.clickable { model.claim(task.id) }.padding(top = 6.dp))
                         else if (task.claimed) Text("已领取", color = Ink.muted, fontSize = 12.sp, modifier = Modifier.padding(top = 6.dp))
                     }

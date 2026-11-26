@@ -53,8 +53,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.annotation.OptIn
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
@@ -413,9 +415,9 @@ fun GenerateScreen() {
                     val quote = state.quote
                     Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Text(if (state.busy) "处理中" else "查看报价", color = Ink.text, modifier = Modifier.clickable(enabled = !state.busy && desk.enabled) { model.quote(prompt, aspect) }.padding(vertical = 10.dp))
-                        if (quote != null) Text("确认 · 预留 ${quote.max} Credit", color = Ink.accent, modifier = Modifier.clickable(enabled = !state.busy) { model.confirm(prompt, aspect) }.padding(vertical = 10.dp))
+                        if (quote != null) Text("确认 · 预留 ${quote.max} 金币", color = Ink.accent, modifier = Modifier.clickable(enabled = !state.busy) { model.confirm(prompt, aspect) }.padding(vertical = 10.dp))
                     }
-                    if (quote != null) Text("预计 ${quote.estimated} Credit，最多预留 ${quote.max}", color = Ink.muted, fontSize = 13.sp)
+                    if (quote != null) Text("预计 ${quote.estimated} 金币，最多预留 ${quote.max}", color = Ink.muted, fontSize = 13.sp)
                 }
                 item {
                     state.error?.let { Text(it, color = Color(0xFFFF8AA3), fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp)) }
@@ -424,7 +426,7 @@ fun GenerateScreen() {
                 items(desk.jobs, key = { it.id }) { job ->
                     Column(Modifier.fillMaxWidth().padding(vertical = 10.dp)) {
                         Text(job.prompt, color = Ink.text, fontSize = 14.sp, maxLines = 2)
-                        Text("${jobStatus(job.status)} · ${if (job.status == "ready") "已扣 ${job.charged}" else "预留 ${job.reserved}"} Credit", color = Ink.muted, fontSize = 12.sp)
+                        Text("${jobStatus(job.status)} · ${if (job.status == "ready") "已扣 ${job.charged}" else "预留 ${job.reserved}"} 金币", color = Ink.muted, fontSize = 12.sp)
                         Text("删除", color = Color(0xFFFF8AA3), fontSize = 13.sp, modifier = Modifier.clickable(enabled = !state.busy) { model.removeJob(job.id) }.padding(top = 6.dp))
                         if (job.status == "ready" && !job.asset.isNullOrBlank()) {
                             Text(
@@ -591,7 +593,7 @@ private fun TemplateCreate(state: GenerateUi, note: String, onNote: (String) -> 
         val label = when {
             state.busy -> "处理中"
             selected?.kind == "video" -> "确认生成视频"
-            else -> "确认出图 · 50 Credit"
+            else -> "确认出图 · 50 金币"
         }
         Text(label, color = Ink.accent, modifier = Modifier.clickable(enabled = !state.busy, onClick = render).padding(vertical = 10.dp))
     }
@@ -672,6 +674,7 @@ private fun PosterCard(
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 private fun DemoVideo(path: String) {
     val context = LocalContext.current

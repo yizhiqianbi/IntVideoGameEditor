@@ -229,7 +229,6 @@ private val primaryNav = listOf(
     NavItem(ShellTab.VIDEO, "视频", "video"),
     NavItem(ShellTab.PLAY, "游玩", "users"),
     NavItem(ShellTab.CHAT, "陪伴", "chat"),
-    NavItem(ShellTab.FORUM, "论坛", "compass"),
     NavItem(ShellTab.CREATE, "创作", "edit"),
     NavItem(ShellTab.PROFILE, "我的", "user"),
 )
@@ -241,7 +240,7 @@ private val toolNav = listOf(
     NavItem(ShellTab.GENERATE, "生成", "sparkles"),
     NavItem(ShellTab.VOICE, "角色语音", "volume"),
     NavItem(ShellTab.TASKS, "任务中心", "trophy"),
-    NavItem(ShellTab.RECHARGE, "Credit 充值", "wallet"),
+    NavItem(ShellTab.RECHARGE, "充值与 VIP", "wallet"),
     NavItem(ShellTab.PRESETS, "模型与预设", "sliders"),
     NavItem(ShellTab.SETTINGS, "设置", "user"),
 )

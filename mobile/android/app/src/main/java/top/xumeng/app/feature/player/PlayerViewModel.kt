@@ -197,7 +197,7 @@ class PlayerViewModel(app: Application) : AndroidViewModel(app) {
                 onSuccess = {
                     unlockedFlow.value = unlockedFlow.value + episodeId
                     pendingFlow.value = null
-                    noticeFlow.value = "已使用 50 Credit"
+                    noticeFlow.value = "已使用 50 金币"
                     selectEpisode(drama, episodeId)
                 },
                 onFailure = { error -> noticeFlow.value = error.message ?: "这一集暂时不能打开" },

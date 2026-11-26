@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import android.graphics.Typeface
@@ -194,7 +195,17 @@ private fun Thread(
     Box(Modifier.fillMaxSize().background(Ink.background).imePadding()) {
         if (state.chatBackground == "cover" && state.cover.isNotBlank()) {
             RemoteImage(BuildConfig.WEB_ORIGIN, state.cover, null, Modifier.fillMaxSize())
-            Box(Modifier.fillMaxSize().background(Color(0x6B0C060E)))
+            Box(
+                Modifier.fillMaxSize().background(
+                    Brush.verticalGradient(
+                        listOf(
+                            Color(0x780C060E),
+                            Color(0x8A0C060E),
+                            Color(0xBD0C060E),
+                        ),
+                    ),
+                ),
+            )
         }
     Column(Modifier.fillMaxSize()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -557,12 +568,12 @@ private fun Bubble(line: Line, labels: List<String>, sending: Boolean, canRegene
             }
             if (media != null && !editing) {
                 Text(media.audioLabel, color = if (media.audioReady) Ink.accent else Ink.muted, fontSize = 12.sp, modifier = Modifier.clickable(enabled = media.audioReady) { onMedia("audio", false) }.padding(top = 4.dp))
-                if (!media.hasAudio) Text("20 Credit", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                if (!media.hasAudio) Text("20 金币", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
                 Text(media.imageLabel, color = if (media.imageReady) Ink.accent else Ink.muted, fontSize = 12.sp, modifier = Modifier.clickable(enabled = media.imageReady) { onMedia("image", false) }.padding(top = 4.dp))
-                if (!media.hasImage) Text("100 Credit", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                if (!media.hasImage) Text("100 金币", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
                 if (media.hasImage) {
                     Text("重新生图", color = if (media.imageReady) Ink.accent else Ink.muted, fontSize = 12.sp, modifier = Modifier.clickable(enabled = media.imageReady) { onMedia("image", true) }.padding(top = 4.dp))
-                    Text("100 Credit", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
+                    Text("100 金币", color = Ink.muted, fontSize = 11.sp, modifier = Modifier.padding(top = 4.dp))
                 }
             }
         }

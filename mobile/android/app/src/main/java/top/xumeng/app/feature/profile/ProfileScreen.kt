@@ -162,7 +162,7 @@ fun ProfileScreen(
                     copied = true
                 }.padding(top = 8.dp))
                 Row(Modifier.padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-                    listOf("create" to "创作", "settings" to "设置", "presets" to "预设", "wallet" to "Credit", "invite" to "邀请").forEach { (id, label) ->
+                    listOf("create" to "创作", "settings" to "设置", "presets" to "预设", "wallet" to "金币", "invite" to "邀请").forEach { (id, label) ->
                         Text(label, color = Ink.text, fontSize = 14.sp, modifier = Modifier.clickable { onMenu(id) }.padding(vertical = 6.dp))
                     }
                 }

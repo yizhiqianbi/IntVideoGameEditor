@@ -265,7 +265,7 @@ private fun Reel(
         }
         val locked = drama.episodes.find { it.id == pending }
         if (locked != null) {
-            Text("解锁${locked.label} · 50 Credit", color = Color.White, modifier = Modifier.clickable { model.payPending(drama) }.padding(top = 8.dp))
+            Text("解锁${locked.label} · 50 金币", color = Color.White, modifier = Modifier.clickable { model.payPending(drama) }.padding(top = 8.dp))
         }
         if (notice.isNotBlank()) Text(notice, color = Ink.muted, fontSize = 13.sp, modifier = Modifier.padding(top = 6.dp))
         val tags = drama.tags.ifEmpty {

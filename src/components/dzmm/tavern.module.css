@@ -4868,10 +4868,15 @@
    ========================================================================== */
 
 .chatPlay > .chatBackdrop {
-  filter: none;
+  filter: brightness(0.8) saturate(0.92);
   transform: none;
   opacity: 1;
-  transition: opacity 0.28s ease;
+  transition: opacity 0.28s ease, filter 0.28s ease, transform 0.28s ease;
+}
+
+.chatBesideStage.chatPlay > .chatBackdrop {
+  filter: blur(8px) brightness(0.68) saturate(0.88);
+  transform: scale(1.04);
 }
 
 .chatPlay > .chatBackdropScrim {
@@ -4881,20 +4886,20 @@
 .chatPlay > .chatBackdropScrim.chatBackdropDark {
   background: linear-gradient(
     to bottom,
-    rgba(10, 5, 14, 0.28) 0%,
-    rgba(10, 5, 14, 0.04) 22%,
-    rgba(10, 5, 14, 0.12) 56%,
-    rgba(10, 5, 14, 0.44) 100%
+    rgba(10, 5, 14, 0.48) 0%,
+    rgba(10, 5, 14, 0.34) 24%,
+    rgba(10, 5, 14, 0.44) 58%,
+    rgba(10, 5, 14, 0.68) 100%
   );
 }
 
 .chatPlay > .chatBackdropScrim.chatBackdropLight {
   background: linear-gradient(
     to bottom,
-    rgba(255, 248, 252, 0.36) 0%,
-    rgba(255, 248, 252, 0.05) 24%,
-    rgba(255, 248, 252, 0.16) 58%,
-    rgba(255, 248, 252, 0.48) 100%
+    rgba(255, 248, 252, 0.56) 0%,
+    rgba(255, 248, 252, 0.38) 24%,
+    rgba(255, 248, 252, 0.48) 58%,
+    rgba(255, 248, 252, 0.7) 100%
   );
 }
 
@@ -4942,33 +4947,33 @@
 }
 
 .chatPlay .messageBubble {
-  background: color-mix(in srgb, var(--assistant-bubble, var(--im-bubble-in)) 44%, transparent);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(7px) saturate(1.15);
-  -webkit-backdrop-filter: blur(7px) saturate(1.15);
-  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--assistant-bubble, var(--im-bubble-in)) 58%, transparent);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px) saturate(1.12);
+  -webkit-backdrop-filter: blur(8px) saturate(1.12);
+  box-shadow: 0 8px 26px rgba(0, 0, 0, 0.24), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   line-height: 1.84;
   letter-spacing: 0.015em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55);
 }
 
 .chatPlay[data-scrim="light"] .messageBubble {
-  background: color-mix(in srgb, var(--assistant-bubble, #fffafc) 58%, transparent);
+  background: color-mix(in srgb, var(--assistant-bubble, #fffafc) 70%, transparent);
   border-color: rgba(32, 18, 30, 0.1);
   box-shadow: 0 6px 22px rgba(24, 12, 22, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.55);
   text-shadow: none;
 }
 
 .chatPlay .userRow .messageBubble {
-  background: color-mix(in srgb, var(--user-bubble, var(--im-bubble-out)) 54%, transparent);
+  background: color-mix(in srgb, var(--user-bubble, var(--im-bubble-out)) 64%, transparent);
   border: 1px solid color-mix(in srgb, var(--pink) 36%, rgba(255, 255, 255, 0.16));
-  backdrop-filter: blur(8px) saturate(1.18);
-  -webkit-backdrop-filter: blur(8px) saturate(1.18);
+  backdrop-filter: blur(8px) saturate(1.14);
+  -webkit-backdrop-filter: blur(8px) saturate(1.14);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
 }
 
 .chatPlay[data-scrim="light"] .userRow .messageBubble {
-  background: color-mix(in srgb, var(--user-bubble, var(--im-bubble-out)) 68%, transparent);
+  background: color-mix(in srgb, var(--user-bubble, var(--im-bubble-out)) 74%, transparent);
   text-shadow: none;
 }
 
@@ -4999,6 +5004,12 @@
 }
 
 /* Pure Art Peek Mode */
+.chatPlay[data-peek="true"] > .chatBackdrop {
+  filter: none !important;
+  transform: none !important;
+  opacity: 1 !important;
+}
+
 .chatPlay[data-peek="true"] > .chatBackdropScrim {
   opacity: 0;
 }
@@ -5067,32 +5078,36 @@
     max-width: min(230px, calc(100vw - 16px));
   }
 
-  /* Crisp portrait art + ultra-clear top framing window */
+  /* Crisp portrait art with gently toned brightness + readable story veil */
   .chatPlay > .chatBackdrop {
-    filter: none !important;
+    filter: brightness(0.82) saturate(0.94) !important;
     transform: none !important;
     opacity: 1 !important;
+  }
+
+  .chatPlay[data-peek="true"] > .chatBackdrop {
+    filter: none !important;
   }
 
   .chatPlay > .chatBackdropScrim.chatBackdropDark {
     background: linear-gradient(
       to bottom,
-      rgba(10, 5, 14, 0.28) 0%,
-      rgba(10, 5, 14, 0.03) 14%,
-      rgba(10, 5, 14, 0.04) 44%,
-      rgba(10, 5, 14, 0.24) 74%,
-      rgba(10, 5, 14, 0.52) 100%
+      rgba(10, 5, 14, 0.42) 0%,
+      rgba(10, 5, 14, 0.18) 16%,
+      rgba(10, 5, 14, 0.34) 44%,
+      rgba(10, 5, 14, 0.56) 74%,
+      rgba(10, 5, 14, 0.78) 100%
     );
   }
 
   .chatPlay > .chatBackdropScrim.chatBackdropLight {
     background: linear-gradient(
       to bottom,
-      rgba(255, 248, 252, 0.38) 0%,
-      rgba(255, 248, 252, 0.04) 15%,
-      rgba(255, 248, 252, 0.05) 44%,
-      rgba(255, 248, 252, 0.26) 74%,
-      rgba(255, 248, 252, 0.54) 100%
+      rgba(255, 248, 252, 0.5) 0%,
+      rgba(255, 248, 252, 0.24) 16%,
+      rgba(255, 248, 252, 0.38) 44%,
+      rgba(255, 248, 252, 0.56) 74%,
+      rgba(255, 248, 252, 0.74) 100%
     );
   }
 

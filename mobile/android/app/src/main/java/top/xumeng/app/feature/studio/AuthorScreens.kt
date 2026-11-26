@@ -92,21 +92,14 @@ import java.util.UUID
 private const val defaultVoice = "cRL5y2g9Apu45tuoclY0"
 
 private val models = listOf(
-    "gemma31" to "Gemma 4 31B",
-    "deepseek" to "DeepSeek V4.1 Flash",
-    "qwen" to "Qwen3 30B",
-    "gemini4a" to "Gemini 4 Argon",
-    "gemini4c" to "Gemini 4 Carbon",
-    "gemini31" to "Gemini 3.1 Flash Lite",
-    "grok" to "Grok 4.7",
-    "grok46" to "Grok 4.6",
-    "gemini" to "Gemini 3.8 Flash",
-    "claude" to "Claude Sonnet 5.5",
-    "gpt" to "GPT 6.1 Sol",
-    "heretic" to "Gemma 4 Heretic",
-    "gemma26" to "Gemma 4 26B",
-    "cydonia" to "Cydonia 24B",
-    "venice" to "Venice Uncensored",
+    "gemma31" to "微光 · 轻语（默认 · 1× · 8金币起）",
+    "qwen" to "微光 · 素笺（1× · 8金币起）",
+    "deepseek" to "流萤 · 织梦（热选 · 2× · 16金币起）",
+    "gemini31" to "流萤 · 灵犀（2× · 16金币起）",
+    "gemini" to "绯月 · 绘境（长记忆 · 3× · 24金币起）",
+    "grok" to "星穹 · 魅影（张力 · 5× · 40金币起）",
+    "claude" to "星穹 · 墨韵（顶级文笔 · 6× · 48金币起）",
+    "gemini4c" to "星穹 · 曜石（旗舰巅峰 · 6× · 48金币起）",
 )
 
 private data class VoiceChoice(val id: String, val label: String, val preview: String? = null)
