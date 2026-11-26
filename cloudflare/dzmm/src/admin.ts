@@ -6,6 +6,7 @@ import { handleAdminStudioCovers } from "./studio-covers";
 import { handleOpsConsole } from "./ops-console";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
+import { handleAdminActivity } from "./admin-activity";
 import { adminTraffic } from "./visits";
 
 const UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i;
@@ -167,6 +168,7 @@ export async function handleAdmin(request:Request,env:Env):Promise<Response|null
   const user=await requireUser(request,env);if(user.isGuest||user.role!=='super')throw new ApiError(403,'后台管理仅限 Super 账户。');
   if(path==='/v1/admin/overview'&&request.method==='GET'){if(url.search)throw new ApiError(400,'概览不接受查询参数。');return overview(env,user);}
   if(path==='/v1/admin/checkin'&&(request.method==='GET'||request.method==='POST')){if(url.search)throw new ApiError(400,'签到配置不接受查询参数。');return checkinSetting(request,env,user);}
+  const activity=await handleAdminActivity(request,env,user); if(activity) return activity;
   const ops=await handleOpsConsole(request,env,user); if(ops) return ops;
   const banners=await handleAdminBanners(request,env,user); if(banners) return banners;
   const studioCovers=await handleAdminStudioCovers(request,env,user); if(studioCovers) return studioCovers;

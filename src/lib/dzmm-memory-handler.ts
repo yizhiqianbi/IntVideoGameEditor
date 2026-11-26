@@ -3,7 +3,7 @@ import { dzmmModelReasoning, dzmmModelTemperature, isDzmmModelPreset } from "./d
 import { readDzmmJsonBody, type DzmmChatEnvironment, type DzmmChatHandlerOptions } from "./dzmm-chat-handler";
 import { DzmmValidationError, dzmmUpstreamHeaders, readDzmmProviderConfig, resolveDzmmChatUpstream, sanitizeDzmmProviderError, type DzmmModelPreset } from "./dzmm-chat";
 import { fetchDzmmUpstreamWithRetry, parseDzmmJsonResponseText } from "./dzmm-upstream-resilience";
-import { parseStoryState, type DzmmStoryState } from "./dzmm-story-memory";
+import { parseStoryState, storyStateFromModel, type DzmmStoryState } from "./dzmm-story-memory";
 import { parseTavernMemoryProfile, tavernMemoryProfileInstruction } from "./tavern/memory";
 import { prepareDzmmBillingRequest, DzmmBillingError, dzmmProviderRouting, readDzmmGenerationId, readDzmmGenerationUsage,
   readDzmmProviderMaxPrice, trustedDzmmGenerationUsage,
@@ -83,9 +83,9 @@ export async function handleDzmmMemoryPost(request: Request, env: DzmmChatEnviro
     return Response.json({ error: error instanceof DzmmBillingError ? error.message : "模型成本上限配置无效，请联系站主。",
       code: "BILLING_UNAVAILABLE" }, { status: 503, headers: HEADERS });
   }
-  const buildProviderBody = (maxOutputTokens: number) => JSON.stringify({ model: upstream.model, stream: false, ...dzmmModelTemperature(upstream.model, 0.15),
+  const buildProviderBody = (maxOutputTokens: number, jsonMode = true) => JSON.stringify({ model: upstream.model, stream: false, ...dzmmModelTemperature(upstream.model, 0.15),
     ...dzmmModelReasoning(upstream.model), max_tokens: maxOutputTokens, messages: providerMessages,
-    response_format: { type: "json_object" },
+    ...(jsonMode ? { response_format: { type: "json_object" } } : {}),
     ...(maxPrice ? { provider: dzmmProviderRouting(upstream.model, maxPrice) } : {}) });
   let lease: DzmmBillingLease | undefined;
   let billingCompletion: Promise<void> | undefined;
@@ -116,18 +116,28 @@ export async function handleDzmmMemoryPost(request: Request, env: DzmmChatEnviro
     if (request.signal.aborted || abort.signal.aborted) throw new Error("Cancelled before billing reservation");
     if (options.billing) lease = await options.billing.reserve(prepared.preflight);
     if (request.signal.aborted || abort.signal.aborted) throw new Error("Cancelled before provider request");
-    const response = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint, {
+    const providerInit = (body: string) => ({
       method: "POST", headers: dzmmUpstreamHeaders(upstream.apiKey, upstream.direct, "Xumeng Story Memory"),
-      body: prepared.providerBody, signal: abort.signal,
-    }, { retryDelayMs: options.providerFetch ? 0 : 350 });
+      body, signal: abort.signal,
+    });
+    let response = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint,
+      providerInit(prepared.providerBody), { retryDelayMs: options.providerFetch ? 0 : 350 });
     if (abort.signal.aborted) {
       await response.body?.cancel();
       throw new Error("Cancelled provider request");
     }
     if (!response.ok) {
       const detail = await response.text().catch(() => "");
-      await finishBilling("failed");
-      return Response.json({ error: sanitizeDzmmProviderError(response.status, detail) }, { status: response.status === 429 ? 429 : 502, headers: HEADERS });
+      const rejectedJsonMode = response.status === 400 && /response_format|json_object|json_schema/i.test(detail);
+      if (rejectedJsonMode && !abort.signal.aborted) {
+        response = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint,
+          providerInit(buildProviderBody(prepared.maxOutputTokens, false)), { retryDelayMs: options.providerFetch ? 0 : 350 });
+      }
+      if (!response.ok) {
+        const failureDetail = rejectedJsonMode ? await response.text().catch(() => "") : detail;
+        await finishBilling("failed");
+        return Response.json({ error: sanitizeDzmmProviderError(response.status, failureDetail) }, { status: response.status === 429 ? 429 : 502, headers: HEADERS });
+      }
     }
     generationId = readDzmmGenerationId(response.headers.get("X-Generation-Id"));
     if (!response.body) throw new Error("Empty response");
@@ -150,9 +160,9 @@ export async function handleDzmmMemoryPost(request: Request, env: DzmmChatEnviro
     usage = trustedDzmmGenerationUsage(readDzmmGenerationUsage(payload.usage), upstream.baseUrl);
     generationId = readDzmmGenerationId(payload.id) ?? generationId;
     const choice = payload.choices[0];
-    if (choice.finish_reason !== undefined && choice.finish_reason !== "stop") throw new Error("Incomplete summary");
+    if (choice.finish_reason === "error") throw new Error("Incomplete summary");
     if (!record(choice.message) || typeof choice.message.content !== "string") throw new Error("Invalid summary");
-    const state = parseStoryState(parseDzmmJsonResponseText(choice.message.content));
+    const state = storyStateFromModel(parseDzmmJsonResponseText(choice.message.content));
     if (!state.summary.trim() && !state.scene.trim() && !state.completed.length && !state.pending.length
       && !state.relationships.length && !state.items.length) throw new Error("Empty summary");
     hasValidOutput = true;

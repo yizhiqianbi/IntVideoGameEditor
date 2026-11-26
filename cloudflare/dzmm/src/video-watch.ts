@@ -17,9 +17,13 @@ export function videoEpisodeTarget(value: unknown) {
   return { episodeId, dramaId: `hg-${match[1]}`, episodeNumber };
 }
 
+const PLAY_GAP_MS = 10 * 60 * 1000;
+const PLAY_HOUR_CAP = 240;
+
 export async function handleVideoWatch(request: Request, env: Env, user: UserRecord): Promise<Response | null> {
   const url = new URL(request.url);
   const path = url.pathname.replace(/\/$/, "");
+  if (path === "/v1/videos/play") return recordPlay(request, env, user);
   if (path !== "/v1/videos/unlock" && path !== "/v1/videos/unlocks") return null;
   if (user.isGuest) throw new ApiError(403, "请先登录后再观看后续剧集。");
   if (path === "/v1/videos/unlocks") {
@@ -51,6 +55,36 @@ export async function handleVideoWatch(request: Request, env: Env, user: UserRec
   throw new ApiError(402, `当前可用 Credit 不足，这一集需要 ${VIDEO_EPISODE_CREDITS} Credit。`, {
     code: "insufficient_credits", requiredCredits: VIDEO_EPISODE_CREDITS, availableCredits: Number(wallet?.balance ?? 0),
   });
+}
+
+async function recordPlay(request: Request, env: Env, user: UserRecord) {
+  if (request.method !== "POST") throw new ApiError(405, "此接口仅支持 POST。");
+  const target = videoEpisodeTarget(await readJson(request, 2048));
+  if (!target) throw new ApiError(400, "剧集编号无效。");
+  const access = await playAccess(env, user, target);
+  if (!access) throw new ApiError(402, "这一集还没有解锁。");
+  const now = Date.now();
+  try {
+    await env.DB.prepare(`INSERT INTO video_plays(id,user_id,episode_id,drama_id,episode_number,access,created_at)
+      SELECT ?1,?2,?3,?4,?5,?6,?7
+      WHERE NOT EXISTS(SELECT 1 FROM video_plays WHERE user_id=?2 AND episode_id=?3 AND created_at>?8)
+      AND (SELECT COUNT(*) FROM video_plays WHERE user_id=?2 AND created_at>?9)<${PLAY_HOUR_CAP}`)
+      .bind(crypto.randomUUID(), user.id, target.episodeId, target.dramaId, target.episodeNumber, access, now, now - PLAY_GAP_MS, now - 60 * 60 * 1000).run();
+  } catch (error) {
+    if (!String(error).includes("no such table")) throw error;
+  }
+  return json({ recorded: true });
+}
+
+async function playAccess(env: Env, user: UserRecord, target: { episodeId: string; episodeNumber: number }) {
+  if (target.episodeNumber <= VIDEO_FREE_EPISODES) return "free" as const;
+  const owned = await env.DB.prepare("SELECT 1 AS ok FROM video_episode_unlocks WHERE user_id=? AND episode_id=?").bind(user.id, target.episodeId).first();
+  if (owned) return "paid" as const;
+  const now = Date.now();
+  const vip = await env.DB.prepare("SELECT 1 AS ok FROM subscription_periods WHERE user_id=? AND revoked_at IS NULL AND starts_at<=? AND expires_at>? LIMIT 1")
+    .bind(user.id, now, now).first();
+  if (vip) return "vip" as const;
+  return null;
 }
 
 async function balance(env: Env, userId: string) {

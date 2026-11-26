@@ -84,6 +84,14 @@ export function parseStoryState(value: unknown): DzmmStoryState {
   return state;
 }
 
+/** A model reply may add unused keys or skip an empty list. Stored memory stays strict. */
+export function storyStateFromModel(value: unknown): DzmmStoryState {
+  if (!isRecord(value)) throw new Error("剧情状态格式无效。");
+  const picked: Record<string, unknown> = { summary: value.summary, scene: value.scene };
+  for (const field of STORY_LIST_FIELDS) picked[field] = Object.hasOwn(value, field) ? value[field] : [];
+  return parseStoryState(picked);
+}
+
 export function parseStoryMemory(value: unknown): DzmmStoryMemory {
   if (!isRecord(value)) throw new Error("剧情记忆格式无效。");
   assertFields(value, ["version", "sourceCount", "sourceFingerprint", "state"], "剧情记忆");

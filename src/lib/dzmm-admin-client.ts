@@ -251,6 +251,43 @@ export const fetchDzmmAdminSubscriptions = (id: string, q: DzmmAdminPageQuery = 
 export const fetchDzmmAdminUsage = (id: string, q: DzmmAdminPageQuery = {}, signal?: AbortSignal) => page("/usage", id, q, parseUsage, signal);
 export const fetchDzmmAdminAudit = (id: string, q: DzmmAdminPageQuery = {}, signal?: AbortSignal) => page("/audit", id, q, parseAudit, signal);
 
+export type DzmmAdminWatch = {
+  id: string; userId: string; nickname: string; dramaId: string; episodeId: string; episodeNumber: number;
+  kind: "unlock" | "free" | "vip" | "paid"; credits: number; createdAt: number;
+};
+export type DzmmAdminWatchHot = { userId: string; nickname: string; events: number; credits: number };
+export type DzmmAdminWatches = DzmmAdminPage<DzmmAdminWatch> & { hot: DzmmAdminWatchHot[]; note: string };
+export type DzmmAdminSpend = { id: string; userId: string; nickname: string; scene: string; detail: string; credits: number; createdAt: number };
+
+const WATCH_KINDS = ["unlock", "free", "vip", "paid"] as const;
+function parseWatch(v: unknown): DzmmAdminWatch {
+  if (!record(v) || !text(v.id, 80) || !uuid(v.userId) || !text(v.nickname, 100) || !text(v.dramaId, 16) || !text(v.episodeId, 24)
+    || !amount(v.episodeNumber) || v.episodeNumber < 1 || v.episodeNumber > 999 || !WATCH_KINDS.includes(v.kind as typeof WATCH_KINDS[number])
+    || !amount(v.credits) || !timestamp(v.createdAt)) throw malformed();
+  return { id: v.id, userId: v.userId, nickname: v.nickname, dramaId: v.dramaId, episodeId: v.episodeId, episodeNumber: v.episodeNumber,
+    kind: v.kind as DzmmAdminWatch["kind"], credits: v.credits, createdAt: v.createdAt };
+}
+function parseSpend(v: unknown): DzmmAdminSpend {
+  if (!record(v) || !text(v.id, 120) || !uuid(v.userId) || !text(v.nickname, 100) || !text(v.scene, 40) || !text(v.detail, 80)
+    || !amount(v.credits) || v.credits < 1 || !timestamp(v.createdAt)) throw malformed();
+  return { id: v.id, userId: v.userId, nickname: v.nickname, scene: v.scene, detail: v.detail, credits: v.credits, createdAt: v.createdAt };
+}
+export async function fetchDzmmAdminWatches(id: string, q: DzmmAdminPageQuery = {}, signal?: AbortSignal): Promise<DzmmAdminWatches> {
+  const raw = await request(`/watches${queryString(q)}`, id, undefined, signal);
+  const limit = q.limit ?? 20;
+  const offset = q.offset ?? 0;
+  if (!Array.isArray(raw.items) || !amount(raw.total) || raw.limit !== limit || raw.offset !== offset || typeof raw.hasMore !== "boolean"
+    || raw.items.length > limit || (raw.hasMore && !raw.items.length) || !Array.isArray(raw.hot) || raw.hot.length > 8 || !text(raw.note, 200)) throw malformed();
+  return {
+    accountId: id, items: raw.items.map(parseWatch), total: raw.total, limit, offset, hasMore: raw.hasMore, note: raw.note,
+    hot: raw.hot.map(item => {
+      if (!record(item) || !uuid(item.userId) || !text(item.nickname, 100) || !amount(item.events) || !amount(item.credits)) throw malformed();
+      return { userId: item.userId, nickname: item.nickname, events: item.events, credits: item.credits };
+    }),
+  };
+}
+export const fetchDzmmAdminSpends = (id: string, q: DzmmAdminPageQuery = {}, signal?: AbortSignal) => page("/spends", id, q, parseSpend, signal);
+
 type Action = { accountId: string; requestId: string; reason: string };
 async function mutate(userId: string, action: Action & ({ delta: number } | { role: DzmmAdminRole }), kind: "credits" | "role", signal?: AbortSignal): Promise<DzmmAdminMutation> {
   if (!uuid(userId) || !uuid(action.requestId) || typeof action.reason !== "string" || !text(action.reason.trim(), 200) || /[\r\n]/.test(action.reason)

@@ -47,6 +47,7 @@
 .accountCell strong { display:block; color:var(--text); font-weight:550; overflow-wrap:anywhere; }
 .accountCell code { display:block; margin-top:3px; max-width:190px; color:var(--muted); font-size:9px; line-height:1.5; word-break:break-all; }
 .secondaryLine { display:block; margin-top:5px; color:var(--muted); font-size:10px; line-height:1.65; overflow-wrap:anywhere; }
+.emailLine { display:block; margin-top:5px; color:var(--muted); font-size:12px; line-height:1.45; white-space:nowrap; }
 .numeric { font-variant-numeric:tabular-nums; white-space:nowrap; }
 .dateCell { min-width:115px; white-space:nowrap; font-size:11px; }
 .status,.superRole { display:inline-flex; padding:2px 7px; border-radius:5px; font-size:10px; white-space:nowrap; color:var(--muted); background:var(--soft); }

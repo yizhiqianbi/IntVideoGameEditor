@@ -121,6 +121,44 @@ test("handleDzmmMemoryPost sends json_object response_format and parses markdown
   assert.deepEqual(data.state.items, ["雨伞"]);
 });
 
+const MEMORY_BODY = {
+  model: "gemma31",
+  messages: [
+    { role: "user", content: "我们离开车站去咖啡馆吧。" },
+    { role: "assistant", content: "好，我拿着雨伞跟你一起走进咖啡馆。" },
+  ],
+};
+const MEMORY_STATE = { summary: "两人离开车站来到咖啡馆。", scene: "雨天咖啡馆内", completed: ["离开车站"], pending: [], relationships: ["同行避雨"], items: ["雨伞"] };
+
+test("memory summary accepts a finished JSON object when the model adds extra keys or stops on length", async () => {
+  const req = new Request("http://localhost/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(MEMORY_BODY) });
+  const res = await handleDzmmMemoryPost(req, { OPENROUTER_API_KEY: "test-key", OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1" }, {
+    providerFetch: (async () => Response.json({
+      choices: [{ finish_reason: "length", message: { content: JSON.stringify({ ...MEMORY_STATE, notes: "多余" }) } }],
+    })) as typeof fetch,
+  });
+  assert.equal(res.status, 200);
+  const data = await res.json() as { state: { scene: string; pending: string[] } };
+  assert.equal(data.state.scene, "雨天咖啡馆内");
+  assert.deepEqual(data.state.pending, []);
+});
+
+test("memory summary retries without json mode when the provider rejects response_format", async () => {
+  const bodies: Array<Record<string, unknown>> = [];
+  const req = new Request("http://localhost/api/memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(MEMORY_BODY) });
+  const res = await handleDzmmMemoryPost(req, { OPENROUTER_API_KEY: "test-key", OPENROUTER_BASE_URL: "https://openrouter.ai/api/v1" }, {
+    providerFetch: (async (_url, init) => {
+      const body = JSON.parse(String(init?.body || "{}")) as Record<string, unknown>;
+      bodies.push(body);
+      if (bodies.length === 1) return new Response(JSON.stringify({ error: { message: "response_format is not supported" } }), { status: 400 });
+      return Response.json({ choices: [{ finish_reason: "stop", message: { content: JSON.stringify(MEMORY_STATE) } }] });
+    }) as typeof fetch,
+  });
+  assert.equal(res.status, 200);
+  assert.deepEqual(bodies[0]?.response_format, { type: "json_object" });
+  assert.equal(bodies[1]?.response_format, undefined);
+});
+
 test("handleDzmmReplySuggestionsPost parses markdown-fenced JSON even on non-venice/sealion models", async () => {
   const req = new Request("http://localhost/api/reply-suggestions", {
     method: "POST",

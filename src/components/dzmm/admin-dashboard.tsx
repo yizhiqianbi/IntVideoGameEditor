@@ -4,10 +4,10 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type FormEve
 import type { DzmmCloudUser } from "@/lib/dzmm-cloud";
 import {
   adjustDzmmAdminCredits, changeDzmmAdminRole, deleteDzmmAdminBanner, DzmmAdminError, fetchDzmmAdminAudit, fetchDzmmAdminBanners, fetchDzmmAdminCheckin,
-  fetchDzmmAdminOrders, fetchDzmmAdminOverview, fetchDzmmAdminSubscriptions, fetchDzmmAdminUsage, fetchDzmmAdminUsers, saveDzmmAdminBanner, saveDzmmAdminCheckin,
+  fetchDzmmAdminOrders, fetchDzmmAdminOverview, fetchDzmmAdminSpends, fetchDzmmAdminSubscriptions, fetchDzmmAdminUsage, fetchDzmmAdminUsers, fetchDzmmAdminWatches, saveDzmmAdminBanner, saveDzmmAdminCheckin,
   type DzmmAdminBanner,
-  type DzmmAdminAudit, type DzmmAdminOrder, type DzmmAdminOverview, type DzmmAdminPage,
-  type DzmmAdminRole, type DzmmAdminSubscription, type DzmmAdminUsage, type DzmmAdminUser,
+  type DzmmAdminAudit, type DzmmAdminOrder, type DzmmAdminOverview, type DzmmAdminPage, type DzmmAdminSpend,
+  type DzmmAdminRole, type DzmmAdminSubscription, type DzmmAdminUsage, type DzmmAdminUser, type DzmmAdminWatches,
 } from "@/lib/dzmm-admin-client";
 import type { XumengLocale } from "@/lib/xumeng-i18n";
 import { xumengStudio, xumengStudioFill } from "@/lib/xumeng-studio-copy";
@@ -16,11 +16,12 @@ import FeedbackInbox from "./feedback-inbox";
 import OpsConsole from "./ops-console";
 import s from "./admin-dashboard.module.css";
 
-type Tab = "overview" | "users" | "subscriptions" | "orders" | "usage" | "audit" | "publishing" | "forum" | "feedback" | "ops";
+type Tab = "overview" | "users" | "subscriptions" | "orders" | "usage" | "watches" | "spends" | "audit" | "publishing" | "forum" | "feedback" | "ops";
 export type AdminSection = "users" | "subscriptions" | "usage" | "audit";
 type Data = { kind: "overview"; value: DzmmAdminOverview } | { kind: "users"; value: DzmmAdminPage<DzmmAdminUser> }
   | { kind: "subscriptions"; value: DzmmAdminPage<DzmmAdminSubscription> } | { kind: "orders"; value: DzmmAdminPage<DzmmAdminOrder> }
-  | { kind: "usage"; value: DzmmAdminPage<DzmmAdminUsage> } | { kind: "audit"; value: DzmmAdminPage<DzmmAdminAudit> };
+  | { kind: "usage"; value: DzmmAdminPage<DzmmAdminUsage> } | { kind: "watches"; value: DzmmAdminWatches }
+  | { kind: "spends"; value: DzmmAdminPage<DzmmAdminSpend> } | { kind: "audit"; value: DzmmAdminPage<DzmmAdminAudit> };
 type Remote = { accountId: string; tab: Tab; loading: boolean; error: string; data: Data | null; fetchedAt: number | null };
 type Action = { accountId: string; kind: "credits" | "role"; user: DzmmAdminUser; requestId: string; delta: string; role: DzmmAdminRole; reason: string; confirmed: boolean; attempted: boolean };
 export type AdminDashboardProps = {
@@ -37,6 +38,8 @@ const TABS: { id: Tab; label: string; icon: IconName; description: string }[] = 
   { id: "subscriptions", label: "VIP 会员", icon: "crown", description: "查看会员有效期和 金币 领取记录" },
   { id: "orders", label: "支付订单", icon: "wallet", description: "查看充值与 VIP 订单状态" },
   { id: "usage", label: "模型用量", icon: "sparkles", description: "查看 Token 用量、金币 消费与供应商成本" },
+  { id: "watches", label: "短剧观看", icon: "video", description: "谁打开了哪一集，谁付费解锁了" },
+  { id: "spends", label: "金币消耗", icon: "wallet", description: "聊天、出图、视频、通话和剧集解锁各花了多少" },
   { id: "audit", label: "操作记录", icon: "book", description: "核对管理员权限与 金币 调整" },
   { id: "publishing", label: "角色审核", icon: "check", description: "审核用户提交的公开角色" },
   { id: "forum", label: "论坛管理", icon: "chat", description: "处理主题、回复与举报" },
@@ -59,6 +62,8 @@ const provider = (v: string) => ({ zpay: "Z-Pay", stripe: "Stripe", subscription
 const paymentMode = (mode: string) => mode === "live" ? "线上" : mode === "sandbox" ? "沙盒" : "测试";
 const manageableAccount = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 const statusLabel = (v: string) => ({ active: "生效中", scheduled: "等待生效", expired: "已到期", revoked: "已撤销", pending: "待处理", paid: "已支付", failed: "失败", refunded: "已退款", partially_refunded: "部分退款", reserved: "已预留", settled: "已结算", released: "已释放" }[v] ?? v);
+const watchKind = (kind: string) => ({ unlock: "付费解锁", free: "免费试看", vip: "会员播放", paid: "解锁后再看" }[kind] ?? kind);
+const spendScene = (scene: string) => ({ chat: "聊天", video_unlock: "短剧解锁", chat_image: "聊天出图", chat_audio: "聊天语音", canvas_image: "创作出图", canvas_video: "创作视频", generation_image: "生成图片", generation_video: "生成视频", call: "通话", companion: "陪伴", studio_still: "工作室静帧" }[scene] ?? scene);
 const errorMessage = (v: unknown, fallback: string) => v instanceof Error ? v.message : fallback;
 
 function AccountCell({ name, id }: { name: string; id: string }) {
@@ -77,6 +82,8 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
     subscriptions: { label: c.adVip, description: c.adVipBody },
     orders: { label: c.adOrders, description: c.adOrdersBody },
     usage: { label: c.adUsage, description: c.adUsageBody },
+    watches: { label: c.adWatches, description: c.adWatchesBody },
+    spends: { label: c.adSpends, description: c.adSpendsBody },
     audit: { label: c.adAudit, description: c.adAuditBody },
     publishing: { label: c.adReview, description: c.adReviewBody },
     forum: { label: c.adForum, description: c.adForumBody },
@@ -141,7 +148,10 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
       else if (tab === "subscriptions") data = { kind: tab, value: await fetchDzmmAdminSubscriptions(accountId, query, controller.signal) };
       else if (tab === "orders") data = { kind: tab, value: await fetchDzmmAdminOrders(accountId, query, controller.signal) };
       else if (tab === "usage") data = { kind: tab, value: await fetchDzmmAdminUsage(accountId, query, controller.signal) };
-      else data = { kind: tab, value: await fetchDzmmAdminAudit(accountId, query, controller.signal) };
+      else if (tab === "watches") data = { kind: tab, value: await fetchDzmmAdminWatches(accountId, query, controller.signal) };
+      else if (tab === "spends") data = { kind: tab, value: await fetchDzmmAdminSpends(accountId, query, controller.signal) };
+      else if (tab === "audit") data = { kind: "audit", value: await fetchDzmmAdminAudit(accountId, query, controller.signal) };
+      else return;
       if (controller.signal.aborted || run !== generation.current || !alive.current || accountRef.current !== accountId) return;
       setAccessError(null);
       setRemote({ accountId, tab, loading: false, error: "", data, fetchedAt: Date.now() });
@@ -259,7 +269,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
           {data?.kind === "overview" && <Overview value={data.value} onTab={selectTab} hasPublishing={Boolean(publishingReview)} hasForum={Boolean(forumModeration)} c={c} />}
           {page && !page.items.length && <div className={s.empty}><Icon name="search" size={28} /><h3>{c.adEmpty}</h3><p>{c.adEmptyBody}</p></div>}
           {data?.kind === "users" && data.value.items.length > 0 && <Table label={c.adWallet} headers={[c.adPerson, c.adKind, c.adParent, c.adAvailable, c.adRechargeTotal, c.adMedia, c.adTasks, c.adLastActive, c.adJoined, c.adManage]}>{data.value.items.map(target => <tr key={target.id}>
-            <td><AccountCell name={target.nickname} id={target.id} /><span className={s.secondaryLine}>{target.email ?? c.adGuestAccount}{target.email && <span> · {target.emailVerified ? c.adEmailOn : c.adEmailOff}</span>}</span></td>
+            <td><AccountCell name={target.nickname} id={target.id} /><span className={s.emailLine} title={target.email ?? undefined}>{target.email ?? c.adGuestAccount}{target.email && <span> · {target.emailVerified ? c.adEmailOn : c.adEmailOff}</span>}</span></td>
             <td><span className={target.role === "super" ? s.superRole : s.status}>{target.isGuest ? c.adGuest : roleName(target.role)}</span><span className={s.secondaryLine}>{target.role === "super" ? c.adFullPowers : target.subscription.active ? xumengStudioFill(c.adVipUntil, { time: date(target.subscription.expiresAt) }) : c.adOrdinary}</span></td>
             <td><code>{target.inviterId ?? "—"}</code><span className={s.secondaryLine}>{xumengStudioFill(c.adInvited, { count: target.inviteCount === null || target.inviteCount === undefined ? "—" : number(target.inviteCount) })}</span></td>
             <td className={s.numeric}><strong>{number(target.availableCredits)}</strong><span className={s.secondaryLine}>{xumengStudioFill(c.adHeld, { count: number(target.reservedCredits), spent: number(target.totalSpentCredits) })}</span>{target.debtCredits > 0 && <span className={s.warning}>{xumengStudioFill(c.adDebt, { count: number(target.debtCredits) })}</span>}</td>
@@ -268,11 +278,14 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
             <td className={s.numeric}>{xumengStudioFill(c.adDays, { count: number(target.checkinDays ?? 0) })}<span className={s.secondaryLine}>{xumengStudioFill(c.adTaskPoints, { count: target.taskCredits === null || target.taskCredits === undefined ? "—" : number(target.taskCredits) })}</span></td>
             <td className={s.dateCell}>{date(target.lastActiveAt ?? null)}</td>
             <td className={s.dateCell}>{date(target.createdAt)}</td>
-            <td><div className={s.rowActions}><button className={s.text} disabled={working || target.isGuest || !manageableAccount(target.id)} onClick={() => openAction("credits", target)}>{c.adAdjust}</button><button className={s.text} disabled={working || target.isGuest || target.id === accountId || !manageableAccount(target.id)} title={target.id === accountId ? c.adNoSelf : undefined} onClick={() => openAction("role", target)}>{c.adChangeRole}</button><button className={s.text} disabled={working} onClick={() => filterUser(target, "usage")}>{c.adSeeUsage}</button></div></td>
+            <td><div className={s.rowActions}><button className={s.text} disabled={working || target.isGuest || !manageableAccount(target.id)} onClick={() => openAction("credits", target)}>{c.adAdjust}</button><button className={s.text} disabled={working || target.isGuest || target.id === accountId || !manageableAccount(target.id)} title={target.id === accountId ? c.adNoSelf : undefined} onClick={() => openAction("role", target)}>{c.adChangeRole}</button><button className={s.text} disabled={working} onClick={() => filterUser(target, "watches")}>{c.adSeeWatches}</button><button className={s.text} disabled={working} onClick={() => filterUser(target, "spends")}>{c.adSeeSpends}</button><button className={s.text} disabled={working} onClick={() => filterUser(target, "usage")}>{c.adSeeUsage}</button></div></td>
           </tr>)}</Table>}
           {data?.kind === "subscriptions" && data.value.items.length > 0 && <Table label={c.adVipLog} headers={[c.adPerson, c.adPlan, c.adStatus, c.adTerm, c.adDailyClaim]}>{data.value.items.map(item => <tr key={item.id}><td><AccountCell name={item.nickname} id={item.userId} /></td><td><strong>{item.label}</strong><span className={s.secondaryLine}>{item.planId}</span><code className={s.recordId}>{item.id}</code></td><td><Status value={item.status} text={statusText(item.status)} /></td><td className={s.dateCell}>{date(item.startsAt)}<span className={s.secondaryLine}>{xumengStudioFill(c.adUntil, { time: date(item.expiresAt) })}</span></td><td className={s.numeric}>{number(item.dailyCredits)} 金币<span className={s.secondaryLine}>{xumengStudioFill(c.adClaimed, { count: item.claimsCount, max: item.maxClaims })}</span></td></tr>)}</Table>}
           {data?.kind === "orders" && data.value.items.length > 0 && <Table label={c.adOrders} headers={[c.adOrderUser, c.adChannel, c.adAmount, "金币", c.adStatus, c.adPayHeader]}>{data.value.items.map(item => <tr key={item.id}><td><code className={s.recordId}>{item.id}</code><AccountCell name={item.nickname} id={item.userId} /></td><td>{channelName(item.provider)}<span className={s.secondaryLine}>{item.kind === "recharge" ? c.adTopUp : c.adSubscription} · {paymentMode(item.mode)}</span></td><td className={s.numeric}>{money(item.amountMinor, item.currency, item.amountScale)}</td><td className={s.numeric}>{item.credits === null ? "—" : number(item.credits)}</td><td><Status value={item.status} text={statusText(item.status)} /></td><td className={s.dateCell}>{date(item.createdAt)}<span className={s.secondaryLine}>{xumengStudioFill(c.adPaidAt, { time: date(item.paidAt) })}</span></td></tr>)}</Table>}
-          {data?.kind === "usage" && data.value.items.length > 0 && <Table label={c.adUsage} headers={[c.adRequest, c.adModelOp, c.adStatus, c.adTokens, "金币", c.adProviderCost, c.adCreated]}>{data.value.items.map(item => <tr key={item.id}><td><AccountCell name={item.nickname} id={item.userId} /><code className={s.recordId}>{item.id}</code></td><td><strong>{item.model}</strong><span className={s.secondaryLine}>{item.operation === "chat" ? c.adChat : item.operation === "memory" ? c.adMemory : item.operation}</span></td><td><Status value={item.status} text={statusText(item.status)} /></td><td className={s.numeric}>{item.promptTokens === null ? "—" : number(item.promptTokens)} / {item.completionTokens === null ? "—" : number(item.completionTokens)}</td><td className={s.numeric}>{item.billingExempt ? <span className={s.superRole}>{c.adExempt}</span> : xumengStudioFill(c.adSpent, { count: number(item.chargedCredits) })}<span className={s.secondaryLine}>{xumengStudioFill(c.adHeldOnly, { count: number(item.reservedCredits) })}</span></td><td className={s.numeric}>{item.providerCostUsd === null ? c.adNoCost : `$${item.providerCostUsd.toFixed(6)}`}</td><td className={s.dateCell}>{date(item.createdAt)}</td></tr>)}</Table>}
+          {data?.kind === "usage" && data.value.items.length > 0 && <Table label={c.adUsage} headers={[c.adRequest, c.adModelOp, c.adStatus, c.adTokens, "金币", c.adProviderCost, c.adCreated]}>{data.value.items.map(item => <tr key={item.id}><td><AccountCell name={item.nickname} id={item.userId} /><code className={s.recordId}>{item.id}</code></td><td><strong>{item.model}</strong><span className={s.secondaryLine}>{item.operation === "chat" ? c.adChat : item.operation === "memory" ? c.adMemory : item.operation}</span></td><td><Status value={item.status} text={statusText(item.status)} /></td><td className={s.numeric}>{item.promptTokens === null ? "—" : number(item.promptTokens)} / {item.completionTokens === null ? "—" : number(item.completionTokens)}</td><td className={s.numeric}>{item.billingExempt ? <span className={s.superRole}>{c.adExempt}</span> : item.status === "released" ? c.adNotCharged : xumengStudioFill(c.adSpent, { count: number(item.chargedCredits) })}<span className={s.secondaryLine}>{item.status === "released" ? c.adHoldReturned : xumengStudioFill(c.adHeldOnly, { count: number(item.reservedCredits) })}</span></td><td className={s.numeric}>{item.providerCostUsd === null ? (item.status === "released" ? "—" : c.adNoCost) : `$${item.providerCostUsd.toFixed(6)}`}</td><td className={s.dateCell}>{date(item.createdAt)}</td></tr>)}</Table>}
+          {data?.kind === "watches" && <div className={s.overviewSection}><p>{data.value.note}</p>{data.value.hot.length > 0 && <><h3>{c.adHotDay}</h3><div className={s.queue}>{data.value.hot.map(item => <button key={item.userId} type="button" onClick={() => { setUserIdInput(item.userId); setFilters(value => ({ ...value, userId: item.userId })); setOffset(0); }}><span>{item.nickname}</span><strong>{number(item.events)}</strong><small>{number(item.credits)} 金币</small></button>)}</div></>}</div>}
+          {data?.kind === "watches" && data.value.items.length > 0 && <Table label={c.adWatches} headers={[c.adPerson, "剧集", "方式", "金币", c.adTime]}>{data.value.items.map(item => <tr key={item.id}><td><AccountCell name={item.nickname} id={item.userId} /></td><td><strong>{item.dramaId}</strong><span className={s.secondaryLine}>第 {item.episodeNumber} 集 · {item.episodeId}</span></td><td>{watchKind(item.kind)}</td><td className={s.numeric}>{item.credits ? number(item.credits) : "—"}</td><td className={s.dateCell}>{date(item.createdAt)}</td></tr>)}</Table>}
+          {data?.kind === "spends" && data.value.items.length > 0 && <Table label={c.adSpends} headers={[c.adPerson, "场景", "内容", "金币", c.adTime]}>{data.value.items.map(item => <tr key={item.id}><td><AccountCell name={item.nickname} id={item.userId} /></td><td>{spendScene(item.scene)}</td><td className={s.reasonCell}>{item.detail}</td><td className={s.numeric}>{number(item.credits)}</td><td className={s.dateCell}>{date(item.createdAt)}</td></tr>)}</Table>}
           {data?.kind === "audit" && data.value.items.length > 0 && <Table label={c.adAuditTable} headers={[c.adTime, c.adAction, c.adTarget, c.adAdmin, c.adReason]}>{data.value.items.map(item => <tr key={item.id}><td className={s.dateCell}>{date(item.createdAt)}<code className={s.recordId}>{item.id}</code></td><td><strong>{item.action === "credit_adjustment" ? `${(item.delta ?? 0) > 0 ? "+" : ""}${number(item.delta ?? 0)} 金币` : `${roleName(item.previousRole!)} → ${roleName(item.role!)}`}</strong><code className={s.recordId}>{item.requestId}</code></td><td><code className={s.accountId}>{item.targetUserId}</code></td><td><code className={s.accountId}>{item.actorId}</code></td><td className={s.reasonCell}>{item.reason}</td></tr>)}</Table>}
           {page && <footer className={s.pagination}><span>{xumengStudioFill(c.adTotal, { count: number(page.total) })}{page.items.length > 0 ? ` · ${number(page.offset + 1)}–${number(page.offset + page.items.length)}` : ""}</span><div><button className={s.outline} disabled={working || current.loading || offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>{c.adPrev}</button><button className={s.outline} disabled={working || current.loading || !page.hasMore} onClick={() => setOffset(offset + LIMIT)}>{c.adNext}</button></div></footer>}
         </>}

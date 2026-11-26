@@ -5,7 +5,7 @@ import type { DzmmStoryMessage, DzmmStoryState } from "./dzmm-story-memory";
 
 const {
   createDzmmStoryMemory, fingerprintDzmmStoryMessages, matchesDzmmStoryMemory,
-  parseStoryMemory, parseStoryState, selectDzmmMemoryUpdate,
+  parseStoryMemory, parseStoryState, selectDzmmMemoryUpdate, storyStateFromModel,
   DZMM_STORY_STATE_LIMIT_CHARS, DZMM_MEMORY_BATCH_LIMIT_CHARS,
 } = memoryModule as typeof import("./dzmm-story-memory");
 
@@ -27,6 +27,14 @@ function history(length: number): DzmmStoryMessage[] {
     content: `第 ${index} 条原始消息。`,
   }));
 }
+
+test("model story JSON can omit empty lists and include extra keys", () => {
+  const { pending: _pending, ...withoutPending } = storyState();
+  const parsed = storyStateFromModel({ ...withoutPending, notes: "ignore" });
+  assert.deepEqual(parsed.pending, []);
+  assert.equal(parsed.summary, storyState().summary);
+  assert.throws(() => parseStoryState({ ...storyState(), notes: "ignore" }));
+});
 
 test("story validation preserves model-authored facts verbatim in a detached strict shape", () => {
   const original = { ...storyState(), summary: "  摘要\n保留原文与 🌱  " };

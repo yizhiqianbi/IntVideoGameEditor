@@ -226,6 +226,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   const autoMutedRef = useRef(false);
   const progressRef = useRef<Record<string, WatchProgress>>({});
   const lastProgressWriteRef = useRef(0);
+  const reportedPlays = useRef(new Set<string>());
 
   const ordered = useMemo(() => rankXumengVideoDramas(dramas), [dramas]);
   const [opening] = useState(() => takeOpeningTicket(typeof location !== "undefined" && Boolean(xumengVideoDramaIdFromRoute(location.hash))));
@@ -529,6 +530,13 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       activeNode.dataset.clip = episode.id;
       activeNode.src = url;
       activeNode.load();
+      if (!reportedPlays.current.has(episode.id)) {
+        reportedPlays.current.add(episode.id);
+        void fetch("/api/backend/v1/videos/play", {
+          method: "POST", credentials: "same-origin", headers: { "content-type": "application/json" },
+          body: JSON.stringify({ episodeId: episode.id }),
+        }).catch(() => undefined);
+      }
     }
     startPlayback(activeNode);
     if (activeNode.readyState >= 2) {
