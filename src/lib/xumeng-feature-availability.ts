@@ -19,3 +19,6 @@ export const XUMENG_CALLS_LOCKED_MESSAGE = "语音通话和视频通话暂时关
 
 /** Waffo checkout is removed from the site. */
 export const XUMENG_WAFFO_FRONTEND_ENABLED = false;
+
+/** USDT (NOWPayments) checkout is disabled on the site. */
+export const XUMENG_USDT_ENABLED = false;

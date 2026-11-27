@@ -5,7 +5,7 @@ import { DzmmPaymentError, type DzmmPaymentConfig, type DzmmPaymentMethod } from
 import {
   claimDzmmSubscriptionCredit, createDzmmSubscriptionCheckout, fetchDzmmSubscriptionConfig,
   fetchDzmmSubscriptionOrder, fetchDzmmSubscriptionRequest, fetchDzmmSubscriptions, isDzmmSubscriptionCheckoutUrl,
-  type DzmmSubscriptionConfig, type DzmmSubscriptionOrder, type DzmmSubscriptionOverview,
+  type DzmmSubscriptionConfig, type DzmmSubscriptionOrder, type DzmmSubscriptionOverview, type DzmmSubscriptionPlan,
 } from "../../lib/dzmm-subscriptions";
 import {
   canRetryDzmmSubscriptionPurchaseIntent, clearDzmmSubscriptionPurchaseIntent, createDzmmSubscriptionPurchaseIntent,
@@ -13,7 +13,7 @@ import {
 } from "../../lib/dzmm-subscription-intent";
 import Icon from "./icons";
 import s from "./subscription-center.module.css";
-import { XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
+import { XUMENG_PAYMENTS_ENABLED, XUMENG_USDT_ENABLED } from "../../lib/xumeng-feature-availability";
 import { NowPaymentsCenter } from "./nowpayments-center";
 
 type Props = {
@@ -80,7 +80,8 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
   const currentOrder = !isGuest && order?.accountId === userId && available && order.id === activeOrderId ? order : null;
   const currentIntent = !isGuest && purchaseIntent?.request.accountId === userId ? purchaseIntent : null;
   const recoveredOrder = !isGuest && recoveryOrder?.accountId === userId ? recoveryOrder : null;
-  const plan = config?.plans.find(entry => entry.id === selected) ?? config?.plans[0];
+  const defaultPlan = config?.plans && config.plans.length >= 2 ? config.plans[1] : config?.plans[0];
+  const plan = config?.plans.find(entry => entry.id === selected) ?? defaultPlan;
   const availableMethods = paymentConfig?.provider === "guagua"
     ? (config?.methods.filter(entry => entry.id === "wxpay") ?? [])
     : (config?.methods ?? []);
@@ -247,15 +248,16 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     return id;
   }
 
-  async function purchase(retryOriginal = false) {
+  async function purchase(retryOriginal = false, chosenPlan?: DzmmSubscriptionPlan) {
     if (!XUMENG_PAYMENTS_ENABLED || actionPending.current || busy) return;
     if (isGuest) { onRequireAccount(); return; }
+    const targetPlan = chosenPlan ?? plan;
     const paymentReady = paymentConfig?.provider === "zpay" || (paymentConfig?.provider === "guagua" && methodId === "wxpay");
-    if (!available || !paymentReady || !config?.enabled || !plan || !methodId || !intentReady || intentOwner.current !== userId || intentError) return;
+    if (!available || !paymentReady || !config?.enabled || !targetPlan || !methodId || !intentReady || intentOwner.current !== userId || intentError) return;
     const existing = intentRef.current;
     if (retryOriginal ? !existing || !originalRetryAvailable : !!existing) return;
     let submitted: DzmmSubscriptionPurchaseIntent;
-    try { submitted = existing ?? createDzmmSubscriptionPurchaseIntent(userId, plan, methodId as DzmmPaymentMethod); }
+    try { submitted = existing ?? createDzmmSubscriptionPurchaseIntent(userId, targetPlan, methodId as DzmmPaymentMethod); }
     catch (failure) { setIntentError(errorText(failure)); return; }
     intentRef.current = submitted; setPurchaseIntent(submitted); setLookupMissing(false); setRecoveryOrder(null); setRecoveryError("");
     try {
@@ -415,18 +417,18 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       <p className={s.period}>管理员账号不单独展示媒体额度。语音、图片和聊天都按普通账户的 金币 规则结算，权限以服务器当前账号角色为准。</p>
       <dl className={s.accountFacts}><div><dt>可用 金币</dt><dd>{number(current.balance)}</dd></div><div><dt>金币 结算</dt><dd>按普通账户规则</dd></div></dl>
     </div>
-    <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
+    {XUMENG_USDT_ENABLED && <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />}
   </section>;
 
   return <section className={`${s.section} ${embedded ? s.embedded : ""}`} aria-labelledby="subscription-title">
     {!embedded && <div className={s.heading}>
-      <div><h2 id="subscription-title">会员</h2><p>有效期内每天领取一次 金币。微信或 USDT 购买。</p></div>
+      <div><h2 id="subscription-title">会员</h2><p>有效期内每天领取一次 金币。{XUMENG_USDT_ENABLED ? "微信或 USDT 购买。" : "微信安全支付，一次性开通不自动续费。"}</p></div>
       <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}>
         <Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新状态"}
       </button>
     </div>}
     {embedded && <h2 id="subscription-title" className={s.srOnly}>会员</h2>}
-    {(!XUMENG_PAYMENTS_ENABLED || (config && !config.enabled)) && <p className={s.coming} role="note"><strong>{!XUMENG_PAYMENTS_ENABLED ? "人民币购买已停用" : "购买暂未开放"}</strong><span>{!XUMENG_PAYMENTS_ENABLED ? "人民币收款已停用，历史订单与会员权益保留；USDT 购买状态见下方。" : config?.note || "已有会员权益仍可按有效期签到，新购买与续订请稍后再试。"}</span></p>}
+    {(!XUMENG_PAYMENTS_ENABLED || (config && !config.enabled)) && <p className={s.coming} role="note"><strong>{!XUMENG_PAYMENTS_ENABLED ? "人民币购买已停用" : "购买暂未开放"}</strong><span>{!XUMENG_PAYMENTS_ENABLED ? (XUMENG_USDT_ENABLED ? "人民币收款已停用，历史订单与会员权益保留；USDT 购买状态见下方。" : "收款暂未开放，历史订单与会员权益保留。") : config?.note || "已有会员权益仍可按有效期签到，新购买与续订请稍后再试。"}</span></p>}
     {error && <p className={s.error} role="alert">{error}</p>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
 
@@ -483,7 +485,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       </div>
     </div>}
 
-    {!(embedded && isGuest) && <div className={s.membership}>
+    {!(embedded && !activeSubscription && queued.length === 0 && !lastSubscription) && !(embedded && isGuest) && <div className={s.membership}>
       <div className={s.membershipHeading}>
         <h3>{membershipTitle}</h3><span className={`${s.status} ${activeSubscription ? s.activeStatus : ""}`}>{membershipStatus}</span>
       </div>
@@ -501,7 +503,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       </dl>}
     </div>}
 
-    {!(embedded && isGuest) && checkin}
+    {!(embedded && !activeSubscription && queued.length === 0) && !(embedded && isGuest) && checkin}
     {queued.length > 0 && <div className={s.queuedSection}>
       <h3>已购 · 待生效</h3>
       <ul className={s.queued} aria-label="待生效会员">{queued.map(entry => <li key={entry.id}>
@@ -511,59 +513,9 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     </div>}
 
     {XUMENG_PAYMENTS_ENABLED && <div className={s.purchaseSection}>
-      <div className={s.vipHeroBanner}>
-        <div className={s.vipHeroText}>
-          <span className={s.vipCrownPill}><Icon name="crown" size={14} />叙梦尊享 VIP</span>
-          <h3>{activeSubscription || queued.length ? "续订 VIP · 延续每日特权" : "开通 VIP · 每天领金币 + 全站特权"}</h3>
-          <p>{availableMethods.length > 1 ? "支持微信 / 支付宝一次性支付" : `${activeMethodLabel}一次性支付`}，绝不自动续费扣款；每日免费语音、剧情生图与全站短剧畅看全解锁。</p>
-        </div>
-        {embedded && <button type="button" className={s.outline} disabled={busy || !available} onClick={() => void reload()}><Icon name="refresh" size={14} />{loading ? "读取中…" : "刷新"}</button>}
-      </div>
-      <ul className={s.mediaBenefits} aria-label="VIP 媒体权益">
-        <li>
-          <span className={s.benefitIcon}><Icon name="mic" size={17} /></span>
-          <div><span>中文角色语音</span><strong>每日 20 条免费生成</strong></div>
-        </li>
-        <li>
-          <span className={s.benefitIcon}><Icon name="sparkles" size={17} /></span>
-          <div><span>沉浸剧情图片</span><strong>每日 5 张高清生图</strong></div>
-        </li>
-        <li>
-          <span className={s.benefitIcon}><Icon name="video" size={17} /></span>
-          <div><span>全站精选短剧</span><strong>有效期内全部免费</strong></div>
-        </li>
-      </ul>
-      {config?.plans.length ? <>
-        <fieldset className={s.plans} disabled={busy || purchaseBlocked}><legend className={s.srOnly}>VIP 会员套餐</legend>
-          {config.plans.map((entry, idx) => {
-            const perDay = entry.durationDays > 0 ? (entry.amountMinor / 100 / entry.durationDays).toFixed(2) : "0.00";
-            const totalGrant = entry.dailyCredits * entry.maxClaims;
-            const isPopular = config.plans.length >= 2 && idx === Math.min(1, config.plans.length - 1);
-            const isBest = config.plans.length >= 3 && idx === config.plans.length - 1;
-            const isSelected = entry.id === plan?.id;
-            return <label className={`${s.plan} ${isSelected ? s.selected : ""} ${isPopular ? s.planPopular : ""}`} key={entry.id}>
-              <input type="radio" name="subscription-plan" checked={isSelected} onChange={() => setSelected(entry.id)} />
-              <div className={s.planTop}>
-                <span className={s.planName}>{entry.label}</span>
-                {isPopular ? <em className={s.planRibbonPopular}><Icon name="flame" size={11} />最多人选</em>
-                  : isBest ? <em className={s.planRibbonBest}><Icon name="crown" size={11} />{entry.durationDays >= 90 ? "全年超省" : "尊享满配"}</em>
-                  : <em className={s.planRibbonPlain}>灵活体验</em>}
-              </div>
-              <div className={s.planOffer}>
-                <strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays} 天</small></strong>
-                <span className={s.perDayHint}>折合仅 ¥{perDay} / 天</span>
-              </div>
-              <div className={s.planBenefit}>
-                <span className={s.daily}>每日领 {number(entry.dailyCredits)} 金币</span>
-                <span className={s.totalGrant}>最高累计可领 {number(totalGrant)} 金币</span>
-                <span className={s.limit}>每期最多 {entry.maxClaims} 次 · 短剧/语音/生图全享</span>
-              </div>
-            </label>;
-          })}
-        </fieldset>
-        {availableMethods.length > 1 && <div className={s.methodPicker} role="radiogroup" aria-label="选择 VIP 支付方式">
-          <span>支付方式</span>
-          <div className={s.methodPills}>
+      {availableMethods.length > 1 && (
+        <div className={s.methodStrip}>
+          <div className={s.methodPills} role="radiogroup" aria-label="选择 VIP 支付方式">
             {availableMethods.map(item => (
               <button type="button" key={item.id} role="radio" aria-checked={methodId === item.id}
                 className={`${s.methodPill} ${methodId === item.id ? s.methodPillOn : ""}`}
@@ -572,18 +524,87 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
               </button>
             ))}
           </div>
-        </div>}
-        <div className={s.purchase}>
-          <div><strong>{plan ? `${plan.label} · ${money(plan.amountMinor)} / ${plan.durationDays} 天` : "选择会员"}</strong>
-            <p>{methodId ? `${activeMethodLabel}安全收银台一次性支付，不自动续费，开通后每日可领金币。` : "当前支付通道暂未开通。USDT 在下方。"}</p>
-          </div>
-          <button type="button" className={`${s.primary} ${s.vipCta}`} disabled={busy || purchaseBlocked || !config.enabled || !plan || !methodId} onClick={() => void purchase()}>
-            <Icon name="crown" size={16} />
-            <span>{acting === "purchase" ? "读取订单…" : !methodId ? "支付通道暂未开通" : !config.enabled ? "购买暂未开放" : isGuest ? "登录后开通 VIP"
-              : purchaseBlocked ? currentIntent ? "先处理原购买记录" : "先恢复购买记录"
-              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${plan ? money(plan.amountMinor) : activeMethodLabel}`}</span>
-          </button>
         </div>
+      )}
+      {config?.plans.length ? <>
+        <div className={`${s.plans} ${config.plans.length === 1 ? s.plansSingle : ""}`} role="list" aria-label="VIP 会员套餐">
+          {config.plans.map((entry, idx) => {
+            const perDay = entry.durationDays > 0 ? (entry.amountMinor / 100 / entry.durationDays).toFixed(2) : "0.00";
+            const totalGrant = entry.dailyCredits * entry.maxClaims;
+            const isSingle = config.plans.length === 1;
+            const isPopular = isSingle || (config.plans.length >= 2 && idx === Math.min(1, config.plans.length - 1));
+            const isBest = config.plans.length >= 3 && idx === config.plans.length - 1;
+            const isSelected = entry.id === plan?.id;
+            const tierTone = isPopular ? s.planToneRose : isBest ? s.planTonePlum : s.planToneAmber;
+            const ctaText = acting === "purchase" && isSelected ? "正在跳转支付…"
+              : !methodId ? "支付通道暂未开通"
+              : !config.enabled ? "购买暂未开放"
+              : isGuest ? `登录开通 · ${money(entry.amountMinor)}`
+              : purchaseBlocked ? currentIntent ? "请先处理原订单" : "请先恢复记录"
+              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${money(entry.amountMinor)}`;
+            return <article className={`${s.plan} ${tierTone} ${isPopular ? s.planFeatured : ""} ${isSelected ? s.selected : ""}`} key={entry.id} onClick={() => setSelected(entry.id)}>
+              <div className={s.planBanner} aria-hidden="true" />
+              <div className={s.planHeader}>
+                <div className={s.planTitleRow}>
+                  <h3 className={s.planName}>{entry.label}</h3>
+                  {isSingle ? <em className={`${s.planTag} ${s.planTagHot}`}>尊享特权</em>
+                    : isPopular ? <em className={`${s.planTag} ${s.planTagHot}`}>最受欢迎</em>
+                    : isBest ? <em className={`${s.planTag} ${s.planTagBest}`}>尊享超省</em>
+                    : <em className={s.planTag}>灵活体验</em>}
+                </div>
+                <p className={s.planSubtitle}>最高累计领 {number(totalGrant)} 金币 · 全站媒体特权</p>
+              </div>
+
+              <ul className={s.perkList}>
+                <li>
+                  <span className={s.perkIcon}><Icon name="gem" size={14} /></span>
+                  <span className={s.perkText}>每日领 <strong>{number(entry.dailyCredits)} 金币</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="mic" size={14} /></span>
+                  <span className={s.perkText}>中文语音 <strong>20 条/天</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="sparkles" size={14} /></span>
+                  <span className={s.perkText}>高清剧情图 <strong>5 张/天</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="video" size={14} /></span>
+                  <span className={s.perkText}>全站精选短剧<strong>免费畅看</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="shield" size={14} /></span>
+                  <span className={s.perkText}>一次性付费 · <strong>不自动续费</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
+                </li>
+              </ul>
+
+              <div className={s.planFooter}>
+                <div className={s.priceBox}>
+                  <strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays}天</small></strong>
+                  <span className={s.perDayHint}>折合 ¥{perDay}/天</span>
+                </div>
+                <button
+                  type="button"
+                  className={`${s.cardCta} ${isPopular ? s.cardCtaHot : ""}`}
+                  disabled={busy || purchaseBlocked || !config.enabled || !methodId}
+                  onClick={event => {
+                    event.stopPropagation();
+                    setSelected(entry.id);
+                    void purchase(false, entry);
+                  }}
+                >
+                  {ctaText}
+                </button>
+              </div>
+            </article>;
+          })}
+        </div>
+        <p className={s.payFootnote}>{activeMethodLabel}一次性安全支付 · 不自动续费 · 已领金币永不过期</p>
       </> : <p className={s.empty}>{loading || !paymentConfig ? "正在读取 VIP 套餐…"
         : !available ? "VIP 购买暂不可用，请稍后刷新状态。"
         : error ? "暂时无法读取 VIP 套餐，请稍后刷新状态。" : "VIP 套餐准备中，开放后可在这里购买。"}</p>}
@@ -593,10 +614,10 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于金币，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
       <ul className={s.rulesList} aria-label="VIP 领取与续订规则">
         <li>每日北京时间 00:00 重置，每天手动领取一次；每期领取上限以购买方案与会员状态为准，当天未领取的额度不补发。</li>
-        <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买金币，两种来源进入同一个余额，已到账金币不随会员到期失效。" : "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。"}</li>
+        <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买金币，两种来源进入同一个余额，已到账金币不随会员到期失效。" : (XUMENG_USDT_ENABLED ? "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。" : "充值暂未开放，已有余额与会员每日权益继续保留。")}</li>
         <li>{config?.modelBillingLinked ? "金币可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前金币尚未接入聊天扣费。"}</li>
       </ul>
     </details>
-    <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />
+    {XUMENG_USDT_ENABLED && <NowPaymentsCenter userId={userId} isGuest={isGuest} refreshKey={refreshKey} onRequireAccount={onRequireAccount} onCreditChanged={onCreditChanged} />}
   </section>;
 }

@@ -9,7 +9,6 @@ import {
 import Icon, { CoinIcon } from "./icons";
 import { SubscriptionCenter } from "./subscription-center";
 import { BillingCenter } from "./billing-center";
-import { DailyLogin } from "./daily-login";
 import { DreamCoinPanel } from "./dream-coin-panel";
 import s from "./recharge.module.css";
 import { XUMENG_PAYMENTS_ENABLED } from "../../lib/xumeng-feature-availability";
@@ -43,6 +42,8 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const [loading, setLoading] = useState(true);
   const [billingRefresh, setBillingRefresh] = useState(0);
   const [pane, setPane] = useState<"points" | "vip">(focusVip ? "vip" : "points");
+  const [showCustom, setShowCustom] = useState(false);
+  const [showLedger, setShowLedger] = useState(false);
   const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [error, setError] = useState("");
   const [inspectedOrderId, setInspectedOrderId] = useState<string | null>(null);
@@ -302,7 +303,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
     const rounds = Math.max(10, Math.floor(totalCredits / 8));
     const pics = Math.max(1, Math.floor(totalCredits / 100));
     const fmt = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1).replace(/\.0$/, "")}k` : String(n);
-    return `微光约聊 ${fmt(rounds)} 轮 · 剧情图 ${fmt(pics)} 张`;
+    return `约 ${fmt(rounds)} 轮深聊 · ${fmt(pics)} 张图`;
   };
 
   const channelName = (provider: string, method: string | null) => method === "wxpay" || provider === "guagua" ? "微信支付" : provider === "nowpayments" ? "USDT" : "历史订单";
@@ -314,67 +315,41 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
     ? selectedPackage.amountMinor - payAmount(selectedPackage)
     : 0;
 
+  const totalFixedCards = (config?.packages.length ?? 0) + (icebreakerAvailable ? 1 : 0);
+
   return <main className={s.page}>
     <header className={s.header}>
-      <div>
-        {onBack && <button type="button" className={s.back} onClick={onBack}><Icon name="back" size={16} />{copy.rechargeCenter}</button>}
-        {!onBack && <h1>{copy.rechargeCenter}</h1>}
+      <div className={s.headerLeft}>
+        {onBack ? <button type="button" className={s.back} onClick={onBack}><Icon name="back" size={16} />{copy.rechargeCenter}</button>
+          : <h1>{copy.rechargeCenter}</h1>}
       </div>
-      <div className={s.headerBadges}>
-        <span className={s.secureBadge}><Icon name="shield" size={13} />官方直充 · 余额永久有效</span>
+      <div className={s.headerRight}>
+        <div className={s.balancePill} aria-label={copy.walletGold}>
+          <CoinIcon size={15} />
+          <strong>{currentWallet ? points(currentWallet.balance) : isGuest ? "未登录" : "—"}</strong>
+          {currentWallet && <span>金币</span>}
+        </div>
+        {onCheckin && (
+          <button type="button" className={s.iconPillBtn} onClick={onCheckin} title="每日签到领金币">
+            <Icon name="sun" size={13} />
+            <span>签到</span>
+          </button>
+        )}
+        <button type="button" className={`${s.iconPillBtn} ${showLedger ? s.iconPillBtnOn : ""}`} onClick={() => setShowLedger(v => !v)}>
+          <span>账单</span>
+        </button>
       </div>
     </header>
 
-    <section className={s.walletHero} aria-label={copy.walletGold}>
-      <div className={s.walletMain}>
-        <div className={s.walletEyebrow}>
-          <span className={s.walletLabel}><CoinIcon size={20} />{copy.walletGold}余额</span>
-          {(firstHalf || isGuest) && <span className={s.firstHalfChip}><Icon name="gift" size={12} />首充 5 折特惠</span>}
-        </div>
-        <strong className={currentWallet ? undefined : s.walletEmpty}>
-          {currentWallet ? points(currentWallet.balance) : "登录后解锁首充 5 折"}
-        </strong>
-        <small>{currentWallet ? `可用于长记忆模型深聊、剧情生图、视频动效与角色语音` : copy.walletGoldHint}</small>
+    <div className={s.tabWrap}>
+      <div className={s.tabs} role="tablist" aria-label={copy.rechargeType}>
+        <button type="button" role="tab" aria-selected={pane === "vip"} className={pane === "vip" ? s.tabOn : ""} onClick={() => setPane("vip")}>
+          <span>{copy.member}</span>
+        </button>
+        <button type="button" role="tab" aria-selected={pane === "points"} className={pane === "points" ? s.tabOn : ""} onClick={() => setPane("points")}>
+          <span>{copy.pointTopUp}</span>
+        </button>
       </div>
-      <div className={s.walletSide}>
-        {onCheckin && (
-          <button type="button" className={s.freeCoinBtn} onClick={onCheckin}>
-            <Icon name="sun" size={14} />
-            <span>每日签到领免费金币</span>
-          </button>
-        )}
-        <div className={s.walletMetaRow}>
-          <span className={s.walletPill}><Icon name="zap" size={12} />微信支付秒到账</span>
-        </div>
-      </div>
-    </section>
-
-    <ul className={s.valueStrip} aria-label="充值权益保障">
-      <li><span className={s.valueIcon}><Icon name="zap" size={15} /></span><div><strong>微信秒到账</strong><small>即刻继续剧情</small></div></li>
-      <li><span className={s.valueIcon}><Icon name="sparkles" size={15} /></span><div><strong>全顶级模型</strong><small>长记忆沉浸深聊</small></div></li>
-      <li><span className={s.valueIcon}><Icon name="image" size={15} /></span><div><strong>多模态通用</strong><small>生图 · 视频 · 语音</small></div></li>
-      <li><span className={s.valueIcon}><Icon name="shield" size={15} /></span><div><strong>永不过期</strong><small>按实耗透明结算</small></div></li>
-    </ul>
-
-    {firstHalf && <div className={s.promoBanner} role="status">
-      <div className={s.promoBannerLeft}>
-        <span className={s.promoIcon}><Icon name="gift" size={18} /></span>
-        <div><strong>首单半价特权已激活</strong><p>本账号首笔固定档位立享 5 折，全额金币含加赠完整到账，仅限一次。</p></div>
-      </div>
-      <span>限时 5 折</span>
-    </div>}
-
-    <div className={s.tabs} role="tablist" aria-label={copy.rechargeType}>
-      <button type="button" role="tab" aria-selected={pane === "vip"} className={pane === "vip" ? s.tabOn : ""} onClick={() => setPane("vip")}>
-        <Icon name="crown" size={15} />
-        <span>{copy.member}</span>
-        <em className={s.tabTag}>每日领币</em>
-      </button>
-      <button type="button" role="tab" aria-selected={pane === "points"} className={pane === "points" ? s.tabOn : ""} onClick={() => setPane("points")}>
-        <Icon name="gem" size={15} />
-        <span>{copy.pointTopUp}</span>
-        {maxBonusPct > 0 && <em className={s.tabTag}>最高 +{maxBonusPct}%</em>}
-      </button>
     </div>
 
     {!XUMENG_PAYMENTS_ENABLED && <p className={s.notice} role="note">{copy.paymentsClosed}</p>}
@@ -396,87 +371,16 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
     {pane === "vip" && <section className={s.vipPane} aria-label="会员">{membership}</section>}
 
     {XUMENG_PAYMENTS_ENABLED && pane === "points" && <section className={s.purchase} aria-labelledby="recharge-packages-title">
-      <div className={s.purchaseHead}>
-        <div>
-          <h2 id="recharge-packages-title">选择金币充值档位</h2>
-          <p>充值档位越高加赠越丰厚，金币永不过期，全站角色与模板通用。</p>
-        </div>
-        {firstHalf && <span className={s.purchasePromoNote}><Icon name="sparkles" size={13} />已自动应用首单 5 折</span>}
-      </div>
-      {config ? config.packages.length ? <>
-        <fieldset className={`${s.packages} ${config.packages.length + (icebreakerAvailable ? 1 : 0) === 4 ? s.packagesFour : ""}`} disabled={working}>
-          <legend className={s.srOnly}>金币购买档位</legend>
-          {icebreakerAvailable && <label className={`${s.package} ${s.packageIcebreaker} ${isIcebreaker ? s.selected : ""}`} key={ICEBREAKER_ID}>
-            <input type="radio" name="recharge-package" value={ICEBREAKER_ID} checked={isIcebreaker} onChange={() => setSelected(ICEBREAKER_ID)} />
-            <div className={s.packageTopRow}>
-              <em className={`${s.badge} ${s.badgeIcebreaker}`}><Icon name="zap" size={11} />破冰首试</em>
-              <span className={`${s.selectRing} ${isIcebreaker ? s.selectRingOn : ""}`} aria-hidden="true">
-                {isIcebreaker && <Icon name="check" size={11} />}
-              </span>
-            </div>
-            <span className={s.packageCredits}><CoinIcon size={20} />{points(ICEBREAKER_MINOR)}</span>
-            <span className={s.packageSplit}>低门槛尝鲜体验</span>
-            <span className={s.packageUsage}>{playEstimate(ICEBREAKER_MINOR)}</span>
-            <div className={s.priceRow}>
-              <span className={s.pricePill}>{money(ICEBREAKER_MINOR, config.currency)}</span>
-              <em className={s.icebreakerNote}>随时可充</em>
-            </div>
-          </label>}
-          {config.packages.map(item => {
-            const offer = granted(item);
-            const isSelected = packageId === item.id;
-            const isBest = item.id === bestBonusId;
-            const isPopular = item.id === popularId && !isBest;
-            const due = payAmount(item);
-            const save = firstHalf && item.id !== "cny_custom" ? item.amountMinor - due : 0;
-            return <label className={`${s.package} ${isSelected ? s.selected : ""} ${isPopular ? s.packagePopular : ""} ${isBest ? s.packageBest : ""}`} key={item.id}>
-              <input type="radio" name="recharge-package" value={item.id} checked={isSelected} onChange={() => setSelected(item.id)} />
-              <div className={s.packageTopRow}>
-                {isBest ? (
-                  <em className={`${s.badge} ${s.badgeBest}`}><Icon name="crown" size={11} />至臻满赠</em>
-                ) : isPopular ? (
-                  <em className={`${s.badge} ${s.badgePopular}`}><Icon name="flame" size={11} />热门首选</em>
-                ) : offer.pct > 0 ? (
-                  <em className={s.bonusPctBadge}>+{offer.pct}% 加赠</em>
-                ) : (
-                  <em className={s.tierHintBadge}>轻享体验</em>
-                )}
-                <span className={`${s.selectRing} ${isSelected ? s.selectRingOn : ""}`} aria-hidden="true">
-                  {isSelected && <Icon name="check" size={11} />}
-                </span>
-              </div>
-              <span className={s.packageCredits}><CoinIcon size={20} />{points(offer.total)}</span>
-              <span className={`${s.packageSplit} ${offer.bonus ? s.packageSplitBonus : ""}`}>
-                {offer.bonus ? <>含加赠 <b>+{points(offer.bonus)}</b> 金币</> : `${points(offer.total)} 金币即刻畅玩`}
-              </span>
-              <span className={s.packageUsage}>{playEstimate(offer.total)}</span>
-              <div className={s.priceRow}>
-                <span className={s.pricePill}>{save > 0
-                  ? <><s>{money(item.amountMinor, item.currency)}</s>{money(due, item.currency)}</>
-                  : money(item.amountMinor, item.currency)}</span>
-                {save > 0 && <em className={s.promoTag}>省 {money(save, item.currency)}</em>}
-              </div>
-            </label>;
-          })}
-          {custom && <div className={`${s.customCard} ${packageId === custom.id ? s.selected : ""}`} role="radio" aria-checked={packageId === custom.id} tabIndex={0}
-            onClick={() => setSelected(custom.id)} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); setSelected(custom.id); } }}>
-            <div className={s.customHead}>
-              <span><strong>自定义充值金额</strong><small>按需灵活补充（1 元 = 100 金币，不参与加赠与首单 5 折）</small></span>
-              {customValid && <em className={s.customValue}><CoinIcon size={14} />{points(customMinor)} 金币</em>}
-            </div>
-            <div className={s.customChips}>
-              {[6, 10, 30, 50, 100, 200].filter(value => value * 100 >= custom.minMinor && value * 100 <= custom.maxMinor).map(value =>
-                <button type="button" key={value} className={customYuan === String(value) ? s.chipOn : ""} onClick={event => { event.stopPropagation(); setCustomYuan(String(value)); setSelected(custom.id); }}>¥{value}</button>)}
-            </div>
-            <label className={s.customField}>¥<input inputMode="numeric" aria-label="自定义充值金额（元）" placeholder={`${custom.minMinor / 100}–${custom.maxMinor / 100}`}
-              value={customYuan} onFocus={() => setSelected(custom.id)}
-              onChange={event => { setCustomYuan(event.target.value.trim().slice(0, 8)); setSelected(custom.id); }} /></label>
-            {packageId === custom.id && !customValid && <p className={s.customHint}>请输入 {custom.minMinor / 100}–{custom.maxMinor / 100} 元之间的金额</p>}
-          </div>}
-        </fieldset>
-        {availableMethods.length > 1 && <div className={s.methodPicker} role="radiogroup" aria-label="选择支付方式">
-          <span className={s.methodPickerLabel}>支付方式</span>
-          <div className={s.methodPills}>
+      <h2 id="recharge-packages-title" className={s.srOnly}>选择金币充值档位</h2>
+      {(firstHalf || availableMethods.length > 1) && (
+        <div className={s.subStrip}>
+          {firstHalf && (
+            <p className={s.promoMicro} role="status">
+              <Icon name="sparkles" size={12} />
+              <span>新客首单立享 5 折 · 含加赠全额到账</span>
+            </p>
+          )}
+          {availableMethods.length > 1 && <div className={s.methodPickerInline} role="radiogroup" aria-label="选择支付方式">
             {availableMethods.map(item => (
               <button type="button" key={item.id} role="radio" aria-checked={methodId === item.id}
                 className={`${s.methodPill} ${methodId === item.id ? s.methodPillOn : ""}`}
@@ -484,70 +388,172 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
                 {item.label}
               </button>
             ))}
+          </div>}
+        </div>
+      )}
+
+      {config ? config.packages.length ? <>
+        <fieldset className={`${s.packages} ${totalFixedCards === 4 ? s.packagesFour : ""}`} disabled={working}>
+          <legend className={s.srOnly}>金币购买档位</legend>
+          {icebreakerAvailable && <label className={`${s.package} ${s.tierGlow0} ${isIcebreaker ? s.selected : ""}`} key={ICEBREAKER_ID}>
+            <input type="radio" name="recharge-package" value={ICEBREAKER_ID} checked={isIcebreaker} onChange={() => setSelected(ICEBREAKER_ID)} />
+            <div className={s.packageTopRow}>
+              <span className={s.tierTag}>尝鲜</span>
+              <span className={`${s.selectDot} ${isIcebreaker ? s.selectDotOn : ""}`} aria-hidden="true">
+                {isIcebreaker && <Icon name="check" size={10} />}
+              </span>
+            </div>
+            <div className={s.packageBody}>
+              <span className={s.packageCredits}><CoinIcon size={18} />{points(ICEBREAKER_MINOR)}</span>
+              <span className={s.packageBonus}>低门槛轻体验</span>
+              <span className={s.packageUsage}>{playEstimate(ICEBREAKER_MINOR)}</span>
+            </div>
+            <div className={s.priceRow}>
+              <span className={s.priceValue}>{money(ICEBREAKER_MINOR, config.currency)}</span>
+            </div>
+          </label>}
+          {config.packages.map((item, idx) => {
+            const offer = granted(item);
+            const isSelected = packageId === item.id;
+            const isBest = item.id === bestBonusId;
+            const isPopular = item.id === popularId && !isBest;
+            const due = payAmount(item);
+            const save = firstHalf && item.id !== "cny_custom" ? item.amountMinor - due : 0;
+            const isLastOdd = totalFixedCards % 2 === 1 && idx === config.packages.length - 1;
+            const glowClass = idx === 0 ? s.tierGlow0 : idx === 1 ? s.tierGlow1 : s.tierGlow2;
+            return <label className={`${s.package} ${glowClass} ${isLastOdd ? s.packageWideMobile : ""} ${isSelected ? s.selected : ""}`} key={item.id}>
+              <input type="radio" name="recharge-package" value={item.id} checked={isSelected} onChange={() => setSelected(item.id)} />
+              <div className={s.packageTopRow}>
+                {isBest ? (
+                  <span className={`${s.tierTag} ${s.tierTagHot}`}>最超值</span>
+                ) : isPopular ? (
+                  <span className={`${s.tierTag} ${s.tierTagHot}`}>热门</span>
+                ) : offer.pct > 0 ? (
+                  <span className={s.tierTag}>+{offer.pct}%</span>
+                ) : (
+                  <span className={s.tierTag}>轻享</span>
+                )}
+                <span className={`${s.selectDot} ${isSelected ? s.selectDotOn : ""}`} aria-hidden="true">
+                  {isSelected && <Icon name="check" size={10} />}
+                </span>
+              </div>
+              <div className={s.packageBody}>
+                <span className={s.packageCredits}><CoinIcon size={18} />{points(offer.total)}</span>
+                <span className={`${s.packageBonus} ${offer.bonus ? s.packageBonusAccent : ""}`}>
+                  {offer.bonus ? `含赠 +${points(offer.bonus)} 金币` : "金币永不过期"}
+                </span>
+                <span className={s.packageUsage}>{playEstimate(offer.total)}</span>
+              </div>
+              <div className={s.priceRow}>
+                <span className={s.priceValue}>
+                  {money(due, item.currency)}
+                  {save > 0 && <s>{money(item.amountMinor, item.currency)}</s>}
+                </span>
+                {save > 0 && <em className={s.saveNote}>5折</em>}
+              </div>
+            </label>;
+          })}
+        </fieldset>
+
+        {custom && (
+          <div className={`${s.customWrap} ${showCustom || packageId === custom.id ? s.customOpen : ""}`}>
+            <button
+              type="button"
+              className={s.customToggle}
+              aria-expanded={showCustom || packageId === custom.id}
+              onClick={() => {
+                const next = !(showCustom || packageId === custom.id);
+                setShowCustom(next);
+                if (next) setSelected(custom.id);
+                else if (packageId === custom.id) setSelected(defaultPackageId);
+              }}
+            >
+              <span>自定义金额充值</span>
+              <span className={s.customToggleRight}>
+                {customValid && packageId === custom.id ? `${points(customMinor)} 金币` : "1 元 = 100 金币"}
+                <Icon name="chevron" size={14} />
+              </span>
+            </button>
+            {(showCustom || packageId === custom.id) && (
+              <div className={`${s.customBody} ${packageId === custom.id ? s.selected : ""}`} onClick={() => setSelected(custom.id)}>
+                <div className={s.customChips}>
+                  {[6, 10, 30, 50, 100, 200].filter(value => value * 100 >= custom.minMinor && value * 100 <= custom.maxMinor).map(value =>
+                    <button type="button" key={value} className={customYuan === String(value) ? s.chipOn : ""} onClick={event => { event.stopPropagation(); setCustomYuan(String(value)); setSelected(custom.id); }}>¥{value}</button>)}
+                </div>
+                <div className={s.customInputRow}>
+                  <label className={s.customField}><span>¥</span><input inputMode="numeric" aria-label="自定义充值金额（元）" placeholder={`${custom.minMinor / 100}–${custom.maxMinor / 100}`}
+                    value={customYuan} onFocus={() => setSelected(custom.id)}
+                    onChange={event => { setCustomYuan(event.target.value.trim().slice(0, 8)); setSelected(custom.id); }} /></label>
+                  {customValid && <span className={s.customPreview}><CoinIcon size={13} />{points(customMinor)} 金币</span>}
+                </div>
+                {packageId === custom.id && !customValid && <p className={s.customHint}>请输入 {custom.minMinor / 100}–{custom.maxMinor / 100} 元之间的金额</p>}
+              </div>
+            )}
           </div>
-        </div>}
+        )}
+
         <div className={s.paybar}>
-          <div className={s.payInfo}>
+          <div className={s.paySummary}>
             <span className={s.payTotalLine}>
-              到账 <em><CoinIcon size={15} />{selectedPackage ? `${points(selectedPackage.credits)} 金币` : "请选择档位"}</em>
-              {selectedOffer && selectedOffer.bonus > 0 && <b className={s.payBonusPill}>已含赠 {points(selectedOffer.bonus)}</b>}
+              <strong>{selectedPackage ? `${points(selectedPackage.credits)} 金币` : "请选择档位"}</strong>
+              {selectedOffer && selectedOffer.bonus > 0 && <em className={s.payBonusText}>含赠 +{points(selectedOffer.bonus)}</em>}
             </span>
-            {savedMinor > 0 && selectedPackage
-              ? <span className={s.promoOld}>首单 5 折已立省 {money(savedMinor, selectedPackage.currency)}（原价 {money(selectedPackage.amountMinor, selectedPackage.currency)}）</span>
-              : <span><Icon name="shield" size={12} />{activeMethodLabel}安全收银台 · 支付成功即刻自动到账</span>}
+            <span className={s.paySubline}>
+              {savedMinor > 0 && selectedPackage
+                ? `首单 5 折已省 ${money(savedMinor, selectedPackage.currency)} · 永不过期`
+                : `${activeMethodLabel} · 秒到账 · 余额永不过期`}
+            </span>
           </div>
           <button type="button" className={`${s.primary} ${s.payCta}`} disabled={working || !methodReady || !config.enabled || !selectedPackage} onClick={() => void checkout()}>
-            <Icon name="zap" size={16} />
             <span>{checkoutLabel}</span>
           </button>
         </div>
-        <button type="button" className={s.vipHint} onClick={() => setPane("vip")}>
-          <span className={s.vipHintLeft}>
-            <span className={s.vipHintCrown}><Icon name="crown" size={16} /></span>
-            <span><strong>高频畅聊推荐开通 VIP</strong><small>每天领最高 800 金币 + 每日语音/生图额度 + 全站短剧免费看</small></span>
-          </span>
-          <strong className={s.vipHintAction}>查看 VIP 特权 <Icon name="chevron" size={14} /></strong>
-        </button>
       </> : <p className={s.empty}>目前没有可购买的档位。</p> : <p className={s.empty}>{loading ? "正在读取档位…" : "暂时无法读取档位。"}</p>}
     </section>}
 
-    <DailyLogin userId={userId} isGuest={isGuest} locale={locale} onRequireAccount={onRequireAccount}
-      onCreditChanged={() => { void refresh(); }} onViewAll={onCheckin} />
+    <div className={s.ledgerBar}>
+      <button type="button" className={s.ledgerToggle} aria-expanded={showLedger} onClick={() => setShowLedger(v => !v)}>
+        <span>{showLedger ? "收起订单与消费明细" : "查看订单记录、消费明细与梦币"}</span>
+        <Icon name="chevron" size={14} />
+      </button>
+    </div>
 
-    {pane === "points" && <BillingCenter key={accountKey} userId={userId} isGuest={isGuest} modelBillingLinked={config?.modelBillingLinked ?? false} refreshKey={billingRefresh} onRequireAccount={onRequireAccount} />}
+    {showLedger && <div className={s.ledgerDrawer}>
+      {pane === "points" && <BillingCenter key={accountKey} userId={userId} isGuest={isGuest} modelBillingLinked={config?.modelBillingLinked ?? false} refreshKey={billingRefresh} onRequireAccount={onRequireAccount} />}
 
-    {!isGuest && <section className={s.currencies} aria-labelledby="recharge-currencies-title">
-      <h2 id="recharge-currencies-title">金币与梦币</h2>
-      <div className={s.currencyRow}>
-        <div className={s.currencyCard}>
-          <span className={s.currencyName}><CoinIcon size={18} />{copy.walletGold}</span>
-          <strong>{currentWallet ? points(currentWallet.balance) : "—"}</strong>
-          <p>{copy.walletGoldHint}</p>
-          <small>每日登录、任务奖励、充值获得。</small>
+      {!isGuest && <section className={s.currencies} aria-labelledby="recharge-currencies-title">
+        <h2 id="recharge-currencies-title">金币与梦币</h2>
+        <div className={s.currencyRow}>
+          <div className={s.currencyCard}>
+            <span className={s.currencyName}><CoinIcon size={16} />{copy.walletGold}</span>
+            <strong>{currentWallet ? points(currentWallet.balance) : "—"}</strong>
+            <p>{copy.walletGoldHint}</p>
+            <small>每日登录、任务奖励、充值获得。</small>
+          </div>
+          <div className={s.currencyCard}>
+            <span className={s.currencyName}><Icon name="sparkles" size={15} />{copy.walletDream}</span>
+            <strong>{copy.creatorIncentive}</strong>
+            <p>{copy.walletDreamHint}</p>
+            <small>作品被游玩、被收藏产生的分成，按人民币记账。</small>
+          </div>
         </div>
-        <div className={s.currencyCard}>
-          <span className={s.currencyName}><Icon name="sparkles" size={15} />{copy.walletDream}</span>
-          <strong>{copy.creatorIncentive}</strong>
-          <p>{copy.walletDreamHint}</p>
-          <small>作品被游玩、被收藏产生的分成，按人民币记账。</small>
-        </div>
-      </div>
-      <DreamCoinPanel userId={userId} compact />
-    </section>}
+        <DreamCoinPanel userId={userId} compact />
+      </section>}
 
-    <section className={s.history} aria-labelledby="recharge-orders-title">
-      <div className={s.sectionHeading}><h2 id="recharge-orders-title">订单</h2><span>{currentWallet ? `${currentWallet.orders.length}` : ""}</span></div>
-      {isGuest ? <p className={s.empty}>登录后查看订单。</p> : currentWallet ? currentWallet.orders.length ? <ul>{currentWallet.orders.map(entry => <li className={s.order} key={entry.id}>
-        <div className={s.orderMain}>
-          <strong>{money(entry.amountMinor, entry.currency)}<span>{points(entry.credits)} 金币</span></strong>
-          <time dateTime={new Date(entry.createdAt).toISOString()}>{date(entry.createdAt)} · {channelName(entry.provider, entry.method)}</time>
-        </div>
-        <div className={s.orderAction}>
-          <span className={entry.status === "paid" ? s.paid : s.orderStatus}>{statusText(entry.status)}</span>
-          <button type="button" className={s.textButton} disabled={checkoutBusy} onClick={() => { setInspectedOrderId(entry.id); setVerificationRetry(previous => previous + 1); }}>核对</button>
-          {canResume(entry) && <button type="button" className={s.outline} disabled={working} onClick={() => void resumePayment(entry)}>继续支付</button>}
-        </div>
-      </li>)}</ul> : <p className={s.empty}>还没有订单。</p> : <p className={s.empty}>{loading ? "正在读取订单…" : "暂时无法读取订单。"}</p>}
-    </section>
+      <section className={s.history} aria-labelledby="recharge-orders-title">
+        <div className={s.sectionHeading}><h2 id="recharge-orders-title">订单记录</h2><span>{currentWallet ? `${currentWallet.orders.length} 笔` : ""}</span></div>
+        {isGuest ? <p className={s.empty}>登录后查看订单。</p> : currentWallet ? currentWallet.orders.length ? <ul>{currentWallet.orders.map(entry => <li className={s.order} key={entry.id}>
+          <div className={s.orderMain}>
+            <strong>{money(entry.amountMinor, entry.currency)}<span>{points(entry.credits)} 金币</span></strong>
+            <time dateTime={new Date(entry.createdAt).toISOString()}>{date(entry.createdAt)} · {channelName(entry.provider, entry.method)}</time>
+          </div>
+          <div className={s.orderAction}>
+            <span className={entry.status === "paid" ? s.paid : s.orderStatus}>{statusText(entry.status)}</span>
+            <button type="button" className={s.textButton} disabled={checkoutBusy} onClick={() => { setInspectedOrderId(entry.id); setVerificationRetry(previous => previous + 1); }}>核对</button>
+            {canResume(entry) && <button type="button" className={s.outline} disabled={working} onClick={() => void resumePayment(entry)}>继续支付</button>}
+          </div>
+        </li>)}</ul> : <p className={s.empty}>还没有订单。</p> : <p className={s.empty}>{loading ? "正在读取订单…" : "暂时无法读取订单。"}</p>}
+      </section>
+    </div>}
   </main>;
 }
