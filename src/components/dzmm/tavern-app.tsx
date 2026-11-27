@@ -184,516 +184,61 @@ const QuickRechargeModal = lazy(() => import("./quick-recharge-modal").then((mod
 const DailyCheckin = lazy(() => import("./daily-checkin").then((module) => ({ default: module.DailyCheckin })));
 const CheckinModal = lazy(() => import("./checkin-modal").then((module) => ({ default: module.CheckinModal })));
 
-function Deferred({ children }: { children: ReactNode }) {
-  return (
-    <Suspense
-      fallback={
-        <main className={s.routeSkeleton} role="status" aria-busy="true" aria-label="正在打开">
-          <div className={s.routeSkeletonBar} />
-          <div className={s.routeSkeletonSub} />
-          <div className={s.routeSkeletonGrid}>
-            <div className={s.routeSkeletonCard} />
-            <div className={s.routeSkeletonCard} />
-            <div className={s.routeSkeletonCard} />
-            <div className={s.routeSkeletonCard} />
-          </div>
-          <span className={s.srOnly}>正在打开…</span>
-        </main>
-      }
-    >
-      {children}
-    </Suspense>
-  );
-}
-
-function prefetchRoute(target: string) {
-  if (target.startsWith("chat/girlfriend-qwen")) void import("@/app/xumeng/girlfriend/qwen-companion");
-  else if (target.startsWith("chat/girlfriend")) void import("@/app/xumeng/girlfriend/companion-page");
-  else if (target.startsWith("chat/game/")) void import("./game-player");
-  else if (target.startsWith("studio/girlfriends")) void import("@/app/xumeng/girlfriend/girlfriend-studio");
-  else if (target.startsWith("studio/games")) void import("./game-studio");
-  else if (target.startsWith("studio/scenarios") || target.startsWith("studio/room/")) void import("./scenario-studio");
-  else if (target === "studio/new" || target.startsWith("studio/edit/")) void import("./character-studio");
-  else if (target === "studio" || target === "studio/roles") void import("./creator-center");
-  else if (target === "novels" || target.startsWith("novels/")) void import("./novel-studio");
-  else if (target === "videos" || xumengVideoDramaIdFromRoute(target)) void import("./video-channel");
-  else if (target === "live") void import("./minicpm-phone");
-  else if (target === "voice") void import("./voice-studio");
-  else if (target === "generation") {
-    if (XUMENG_GENERATION_WORKSPACE_ENABLED) void import("./generation-studio");
-    else void import("./generation-history");
-  }
-  else if (target === "tasks") void import("./task-hub");
-  else if (target === "app") void import("./install-app");
-  else if (target === "recharge" || target === "vip") void import("./recharge");
-  else if (target === "checkin") void import("./daily-checkin");
-  else if (target === "forum" || target.startsWith("forum/")) void import("./forum-view");
-  else if (target === "admin") {
-    void import("./admin-dashboard");
-    void import("./publishing-center");
-    void import("./forum-view");
-  }
-}
-
-type View = "play-games" | "videos" | "characters" | "chat" | "forum" | "profile" | "search" | "author" | "settings" | "presets" | "admin" | "studio" | "studio-edit"  | "games" | "girlfriends" | "scenarios" | "novels" | "live" | "voice" | "generation" | "aigen" | "tasks" | "app" | "recharge" | "vip" | "invite" | "checkin";
-type Message = DzmmSavedMessage;
+import {
+  AUTHORS,
+  BROWSE_GENRES_STORAGE_KEY,
+  BROWSE_TAG_LIMIT,
+  CHAT_CALL_CHARACTERS,
+  CHAT_SECTION_ROUTES,
+  COIN_GUIDE_KEY,
+  CONTENT_PEOPLE,
+  EMPTY_STATUS_LABELS,
+  FEATURED_CHARACTER_COUNT,
+  GAME_COVERS,
+  MAX_PARALLEL_REPLIES,
+  MODEL_MODES,
+  NAV,
+  NAV_SECONDARY_TOOLS,
+  NAV_TOOLS,
+  TABS,
+  browseTagName,
+  chatPresence,
+  companionAge,
+  companionVariantFromRoute,
+  coverTagTone,
+  download,
+  formatConversationStamp,
+  formatLikeTotal,
+  gameHeat,
+  guideSeen,
+  isBrowseLook,
+  isGirlfriendRoute,
+  keyboardInset,
+  linkedPublishedCharacterId,
+  prefetchRoute,
+  readCoarsePointer,
+  readStoredBrowseSelection,
+  readVirtualKeyboard,
+  searchForumTopics,
+  selectedShelfTags,
+  setKeyboardOverlay,
+  shelfRecommendationSurface,
+  storyUnread,
+  subscribeCoarsePointer,
+  uid,
+  weaveEqual,
+  type ChatSection,
+  type CompanionVariant,
+  type ContentShelfItem,
+  type LikeStat,
+  type TavernView as View,
+} from "./tavern-helpers";
+import { Cover, Deferred, HomeHero, MessageText, PlayBackdrop, PlayCharacterSheet, SocialMark, TavernAppRail, TavernMobileNav } from "./tavern-subcomponents";
 import type { DzmmGroupRequest } from "@/lib/dzmm-chat";
 import { clearCachedRecommendation, readCachedRecommendation, writeCachedRecommendation } from "@/lib/xumeng-recommendation-cache";
+type Message = DzmmSavedMessage;
 type Conversation = DzmmSavedConversation;
 type Preferences = DzmmPreferences;
-type ChatSection = "stories" | "chats" | "games";
-const CHAT_SECTION_ROUTES: Record<ChatSection, string> = { stories: "chat", chats: "chat/chats", games: "chat/games" };
-const TABS = ["新手", "猜你喜欢", "关注", "最新", "榜单", "分类"];
-const FEATURED_CHARACTER_COUNT = 13;
-const MODEL_MODES = DZMM_OFFERED_MODEL_OPTIONS;
-const MAX_PARALLEL_REPLIES = 3;
-const COARSE_POINTER = "(pointer: coarse)";
-const BROWSE_GENRES_STORAGE_KEY = "xumeng-browse-genres";
-const BROWSE_TAG_LIMIT = 3;
-function isBrowseLook(id: string): id is DzmmCatalogLook {
-  return id === "photo" || id === "anime";
-}
-const AUDIENCE_LABELS: Record<string, Record<XumengLocale, string>> = {
-  boy: { "zh-Hans": "男性", "zh-Hant": "男性", en: "Men", ja: "男性", ko: "남성" },
-  girl: { "zh-Hans": "女性", "zh-Hant": "女性", en: "Women", ja: "女性", ko: "여성" },
-  donghua: { "zh-Hans": "动漫", "zh-Hant": "動漫", en: "Anime", ja: "アニメ", ko: "애니" },
-  shorts: { "zh-Hans": "短剧", "zh-Hant": "短劇", en: "Shorts", ja: "ショート", ko: "숏폼" },
-};
-function browseTagName(id: string, locale: XumengLocale): string {
-  return AUDIENCE_LABELS[id]?.[locale] ?? xumengCategoryName(locale, id, DZMM_DISCOVERY_CATEGORIES.find((item) => item.slug === id)?.name ?? id);
-}
-type CoverTagTone = "rose" | "violet" | "gold" | "blue" | "plum";
-function coverTagTone(tag: string): CoverTagTone {
-  const value = tag.trim().toLowerCase();
-  if (/(病娇|抖s|女王|支配|强势|人妻|熟女|成人|性瘾|巨乳|反差|暧昧|暗恋)/u.test(value)) return "rose";
-  if (/(战斗|冒险|超英|修仙|异世界|魔法|大世界|游戏)/u.test(value)) return "violet";
-  if (/(温柔|治愈|陪伴|日常|乡村|校园)/u.test(value)) return "gold";
-  if (/(权力|职场|模拟|悬疑|推理|科幻)/u.test(value)) return "blue";
-  return "plum";
-}
-function readStoredBrowseSelection(): string[] {
-  const stored: string[] = [];
-  if (typeof window !== "undefined") {
-    try {
-      const parsed = JSON.parse(window.sessionStorage.getItem(BROWSE_GENRES_STORAGE_KEY) || "null");
-      if (Array.isArray(parsed)) {
-        for (const item of parsed) {
-          if (typeof item === "string" && item.trim() && !stored.includes(item)) stored.push(item);
-        }
-      }
-    } catch { /* The current selection remains the source of truth. */ }
-  }
-  const looks = stored.filter(isBrowseLook);
-  const rest = stored.filter((id) => !isBrowseLook(id));
-  const savedLook = looks.length ? null : savedCatalogLook();
-  const unique: string[] = [];
-  for (const id of [...(savedLook ? [savedLook] : looks), ...rest]) {
-    if (!unique.includes(id)) unique.push(id);
-  }
-  return unique.slice(0, BROWSE_TAG_LIMIT);
-}
-
-function subscribeCoarsePointer(onChange: () => void) {
-  const query = window.matchMedia(COARSE_POINTER);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-function readCoarsePointer() { return window.matchMedia(COARSE_POINTER).matches; }
-const AUTHORS: DzmmAuthor[] = authorsData;
-const uid = () => crypto.randomUUID();
-type LikeStat = { count: number; liked: boolean };
-function parseLikeBaseline(value: string) {
-  const match = value.trim().match(/^(\d+(?:\.\d+)?)(万|k)?$/i);
-  if (!match) return null;
-  const base = Number(match[1]);
-  if (!Number.isFinite(base)) return null;
-  return Math.round(base * (match[2]?.toLowerCase() === "k" ? 1000 : match[2] === "万" ? 10000 : 1));
-}
-function formatLikeTotal(character: Character, stat?: LikeStat) {
-  if (!stat) return character.likes || "—";
-  const baseline = parseLikeBaseline(character.likes);
-  if (baseline === null) return stat.count > 0 ? String(stat.count) : "—";
-  const total = baseline + stat.count;
-  if (total >= 10000) {
-    const value = (total / 10000).toFixed(total >= 100000 ? 0 : 1).replace(/\.0$/, "");
-    return `${value}万`;
-  }
-  return String(total);
-}
-const SOCIAL_MARKS = {
-  youtube: "M23 12.2s0-3.2-.4-4.6c-.2-.9-.9-1.6-1.8-1.8C19.2 5.4 12 5.4 12 5.4s-7.2 0-8.8.4c-.9.2-1.6.9-1.8 1.8C1 9 1 12.2 1 12.2s0 3.2.4 4.6c.2.9.9 1.6 1.8 1.8 1.6.4 8.8.4 8.8.4s7.2 0 8.8-.4c.9-.2 1.6-.9 1.8-1.8.4-1.4.4-4.6.4-4.6zM9.8 15.5v-6.6l6.2 3.3-6.2 3.3z",
-  x: "M17.6 3H20.4L13.8 10.2 21.5 21h-6.2l-4.9-6.4L5.2 21H2.4l7.1-8.1L2 3h6.4l4.4 5.8L17.6 3zm-1.1 16.2h1.7L7.6 4.7H5.8l10.7 14.5z",
-  discord: "M19.3 5.2A17 17 0 0 0 15.1 4l-.4.8a15.6 15.6 0 0 1 4 1.6 16 16 0 0 0-13.4 0 12 12 0 0 1 3.9-1.6L9 4a17 17 0 0 0-4.3 1.2C2.1 8.4 1.4 12.2 1.6 16a17.4 17.4 0 0 0 5.3 2.7l.7-1.1a11.3 11.3 0 0 1-1.8-.9l.4-.3c3.6 1.7 7.5 1.7 11 0l.4.3c-.6.4-1.2.7-1.8.9l.7 1.1a17.4 17.4 0 0 0 5.3-2.7c.5-4.4-.7-8.1-2.5-10.8zM8.7 14.3c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.8 2.1-1.9 2.1zm6.6 0c-1 0-1.9-.9-1.9-2.1s.8-2.1 1.9-2.1 1.9 1 1.9 2.1-.9 2.1-1.9 2.1z",
-  tiktok: "M14.5 3c.4 2.4 1.8 4 4.2 4.4v2.4c-1.5 0-2.9-.5-4.2-1.3v6.7c0 3.3-2.6 5.8-5.8 5.8S3 18.5 3 15.2c0-3.2 2.5-5.7 5.7-5.8v2.5c-1.8.1-3.2 1.6-3.2 3.3 0 1.8 1.5 3.3 3.3 3.3s3.3-1.5 3.3-3.3V3h2.4z",
-  instagram: "M8 3h8a5 5 0 0 1 5 5v8a5 5 0 0 1-5 5H8a5 5 0 0 1-5-5V8a5 5 0 0 1 5-5zm8 2H8a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3zm-4 2.5A4.5 4.5 0 1 1 7.5 12 4.5 4.5 0 0 1 12 7.5zm0 2A2.5 2.5 0 1 0 14.5 12 2.5 2.5 0 0 0 12 9.5zM17.2 6.8a1 1 0 1 1-1 1 1 1 0 0 1 1-1z",
-  telegram: "M21.5 4.4 2.8 11.2c-1.3.5-1.2 1.2-.2 1.5l4.8 1.5 11.1-7c.5-.3 1-.1.6.2l-9 8.1-.3 4.8c.5 0 .7-.2 1-.5l2.3-2.2 4.8 3.5c.9.5 1.5.2 1.7-.8l3.1-14.6c.3-1.2-.5-1.8-1.2-1.3z",
-} as const;
-
-function SocialMark({ name }: { name: keyof typeof SOCIAL_MARKS }) {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-      <path fill="currentColor" d={SOCIAL_MARKS[name]} />
-    </svg>
-  );
-}
-
-const NAV: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
-  { view: "videos", labelKey: "navVideos", icon: "video" },
-  { view: "characters", labelKey: "navPlay", icon: "users" },
-  { view: "chat", labelKey: "navChat", icon: "chat" },
-  ...(XUMENG_FORUM_ENABLED ? [{ view: "forum" as const, labelKey: "navForum" as const, icon: "compass" as const }] : []),
-  { view: "studio", labelKey: "navCreate", icon: "edit" },
-  { view: "profile", labelKey: "navProfile", icon: "user" },
-];
-const NAV_TOOLS: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
-  ...(XUMENG_GENERATION_WORKSPACE_ENABLED ? [{ view: "generation" as const, labelKey: "navTemplates" as const, icon: "grid" as const }] : []),
-  { view: "tasks", labelKey: "navTasks", icon: "trophy" },
-  { view: "invite", labelKey: "navInvite", icon: "users" },
-  ...(XUMENG_PAYMENTS_ENABLED ? [{ view: "recharge" as const, labelKey: "navRecharge" as const, icon: "wallet" as const }, { view: "vip" as const, labelKey: "navVip" as const, icon: "crown" as const }] : [{ view: "recharge" as const, labelKey: "navRecharge" as const, icon: "sun" as const }]),
-];
-const NAV_SECONDARY_TOOLS: { view: View; labelKey: XumengMessageKey; icon: IconName }[] = [
-  { view: "novels", labelKey: "navNovels", icon: "book" },
-  ...(XUMENG_CHARACTER_VOICE_ENABLED ? [{ view: "voice" as const, labelKey: "navVoice" as const, icon: "volume" as const }] : []),
-  { view: "presets", labelKey: "navPresets", icon: "sliders" },
-  { view: "settings", labelKey: "navSettings", icon: "user" },
-  { view: "app", labelKey: "navInstallApp", icon: "download" },
-];
-
-async function searchForumTopics(query: string, signal: AbortSignal): Promise<DzmmForumTopic[]> {
-  if (signal.aborted) return [];
-  const { fetchDzmmForumPosts } = await import("@/lib/dzmm-forum");
-  const result = await fetchDzmmForumPosts({ q: query });
-  if (signal.aborted) return [];
-  return result.posts.map((post) => ({ id: post.id, title: post.title, body: post.body, author: post.author.nickname, category: post.category, updatedAt: post.updatedAt }));
-}
-
-function download(filename: string, content: string) {
-  const url = URL.createObjectURL(
-    new Blob([content], { type: "application/json;charset=utf-8" }),
-  );
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-const CONTENT_PEOPLE = [
-  {
-    variant: "classic" as const, castId: "", look: "photo" as const, name: "林幺", line: "一点四十。烟在你左手边，别看我。", cover: "/assets/xumeng/content-covers/yume.jpg",
-    situation: "凌晨一点四十，发发便利店。她踩着凳子够顶层货。",
-    description: "二十三，夜班店员林幺。嘴上没好话，关东煮多你两块萝卜。你的外号叫一点四十。",
-    personality: "二十三，林幺，发发便利店夜班。叫你一点四十。嘴上没好话，萝卜多舀半勺。速写本里画了你，她说是练人体。画稿被毙的晚上话变少，货码得很齐。",
-  },
-  {
-    variant: "intimate" as const, castId: "", look: "photo" as const, name: "宁宁", line: "坏老公。灯还亮着嘛。", cover: "/assets/xumeng/content-covers/wanning.jpg",
-    situation: "人在家。手机贴在脸颊上，声音发黏。",
-    description: "宁宁，你老婆。先骂一句坏老公，再说自己刚刚在干什么。已婚，不是学生。",
-    personality: "宁宁，你老婆，已婚，不是学生。先骂坏老公，再说刚刚在干什么。口癖人家、哎呀、嘛。想靠近就说人话。你说停，她这轮把话收回去。",
-  },
-  ...GIRLFRIEND_CAST.map(person => ({
-    variant: "cast" as const, castId: person.id, look: "photo" as const, name: person.name, line: person.line, cover: person.cover,
-    situation: person.situation, description: person.description, personality: person.style.personality,
-  })),
-  {
-    variant: "sales" as const, castId: "", look: "photo" as const, name: "Eva", line: "看我一眼。就一眼。", cover: "/assets/xumeng/exported-cards/foreverse-songzhixia-cover.png",
-    situation: "妆还没卸。项链压在锁骨上，微信刚加上。",
-    description: "二十八，Eva。一次只给一张没修的图。你说不看，她回一个行。",
-    personality: "二十八，Eva。妆没卸，项链压在锁骨上。刚加上，一次只求你看一张没修的图。你不回她换一句。你说不看，她这轮回行。看过才算看过。",
-  },
-  {
-    variant: "qwen" as const, castId: "", look: "photo" as const, name: "小节", line: "我很喜欢和人讲话，所以我不想和你讲。", cover: "/assets/xumeng/content-covers/sumai.jpg",
-    situation: "收租日。圆框眼镜，黑短发，人还坐在电脑前。",
-    description: "二十六，房东小节。六套房，饭在家吃。骂人不带脏字。多收的钱她会退。",
-    personality: "二十六，小节。圆框眼镜，男式T恤，房租自己收。有钱，但抠。嘴损，不带脏字。旧键盘比你金贵。不熟的人，她不喝酒。多收的钱她退，退的时候还要损你一句。",
-  },
-];
-type CompanionVariant = "classic" | "intimate" | "qwen" | "custom" | "sales" | "cast";
-function isGirlfriendRoute(route: string) {
-  return route === "chat/girlfriend" || route === "chat/girlfriend-intimate" || route === "chat/girlfriend-qwen" || route === "chat/girlfriend-sales" || route.startsWith("chat/girlfriend-custom/") || route.startsWith("chat/girlfriend-cast/") || route.startsWith("chat/girlfriend-mine/");
-}
-function companionVariantFromRoute(route: string): CompanionVariant {
-  if (route === "chat/girlfriend-intimate") return "intimate";
-  if (route === "chat/girlfriend-qwen") return "qwen";
-  if (route === "chat/girlfriend-sales") return "sales";
-  if (route.startsWith("chat/girlfriend-custom/") || route.startsWith("chat/girlfriend-mine/")) return "custom";
-  if (route.startsWith("chat/girlfriend-cast/")) return "cast";
-  return "classic";
-}
-const CHAT_CALL_CHARACTERS: XumengPerformanceCharacter[] = CONTENT_PEOPLE.map(person => ({
-  id: `chat-${person.castId || person.variant}`, key: `chat:${person.castId || person.variant}`, source: "character" as const, sourceId: person.castId || person.variant, sourceLabel: "聊天",
-  name: person.name, avatar: person.cover, description: person.description, personality: person.personality, scenario: person.situation, dialogue: "",
-  liveVoice: girlfriendLiveVoice(person.castId || person.variant),
-}));
-function gameHeat(id: string): number {
-  let hash = 0;
-  for (const char of id) hash = (hash * 31 + char.charCodeAt(0)) >>> 0;
-  return 60 + (hash % 840);
-}
-
-const GAME_COVERS: Record<string, string> = {};
-
-type ContentShelfItem =
-  | { kind: "game"; key: string; game: { id: string; title: string; synopsis: string } }
-  | { kind: "character"; key: string; character: Character }
-  | { kind: "companion"; key: string; person: (typeof CONTENT_PEOPLE)[number] };
-
-/** Games and character cards share one shelf. Chat cards stay in their own row. */
-function selectedShelfTags(selected: readonly string[]): string[] {
-  const slugs = new Set<string>(DZMM_DISCOVERY_CATEGORIES.map((item) => item.slug));
-  const fromCategories = DZMM_DISCOVERY_CATEGORIES.filter((item) => selected.includes(item.slug)).flatMap((item) => item.tags);
-  return [...fromCategories, ...selected.filter((tag) => !slugs.has(tag) && !isBrowseLook(tag))];
-}
-
-function companionAge(text: string): string | null {
-  const digit = /(\d{1,2})\s*岁/u.exec(text);
-  if (digit) return `${digit[1]}岁`;
-  const written = /([一二三四五六七八九]?十[一二三四五六七八九]?|[一二三四五六七八九])岁/u.exec(text);
-  return written ? `${written[1]}岁` : null;
-}
-
-function weaveEqual<T>(lanes: readonly (readonly T[])[]): T[] {
-  const pending = lanes.map(lane => [...lane]);
-  const mixed: T[] = [];
-  while (pending.some(lane => lane.length > 0)) {
-    for (const lane of pending) {
-      const next = lane.shift();
-      if (next !== undefined) mixed.push(next);
-    }
-  }
-  return mixed;
-}
-
-function storyUnread(messages: { id: string; role: string; content: string }[], seenId: string | undefined) {
-  if (!seenId) return 0;
-  const index = messages.findIndex(message => message.id === seenId);
-  if (index < 0) return 0;
-  return messages.slice(index + 1).filter(message => message.role === "assistant" && message.content.trim()).length;
-}
-
-function formatConversationStamp(updatedAt: number, locale: XumengLocale): string {
-  const date = new Date(updatedAt);
-  const now = new Date();
-  const lang = xumengHtmlLang(locale);
-  if (date.toDateString() === now.toDateString()) return date.toLocaleTimeString(lang, { hour: "2-digit", minute: "2-digit" });
-  const yesterday = new Date(now);
-  yesterday.setDate(now.getDate() - 1);
-  if (date.toDateString() === yesterday.toDateString()) return xumengPage(locale).yesterday;
-  if (now.getTime() - date.getTime() < 7 * 24 * 60 * 60 * 1000) return date.toLocaleDateString(lang, { weekday: "short" });
-  return date.toLocaleDateString(lang, { month: "numeric", day: "numeric" });
-}
-
-function chatPresence(character: { description: string; tags: string[] }, typing: boolean, locale: XumengLocale): string {
-  const copy = xumengPage(locale);
-  if (typing) return copy.typing;
-  const line = character.description.replace(/\s+/g, " ").trim();
-  if (!line) return character.tags[0] || copy.online;
-  const chars = Array.from(line);
-  return chars.length > 18 ? `${chars.slice(0, 18).join("")}…` : line;
-}
-
-function PlayBackdrop({ poster, motion }: { poster: string; motion?: string }) {
-  if (motion) return <CoverVisual className={s.chatBackdrop} src={motion} poster={poster} alt="" play />;
-  return <img className={s.chatBackdrop} alt="" src={poster} />;
-}
-
-function Cover({
-  character,
-  className,
-}: {
-  character: Character;
-  className?: string;
-}) {
-  const shelf = xumengHomeCover(character.id);
-  return (
-    <img
-      src={shelf || xumengCardCoverUrl(character.cover || XUMENG_FALLBACK_COVER)}
-      alt={character.name}
-      className={className}
-      onError={(event) => {
-        const image = event.currentTarget;
-        const next = xumengCoverMissUrl(image.currentSrc || image.src, character.cover || XUMENG_FALLBACK_COVER);
-        image.onerror = () => { image.onerror = null; image.src = XUMENG_FALLBACK_COVER; };
-        if (next === XUMENG_FALLBACK_COVER) image.onerror = null;
-        image.src = next;
-      }}
-    />
-  );
-}
-
-function savedCatalogLook(): DzmmCatalogLook | null {
-  if (typeof window === "undefined") return null;
-  try {
-    const saved = window.localStorage.getItem("xumeng-catalog-look");
-    if (saved === "anime" || saved === "photo") return saved;
-  } catch {
-    /* The saved look can wait until the next visit. */
-  }
-  return null;
-}
-
-
-const HOME_HERO_IMAGES = [
-  "/assets/xumeng/home/hero-1.webp",
-  "/assets/xumeng/home/hero-2.webp",
-  "/assets/xumeng/home/hero-3.webp",
-] as const;
-
-const COIN_GUIDE_KEY = "xumeng.guide.coins";
-function guideSeen(key: string) {
-  try { return localStorage.getItem(key) === "1"; }
-  catch { return true; }
-}
-
-/** Home hero: swipeable image carousel with the fixed Play With Them copy. */
-function HomeHero({ title, installLabel, createLabel, carouselLabel, prevLabel, nextLabel, slideLabel, onInstall, onCreate }: {
-  title: string; installLabel: string; createLabel: string; carouselLabel: string;
-  prevLabel: string; nextLabel: string; slideLabel: (index: number) => string;
-  onInstall: () => void; onCreate: () => void;
-}) {
-  const track = useRef<HTMLDivElement>(null);
-  const [active, setActive] = useState(0);
-  const activeRef = useRef(0);
-  const [paused, setPaused] = useState(false);
-  activeRef.current = active;
-  function go(delta: number) {
-    const node = track.current;
-    if (!node) return;
-    const next = (activeRef.current + delta + HOME_HERO_IMAGES.length) % HOME_HERO_IMAGES.length;
-    node.scrollTo({ left: next * node.clientWidth, behavior: "smooth" });
-    setActive(next);
-  }
-  useEffect(() => {
-    const node = track.current;
-    if (!node) return;
-    const update = () => setActive(Math.max(0, Math.min(HOME_HERO_IMAGES.length - 1, Math.round(node.scrollLeft / Math.max(1, node.clientWidth)))));
-    node.addEventListener("scroll", update, { passive: true });
-    return () => node.removeEventListener("scroll", update);
-  }, []);
-  // Auto-advance; pauses on hover/focus/touch and for reduced-motion users.
-  useEffect(() => {
-    if (paused || typeof window === "undefined") return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const timer = window.setInterval(() => {
-      const node = track.current;
-      if (!node || document.visibilityState === "hidden") return;
-      const next = (activeRef.current + 1) % HOME_HERO_IMAGES.length;
-      node.scrollTo({ left: next * node.clientWidth, behavior: "smooth" });
-      setActive(next);
-    }, 5200);
-    return () => window.clearInterval(timer);
-  }, [paused]);
-  return <section className={s.shelfHero} aria-roledescription="carousel" aria-label={`${carouselLabel} · ${title}`}
-    onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}
-    onFocusCapture={() => setPaused(true)} onBlurCapture={() => setPaused(false)}
-    onTouchStart={() => setPaused(true)} onTouchEnd={() => setPaused(false)}>
-    <div className={s.shelfHeroTrack} ref={track}>
-      {HOME_HERO_IMAGES.map((src, index) => (
-        <img key={src} className={s.shelfHeroImage} src={src} alt="" loading={index === 0 ? "eager" : "lazy"} decoding="async" fetchPriority={index === 0 ? "high" : "auto"} />
-      ))}
-    </div>
-    <div className={s.shelfHeroShade} aria-hidden="true" />
-    <div className={s.shelfHeroCopy}>
-      <h2 id="shelf-hero-title" className={s.shelfHeroScript} lang="en"><span>Play</span><span>With Them</span></h2>
-      <div className={s.shelfHeroRule} aria-hidden="true" />
-      <div className={s.shelfHeroActions}>
-        <button type="button" onClick={onInstall}><Icon name="download" size={15} />{installLabel}</button>
-        <button type="button" onClick={onCreate}><Icon name="edit" size={15} />{createLabel}</button>
-      </div>
-    </div>
-    <button type="button" className={`${s.shelfHeroArrow} ${s.shelfHeroArrowPrev}`} aria-label={prevLabel} onClick={() => go(-1)}>‹</button>
-    <button type="button" className={`${s.shelfHeroArrow} ${s.shelfHeroArrowNext}`} aria-label={nextLabel} onClick={() => go(1)}>›</button>
-    <div className={s.shelfHeroDots} role="tablist" aria-label={carouselLabel} aria-live="polite">
-      {HOME_HERO_IMAGES.map((src, index) => (
-        <button key={src} type="button" role="tab" aria-selected={index === active} aria-label={slideLabel(index + 1)}
-          className={index === active ? `${s.shelfHeroDot} ${s.shelfHeroDotOn}` : s.shelfHeroDot}
-          onClick={() => { const node = track.current; if (node) { node.scrollTo({ left: index * node.clientWidth, behavior: "smooth" }); setActive(index); } }} />
-      ))}
-    </div>
-  </section>;
-}
-
-function PlayCharacterSheet({
-  character,
-  locale,
-  userName,
-  liked,
-  likeCount,
-  favorited,
-  onLike,
-  onFavorite,
-  onAuthor,
-  onOpenDetail,
-}: {
-  character: Character;
-  locale: XumengLocale;
-  userName?: string;
-  liked: boolean;
-  likeCount: string | number;
-  favorited: boolean;
-  onLike: () => void;
-  onFavorite: () => void;
-  onAuthor: () => void;
-  onOpenDetail: () => void;
-}) {
-  const copy = xumengPage(locale);
-  const profile = localizeCharacter(character, locale);
-  const authorName = xumengLocalizedAuthorName(character.author, locale);
-  const seen = new Set<string>();
-  const sections = [
-    { key: "intro", label: copy.playIntro, text: profile.introduction || profile.description || "" },
-    { key: "scene", label: copy.playScene, text: profile.scenario },
-    { key: "personality", label: copy.playPersonality, text: profile.personality },
-    { key: "appearance", label: copy.playAppearance, text: profile.appearance || "" },
-    { key: "interaction", label: copy.playInteraction, text: profile.interactionSettings || "" },
-  ].flatMap((section) => {
-    const text = section.text.trim();
-    if (!text || seen.has(text)) return [];
-    seen.add(text);
-    return [{ ...section, text }];
-  });
-  return (
-    <div className={s.playSheet}>
-      <div className={s.playSheetHead}>
-        <Cover character={character} className={s.playSheetAvatar} />
-        <div>
-          <strong>{profile.name}</strong>
-          <button type="button" onClick={onAuthor} aria-label={xumengPageFill(copy.viewAuthor, { name: authorName })}>{authorName}</button>
-        </div>
-      </div>
-      <div className={s.playSheetActions} role="group" aria-label={`${copy.like} / ${copy.favorite}`}>
-        <button type="button" onClick={onLike} aria-pressed={liked} aria-label={`${liked ? copy.unlike : copy.like} ${profile.name}`} title={liked ? copy.unlike : copy.like}>
-          <Icon name="heart" size={14} />
-          <span>{likeCount}</span>
-        </button>
-        <button type="button" onClick={onFavorite} aria-pressed={favorited} aria-label={`${favorited ? copy.unfavorite : copy.favorite} ${profile.name}`} title={favorited ? copy.unfavorite : copy.favorite}>
-          <Icon name="bookmark" size={14} />
-        </button>
-      </div>
-      {sections.length ? (
-        <div className={s.playSheetProfile}>
-          {sections.map((section) => (
-            <section key={section.key} className={s.playSheetSection}>
-              <h3>{section.label}</h3>
-              <CharacterIntroduction text={section.text} characterName={profile.name} userName={userName} bodyClassName={s.playSheetProse} />
-            </section>
-          ))}
-        </div>
-      ) : <p className={s.playSheetProse}>{copy.noBlurb}</p>}
-      <button type="button" className={s.playSheetMore} onClick={onOpenDetail}>{copy.viewSetting}</button>
-    </div>
-  );
-}
-
-function linkedPublishedCharacterId(): string | null {
-  if (typeof window === "undefined") return null;
-  const fromPath = characterLinkId(window.location.pathname);
-  if (fromPath && isDzmmPublishedCharacterId(fromPath)) return fromPath;
-  if (!window.location.hash.startsWith("#character/")) return null;
-  let id = window.location.hash.slice("#character/".length);
-  try { id = decodeURIComponent(id); } catch { return null; }
-  return isDzmmPublishedCharacterId(id) ? id : null;
-}
 
 export default function TavernApp() {
   const [generating, setGenerating] = useState<Record<string, "reply" | "summary" | "regenerating">>({});
@@ -3737,43 +3282,17 @@ export default function TavernApp() {
       ref={appRef}
       className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "studio-edit" && !detail ? s.studioFocus : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "chat" && !detail && storyOpen ? s.playFocus : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
     >
-      <aside className={s.appRail} aria-label={copy.mainNav}>
-        <a href="#characters" className={s.railBrand} aria-label={copy.brandSquare} onClick={(event) => { event.preventDefault(); navigate("characters"); }}>
-          <img src="/assets/xumeng/brand/xumeng-mark.svg" width="36" height="36" alt="" />
-          <span>叙梦<small>XUMENG</small></span>
-        </a>
-        <nav data-tour="discover-nav">
-          {localizedNav.map((n) => (
-            <a key={n.view} href={`#${n.view}`}
-              onClick={(e) => { e.preventDefault(); openNav(n.view); }}
-              className={navigationCurrent(n.view) ? s.navActive : ""}>
-              <Icon name={n.icon} size={18} />
-              {n.label}
-            </a>
-          ))}
-        </nav>
-        <p className={s.railLabel}>{t("utilityExploreApps")}</p>
-        <nav>
-          {XUMENG_GENERATION_WORKSPACE_ENABLED && <a href="#generation" className={view === "generation" || view === "aigen" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("generation"); }}><Icon name="grid" size={18} />{t("navTemplates")}</a>}
-          <a href="#tasks" className={view === "tasks" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("tasks"); }}><Icon name="trophy" size={18} />{t("navTasks")}</a>
-          <a href="#checkin" className={view === "checkin" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("checkin"); }}><Icon name="sun" size={18} />{t("utilityDailyCheckIn")}</a>
-          <a href="#invite" className={view === "invite" ? s.navActive : ""} onClick={(event) => { event.preventDefault(); navigate("invite"); }}><Icon name="users" size={18} />{t("navInvite")}</a>
-          {XUMENG_PAYMENTS_ENABLED && <a href="#recharge" className={`${s.railRecharge} ${view === "recharge" || view === "vip" ? s.navActive : ""}`} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}><Icon name="wallet" size={18} /><span>{t("utilityRechargeVip")}</span><em className={s.railPromoTag}>5折</em></a>}
-        </nav>
-        <div className={s.railDock}>
-          <div className={s.railSocial} role="group" aria-label={copy.socialLinks}>
-            <a className={`${s.railSocialItem} ${s.railSocialLive}`} href={XUMENG_TELEGRAM_GROUP_URL} target="_blank" rel="noopener noreferrer" aria-label="Telegram" title={copy.telegramJoin}><SocialMark name="telegram" /></a>
-            <a href="#app" className={`${s.railSocialMore}`} onClick={(event) => { event.preventDefault(); navigate("app"); }} title={t("utilityInstallApp")}>
-              <Icon name="download" size={13} />
-              <span>{t("utilityInstallApp")}</span>
-            </a>
-          </div>
-          <button type="button" className={s.railUser} onClick={() => navigate("profile")}>
-            <span className={s.avatar}><AccountAvatar src={state.preferences.avatar} className={s.avatarImage} /></span>
-            <strong>{accountLabel}</strong>
-          </button>
-        </div>
-      </aside>
+      <TavernAppRail
+        view={view}
+        localizedNav={localizedNav}
+        navigationCurrent={navigationCurrent}
+        openNav={openNav}
+        navigate={navigate}
+        avatar={state.preferences.avatar}
+        accountLabel={accountLabel}
+        copy={copy}
+        t={t}
+      />
       <header className={s.topbar}>
         <a
           href="#characters"
@@ -4889,50 +4408,14 @@ export default function TavernApp() {
         forumModeration={<ForumView locale={locale} key={profileUser.id} userId={cloud.user?.id} isGuest={cloud.user?.isGuest ?? true} nickname={state.preferences.nickname} isSuper={cloud.user?.role === "super"} postId={forumPostId ?? undefined} onPostChange={showForumPost} onRequireAccount={() => openAccount("register")} characters={characters.filter((character) => !isDzmmCharacterBlocked(character, state.preferences.blockedTags))} onCharacter={showDetail} />} />}
       </Deferred>
 
-      <nav className={s.mobileNav} aria-label={copy.mainNav} data-tour="discover-nav">
-        {mobileNavItems.slice(0, mobileNavSplit).map((n) => (
-          <a
-            href={`#${n.view}`}
-            key={n.view}
-            onClick={(e) => {
-              e.preventDefault();
-              openNav(n.view);
-            }}
-            className={navigationCurrent(n.view) ? s.navActive : ""}
-          >
-            <Icon name={n.icon} size={21} />
-            <span>{n.label}</span>
-          </a>
-        ))}
-        {mobileCreate && (
-          <a
-            href="#studio"
-            aria-label={mobileCreate.label}
-            title={mobileCreate.label}
-            onClick={(e) => {
-              e.preventDefault();
-              openNav("studio");
-            }}
-            className={`${s.mobileCreate} ${navigationCurrent("studio") ? s.navActive : ""}`}
-          >
-            <span className={s.mobileCreateDisc}><Icon name="sparkles" size={26} /></span>
-          </a>
-        )}
-        {mobileNavItems.slice(mobileNavSplit).map((n) => (
-          <a
-            href={`#${n.view}`}
-            key={n.view}
-            onClick={(e) => {
-              e.preventDefault();
-              openNav(n.view);
-            }}
-            className={navigationCurrent(n.view) ? s.navActive : ""}
-          >
-            <Icon name={n.icon} size={21} />
-            <span>{n.label}</span>
-          </a>
-        ))}
-      </nav>
+      <TavernMobileNav
+        label={copy.mainNav}
+        mobileNavItems={mobileNavItems}
+        mobileNavSplit={mobileNavSplit}
+        mobileCreate={mobileCreate}
+        navigationCurrent={navigationCurrent}
+        openNav={openNav}
+      />
       {view !== "chat" && view !== "videos" && view !== "live" && view !== "voice" && view !== "admin" && view !== "profile" && view !== "studio" && view !== "studio-edit" && view !== "generation" && view !== "novels" && view !== "scenarios" && view !== "games" && !detail && state.preferences.showFloatingChat !== false && (
         <button
           className={s.floatingChat}
@@ -5061,89 +4544,4 @@ export default function TavernApp() {
   );
 }
 
-type VirtualKeyboardHandle = {
-  overlaysContent: boolean;
-  readonly boundingRect: { readonly height: number };
-  addEventListener(type: "geometrychange", listener: EventListener): void;
-  removeEventListener(type: "geometrychange", listener: EventListener): void;
-};
-
-function readVirtualKeyboard(): VirtualKeyboardHandle | null {
-  const candidate = (navigator as Navigator & { virtualKeyboard?: VirtualKeyboardHandle }).virtualKeyboard;
-  if (!candidate || typeof candidate.addEventListener !== "function") return null;
-  return candidate;
-}
-
-function setKeyboardOverlay(keyboard: VirtualKeyboardHandle | null, overlay: boolean) {
-  if (!keyboard) return;
-  try { keyboard.overlaysContent = overlay; } catch { /* This browser exposes the keyboard object but rejects the overlay switch. */ }
-}
-
-function keyboardInset(keyboard: VirtualKeyboardHandle | null): number {
-  if (!keyboard?.overlaysContent) return 0;
-  try { return Math.max(0, keyboard.boundingRect?.height ?? 0); } catch { return 0; }
-}
-
-function shelfRecommendationSurface(view: string, tab: string): RecommendationSurface | null {
-  if (view === "search") return "search";
-  if (view !== "characters" && view !== "play-games") return null;
-  if (tab === "新手") return "home";
-  if (tab === "猜你喜欢") return "for_you";
-  if (tab === "榜单") return "ranking";
-  if (tab === "分类") return "category";
-  return null;
-}
-
-const EMPTY_STATUS_LABELS: readonly string[] = Object.freeze([]);
-
-const MessageText = memo(function MessageText({ text, role = "assistant", characterName, userName, statusLabels = EMPTY_STATUS_LABELS, showPeeledStatus = true, holdStatus = false, frontendScripts, messageDepth = 0 }: {
-  text: string; role?: "user" | "assistant"; characterName?: string; userName?: string;
-  statusLabels?: readonly string[]; showPeeledStatus?: boolean; holdStatus?: boolean;
-  frontendScripts?: readonly XumengFrontendScript[]; messageDepth?: number;
-}) {
-  const scripted = applyXumengFrontendScripts(text, frontendScripts, { role, depth: messageDepth, pass: "display" });
-  const markup = hasCharacterMarkup(scripted);
-  const escapeName = (value?: string) => markup
-    ? value?.replace(/[&<>"']/g, char => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char]!))
-    : value;
-  const named = applyDzmmReaderNames(scripted, { characterName: escapeName(characterName), userName: escapeName(userName) });
-  if (markup) return <CharacterRichText text={named} />;
-  // Status presentation applies to character replies, never to the user's own text.
-  const presentation = role === "user" ? { body: named, status: null } : splitXumengMessagePresentation(splitXumengMomentTail(splitXumengPanelTail(named).body).body);
-  const peeled = role === "user" || presentation.status ? null : peelXumengLabeledStatusTail(presentation.body, statusLabels, { streaming: holdStatus });
-  const body = peeled ? peeled.body : presentation.body;
-  const revealed = presentation.status ?? (peeled?.fields.length ? { title: "状态栏", fields: peeled.fields } : null);
-  const status = holdStatus || !showPeeledStatus ? null : revealed;
-  if (!body && !status) return null;
-  return <>
-    {body && <MessageTextBody text={body} />}
-    {status && <MessageStatus status={status} />}
-  </>;
-});
-
-function MessageTextBody({ text }: { text: string }) {
-  if (hasCharacterMarkup(text)) return <CharacterRichText text={text} />;
-  return plainXumengStoryText(text)
-    .split("\n")
-    .map((line, index) => (
-      <div key={index}>
-        {line ? splitXumengSpeech(line).map((part, j) => part.speech
-          ? <span key={j} className={s.speech}>{part.text}</span> : part.text) : <br />}
-      </div>
-    ));
-}
-
-function MessageStatus({ status }: { status: NonNullable<XumengMessagePresentation["status"]> }) {
-  const sections = status.sections ?? [{ title: "", fields: status.fields, notes: [] }];
-  return <XumengStatusCard name={status.title || "状态"} sections={sections.map((section, index) => ({
-    title: section.title,
-    notes: section.notes,
-    fields: section.fields.map((field, fieldIndex) => ({
-      key: `${index}:${fieldIndex}:${field.label}`,
-      label: field.label,
-      type: "text" as const,
-      value: field.value,
-    })),
-  }))} />;
-}
 

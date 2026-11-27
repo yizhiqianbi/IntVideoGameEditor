@@ -7,7 +7,9 @@
     "build": "prisma generate && next build",
     "postinstall": "prisma generate",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check:xumeng": "node scripts/xumeng-check.mjs",
+    "check:xumeng:fast": "node scripts/xumeng-check.mjs --fast"
   },
   "dependencies": {
     "@chatscope/chat-ui-kit-react": "^2.1.1",

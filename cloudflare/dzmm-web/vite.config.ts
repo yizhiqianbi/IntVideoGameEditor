@@ -1,16 +1,23 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createReadStream, existsSync, readFileSync, statSync } from "node:fs";
 import { extname, resolve, sep } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { defineConfig, loadEnv, type Plugin } from "vite";
-import { optimizeAigenPrompt, type AigenPromptEnv, type AigenPromptKind } from "../../src/lib/xumeng-aigen-prompt";
-import { renderKrea2Still } from "../../src/lib/xumeng-krea2-bridge";
-import { XUMENG_SHARE_COVER_MAX_BYTES, xumengShareCoverImageType, xumengVideoCoverUpstream } from "../../src/lib/xumeng-share-poster";
 import react from "@vitejs/plugin-react";
-import { XUMENG_GENERATION_WORKSPACE_ENABLED } from "../../src/lib/xumeng-feature-availability";
+
+type AigenPromptEnv = {
+  GENERATION_OPENROUTER_API_KEY?: string;
+  OPENROUTER_API_KEY?: string;
+  OPENROUTER_BASE_URL?: string;
+  SEALION_API_KEY?: string;
+  SEALION_BASE_URL?: string;
+};
+type AigenPromptKind = "image" | "video";
 
 const frontendRoot = fileURLToPath(new URL(".", import.meta.url));
 const repositorySource = resolve(frontendRoot, "../../src");
+const loadRepoLib = <T = Record<string, unknown>>(file: string): Promise<T> =>
+  import(pathToFileURL(resolve(repositorySource, "lib", file)).href) as Promise<T>;
 const publicAssets = resolve(frontendRoot, "../../public/dzmm");
 const jumpRoot = resolve(frontendRoot, "jump");
 const assetTypes: Record<string, string> = {
@@ -87,6 +94,11 @@ async function serveVideoCatalog(req: IncomingMessage, res: ServerResponse) {
 
 async function serveShareCover(req: IncomingMessage, res: ServerResponse) {
   if (req.method !== "GET" && req.method !== "HEAD") { sendJson(res, 405, { error: "请求方法不支持。" }); return; }
+  const { XUMENG_SHARE_COVER_MAX_BYTES, xumengShareCoverImageType, xumengVideoCoverUpstream } = await loadRepoLib<{
+    XUMENG_SHARE_COVER_MAX_BYTES: number;
+    xumengShareCoverImageType: (bytes: Uint8Array) => string | null;
+    xumengVideoCoverUpstream: (src: string | null, v: string | null) => string | null;
+  }>("xumeng-share-poster.ts");
   const incoming = new URL(req.url ?? "/", "http://127.0.0.1");
   const upstream = xumengVideoCoverUpstream(incoming.searchParams.get("src"), incoming.searchParams.get("v"));
   if (!upstream) { sendJson(res, 400, { error: "封面地址无效。" }); return; }
@@ -134,14 +146,16 @@ function servePublishedAssets(): Plugin {
           return;
         }
         if (pathname === "/api/krea2/generate") {
-          if (!XUMENG_GENERATION_WORKSPACE_ENABLED) { sendJson(res, 503, { error: "图片与视频生成已暂停开放。", code: "generation_paused" }); return; }
           if (req.method !== "POST") { sendJson(res, 405, { error: "请求方法不支持。" }); return; }
           const chunks: Buffer[] = [];
           req.on("data", chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)));
           req.on("end", () => {
             void (async () => {
+              const { XUMENG_GENERATION_WORKSPACE_ENABLED } = await loadRepoLib<{ XUMENG_GENERATION_WORKSPACE_ENABLED: boolean }>("xumeng-feature-availability.ts");
+              if (!XUMENG_GENERATION_WORKSPACE_ENABLED) { sendJson(res, 503, { error: "图片与视频生成已暂停开放。", code: "generation_paused" }); return; }
               let body: unknown = {};
               try { body = JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}"); } catch { sendJson(res, 400, { error: "请求格式无效。" }); return; }
+              const { renderKrea2Still } = await loadRepoLib<{ renderKrea2Still: (base: string, body: unknown) => Promise<Response> }>("xumeng-krea2-bridge.ts");
               const rendered = await renderKrea2Still(krea2Base, body);
               res.statusCode = rendered.status;
               rendered.headers.forEach((value, name) => res.setHeader(name, value));
@@ -170,6 +184,9 @@ function servePublishedAssets(): Plugin {
               if (body.text != null && typeof body.text !== "string") { sendJson(res, 400, { error: "请求格式无效。" }); return; }
               const kind: AigenPromptKind = body.kind === "video" ? "video" : body.kind == null || body.kind === "image" ? "image" : "image";
               if (body.kind != null && body.kind !== "image" && body.kind !== "video") { sendJson(res, 400, { error: "优化类型无效。" }); return; }
+              const { optimizeAigenPrompt } = await loadRepoLib<{
+                optimizeAigenPrompt: (text: string, env: AigenPromptEnv, kind: AigenPromptKind) => Promise<{ ok: true; prompt: string } | { ok: false; status: number; error: string }>;
+              }>("xumeng-aigen-prompt.ts");
               const result = await optimizeAigenPrompt(typeof body.text === "string" ? body.text : "", previewPromptEnv(), kind);
               if (!result.ok) { sendJson(res, result.status, { error: result.error }); return; }
               sendJson(res, 200, { prompt: result.prompt });
