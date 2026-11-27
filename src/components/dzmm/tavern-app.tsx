@@ -760,8 +760,31 @@ export default function TavernApp() {
     update(); media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
   }, []);
-  const dark = state.preferences.theme === "system" ? systemDark : state.preferences.theme ? state.preferences.theme === "dark" : state.preferences.dark;
+  const resolvedTheme: "obsidian" | "dark" | "light" =
+    state.preferences.theme === "system"
+      ? (systemDark ? "obsidian" : "light")
+      : state.preferences.theme === "obsidian" || state.preferences.theme === "dark" || state.preferences.theme === "light"
+        ? state.preferences.theme
+        : state.preferences.dark
+          ? "obsidian"
+          : "light";
+  const dark = resolvedTheme !== "light";
+  const obsidian = resolvedTheme === "obsidian";
+  const cycleTheme = () => {
+    const next: "obsidian" | "dark" | "light" =
+      resolvedTheme === "obsidian" ? "dark" : resolvedTheme === "dark" ? "light" : "obsidian";
+    setState((previous) => ({
+      ...previous,
+      preferences: { ...previous.preferences, dark: next !== "light", theme: next },
+    }));
+  };
+  useEffect(() => {
+    document.documentElement.style.backgroundColor = obsidian ? "#050507" : dark ? "#120810" : "#f3e0e5";
+    document.body.style.backgroundColor = obsidian ? "#050507" : dark ? "#120810" : "#f3e0e5";
+  }, [dark, obsidian]);
   const t = (key: XumengMessageKey) => xumengTranslate(locale, key);
+  const themeLabel = resolvedTheme === "obsidian" ? t("themeObsidianName") : resolvedTheme === "dark" ? t("themeDarkName") : t("themeLightName");
+  const themeIcon: IconName = resolvedTheme === "obsidian" ? "sparkles" : resolvedTheme === "dark" ? "moon" : "sun";
   const copy = xumengPage(locale);
   const fill = (template: string, values: Record<string, string | number>) => xumengPageFill(template, values);
   const tagName = (id: string) => browseTagName(id, locale);
@@ -3304,7 +3327,7 @@ export default function TavernApp() {
   return (
     <div
       ref={appRef}
-      className={`${s.app} ${dark ? s.dark : ""} ${quietTop ? s.quietTop : ""} ${view === "studio-edit" && !detail ? s.studioFocus : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "chat" && !detail && storyOpen ? s.playFocus : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
+      className={`${s.app} ${dark ? s.dark : ""} ${obsidian ? s.obsidian : ""} ${quietTop ? s.quietTop : ""} ${view === "studio-edit" && !detail ? s.studioFocus : ""} ${view === "chat" && !detail ? s.chatPage : ""} ${view === "chat" && !detail && (active || companionInMain || gameSelection) ? s.chatMode : ""} ${view === "chat" && !detail && storyOpen ? s.playFocus : ""} ${view === "videos" && !detail ? s.videoMode : ""}`}
     >
       <TavernAppRail
         view={view}
@@ -3368,7 +3391,7 @@ export default function TavernApp() {
         <ResponsiveNavigation key={view} items={localizedNav} tools={localizedTools} secondaryTools={cloud.user?.role === "super" ? [...localizedSecondaryTools, localizedAdmin] : localizedSecondaryTools}
           currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "scenarios" || view === "novels" || view === "generation" || view === "aigen" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
-          footer={<><button type="button" className={s.navDrawerTool} onClick={() => setActiveTour(view === "chat" && activeId ? "chat" : view === "generation" ? "generation" : "discover")}><Icon name="help" size={18} /><span>{locale === "en" ? "Guided tour" : "新手引导"}</span></button><button type="button" className={s.navDrawerTool} onClick={() => setState((previous) => ({ ...previous, preferences: { ...previous.preferences, dark: !dark, theme: dark ? "light" : "dark" } }))}><Icon name={dark ? "moon" : "sun"} size={18} /><span>{dark ? t("themeLight") : t("themeDark")}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
+          footer={<><button type="button" className={s.navDrawerTool} onClick={() => setActiveTour(view === "chat" && activeId ? "chat" : view === "generation" ? "generation" : "discover")}><Icon name="help" size={18} /><span>{locale === "en" ? "Guided tour" : "新手引导"}</span></button><button type="button" className={s.navDrawerTool} onClick={cycleTheme}><Icon name={themeIcon} size={18} /><span>{themeLabel}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
         {(view === "characters" || view === "play-games") && !detail && !query.trim() && <div className={s.audienceHost}>{audienceTabs(s.topAudience)}</div>}
         {showGlobalSearch && <label className={s.search} data-tour="discover-search">
           <Icon name="search" size={20} />
@@ -3412,17 +3435,12 @@ export default function TavernApp() {
           <button
             type="button"
             className={s.themeToggle}
-            aria-label={dark ? t("themeLight") : t("themeDark")}
-            title={dark ? t("themeLight") : t("themeDark")}
-            onClick={() =>
-              setState((p) => ({
-                ...p,
-                preferences: { ...p.preferences, dark: !dark, theme: dark ? "light" : "dark" },
-              }))
-            }
+            aria-label={t("themeCycle")}
+            title={t("themeCycle")}
+            onClick={cycleTheme}
           >
-            <Icon name={dark ? "moon" : "sun"} size={15} />
-            <span>{dark ? t("themeDarkName") : t("themeLightName")}</span>
+            <Icon name={themeIcon} size={15} />
+            <span>{themeLabel}</span>
           </button>
           <label className={s.localePicker}>
             <span className={s.srOnly}>{t("language")}</span>

@@ -5528,4 +5528,120 @@
   background: rgba(242, 200, 134, 0.12);
 }
 
+/* ===== 黑金主题 (Obsidian — 默认纯黑高级感) ===== */
+.dark.obsidian {
+  --bg: #050507;
+  --surface: #0d0d11;
+  --soft: #16161d;
+  --text: #f7f7f9;
+  --muted: #8f8f9e;
+  --line: rgba(255, 255, 255, 0.085);
+  --pink: #ff4d84;
+  --pink-soft: rgba(255, 77, 132, 0.14);
+  --dialogue: #ff80a8;
+  --gold: #f5c458;
+  --pink-deep: #c4245a;
+  --rose-glow: rgba(255, 77, 132, 0.3);
+  --gold-soft: rgba(245, 196, 88, 0.14);
+  --im-canvas: #060609;
+  --im-bubble-in: #111117;
+  --im-bubble-out: #5b1836;
+  --im-sidebar: #08080b;
+  background-color: #050507;
+  background-image:
+    radial-gradient(ellipse 68% 36% at 88% -8%, rgba(255, 77, 132, 0.075), transparent 62%),
+    radial-gradient(ellipse 52% 30% at 12% 0%, rgba(245, 196, 88, 0.05), transparent 58%),
+    linear-gradient(180deg, #07070a 0%, #050507 52%, #030305 100%);
+}
+.dark.obsidian .topbar {
+  background: rgba(5, 5, 7, 0.84);
+  border-bottom-color: rgba(255, 255, 255, 0.075);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025);
+}
+.dark.obsidian .search {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+.dark.obsidian .search:focus-within {
+  background: #0d0d11;
+  border-color: rgba(255, 77, 132, 0.55);
+  box-shadow: 0 0 0 3px rgba(255, 77, 132, 0.12);
+}
+.dark.obsidian .themeToggle,
+.dark.obsidian .account {
+  background: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+.dark.obsidian .localePicker select {
+  background-color: rgba(255, 255, 255, 0.045);
+  border-color: rgba(255, 255, 255, 0.09);
+}
+.dark.obsidian .themeToggle:hover,
+.dark.obsidian .account:hover {
+  border-color: rgba(245, 196, 88, 0.42);
+  background: rgba(245, 196, 88, 0.08);
+}
+.dark.obsidian .navDrawer {
+  background: #08080b;
+  color: #f7f7f9;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dark.obsidian .mobileNav {
+  background: rgba(7, 7, 10, 0.92);
+  border-top-color: rgba(255, 255, 255, 0.085);
+}
+.dark.obsidian .utilityNav {
+  background: rgba(11, 11, 15, 0.92);
+  border-color: rgba(255, 255, 255, 0.085);
+}
+.dark.obsidian .utilityNav a {
+  color: #b7b7c6;
+}
+.dark.obsidian .utilityNav a:hover,
+.dark.obsidian .utilityNav a.utilityActive {
+  color: #fff;
+  background: rgba(255, 77, 132, 0.18);
+}
+.dark.obsidian .shelfHero {
+  background: #08080b;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+.dark.obsidian .shelfHeroShade {
+  background: linear-gradient(90deg, rgba(5, 5, 7, 0.9) 0%, rgba(5, 5, 7, 0.54) 38%, rgba(5, 5, 7, 0.08) 66%);
+}
+.dark.obsidian .cardGrid:not(.singleLayout) .card {
+  background: #0d0d11;
+  border-color: rgba(255, 255, 255, 0.085);
+  box-shadow: 0 18px 36px -16px rgba(0, 0, 0, 0.88);
+}
+.dark.obsidian .cardGrid:not(.singleLayout) .card:hover {
+  border-color: rgba(245, 196, 88, 0.44);
+  box-shadow: 0 24px 48px -14px rgba(0, 0, 0, 0.95), 0 0 24px -8px rgba(255, 77, 132, 0.3);
+}
+@media (min-width: 1280px) {
+  .dark.obsidian .appRail {
+    background: linear-gradient(180deg, rgba(9, 9, 13, 0.98) 0%, rgba(5, 5, 7, 0.98) 100%);
+    border-right-color: rgba(255, 255, 255, 0.075);
+  }
+  .dark.obsidian .appRail nav a:hover {
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .dark.obsidian .appRail nav a.navActive {
+    background: linear-gradient(96deg, rgba(255, 77, 132, 0.16), rgba(245, 196, 88, 0.06));
+    border-color: rgba(255, 77, 132, 0.3);
+    color: #f7f7f9;
+    box-shadow: inset 2px 0 0 #ff4d84, 0 8px 20px -14px rgba(255, 77, 132, 0.45);
+  }
+  .dark.obsidian .railUser {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  .dark.obsidian .railUser:hover {
+    border-color: rgba(245, 196, 88, 0.36);
+    background: rgba(255, 255, 255, 0.055);
+  }
+}
+
+
 

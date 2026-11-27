@@ -55,7 +55,7 @@ export type DzmmPreferences = {
   /** Uploaded profile photo URL (media path); absent means the default avatar. */
   avatar?: string;
   gender?: "male" | "female" | "other";
-  theme?: "light" | "dark" | "system";
+  theme?: "obsidian" | "light" | "dark" | "system";
   homeLayout?: "single" | "double";
   showFloatingChat?: boolean;
   floatingSize?: "small" | "medium" | "large";
@@ -141,6 +141,7 @@ export const DZMM_INITIAL_STATE: DzmmSavedState = {
     preset: DZMM_DEFAULT_PRESET,
     model: DZMM_DEFAULT_MODEL,
     dark: true,
+    theme: "obsidian",
   },
 };
 
@@ -265,7 +266,7 @@ function hydratePreferences(
     return undefined;
   }
   const gender = enumeration("gender", ["male", "female", "other"] as const);
-  const theme = enumeration("theme", ["light", "dark", "system"] as const);
+  const theme = enumeration("theme", ["obsidian", "light", "dark", "system"] as const);
   const homeLayout = enumeration("homeLayout", ["single", "double"] as const);
   const floatingSize = enumeration("floatingSize", ["small", "medium", "large"] as const);
   const worldClockMode = enumeration("worldClockMode", ["story", "realtime"] as const);

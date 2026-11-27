@@ -24,7 +24,7 @@ import { characterCreateLabel, useCharacterCreateCost } from "@/lib/dzmm-scene-p
 import { xumengTranslate } from "@/lib/xumeng-i18n";
 import { xumengPage, xumengPageFill } from "@/lib/xumeng-page-copy";
 import { CoverVisual } from "./cover-visual";
-import Icon, { type IconName } from "./icons";
+import Icon, { BrandIcon, CoinIcon, type IconName } from "./icons";
 import s from "./profile-settings.module.css";
 
 export type DzmmProfileUser = {
@@ -72,44 +72,6 @@ function Empty({ children }: { children: ReactNode }) { return <div className={s
 
 function ToolButton({ label, icon, onClick }: { label: string; icon: IconName; onClick?: () => void }) {
   return <button type="button" className={`${s.tool} ${s.accountTool}`} title={label} aria-label={label} onClick={onClick}><Icon name={icon} size={17} /><span>{label}</span></button>;
-}
-
-
-/** Soft rose icons for the wallet / member / invite cards. */
-function MineRoseIcon({ kind }: { kind: "wallet" | "member" | "invite" }) {
-  const rose = `mine-rose-${kind}`;
-  const glow = `mine-rose-${kind}-glow`;
-  const defs = <defs>
-    <linearGradient id={rose} x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stopColor="#ffd6e2" />
-      <stop offset="55%" stopColor="#ef8fb1" />
-      <stop offset="100%" stopColor="#c74a72" />
-    </linearGradient>
-    <linearGradient id={glow} x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stopColor="#fff2f6" />
-      <stop offset="100%" stopColor="#f2a6c1" />
-    </linearGradient>
-  </defs>;
-  return <svg viewBox="0 0 32 32" aria-hidden="true" focusable="false">
-    {defs}
-    {kind === "wallet" && <>
-      <rect x="4" y="10" width="24" height="16" rx="4.5" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
-      <path d="M4 14.5h24" stroke={`url(#${rose})`} strokeWidth="1.5" opacity="0.65" />
-      <path d="M8.5 10V8.6c0-1 .8-1.8 1.8-1.8h11.4" stroke={`url(#${glow})`} strokeWidth="1.5" strokeLinecap="round" opacity="0.9" />
-      <circle cx="21.5" cy="20.5" r="2.4" fill={`url(#${glow})`} />
-    </>}
-    {kind === "member" && <>
-      <path d="M6 22.5l2-9 5.2 4.4L16 10l2.8 7.9L24 13.5l2 9z" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" strokeLinejoin="round" />
-      <path d="M6 25.4h20" stroke={`url(#${glow})`} strokeWidth="1.7" strokeLinecap="round" opacity="0.85" />
-      <circle cx="16" cy="17.4" r="1.5" fill={`url(#${glow})`} />
-    </>}
-    {kind === "invite" && <>
-      <rect x="6" y="14" width="20" height="12" rx="3" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
-      <rect x="4.6" y="10.2" width="22.8" height="6" rx="2.2" fill="none" stroke={`url(#${rose})`} strokeWidth="1.7" />
-      <path d="M16 10.2v15.8" stroke={`url(#${glow})`} strokeWidth="1.6" opacity="0.85" />
-      <path d="M16 10.2c-4-1-6.2-2.6-5.2-4.4 1-1.8 3.6-1.2 5.2 2.6 1.6-3.8 4.2-4.4 5.2-2.6 1 1.8-1.2 3.4-5.2 4.4z" fill="none" stroke={`url(#${glow})`} strokeWidth="1.5" strokeLinejoin="round" />
-    </>}
-  </svg>;
 }
 
 export type ProfileViewProps = {
@@ -221,27 +183,30 @@ export function ProfileView({ user, characters, custom, favorites, conversations
       <button type="button" className={`${s.mineCard} ${s.mineCardWallet}`} onClick={onRecharge} disabled={!onRecharge}>
         <span className={s.mineCardHead}>
           <strong>{copy.walletCardTitle}</strong>
-          <span className={s.mineCardArt}><MineRoseIcon kind="wallet" /></span>
+          <span className={`${s.mineCardArt} ${s.mineCardArtGold}`}><BrandIcon name="walletCard" size={24} /></span>
         </span>
-        <span className={s.mineCardValue} title={credits === null ? undefined : credits.toLocaleString("zh-CN")}>{credits === null ? "…" : compactNumber(credits)}</span>
+        <span className={s.mineCardValue} title={credits === null ? undefined : credits.toLocaleString("zh-CN")}>
+          <CoinIcon size={22} />
+          <span>{credits === null ? "…" : compactNumber(credits)}</span>
+        </span>
         <span className={s.mineCardHint}>{copy.walletCardHint}</span>
-        <span className={s.mineCardFoot}>{copy.topUp}<Icon name="chevron" size={12} /></span>
+        <span className={`${s.mineCardFoot} ${s.mineCardFootGold}`}>{copy.topUp}<Icon name="chevron" size={12} /></span>
       </button>
-      {openVip && <button type="button" className={s.mineCard} onClick={openVip}>
+      {openVip && <button type="button" className={`${s.mineCard} ${s.mineCardVip}`} onClick={openVip}>
         <span className={s.mineCardHead}>
           <strong>{copy.membership}</strong>
-          <span className={s.mineCardArt}><MineRoseIcon kind="member" /></span>
+          <span className={`${s.mineCardArt} ${s.mineCardArtRose}`}><BrandIcon name="vipCrown" size={24} /></span>
         </span>
         <span className={s.mineCardHint}>{copy.memberCardHint}</span>
         <span className={s.mineCardFoot}>{copy.joinNow}<Icon name="chevron" size={12} /></span>
       </button>}
-      {onInvite && <button type="button" className={s.mineCard} onClick={onInvite}>
+      {onInvite && <button type="button" className={`${s.mineCard} ${s.mineCardInvite}`} onClick={onInvite}>
         <span className={s.mineCardHead}>
           <strong>{copy.inviteFriends}</strong>
-          <span className={s.mineCardArt}><MineRoseIcon kind="invite" /></span>
+          <span className={`${s.mineCardArt} ${s.mineCardArtViolet}`}><BrandIcon name="inviteGift" size={24} /></span>
         </span>
         <span className={s.mineCardHint}>{copy.inviteCardHint}</span>
-        <span className={s.mineCardFoot}>{copy.inviteNow}<Icon name="chevron" size={12} /></span>
+        <span className={`${s.mineCardFoot} ${s.mineCardFootViolet}`}>{copy.inviteNow}<Icon name="chevron" size={12} /></span>
       </button>}
     </section>
 
@@ -416,7 +381,7 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
     || form.nickname !== preferences.nickname
     || (form.bio ?? "") !== (preferences.bio ?? "")
     || (form.gender ?? "") !== (preferences.gender ?? "")
-    || (form.theme ?? (form.dark ? "dark" : "light")) !== (preferences.theme ?? (preferences.dark ? "dark" : "light"))
+    || (form.theme ?? (form.dark === false ? "light" : "obsidian")) !== (preferences.theme ?? (preferences.dark === false ? "light" : "obsidian"))
     || (form.homeLayout ?? "double") !== (preferences.homeLayout ?? "double")
     || (form.showFloatingChat ?? true) !== (preferences.showFloatingChat ?? true)
     || (form.floatingSize ?? "medium") !== (preferences.floatingSize ?? "medium")
@@ -444,8 +409,8 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
     if (form.preset.length > 8000 || form.preset.includes("\0")) { setError("对话预设不能超过 8000 个字符或包含无效字符。"); return; }
     if (form.maxTokens !== undefined && (!Number.isInteger(form.maxTokens) || form.maxTokens < 128 || form.maxTokens > 4096)) { setError("回复长度上限应为 128–4096 的整数。"); return; }
     if (blockedTags.length > 50 || blockedTags.some((tag) => tag.length > 40 || tag.includes("\0"))) { setError("最多屏蔽 50 个标签，每个标签不超过 40 个字符。"); return; }
-    const theme = form.theme ?? (form.dark ? "dark" : "light");
-    const dark = theme === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : theme === "dark";
+    const theme = form.theme ?? (form.dark === false ? "light" : "obsidian");
+    const dark = theme === "system" ? window.matchMedia("(prefers-color-scheme: dark)").matches : theme !== "light";
     onPreferences({ ...form, nickname, blockedTags, dark, theme, model: normalizeDzmmModelSelection(form.model), locale: form.locale ?? "zh-Hans" }); setNotice("设置已保存。");
   }
   async function changePassword(event: FormEvent) {
@@ -468,7 +433,7 @@ export function ProfileSettings({ user, preferences, onPreferences, onBack, onPa
     <div className={s.pageHeading}><button className={s.back} onClick={onBack}><Icon name="back" size={18} />返回</button><h1>设置</h1></div>
     <form className={s.settingsForm} onSubmit={save}>
       <section className={s.settingsSection}><h2>个人资料</h2><label>昵称<input required maxLength={30} value={form.nickname} onChange={(event) => update("nickname", event.target.value)} autoComplete="nickname" /></label><label>个人简介<textarea maxLength={500} rows={3} placeholder="介绍一下你自己" value={form.bio ?? ""} onChange={(event) => update("bio", event.target.value)} /><small>{form.bio?.length ?? 0}/500</small></label><label>性别<select value={form.gender ?? ""} onChange={(event) => update("gender", event.target.value ? event.target.value as DzmmPreferences["gender"] : undefined)}><option value="">未设置</option><option value="male">男</option><option value="female">女</option><option value="other">其他</option></select></label></section>
-      <section className={s.settingsSection}><h2>外观</h2><label>主题<select aria-label="主题" value={form.theme ?? (form.dark ? "dark" : "light")} onChange={(event) => update("theme", event.target.value as DzmmPreferences["theme"])}><option value="light">浅色</option><option value="dark">深色</option><option value="system">跟随系统</option></select></label><label>首页布局<select aria-label="首页布局" value={form.homeLayout ?? "double"} onChange={(event) => update("homeLayout", event.target.value as DzmmPreferences["homeLayout"])}><option value="single">单列</option><option value="double">双列</option></select></label><label className={`${s.checkboxRow} ${s.desktopOnlyField}`}><span>显示悬浮聊天按钮</span><input type="checkbox" checked={form.showFloatingChat ?? true} onChange={(event) => update("showFloatingChat", event.target.checked)} /></label><label className={s.desktopOnlyField}>悬浮按钮大小<select value={form.floatingSize ?? "medium"} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingSize", event.target.value as DzmmPreferences["floatingSize"])}><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label className={s.desktopOnlyField}>悬浮按钮透明度 <span>{form.floatingOpacity ?? 100}%</span><input aria-label="悬浮按钮透明度" type="range" min={20} max={100} step={5} value={form.floatingOpacity ?? 100} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingOpacity", Number(event.target.value))} /></label></section>
+      <section className={s.settingsSection}><h2>外观</h2><label>主题<select aria-label="主题" value={form.theme ?? (form.dark === false ? "light" : "obsidian")} onChange={(event) => update("theme", event.target.value as DzmmPreferences["theme"])}><option value="obsidian">黑金（默认）</option><option value="dark">绯夜（原版深色）</option><option value="light">浅色</option><option value="system">跟随系统</option></select></label><label>首页布局<select aria-label="首页布局" value={form.homeLayout ?? "double"} onChange={(event) => update("homeLayout", event.target.value as DzmmPreferences["homeLayout"])}><option value="single">单列</option><option value="double">双列</option></select></label><label className={`${s.checkboxRow} ${s.desktopOnlyField}`}><span>显示悬浮聊天按钮</span><input type="checkbox" checked={form.showFloatingChat ?? true} onChange={(event) => update("showFloatingChat", event.target.checked)} /></label><label className={s.desktopOnlyField}>悬浮按钮大小<select value={form.floatingSize ?? "medium"} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingSize", event.target.value as DzmmPreferences["floatingSize"])}><option value="small">小</option><option value="medium">中</option><option value="large">大</option></select></label><label className={s.desktopOnlyField}>悬浮按钮透明度 <span>{form.floatingOpacity ?? 100}%</span><input aria-label="悬浮按钮透明度" type="range" min={20} max={100} step={5} value={form.floatingOpacity ?? 100} disabled={form.showFloatingChat === false} onChange={(event) => update("floatingOpacity", Number(event.target.value))} /></label></section>
       <section className={s.settingsSection}><h2>对话显示</h2><p className={s.muted}>对话模型、回复长度、语言和人设在「我的预设」里设置。</p>
         <label>字号<select aria-label="聊天字号" value={form.chatFontSize ?? "medium"} onChange={(event) => update("chatFontSize", event.target.value as DzmmChatFontSize)}><option value="small">小</option><option value="medium">标准</option><option value="large">大</option><option value="xlarge">特大</option></select></label>
         <label>字体<select aria-label="聊天字体" value={form.chatFont ?? "system"} onChange={(event) => update("chatFont", event.target.value as DzmmChatFont)}><option value="system">系统默认</option><option value="serif">宋体</option><option value="kai">楷体</option></select></label>
