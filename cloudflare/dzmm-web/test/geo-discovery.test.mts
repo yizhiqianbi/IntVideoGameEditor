@@ -349,3 +349,43 @@ test("IndexNow key file and ops submission route work strictly with configured k
     urlList: [`${ORIGIN}/`, `${ORIGIN}/en`],
   });
 });
+
+test("sitemap automatically emits localized URLs for published characters with backend localizedTitles", () => {
+  const id = "published-d16f0000-0000-4000-8000-00000000000d";
+  const parsed = publishedSitemapCharacters({
+    characters: [
+      {
+        id,
+        updatedAt: Date.UTC(2026, 10, 27),
+        revision: 2,
+        coverExtension: "jpg",
+        title: "海港档案馆员",
+        localizedTitles: {
+          en: "Harbor Archivist",
+          "zh-Hant": "海港檔案館員",
+          ja: "港の図書館司書",
+          ko: "항구 도서관 사서",
+          invalid: "ignored",
+        },
+      },
+    ],
+  });
+  assert.ok(parsed);
+  assert.equal(parsed.length, 1);
+  assert.deepEqual(parsed[0].localizedTitles, {
+    en: "Harbor Archivist",
+    "zh-Hant": "海港檔案館員",
+    ja: "港の図書館司書",
+    ko: "항구 도서관 사서",
+  });
+
+  const xml = publicSitemapXml(parsed);
+  assert.match(xml, new RegExp(`<loc>${ORIGIN}/c/${id}</loc>`));
+  assert.match(xml, new RegExp(`<loc>${ORIGIN}/en/c/${id}</loc>`));
+  assert.match(xml, new RegExp(`<loc>${ORIGIN}/zh-tw/c/${id}</loc>`));
+  assert.match(xml, new RegExp(`<loc>${ORIGIN}/jp/c/${id}</loc>`));
+  assert.match(xml, new RegExp(`<loc>${ORIGIN}/ko/c/${id}</loc>`));
+  assert.match(xml, /<image:title>Harbor Archivist - AI Character Chat<\/image:title>/);
+  assert.match(xml, /<image:title>港の図書館司書 - AIキャラクターチャット<\/image:title>/);
+  assert.match(xml, /<image:title>항구 도서관 사서 - AI 캐릭터 채팅<\/image:title>/);
+});

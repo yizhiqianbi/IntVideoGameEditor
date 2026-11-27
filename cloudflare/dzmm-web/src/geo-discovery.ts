@@ -7,6 +7,7 @@ import {
   localizedCharacterRecord,
   safePublicCatalogEntries,
   shareTitle,
+  shareTitleForLocale,
 } from "./character-share";
 import {
   CHARACTER_LOCALE_COPY,
@@ -317,11 +318,19 @@ export function publicRobotsTxt(): string {
 
 type SitemapEntry = { loc: string; lastmod?: string; changefreq: string; priority: string; image?: { loc: string; title?: string } };
 
-export type PublishedSitemapCharacter = { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title?: string };
+export type PublishedSitemapCharacter = {
+  id: string;
+  updatedAt: number;
+  revision: number;
+  coverExtension: "png" | "jpg" | null;
+  title?: string;
+  localizedTitles?: Partial<Record<XumengLocale, string>>;
+};
 
 const PUBLISHED_SITEMAP_ID = /^published-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const SITEMAP_CATALOG = "https://dzmm-backend.850587960.workers.dev/v1/publishing/sitemap";
-const SITEMAP_CACHE = "https://xumengchat.top/sitemap.xml?v=geo-v2";
+const SITEMAP_CACHE = "https://xumengchat.top/sitemap.xml?v=geo-v3";
+const SITEMAP_LOCALES = new Set<string>(XUMENG_LOCALE_OPTIONS.map((option) => option.locale));
 
 function sitemapLastmod(updatedAt: number): string | undefined {
   if (!Number.isSafeInteger(updatedAt) || updatedAt < 0 || updatedAt > 10_000_000_000_000) return undefined;
@@ -337,12 +346,29 @@ export function publishedSitemapCharacters(payload: unknown): PublishedSitemapCh
   const seen = new Set<string>();
   for (const row of rows) {
     if (!row || typeof row !== "object") continue;
-    const item = row as { id?: unknown; updatedAt?: unknown; revision?: unknown; coverExtension?: unknown; title?: unknown };
+    const item = row as {
+      id?: unknown;
+      updatedAt?: unknown;
+      revision?: unknown;
+      coverExtension?: unknown;
+      title?: unknown;
+      localizedTitles?: unknown;
+    };
     if (typeof item.id !== "string" || !PUBLISHED_SITEMAP_ID.test(item.id) || seen.has(item.id)) continue;
     if (!Number.isSafeInteger(item.updatedAt) || Number(item.updatedAt) < 0 || Number(item.updatedAt) > 10_000_000_000_000) continue;
     if (!Number.isSafeInteger(item.revision) || Number(item.revision) < 1 || Number(item.revision) > 1_000_000_000) continue;
     const rawTitle = typeof item.title === "string" ? item.title.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim() : "";
     const title = rawTitle ? shareTitle(rawTitle) : undefined;
+    let localizedTitles: Partial<Record<XumengLocale, string>> | undefined;
+    if (item.localizedTitles && typeof item.localizedTitles === "object" && !Array.isArray(item.localizedTitles)) {
+      const cleaned: Partial<Record<XumengLocale, string>> = {};
+      for (const [locale, value] of Object.entries(item.localizedTitles as Record<string, unknown>)) {
+        if (!SITEMAP_LOCALES.has(locale) || typeof value !== "string") continue;
+        const normalized = value.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim();
+        if (normalized) cleaned[locale as XumengLocale] = [...normalized].slice(0, 80).join("");
+      }
+      if (Object.keys(cleaned).length) localizedTitles = cleaned;
+    }
     seen.add(item.id);
     characters.push({
       id: item.id,
@@ -350,6 +376,7 @@ export function publishedSitemapCharacters(payload: unknown): PublishedSitemapCh
       revision: Number(item.revision),
       coverExtension: item.coverExtension === "png" || item.coverExtension === "jpg" ? item.coverExtension : null,
       ...(title ? { title } : {}),
+      ...(localizedTitles ? { localizedTitles } : {}),
     });
   }
   return characters;
@@ -407,16 +434,41 @@ export function publicSitemapEntries(published: readonly PublishedSitemapCharact
     }
   }
   const known = new Set([...characters.map(entry => entry.loc), ...localizedFeatured.map(entry => entry.loc)]);
-  const listed = [...published]
+  const sortedPublished = [...published]
     .filter(row => !known.has(`${GEO_SITE}/c/${row.id}`))
-    .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
-    .map(row => ({
+    .sort((left, right) => left.id < right.id ? -1 : left.id > right.id ? 1 : 0);
+  const listed: SitemapEntry[] = [];
+  for (const row of sortedPublished) {
+    const lastmod = sitemapLastmod(row.updatedAt);
+    const imageLoc = row.coverExtension ? `${GEO_SITE}/assets/xumeng/share/${row.id}-${row.revision}.${row.coverExtension}` : null;
+    const defaultImageTitle = row.localizedTitles?.["zh-Hans"]
+      ? shareTitle(row.localizedTitles["zh-Hans"])
+      : row.title;
+    listed.push({
       loc: `${GEO_SITE}/c/${row.id}`,
-      lastmod: sitemapLastmod(row.updatedAt),
+      lastmod,
       changefreq: "weekly",
       priority: "0.5",
-      image: row.coverExtension ? { loc: `${GEO_SITE}/assets/xumeng/share/${row.id}-${row.revision}.${row.coverExtension}`, ...(row.title ? { title: row.title } : {}) } : undefined,
-    }));
+      image: imageLoc ? { loc: imageLoc, ...(defaultImageTitle ? { title: defaultImageTitle } : {}) } : undefined,
+    });
+    if (row.localizedTitles) {
+      for (const option of XUMENG_LOCALE_OPTIONS) {
+        if (option.locale === "zh-Hans") continue;
+        const localizedName = row.localizedTitles[option.locale]
+          ?? (option.locale === "en" && row.localizedTitles["zh-Hans"] && row.title ? row.title : undefined);
+        if (!localizedName) continue;
+        const loc = characterShareUrlForLocale(row.id, option.locale);
+        if (known.has(loc)) continue;
+        listed.push({
+          loc,
+          lastmod,
+          changefreq: "weekly",
+          priority: "0.5",
+          image: imageLoc ? { loc: imageLoc, title: shareTitleForLocale(localizedName, option.locale) } : undefined,
+        });
+      }
+    }
+  }
   return [...pages, ...characters, ...localizedFeatured, ...listed];
 }
 

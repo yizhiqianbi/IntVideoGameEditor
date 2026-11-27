@@ -8,6 +8,8 @@ import { XUMENG_EXPORTED_SHELF_RECORDS, XUMENG_USER_PROVIDED_SHELF_RECORDS, read
 import { xumengHomepageStat } from "./xumeng-homepage-stats";
 import { fillCustomShelfTags } from "./xumeng-shelf-tags";
 import { XUMENG_DEFAULT_SPEECH_VOICE } from "./xumeng-voices";
+import type { XumengCardTranslation } from "./xumeng-card-localization";
+import type { XumengLocale } from "./xumeng-i18n";
 import retiredCards from "./xumeng-retired-cards.json";
 
 export const DEFAULT_DZMM_CHARACTER_COVER = "/dzmm/brand/xumeng-character-placeholder.svg";
@@ -41,6 +43,8 @@ export type Character = DzmmCharacterContext & {
   /** The current account's site like state is loaded separately from the card snapshot. */
   siteLikeCount?: number;
   siteLiked?: boolean;
+  /** Auto-generated or curated public translations attached by the catalog backend. */
+  translations?: Partial<Record<XumengLocale, XumengCardTranslation>>;
   authoringDraft?: DzmmCharacterAuthoringDraft | null;
 };
 

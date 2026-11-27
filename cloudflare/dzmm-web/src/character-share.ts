@@ -19,7 +19,16 @@ const SUFFIX = " - AI角色聊天";
 
 type ShareFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
 type ShareImage = { url: string; type: "image/jpeg" | "image/png"; width: number; height: number };
-type ShareCard = CharacterShareRecord & ShareImage;
+export type DynamicShareTranslation = {
+  name?: string;
+  description?: string;
+  tags?: readonly string[];
+  firstMessage?: string;
+};
+type ShareCardRecord = CharacterShareRecord & {
+  translations?: Partial<Record<XumengLocale, DynamicShareTranslation>>;
+};
+type ShareCard = ShareCardRecord & ShareImage;
 
 const byId = new Map(CHARACTER_SHARE_INDEX.map(card => [card.id, card]));
 const BRAND_SHARE_IMAGE: ShareImage = {
@@ -89,7 +98,31 @@ export function charactersForTagHub(hub: PublicTagHub): readonly CharacterShareR
   );
 }
 
-export function localizedCharacterRecord(card: CharacterShareRecord, locale: XumengLocale): CharacterShareRecord {
+function shareOpeningPreview(raw: unknown): string | undefined {
+  if (typeof raw !== "string") return undefined;
+  const cleaned = raw
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (cleaned.length < 16) return undefined;
+  if (/^[\[{]/.test(cleaned) || /^<\/?[a-z]/i.test(cleaned)) return undefined;
+  const chars = [...cleaned];
+  return chars.length > 220 ? `${chars.slice(0, 219).join("").trimEnd()}…` : cleaned;
+}
+
+export function localizedCharacterRecord(card: ShareCardRecord, locale: XumengLocale): CharacterShareRecord {
+  const dynamic = card.translations?.[locale];
+  if (dynamic && (dynamic.name || dynamic.description)) {
+    const baseName = stripTitleSuffix(card.title);
+    const localizedOpening = shareOpeningPreview(dynamic.firstMessage);
+    return {
+      ...card,
+      title: shareTitleForLocale(dynamic.name?.trim() || baseName, locale),
+      description: dynamic.description?.trim() ? shareDescription(dynamic.description) : card.description,
+      tags: dynamic.tags?.length ? dynamic.tags : card.tags,
+      opening: localizedOpening ?? (locale === "zh-Hant" || locale === "zh-Hans" ? card.opening : undefined),
+    };
+  }
   if (locale === "zh-Hans") return card;
   const copy = CHARACTER_LOCALE_COPY[locale];
   const override = FEATURED_CHARACTER_TRANSLATIONS[card.id]?.[locale];
@@ -117,7 +150,7 @@ function stripTitleSuffix(title: string): string {
   return title.replace(/\s*-\s*(?:AI角色聊天|AI Character Chat|AIキャラクターチャット|AI 캐릭터 채팅)\s*$/i, "").trim() || title;
 }
 
-function shareTitleForLocale(name: string, locale: XumengLocale): string {
+export function shareTitleForLocale(name: string, locale: XumengLocale): string {
   const suffix = CHARACTER_LOCALE_COPY[locale]?.titleSuffix ?? SUFFIX;
   const clean = name.replace(/\s+/g, " ").trim() || CHARACTER_LOCALE_COPY[locale]?.siteName || "叙梦角色";
   const chars = [...clean];
@@ -603,6 +636,32 @@ export async function characterShareCoverResponse(request: Request, env: { BACKE
   return new Response(upstream.body, { status: 200, headers });
 }
 
+const ALLOWED_SHARE_LOCALES = new Set<string>(XUMENG_LOCALE_OPTIONS.map((option) => option.locale));
+
+function parseDynamicTranslations(raw: unknown): Partial<Record<XumengLocale, DynamicShareTranslation>> | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const out: Partial<Record<XumengLocale, DynamicShareTranslation>> = {};
+  for (const [locale, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (!ALLOWED_SHARE_LOCALES.has(locale) || !value || typeof value !== "object" || Array.isArray(value)) continue;
+    const item = value as Record<string, unknown>;
+    const name = typeof item.name === "string" && item.name.trim() ? item.name.replace(/\s+/g, " ").trim() : undefined;
+    const description = typeof item.description === "string" && item.description.trim() ? item.description : undefined;
+    const tags = Array.isArray(item.tags)
+      ? item.tags.filter((tag): tag is string => typeof tag === "string" && tag.trim().length > 0).slice(0, 12)
+      : undefined;
+    const firstMessage = shareOpeningPreview(item.firstMessage);
+    if (name || description) {
+      out[locale as XumengLocale] = {
+        ...(name ? { name } : {}),
+        ...(description ? { description } : {}),
+        ...(tags?.length ? { tags } : {}),
+        ...(firstMessage ? { firstMessage } : {}),
+      };
+    }
+  }
+  return Object.keys(out).length ? out : undefined;
+}
+
 async function publishedCard(env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher }, id: string): Promise<ShareCard | null> {
   const upstream = await env.BACKEND.fetch(new Request(`${BACKEND}/v1/publishing/catalog/${id}`, {
     method: "GET", headers: { Accept: "application/json" }, redirect: "manual",
@@ -615,14 +674,29 @@ async function publishedCard(env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher 
     await upstream.body?.cancel();
     throw new Error("catalog unavailable");
   }
-  const payload = await upstream.json() as { character?: { name?: unknown; description?: unknown; cover?: unknown; tags?: unknown } };
+  const payload = await upstream.json() as {
+    character?: {
+      name?: unknown;
+      description?: unknown;
+      cover?: unknown;
+      tags?: unknown;
+      author?: unknown;
+      firstMessage?: unknown;
+      translations?: unknown;
+    };
+  };
   const character = payload.character;
   if (!character || typeof character.name !== "string" || !character.name.trim()) return null;
   const description = typeof character.description === "string" ? character.description : "";
   const cover = typeof character.cover === "string" ? character.cover : "";
+  const author = typeof character.author === "string" && character.author.trim()
+    ? character.author.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 60)
+    : undefined;
   const tags = Array.isArray(character.tags)
     ? character.tags.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 12)
     : undefined;
+  const opening = shareOpeningPreview(character.firstMessage);
+  const translations = parseDynamicTranslations(character.translations);
   const plan = cover ? shareImagePlan(cover, id) : null;
   const image = plan ? await loadShareImage(env, plan) : null;
   // The card is public even when its cover is on a host this page will not fetch.
@@ -632,6 +706,9 @@ async function publishedCard(env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher 
     title: shareTitle(character.name),
     description: shareDescription(description),
     ...(tags?.length ? { tags } : {}),
+    ...(opening ? { opening } : {}),
+    ...(author ? { author } : {}),
+    ...(translations ? { translations } : {}),
     ...(image ?? BRAND_SHARE_IMAGE),
   };
 }

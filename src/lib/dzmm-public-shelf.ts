@@ -199,6 +199,23 @@ export function orderDzmmShelfByTime<T extends { createdAt: string }>(characters
 /** Keep the fields the shelf paints. The playable prompt stays on the detail request. */
 export function toDzmmCatalogCard(character: Character): Character {
   const description = character.description.replace(/\s+/g, " ").trim().slice(0, 180);
+  let slimTranslations: Character["translations"];
+  if (character.translations && typeof character.translations === "object") {
+    const entries = Object.entries(character.translations)
+      .map(([locale, item]) => {
+        if (!item || typeof item !== "object") return null;
+        const next = {
+          ...(typeof item.name === "string" && item.name.trim() ? { name: item.name.trim() } : {}),
+          ...(Array.isArray(item.tags) && item.tags.length ? { tags: item.tags.slice(0, 100) } : {}),
+          ...(typeof item.description === "string" && item.description.trim()
+            ? { description: item.description.replace(/\s+/g, " ").trim().slice(0, 180) }
+            : {}),
+        };
+        return Object.keys(next).length ? [locale, next] as const : null;
+      })
+      .filter((entry): entry is readonly [string, { name?: string; tags?: string[]; description?: string }] => entry !== null);
+    if (entries.length) slimTranslations = Object.fromEntries(entries) as Character["translations"];
+  }
   return {
     id: character.id,
     name: character.name,
@@ -217,6 +234,7 @@ export function toDzmmCatalogCard(character: Character): Character {
     ...(character.catalogReadiness ? { catalogReadiness: character.catalogReadiness } : {}),
     createdAt: character.createdAt,
     ...(character.publication ? { publication: character.publication } : {}),
+    ...(slimTranslations ? { translations: slimTranslations } : {}),
     listPreview: true,
   };
 }

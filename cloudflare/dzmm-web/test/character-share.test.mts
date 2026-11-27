@@ -287,3 +287,79 @@ test("png dimensions come from the file header", () => {
   const png = Uint8Array.from(Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64"));
   assert.deepEqual(readImageSize(png), { type: "image/png", width: 1, height: 1 });
 });
+
+test("published character pages render backend auto-generated multilingual translations across /en, /zh-tw, /jp, /ko", async () => {
+  const id = "published-c16f0000-0000-4000-8000-00000000000c";
+  const shell = `<!doctype html><html><head><title>叙梦 · 角色与故事</title><meta name="description" content="与角色相遇，让故事继续。" /><link rel="canonical" href="https://xumengchat.top/" /><meta property="og:url" content="https://xumengchat.top/" /><meta property="og:title" content="叙梦 · 角色与故事" /><meta property="og:description" content="与角色相遇，让故事继续。" /><meta property="og:image" content="https://xumengchat.top/assets/xumeng/brand/xumeng-icon-512.png" /></head><body><div id="root"></div></body></html>`;
+  const env = {
+    ASSETS: { fetch: async () => new Response(shell, { headers: { "Content-Type": "text/html; charset=utf-8" } }) },
+    BACKEND: {
+      fetch: async (input: RequestInfo | URL) => {
+        const url = String(input instanceof Request ? input.url : input);
+        if (url.endsWith(`/v1/publishing/catalog/${id}`)) {
+          return Response.json({
+            character: {
+              name: "海港档案馆员",
+              description: "帮助成年旅人整理海港档案的守夜人。",
+              firstMessage: "今晚的风有点大，你想先看哪一份航海日志？",
+              tags: ["原创", "悬疑"],
+              cover: "",
+              translations: {
+                en: {
+                  name: "Harbor Archivist",
+                  description: "A night archivist helping travelers uncover forgotten coastal logs.",
+                  tags: ["Original", "Mystery"],
+                  firstMessage: "The harbor wind is strong tonight. Which sea log would you like to open first?",
+                },
+                "zh-Hant": {
+                  name: "海港檔案館員",
+                  description: "協助成年旅人整理海港檔案的守夜人。",
+                  tags: ["原創", "懸疑"],
+                  firstMessage: "今晚的風有點大，你想先看哪一份航海日誌？",
+                },
+                ja: {
+                  name: "港の図書館司書",
+                  description: "旅人のために忘れられた航海記録を整理する夜番の司書。",
+                  tags: ["オリジナル", "ミステリー"],
+                  firstMessage: "今夜は海風が強いですね。どの航海日誌から開きますか？",
+                },
+                ko: {
+                  name: "항구 도서관 사서",
+                  description: "여행자를 위해 잊힌 항해 기록을 정리하는 야간 사서.",
+                  tags: ["오리지널", "미스터리"],
+                  firstMessage: "오늘 밤 바닷바람이 거세네요. 어떤 항해 일지부터 열어볼까요?",
+                },
+              },
+            },
+          });
+        }
+        return new Response("missing", { status: 404 });
+      },
+    },
+    CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  } as Env;
+
+  const enRes = await fetchRequest(new Request(`https://xumengchat.top/en/c/${id}`), env);
+  assert.equal(enRes.status, 200);
+  const enHtml = await enRes.text();
+  assert.match(enHtml, /<title>Harbor Archivist - AI Character Chat<\/title>/);
+  assert.match(enHtml, /A night archivist helping travelers uncover forgotten coastal logs/);
+  assert.match(enHtml, /Which sea log would you like to open first/);
+  assert.match(enHtml, new RegExp(`rel="canonical" href="https://xumengchat\\.top/en/c/${id}"`));
+
+  const jaRes = await fetchRequest(new Request(`https://xumengchat.top/jp/c/${id}`), env);
+  assert.equal(jaRes.status, 200);
+  const jaHtml = await jaRes.text();
+  assert.match(jaHtml, /<title>港の図書館司書 - AIキャラクターチャット<\/title>/);
+  assert.match(jaHtml, /どの航海日誌から開きますか/);
+
+  const koRes = await fetchRequest(new Request(`https://xumengchat.top/ko/c/${id}`), env);
+  assert.equal(koRes.status, 200);
+  const koHtml = await koRes.text();
+  assert.match(koHtml, /<title>항구 도서관 사서 - AI 캐릭터 채팅<\/title>/);
+
+  const twRes = await fetchRequest(new Request(`https://xumengchat.top/zh-tw/c/${id}`), env);
+  assert.equal(twRes.status, 200);
+  const twHtml = await twRes.text();
+  assert.match(twHtml, /<title>海港檔案館員 - AI角色聊天<\/title>/);
+});

@@ -21,6 +21,7 @@ import { handleSpeechInput } from "./speech-input";
 import { handleForum } from "./forum";
 import { handleShelfTagWrite, listShelfTags } from "./shelf-tags";
 import { handlePublishingApi } from "./publishing";
+import type { BackgroundExecutionContext } from "./character-translations";
 import { handleRecommendations } from "./recommendations";
 import { handleTasks } from "./tasks";
 import { handleDreamCoin } from "./dream-coin";
@@ -65,7 +66,7 @@ function cors(response: Response, request: Request, env: Env): Response {
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 
-export async function fetchRequest(request: Request, env: Env): Promise<Response> {
+export async function fetchRequest(request: Request, env: Env, ctx?: BackgroundExecutionContext): Promise<Response> {
   let response: Response;
   try {
     if (request.method === "OPTIONS") {
@@ -103,7 +104,7 @@ export async function fetchRequest(request: Request, env: Env): Promise<Response
         const billingResponse = await handleTelegramFeedback(request, env) ?? await handleAdmin(request, env) ?? await handleBillingApi(request, env);
         const subscriptionsResponse = billingResponse ?? await handleNowpayments(request, env) ?? await handleSubscriptions(request, env);
         const paymentsResponse = subscriptionsResponse ?? await handlePaymentsApi(request, env);
-        const publishingResponse = paymentsResponse ? null : await handlePublishingApi(request, env);
+        const publishingResponse = paymentsResponse ? null : await handlePublishingApi(request, env, undefined, ctx);
         const authResponse = paymentsResponse || publishingResponse ? null : await handleSocialAuth(request, env) ?? await handleAuth(request, env);
         if (paymentsResponse) response = paymentsResponse;
         else if (publishingResponse) response = publishingResponse;

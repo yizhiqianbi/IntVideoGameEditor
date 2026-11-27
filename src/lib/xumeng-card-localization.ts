@@ -19,8 +19,11 @@ export function xumengCardTranslationsLoaded(locale: XumengLocale): boolean {
   return locale === "zh-Hans" || loadedLocales.has(locale);
 }
 
-export function hasXumengCardTranslation(characterId: string, locale: XumengLocale): boolean {
-  return Boolean(table[characterId]?.[locale]);
+export function hasXumengCardTranslation(characterOrId: string | Pick<Character, "id" | "translations">, locale: XumengLocale): boolean {
+  if (typeof characterOrId === "string") return Boolean(table[characterOrId]?.[locale]);
+  const dynamic = characterOrId.translations?.[locale];
+  if (dynamic && typeof dynamic === "object" && Boolean(dynamic.name || dynamic.description)) return true;
+  return Boolean(table[characterOrId.id]?.[locale]);
 }
 
 export function xumengTranslatedCharacterIds(locale: XumengLocale): string[] {
@@ -60,8 +63,16 @@ export function xumengCardTranslation(characterId: string, locale: XumengLocale)
   return value && typeof value === "object" ? value : null;
 }
 
+function resolveCharacterTranslation(character: Character, locale: XumengLocale): XumengCardTranslation | null {
+  const dynamic = character.translations?.[locale];
+  if (dynamic && typeof dynamic === "object" && (dynamic.name || dynamic.description || dynamic.firstMessage || dynamic.tags?.length)) {
+    return dynamic;
+  }
+  return xumengCardTranslation(character.id, locale);
+}
+
 export function localizeCharacter(character: Character, locale: XumengLocale): Character {
-  const translation = xumengCardTranslation(character.id, locale);
+  const translation = resolveCharacterTranslation(character, locale);
   if (!translation) return character;
   return {
     ...character,
@@ -75,7 +86,7 @@ export function localizeCharacter(character: Character, locale: XumengLocale): C
 }
 
 export function localizedCharacterTags(character: Character, locale: XumengLocale): string[] {
-  const translation = xumengCardTranslation(character.id, locale);
+  const translation = resolveCharacterTranslation(character, locale);
   return Array.isArray(translation?.tags) && translation.tags.length === character.tags.length
     ? translation.tags.map((tag, index) => nonEmpty(tag, character.tags[index] ?? ""))
     : character.tags;

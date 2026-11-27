@@ -19,6 +19,11 @@ export type Env = {
   CHAT_STILL_PROMPT?: string;
   GENERATION_OPENROUTER_API_KEY?: string;
   GENERATION_USD_TO_CNY?: string;
+  /** Optional overrides for automatic multilingual character translation. */
+  TRANSLATION_ENABLED?: string;
+  TRANSLATION_API_KEY?: string;
+  TRANSLATION_BASE_URL?: string;
+  TRANSLATION_MODEL?: string;
   /** Optional. Used only when the OpenRouter image-prompt key is absent. */
   SEALION_API_KEY?: string;
   SEALION_BASE_URL?: string;

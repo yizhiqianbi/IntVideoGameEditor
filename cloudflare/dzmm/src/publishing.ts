@@ -9,6 +9,15 @@ import { parseDzmmCatalogQuery, toDzmmCatalogCard, type DzmmCatalogSort } from "
 import { normalizeDzmmReviewSearch, type DzmmPublication, type DzmmPublishingSubmission, type DzmmPublishedCharacter, type DzmmSubmissionStatus } from "../../../src/lib/dzmm-publishing";
 import { requireUser, rateLimit } from "./auth";
 import { listedOfficialCards } from "./ops-console";
+import {
+  ensureCharacterTranslations,
+  readCharacterTranslations,
+  readCharacterTranslationsBatch,
+  readSitemapLocalizedTitles,
+  scheduleCharacterTranslation,
+  type BackgroundExecutionContext,
+} from "./character-translations";
+import type { XumengLocale } from "../../../src/lib/xumeng-i18n";
 import { ApiError, json, readJson } from "./http";
 import type { Env, UserRecord } from "./types";
 
@@ -249,7 +258,15 @@ async function readCatalogPage(env: Env, query: ReturnType<typeof parseDzmmCatal
   const rank = catalogRank(query);
   const rows = await env.DB.prepare(`${SUBMISSIONS} WHERE ${filter.sql} ORDER BY ${rank.sql} LIMIT ? OFFSET ?`)
     .bind(...filter.bindings, ...rank.bindings, query.limit, query.ids.length ? 0 : query.offset).all<SubmissionRow>();
-  const characters: Character[] = rows.results.map(publicCharacter);
+  const translationsById = await readCharacterTranslationsBatch(
+    env,
+    rows.results.map((row) => ({ publicationId: row.publication_id, revision: row.revision })),
+  );
+  const characters: Character[] = rows.results.map((row) => {
+    const card = publicCharacter(row);
+    const translations = translationsById.get(row.publication_id);
+    return translations && Object.keys(translations).length ? { ...card, translations } : card;
+  });
   if (!query.authorIds.length) {
     try {
       const official = (await listedOfficialCards(env)).filter(card => {
@@ -299,8 +316,23 @@ function sitemapName(value: unknown): string | null {
 }
 
 /** Listed, approved revisions only. The payload is the public card title plus ids and cover types, never descriptions or snapshots. */
-export async function readPublicSitemapIndex(env: Pick<Env, "DB">): Promise<{ id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title: string | null }[]> {
-  const characters: { id: string; updatedAt: number; revision: number; coverExtension: "png" | "jpg" | null; title: string | null }[] = [];
+export async function readPublicSitemapIndex(env: Pick<Env, "DB">): Promise<{
+  id: string;
+  updatedAt: number;
+  revision: number;
+  coverExtension: "png" | "jpg" | null;
+  title: string | null;
+  localizedTitles?: Partial<Record<XumengLocale, string>>;
+}[]> {
+  const characters: {
+    id: string;
+    updatedAt: number;
+    revision: number;
+    coverExtension: "png" | "jpg" | null;
+    title: string | null;
+    localizedTitles?: Partial<Record<XumengLocale, string>>;
+  }[] = [];
+  const localizedTitlesById = await readSitemapLocalizedTitles(env);
   for (let offset = 0; characters.length < SITEMAP_CAP; offset += SITEMAP_PAGE) {
     const rows = await env.DB.prepare(`SELECT p.id AS id,
         COALESCE(s.reviewed_at, p.updated_at) AS updated_at,
@@ -315,7 +347,15 @@ export async function readPublicSitemapIndex(env: Pick<Env, "DB">): Promise<{ id
     for (const row of rows.results) {
       const updatedAt = Number(row.updated_at);
       if (!PUBLICATION_ID.test(row.id) || !Number.isSafeInteger(row.revision) || row.revision < 1 || !Number.isSafeInteger(updatedAt) || updatedAt < 0) continue;
-      characters.push({ id: row.id, updatedAt, revision: row.revision, coverExtension: sitemapCoverExtension(row.cover_key), title: sitemapName(row.name) });
+      const localizedTitles = localizedTitlesById.get(row.id);
+      characters.push({
+        id: row.id,
+        updatedAt,
+        revision: row.revision,
+        coverExtension: sitemapCoverExtension(row.cover_key),
+        title: sitemapName(row.name),
+        ...(localizedTitles && Object.keys(localizedTitles).length ? { localizedTitles } : {}),
+      });
       if (characters.length >= SITEMAP_CAP) break;
     }
     if (rows.results.length < SITEMAP_PAGE) break;
@@ -333,7 +373,10 @@ export async function readPublishedCharacters(env: Env, options: { offset?: numb
 }
 export async function readPublishedCharacter(env: Env, id: string): Promise<DzmmPublishedCharacter | null> {
   const row = await env.DB.prepare(`${SUBMISSIONS} WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision`).bind(id).first<SubmissionRow>();
-  return row ? publicCharacter(row) : null;
+  if (!row) return null;
+  const card = publicCharacter(row);
+  const translations = await readCharacterTranslations(env, row.publication_id, row.revision);
+  return Object.keys(translations).length ? { ...card, translations } : card;
 }
 /** Logged-in chat may read the author instruction. Public catalog responses omit it. */
 export async function readPublishedPlayMaterials(env: Env, id: string): Promise<Pick<Character, "systemPrompt" | "postHistoryInstructions" | "messageExamples" | "characterBook" | "interactionTemplate" | "statusBar"> | null> {
@@ -401,6 +444,7 @@ async function normalizeSnapshot(env: Env, user: UserRecord, value: unknown) {
     if (new TextEncoder().encode(JSON.stringify(supplied)).byteLength > PUBLISH_SNAPSHOT_MAX_BYTES) throw new ApiError(413, "公开发布的角色不能超过 2 MB，请先精简世界书。");
     const runnable = { ...supplied };
     delete runnable.authoringDraft;
+    delete runnable.translations;
     character = parseCharacterImport(runnable, privateId);
   } catch (error) {
     if (error instanceof ApiError) throw error;
@@ -623,7 +667,12 @@ async function imageResponse(env: Env, key: string, expected: { ownerId?: string
 }
 
 /** Call before ordinary session routing: catalog, sitemap and approved-media GETs are anonymous. */
-export async function handlePublishingApi(request: Request, env: Env, suppliedUser?: UserRecord | null): Promise<Response | null> {
+export async function handlePublishingApi(
+  request: Request,
+  env: Env,
+  suppliedUser?: UserRecord | null,
+  ctx?: BackgroundExecutionContext,
+): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/v1/publishing" && !url.pathname.startsWith("/v1/publishing/")) return null;
   const path = url.pathname.slice("/v1/publishing".length);
@@ -737,6 +786,40 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
     if (typeof after !== "string" || (after !== "" && !PUBLICATION_ID.test(after))) throw new ApiError(400, "续传编号无效。");
     return json(await washPublishedCovers(env, Number(limit), after));
   }
+  if (path === "/translate-backfill" && request.method === "POST") {
+    if (!isSuper(user)) throw new ApiError(403, "仅 Super 可以补齐角色多语言翻译。");
+    await rateLimit(request, env, "publishing-translate-backfill", 200, user.id);
+    const body = await readJson(request, 2048);
+    checkAccount(body, user);
+    const force = body.force === true;
+    const targetId = body.publicationId === undefined || body.publicationId === "" ? null : publicationId(String(body.publicationId));
+    const limit = body.limit === undefined ? 3 : body.limit;
+    if (!Number.isInteger(limit) || Number(limit) < 1 || Number(limit) > 10) throw new ApiError(400, "每次最多补齐 10 个角色。");
+    const rows = targetId
+      ? await env.DB.prepare(`${SUBMISSIONS} WHERE p.id=? AND p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision LIMIT 1`)
+        .bind(targetId).all<SubmissionRow>()
+      : await env.DB.prepare(`${SUBMISSIONS}
+          WHERE p.is_listed=1 AND s.status='approved' AND s.revision=p.approved_revision
+          ${force ? "" : "AND (SELECT COUNT(*) FROM character_translations t WHERE t.publication_id=p.id AND t.revision=s.revision) < 4"}
+          ORDER BY p.updated_at DESC, p.id LIMIT ?`)
+        .bind(Number(limit)).all<SubmissionRow>();
+    const results = [];
+    for (const row of rows.results) {
+      results.push(await ensureCharacterTranslations(env, {
+        publicationId: row.publication_id,
+        revision: row.revision,
+        character: submissionCharacter(row.snapshot_json),
+      }, { force }));
+    }
+    return json({
+      processed: results.length,
+      translated: results.filter((item) => item.status === "translated").length,
+      upToDate: results.filter((item) => item.status === "up-to-date").length,
+      skipped: results.filter((item) => item.status === "skipped").length,
+      failed: results.filter((item) => item.status === "failed").length,
+      results,
+    });
+  }
   if (path === "/mine" && request.method === "GET") {
     const { offset, limit } = pagination(url);
     const statuses = url.searchParams.getAll("status");
@@ -810,6 +893,8 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
       env.DB.prepare("INSERT INTO character_submissions (id,publication_id,revision,snapshot_json,private_media_json,created_at) SELECT ?,?,?,?,?,? WHERE EXISTS(SELECT 1 FROM character_publications WHERE id=? AND mutation_token=?)").bind(submission, id, revision, JSON.stringify(character), JSON.stringify(media), now, id, nonce),
     ]);
     if (results[0].meta.changes !== 1 || results[2].meta.changes !== 1) conflict();
+    // Silently pre-generate multilingual translations in the background right after submission.
+    scheduleCharacterTranslation(ctx, env, { publicationId: id, revision, character });
     return json(await result(env, id, submission), 201);
   }
   const privateMedia = /^\/submissions\/([^/]+)\/media\/(cover(?:\.(?:mp4|webm))?|gallery-\d+)$/.exec(path);
@@ -870,6 +955,14 @@ export async function handlePublishingApi(request: Request, env: Env, suppliedUs
       ]);
       if (results[0].meta.changes !== 1 || results[1].meta.changes !== 1) conflict();
     } catch (error) { await removeUnreferencedCopies(env, copies); throw error; }
+    if (status === "approved") {
+      // Ensure all target locales exist in D1 (idempotent no-op if submit-time translation already succeeded).
+      scheduleCharacterTranslation(ctx, env, {
+        publicationId: row.publication_id,
+        revision: row.revision,
+        character: submissionCharacter(row.snapshot_json),
+      });
+    }
     return json(await result(env, row.publication_id, row.id));
   }
   const statsTarget = /^\/publications\/([^/]+)\/display-stats$/.exec(path);

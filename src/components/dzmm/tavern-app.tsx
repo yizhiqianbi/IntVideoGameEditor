@@ -3235,7 +3235,7 @@ export default function TavernApp() {
     const pinned = pinLocal ? characters.filter((character) => !character.publication && !isDzmmListPreview(character)
       && !isDzmmCharacterBlocked(character, state.preferences.blockedTags) && characterMatchesShelfTags(character.tags, selectedShelfTags(genres))) : [];
     const translatedLocal = view !== "search" && locale !== XUMENG_DEFAULT_LOCALE && translatedShelfReady
-      ? characters.filter((character) => hasXumengCardTranslation(character.id, locale)
+      ? characters.filter((character) => hasXumengCardTranslation(character, locale)
         && !isDzmmCharacterBlocked(character, state.preferences.blockedTags)
         && !(hideRanked && hiddenIds.has(character.id)))
       : [];
