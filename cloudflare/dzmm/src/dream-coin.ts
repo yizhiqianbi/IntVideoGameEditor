@@ -85,7 +85,7 @@ async function exchange(request: Request, env: Env, user: UserRecord) {
       SELECT ?,id,?,?,?,?,?,? FROM users WHERE id=? AND is_guest=0
       AND (SELECT COALESCE(SUM(amount_fen),0) FROM dream_coin_ledger WHERE user_id=users.id)>=?
       ON CONFLICT(source_type,source_id) DO NOTHING`)
-      .bind(`dc_${crypto.randomUUID()}`, -amount, "exchange", "exchange", id, "兑换为 Credit", now, user.id, amount),
+      .bind(`dc_${crypto.randomUUID()}`, -amount, "exchange", "exchange", id, "兑换为金币", now, user.id, amount),
     env.DB.prepare(`INSERT INTO dream_coin_exchanges(id,user_id,amount_fen,credits,created_at)
       SELECT source_id,user_id,-amount_fen,-amount_fen,created_at FROM dream_coin_ledger
       WHERE source_type='exchange' AND source_id=? AND user_id=? AND amount_fen=?`)

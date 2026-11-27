@@ -52,7 +52,7 @@ export async function handleVideoWatch(request: Request, env: Env, user: UserRec
   const owned = await env.DB.prepare("SELECT 1 AS ok FROM video_episode_unlocks WHERE user_id=? AND episode_id=?").bind(user.id, target.episodeId).first();
   if (owned) return json({ unlocked: true, chargedCredits: 0, balance: await balance(env, user.id) });
   const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
-  throw new ApiError(402, `当前可用 Credit 不足，这一集需要 ${VIDEO_EPISODE_CREDITS} Credit。`, {
+  throw new ApiError(402, `当前金币不足，这一集需要 ${VIDEO_EPISODE_CREDITS} 金币。`, {
     code: "insufficient_credits", requiredCredits: VIDEO_EPISODE_CREDITS, availableCredits: Number(wallet?.balance ?? 0),
   });
 }

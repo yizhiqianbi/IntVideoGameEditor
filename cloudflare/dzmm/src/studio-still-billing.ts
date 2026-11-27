@@ -57,10 +57,10 @@ async function reserve(request: Request, env: Env, user: UserRecord, now: number
   if (user.isGuest) throw new ApiError(403, "请注册或登录后再出图。");
   const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
   if (!wallet || Number(wallet.balance) < STUDIO_STILL_CREDITS) {
-    throw new ApiError(402, `可用 Credit 不足，每次出图需要 ${STUDIO_STILL_CREDITS} Credit。`, { code: "insufficient_credits", requiredCredits: STUDIO_STILL_CREDITS });
+    throw new ApiError(402, `金币不足，每次出图需要 ${STUDIO_STILL_CREDITS} 金币。`, { code: "insufficient_credits", requiredCredits: STUDIO_STILL_CREDITS });
   }
   const open = await env.DB.prepare(`SELECT COUNT(*) AS n FROM studio_still_charges WHERE user_id=? AND status='reserved' AND expires_at>?`).bind(user.id, now).first<{ n: number }>();
-  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "正在出图的任务过多，请先等待完成。" : `可用 Credit 不足，每次出图需要 ${STUDIO_STILL_CREDITS} Credit。`);
+  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "正在出图的任务过多，请先等待完成。" : `金币不足，每次出图需要 ${STUDIO_STILL_CREDITS} 金币。`);
 }
 
 async function settle(request: Request, env: Env, user: UserRecord, now: number, id: string, outcome: "charged" | "released"): Promise<Response> {
@@ -76,7 +76,7 @@ async function settle(request: Request, env: Env, user: UserRecord, now: number,
   const row = await env.DB.prepare("SELECT id,status,credits,claim_hash FROM studio_still_charges WHERE id=? AND user_id=?").bind(id, user.id).first<ChargeRow>();
   if (!row || row.claim_hash !== claim) throw new ApiError(404, "出图扣费记录不存在。");
   if (updated.meta.changes === 1 || row.status === outcome) return json(receipt(user.id, { ...row, status: outcome, credits: row.credits }));
-  throw new ApiError(409, outcome === "charged" ? "这次预留已经失效，没有扣 Credit。" : "这次预留不能再退回。");
+  throw new ApiError(409, outcome === "charged" ? "这次预留已经失效，没有扣金币。" : "这次预留不能再退回。");
 }
 
 export async function handleStudioStillBilling(request: Request, env: Env, user: UserRecord, now: number): Promise<Response | null> {

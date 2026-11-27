@@ -511,7 +511,7 @@ export function publicLlmsTxt(): string {
     "- **SillyTavern V2 角色卡与世界书兼容 (Chara Card V2 & Worldbooks)**: 支持导入与原创完整角色设定、世界书条目与开场白，在浏览器中免下载直接续写剧情。",
     "- **多模型切换与长对话记忆 (Multi-Model & Long-Term Memory)**: 支持按题材与文风切换对话模型，并在长篇互动中持续保留人物关系与关键剧情记忆。",
     "- **多媒体沉浸体验 (Voice, Scene Visuals & Short Dramas)**: 支持角色语音播放、剧情场景生图以及配套的 AI 互动短剧播放站（https://video.xumengchat.top/）。",
-    "- **灵活的 Character.AI 替代方案 (Character.AI Alternative)**: 面向成年用户的创作与角色扮演自由度更高，支持免费上手与按需 Credit 充值，且提供中/繁/英/日/韩五语体验。",
+    "- **灵活的 Character.AI 替代方案 (Character.AI Alternative)**: 面向成年用户的创作与角色扮演自由度更高，支持免费上手与按需金币充值，且提供中/繁/英/日/韩五语体验。",
     "",
     "## Canonical Pages / 核心规范页面",
     "",
@@ -1071,7 +1071,7 @@ function renderCharacterAiAlternativeZh(): string {
         <tr><td>长篇对话记忆</td><td>内置长期记忆整理与上下文保持机制</td><td>长剧情容易遗忘早期伏笔与人物关系</td></tr>
         <tr><td>中文语境与多语言</td><td>深度优化中文叙事，同时提供 繁/英/日/韩 5 语体验</td><td>以英文语料为主，中文古风/都市细腻度相对薄弱</td></tr>
         <tr><td>多媒体沉浸体验</td><td>角色语音、剧情场景生图 + 配套 AI 互动短剧</td><td>以纯文本对话为主，视觉与剧情延展能力有限</td></tr>
-        <tr><td>使用门槛与计费</td><td>浏览器免下载即玩，免费体验 + 透明按需 Credit，无强制自动扣费</td><td>重度体验常需绑定海外信用卡月度订阅</td></tr>
+        <tr><td>使用门槛与计费</td><td>浏览器免下载即玩，免费体验 + 透明按需金币，无强制自动扣费</td><td>重度体验常需绑定海外信用卡月度订阅</td></tr>
       </tbody>
     </table>
     <h2>最适合迁移到叙梦的三类用户</h2>
@@ -1151,7 +1151,7 @@ function renderCharacterAiAlternativeEn(): string {
         <tr><td>Long-Term Memory</td><td>Built-in memory summaries to keep arcs and relationships consistent</td><td>Earlier plot details frequently drift over long sessions</td></tr>
         <tr><td>Voice, Scene Visuals &amp; Dramas</td><td>Character voice, on-demand scene illustrations &amp; interactive short dramas</td><td>Primarily text-only conversations</td></tr>
         <tr><td>Multilingual Support</td><td>5 dedicated languages: English, zh-CN, zh-TW, Japanese &amp; Korean</td><td>Primarily English-centric catalog</td></tr>
-        <tr><td>Access &amp; Pricing</td><td>Instant web play, free starter Credits &amp; flexible top-ups</td><td>Often requires recurring subscription for premium access</td></tr>
+        <tr><td>Access &amp; Pricing</td><td>Instant web play, free starter Coins &amp; flexible top-ups</td><td>Often requires recurring subscription for premium access</td></tr>
       </tbody>
     </table>
     <h2>Try Featured Characters in English</h2>

@@ -442,8 +442,8 @@ export async function handlePaymentsApi(request: Request, env: PaymentEnvironmen
     return json({ provider: "stripe", enabled, testMode: mode === "test", mode, modelBillingLinked: linked, currency: "usd", packages: PACKAGES,
       note: !paymentCollectionEnabled(env) ? PAYMENT_PAUSED_NOTE
         : mode === "live"
-          ? enabled ? `Stripe 正式支付，将以美元真实扣款；充值 Credit 与任务、邀请奖励进入同一聊天余额，${linked ? "用于模型对话与剧情记忆的 Token 费用" : "目前不抵扣模型费用"}。` : "Stripe 正式充值尚未开通，正在等待收款账户激活和支付配置完成。"
-          : enabled ? "Stripe 测试模式，不会真实扣款；充值 Credit 与任务、邀请奖励进入同一聊天余额。" : "Stripe 测试充值尚未配置，请稍后再试。" });
+          ? enabled ? `Stripe 正式支付，将以美元真实扣款；充值金币 与任务、邀请奖励进入同一聊天余额，${linked ? "用于模型对话与剧情记忆的 Token 费用" : "目前不抵扣模型费用"}。` : "Stripe 正式充值尚未开通，正在等待收款账户激活和支付配置完成。"
+          : enabled ? "Stripe 测试模式，不会真实扣款；充值金币 与任务、邀请奖励进入同一聊天余额。" : "Stripe 测试充值尚未配置，请稍后再试。" });
   }
   const user = suppliedUser ?? await requireUser(request, env);
   if (user.isGuest) throw new ApiError(403, "请先注册或登录正式账户，再使用充值功能。");

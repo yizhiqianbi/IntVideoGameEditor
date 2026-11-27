@@ -19,5 +19,5 @@ export function useCharacterCreateCost() {
 }
 
 export function characterCreateLabel(cost: number | null, base = "创建角色") {
-  return cost ? `${base} · ${cost} Credit` : base;
+  return cost ? `${base} · ${cost} 金币` : base;
 }

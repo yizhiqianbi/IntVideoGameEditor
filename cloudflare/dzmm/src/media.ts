@@ -48,7 +48,7 @@ export async function handleMedia(
   const path = new URL(request.url).pathname;
   if (!path.startsWith("/v1/media")) return null;
   if (!env.MEDIA)
-    throw new ApiError(503, request.headers.get("x-xumeng-media-purpose") === "album" ? "相册存储尚未启用，这次没有扣 Credit。" : "封面存储尚未启用，请先配置 Cloudflare R2。");
+    throw new ApiError(503, request.headers.get("x-xumeng-media-purpose") === "album" ? "相册存储尚未启用，这次没有扣金币。" : "封面存储尚未启用，请先配置 Cloudflare R2。");
   if (path === "/v1/media" && request.method === "POST") {
     const contentType = normalizeDzmmCoverType(request.headers.get("content-type"));
     const extension = dzmmCoverExtension(contentType);
@@ -65,13 +65,13 @@ export async function handleMedia(
         user.id,
       );
     } catch (error) {
-      if (album && error instanceof ApiError && error.status === 429) throw new ApiError(429, "相册保存过于频繁，请稍后再试。这次没有扣 Credit。");
+      if (album && error instanceof ApiError && error.status === 429) throw new ApiError(429, "相册保存过于频繁，请稍后再试。这次没有扣金币。");
       throw error;
     }
     const bytes = await readBounded(
       request,
       video ? DZMM_COVER_VIDEO_MAX_BYTES : DZMM_COVER_IMAGE_MAX_BYTES,
-      album ? "相册图片不能超过 5 MB，这次没有扣 Credit。" : video ? "封面视频不能超过 16 MB。" : "图片不能超过 5 MB。",
+      album ? "相册图片不能超过 5 MB，这次没有扣金币。" : video ? "封面视频不能超过 16 MB。" : "图片不能超过 5 MB。",
       album ? "相册图片不能为空。" : video ? "请选择封面视频。" : "请选择封面图片。",
       album || !video ? "图片文件不能为空。" : "封面视频不能为空。",
     );

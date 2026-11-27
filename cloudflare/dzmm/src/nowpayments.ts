@@ -26,7 +26,7 @@ function configuration(env: Env) {
   const network = NETWORKS.has(env.NOWPAYMENTS_PAY_CURRENCY ?? "") ? env.NOWPAYMENTS_PAY_CURRENCY! : null;
   const enabled = env.NOWPAYMENTS_ENABLED === "true" && credentials(env) && !!network;
   return { ...context, enabled, payCurrency: network, network: network ? "TRON (TRC20)" : null, plans: [NOWPAYMENTS_PLAN],
-    note: enabled ? "每次手动支付 15 USDT 开通或续期 90 天；北京时间每日领取 500 Credit，每期最多 90 次，漏领不补。下单前核对实时最低收款额；网络手续费以钱包为准，不会自动扣款。"
+    note: enabled ? "每次手动支付 15 USDT 开通或续期 90 天；北京时间每日领取 500 金币，每期最多 90 次，漏领不补。下单前核对实时最低收款额；网络手续费以钱包为准，不会自动扣款。"
       : "USDT 收款尚未完成商户配置，暂未开放支付；已有会员权益仍保留。" };
 }
 function requireConfiguration(env: Env) {

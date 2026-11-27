@@ -19,6 +19,7 @@ export type RechargeProps = {
   userId: string; isGuest: boolean; onRequireAccount: () => void;
   returnOrderId?: string; cancelled?: boolean; onBack?: () => void; focusVip?: boolean; locale?: XumengLocale;
   onCheckin?: () => void;
+  onWalletChanged?: (wallet: DzmmPaymentWallet) => void;
 };
 const STATUS: Record<DzmmPaymentStatus, string> = {
   pending: "待支付确认", paid: "已到账", partially_refunded: "部分退款", refunded: "已退款", expired: "已过期", failed: "未完成支付",
@@ -31,7 +32,7 @@ function money(amountMinor: number, currency: string) {
 }
 const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
-export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false, onCheckin }: RechargeProps) {
+export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount, returnOrderId, cancelled = false, onBack, focusVip = false, onCheckin, onWalletChanged }: RechargeProps) {
   const copy = xumengPage(locale);
   const statusText = (status: DzmmPaymentStatus) => status === "pending" ? copy.payPending : status === "paid" ? copy.payPaid : status === "partially_refunded" ? copy.payPartial : status === "refunded" ? copy.payRefunded : status === "expired" ? copy.payExpired : copy.payFailed;
   const [config, setConfig] = useState<DzmmPaymentConfig | null>(null);
@@ -63,6 +64,8 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
   const paymentContext = useRef("");
   const pending = useRef(false);
   const requestIds = useRef(new Map<string, string>());
+  const onWalletChangedRef = useRef(onWalletChanged);
+  onWalletChangedRef.current = onWalletChanged;
   const accountKey = `${userId}:${isGuest}`;
   account.current = accountKey;
 
@@ -146,7 +149,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
       const walletEpoch = ++walletRead.current;
       const balance = isGuest ? null : await fetchDzmmPaymentWallet(controller.signal, { accountId: userId, mode: configuration.mode, provider: configuration.provider });
       if (!mounted.current || account.current !== accountKey || generation.current !== epoch || paymentContext.current !== nextContext) return;
-      if (walletEpoch > walletApplied.current) { walletApplied.current = walletEpoch; setWallet(balance); }
+      if (walletEpoch > walletApplied.current) { walletApplied.current = walletEpoch; setWallet(balance); if (balance) onWalletChangedRef.current?.(balance); }
     } catch (failure) {
       if (!controller.signal.aborted && mounted.current && account.current === accountKey && generation.current === epoch) setError(errorText(failure));
     } finally {
@@ -182,7 +185,7 @@ export function Recharge({ userId, isGuest, locale = "zh-Hans", onRequireAccount
         if (!active()) return;
         if (result.accountId !== userId) throw new Error("账户已切换，请登录订单所属账号后查看。");
         setOrder(result.order);
-        if (walletEpoch > walletApplied.current) { walletApplied.current = walletEpoch; setWallet(result); }
+        if (walletEpoch > walletApplied.current) { walletApplied.current = walletEpoch; setWallet(result); onWalletChangedRef.current?.(result); }
         if (result.order.status === "pending" && !cancellation && Date.now() < deadline) {
           timer = setTimeout(() => { void verify(); }, 3000);
           return;

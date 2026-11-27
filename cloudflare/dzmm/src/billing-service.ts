@@ -38,7 +38,7 @@ export class BillingService extends WorkerEntrypoint<Env> {
     return this.#guard(async () => {
       const { request, user, preflight } = await this.#authenticatedPreflight(input, "reserve");
       if (!creditBillingConfig(this.env).enabled) {
-        if (this.env.CREDIT_BILLING_ENABLED === "true") throw new ApiError(503, "模型 Credit 费率配置无效，请稍后重试。");
+        if (this.env.CREDIT_BILLING_ENABLED === "true") throw new ApiError(503, "模型 金币费率配置无效，请稍后重试。");
         return { enabled: false as const };
       }
       return { enabled: true as const, ...await reserveCreditUsage(request, this.env, user, preflight) };

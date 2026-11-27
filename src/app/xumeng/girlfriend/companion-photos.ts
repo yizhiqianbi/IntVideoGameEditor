@@ -90,7 +90,7 @@ export function useGirlfriendPhotos(storageKey: string | null, adoptKey: string 
       const image = await referenceBase64(coverUrl);
       const still = await requestCompanionAlbumStill({ templateId: "krea2-free", prompt, image, style: "photo" });
       const url = xumengImageUrl(still.url);
-      if (!SAVED_PHOTO.test(url)) throw new Error("相册保存失败，这次没有扣 Credit。");
+      if (!SAVED_PHOTO.test(url)) throw new Error("相册保存失败，这次没有扣金币。");
       const photo = { id: crypto.randomUUID(), url, createdAt: new Date().toISOString() };
       if (characterId) void rememberRelationshipStill(characterId, url).catch(() => undefined);
       setPhotos(current => {

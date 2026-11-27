@@ -53,10 +53,10 @@ async function reserve(request: Request, env: Env, user: UserRecord, now: number
   await sessionHash(request, env, user, now);
   const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
   if (!wallet || Number(wallet.balance) < CALL_CREDITS) {
-    throw new ApiError(402, `可用 Credit 不足，语音和视频通话需要至少 ${CALL_CREDITS} Credit。`, { code: "insufficient_credits", requiredCredits: CALL_CREDITS, availableCredits: Number(wallet?.balance ?? 0) });
+    throw new ApiError(402, `金币不足，语音和视频通话需要至少 ${CALL_CREDITS} 金币。`, { code: "insufficient_credits", requiredCredits: CALL_CREDITS, availableCredits: Number(wallet?.balance ?? 0) });
   }
   const open = await env.DB.prepare(`SELECT COUNT(*) AS n FROM call_charges WHERE user_id=? AND status='reserved' AND expires_at>?`).bind(user.id, now).first<{ n: number }>();
-  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "已有一通预扣中的通话，请先结束再拨。" : `可用 Credit 不足，语音和视频通话需要至少 ${CALL_CREDITS} Credit。`, { code: "insufficient_credits", requiredCredits: CALL_CREDITS });
+  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "已有一通预扣中的通话，请先结束再拨。" : `金币不足，语音和视频通话需要至少 ${CALL_CREDITS} 金币。`, { code: "insufficient_credits", requiredCredits: CALL_CREDITS });
 }
 
 async function settle(request: Request, env: Env, user: UserRecord, now: number, id: string, outcome: "charged" | "released"): Promise<Response> {
@@ -72,7 +72,7 @@ async function settle(request: Request, env: Env, user: UserRecord, now: number,
   const row = await env.DB.prepare("SELECT id,status,credits,claim_hash,kind FROM call_charges WHERE id=? AND user_id=?").bind(id, user.id).first<ChargeRow>();
   if (!row || row.claim_hash !== claim) throw new ApiError(404, "通话扣费记录不存在。");
   if (updated.meta.changes === 1 || row.status === outcome) return json(receipt(user.id, { ...row, status: outcome }));
-  throw new ApiError(409, outcome === "charged" ? "这次预扣已经失效，没有扣 Credit。" : "这次预扣不能再退回。");
+  throw new ApiError(409, outcome === "charged" ? "这次预扣已经失效，没有扣金币。" : "这次预扣不能再退回。");
 }
 
 export async function handleCallBilling(request: Request, env: Env, user: UserRecord, now = Date.now()): Promise<Response | null> {

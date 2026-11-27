@@ -42,7 +42,7 @@ export async function requestCompanionAlbumStill(input: Krea2StillRequest, signa
   });
   const payload = await response.json().catch(() => null) as { error?: unknown; url?: unknown; chargedCredits?: unknown } | null;
   if (!response.ok || typeof payload?.url !== "string" || payload.chargedCredits !== STUDIO_STILL_CREDITS) {
-    throw new Error(typeof payload?.error === "string" ? payload.error : "相册保存失败，这次没有扣 Credit。");
+    throw new Error(typeof payload?.error === "string" ? payload.error : "相册保存失败，这次没有扣金币。");
   }
   return { url: payload.url, chargedCredits: payload.chargedCredits };
 }

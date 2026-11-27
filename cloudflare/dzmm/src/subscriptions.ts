@@ -338,7 +338,7 @@ async function checkin(request: Request, env: Env, user: UserRecord, options: Zp
   ]);
   const committedTime = Number((results[2].results[0] as { server_time: number }).server_time);
   const overview = await readSubscriptions(env, user, Math.max(nowFrom(options), committedTime));
-  if (overview.checkin.dayKey !== date) throw new ApiError(409, "领取日期已更新，请刷新后领取今日 Credit。", { overview });
+  if (overview.checkin.dayKey !== date) throw new ApiError(409, "领取日期已更新，请刷新后领取今日 金币。", { overview });
   const claim = await env.DB.prepare("SELECT id,subscription_id,day_key,credits,claimed_at FROM subscription_daily_claims WHERE user_id=? AND day_key=?").bind(user.id, date).first<Claim>();
   if (!claim || claim.subscription_id !== body.subscriptionId) throw new ApiError(409, claim ? "今日订阅点数已领取，请明天再来。" : "订阅已到期、领取次数已用完或状态已改变，请刷新后重试。", { overview });
   return json({ ...overview, claim: claimValue(claim) }, results[0].meta.changes === 1 ? 201 : 200);

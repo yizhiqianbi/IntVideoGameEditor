@@ -5370,6 +5370,8 @@
 }
 .railPromoTag {
   margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
   padding: 2px 7px;
   border-radius: 999px;
   font-style: normal;

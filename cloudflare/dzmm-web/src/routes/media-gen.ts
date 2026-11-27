@@ -40,7 +40,7 @@ async function reserveStudioStill(request: Request, env: Env, templateId: string
   const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
   if (upstream.status === 401) return json({ error: "请先登录后再出图。" }, 401);
   if (upstream.status === 403) return json({ error: "请先登录正式账户后再出图。" }, 403);
-  if (upstream.status === 402) return json({ error: `可用 Credit 不足，每次出图需要 ${STUDIO_STILL_CREDITS} Credit。`, code: "insufficient_credits" }, 402);
+  if (upstream.status === 402) return json({ error: `金币不足，每次出图需要 ${STUDIO_STILL_CREDITS} 金币。`, code: "insufficient_credits" }, 402);
   if (upstream.status === 429) return json({ error: typeof payload?.error === "string" ? payload.error : "正在出图的任务过多，请先等待完成。" }, 429);
   if (!upstream.ok || payload?.credits !== STUDIO_STILL_CREDITS || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
     return json({ error: "扣费没有完成，这次没有出图。" }, 502);
@@ -74,7 +74,7 @@ async function reserveCanvasVideo(request: Request, env: Env, seconds: number): 
   const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
   if (upstream.status === 401) return json({ error: "请先登录后再生成视频。" }, 401);
   if (upstream.status === 403) return json({ error: "请先登录正式账户后再生成视频。" }, 403);
-  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `可用 Credit 不足，这次视频需要 ${credits} Credit。`, code: "insufficient_credits" }, 402);
+  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `金币不足，这次视频需要 ${credits} 金币。`, code: "insufficient_credits" }, 402);
   if (upstream.status === 429) return json({ error: typeof payload?.error === "string" ? payload.error : "正在生成的任务过多，请先等待完成。" }, 429);
   if (!upstream.ok || payload?.credits !== credits || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
     return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
@@ -93,7 +93,7 @@ async function reserveChatSegmentVideo(request: Request, env: Env): Promise<{ id
   const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
   if (upstream.status === 401) return json({ error: "请先登录后再生成视频。" }, 401);
   if (upstream.status === 403) return json({ error: "请先登录正式账户后再生成视频。" }, 403);
-  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `可用 Credit 不足，这次视频需要 ${credits} Credit。`, code: "insufficient_credits" }, 402);
+  if (upstream.status === 402) return json({ error: typeof payload?.error === "string" ? payload.error : `金币不足，这次视频需要 ${credits} 金币。`, code: "insufficient_credits" }, 402);
   if (upstream.status === 429) return json({ error: typeof payload?.error === "string" ? payload.error : "正在生成的任务过多，请先等待完成。" }, 429);
   if (!upstream.ok || payload?.credits !== credits || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
     return json({ error: "扣费没有完成，这次没有生成视频。" }, 502);
@@ -116,7 +116,7 @@ async function settleCanvasVideo(request: Request, env: Env, hold: { id: string;
 
 async function storeAlbumStill(request: Request, env: Env, image: Response): Promise<string | Response> {
   const bytes = await image.arrayBuffer();
-  if (bytes.byteLength > 5 * 1024 * 1024) return json({ error: "相册图片不能超过 5 MB，这次没有扣 Credit。" }, 413);
+  if (bytes.byteLength > 5 * 1024 * 1024) return json({ error: "相册图片不能超过 5 MB，这次没有扣金币。" }, 413);
   const headers = backendHeaders(request);
   headers.set("content-type", image.headers.get("Content-Type")?.includes("jpeg") ? "image/jpeg" : image.headers.get("Content-Type")?.includes("webp") ? "image/webp" : "image/png");
   headers.set("x-xumeng-media-purpose", "album");
@@ -125,7 +125,7 @@ async function storeAlbumStill(request: Request, env: Env, image: Response): Pro
   }));
   const payload = await stored.json().catch(() => null) as { error?: unknown; url?: unknown } | null;
   if (!stored.ok || typeof payload?.url !== "string") {
-    const message = typeof payload?.error === "string" && payload.error.includes("相册") ? payload.error : "相册保存失败，这次没有扣 Credit。";
+    const message = typeof payload?.error === "string" && payload.error.includes("相册") ? payload.error : "相册保存失败，这次没有扣金币。";
     return json({ error: message }, stored.status === 401 || stored.status === 403 || stored.status === 429 ? stored.status : 502);
   }
   return payload.url;
@@ -162,7 +162,7 @@ export async function krea2Generate(request: Request, env: Env): Promise<Respons
     image = new Response(still.bytes, { headers: { "Content-Type": still.mime, "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" } });
   } catch {
     await settleStudioStill(request, env, hold, "release");
-    return json({ error: "出图没有完成，这次没有扣 Credit。" }, 502);
+    return json({ error: "出图没有完成，这次没有扣金币。" }, 502);
   }
   if (!image.ok || !image.headers.get("Content-Type")?.startsWith("image/")) {
     await settleStudioStill(request, env, hold, "release");
@@ -177,7 +177,7 @@ export async function krea2Generate(request: Request, env: Env): Promise<Respons
     const charged = await settleStudioStill(request, env, hold, "charge");
     if (!charged) {
       await settleStudioStill(request, env, hold, "release");
-      return json({ error: "扣费没有完成，这次没有扣 Credit。" }, 502);
+      return json({ error: "扣费没有完成，这次没有扣金币。" }, 502);
     }
     return json({ url: stored, chargedCredits: STUDIO_STILL_CREDITS });
   }

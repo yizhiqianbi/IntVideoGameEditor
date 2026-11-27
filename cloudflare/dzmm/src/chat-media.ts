@@ -697,7 +697,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     if (!current || current.role !== "assistant" || chatMediaSourceHash(current.content, kind) !== sourceHash) throw new ApiError(409,"消息已更新，请重新保存后再生成。");
     const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
     const cost = CREDIT_COST[kind];
-    if (!wallet || Number(wallet.balance) < cost) throw new ApiError(402,`当前可用 Credit 不足，${kind === "audio" ? "语音" : "剧情图片"}每次约需 ${cost} Credit。`,{ code: "insufficient_credits", requiredCredits: cost, availableCredits: Number(wallet?.balance ?? 0) });
+    if (!wallet || Number(wallet.balance) < cost) throw new ApiError(402,`当前金币不足，${kind === "audio" ? "语音" : "剧情图片"}每次约需 ${cost} 金币。`,{ code: "insufficient_credits", requiredCredits: cost, availableCredits: Number(wallet?.balance ?? 0) });
     throw new ApiError(429,kind === "audio" ? "今日语音额度已用完，明天再试。" : "今日剧情图片额度已用完，明天再试。",{ limits:activeLimits,usage:await usage(env,user.id,now) });
   }
   let putAttempted = false, committed = false;

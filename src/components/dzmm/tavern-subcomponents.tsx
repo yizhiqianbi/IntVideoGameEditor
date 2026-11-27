@@ -343,6 +343,7 @@ export function TavernAppRail({
   navigate,
   avatar,
   accountLabel,
+  firstRechargeHalfAvailable = false,
   copy,
   t,
 }: {
@@ -353,6 +354,7 @@ export function TavernAppRail({
   navigate: (target: TavernView) => void;
   avatar?: string;
   accountLabel: string;
+  firstRechargeHalfAvailable?: boolean;
   copy: { mainNav: string; brandSquare: string; socialLinks: string; telegramJoin: string };
   t: (key: "utilityExploreApps" | "navTemplates" | "navTasks" | "utilityDailyCheckIn" | "navInvite" | "utilityRechargeVip" | "utilityInstallApp") => string;
 }) {
@@ -393,7 +395,7 @@ export function TavernAppRail({
         </a>
         {XUMENG_PAYMENTS_ENABLED && (
           <a href="#recharge" className={`${s.railRecharge} ${view === "recharge" || view === "vip" ? s.navActive : ""}`} onClick={(event) => { event.preventDefault(); navigate("recharge"); }}>
-            <Icon name="wallet" size={18} /><span>{t("utilityRechargeVip")}</span><em className={s.railPromoTag}>5折</em>
+            <Icon name="wallet" size={18} /><span>{t("utilityRechargeVip")}</span>{firstRechargeHalfAvailable && <em className={s.railPromoTag}>首充5折</em>}
           </a>
         )}
       </nav>

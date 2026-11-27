@@ -247,7 +247,7 @@ export async function handleZpayPayments(request: Request, env: Env, suppliedUse
     const linked = creditBillingConfig(env).enabled;
     return json({ provider: "zpay", enabled, mode: "live", testMode: false, modelBillingLinked: linked, currency: "cny", packages: PACKAGES, methods: methods(env),
       note: !paymentCollectionEnabled(env) ? PAYMENT_PAUSED_NOTE
-        : enabled ? `支付宝 / 微信正式支付，将以人民币真实扣款；充值 Credit 与任务、邀请奖励进入同一聊天余额，${linked ? "用于模型对话与剧情记忆的 Token 费用" : "目前不抵扣模型费用"}。退款需联系管理员人工处理并核对结果。`
+        : enabled ? `支付宝 / 微信正式支付，将以人民币真实扣款；充值金币 与任务、邀请奖励进入同一聊天余额，${linked ? "用于模型对话与剧情记忆的 Token 费用" : "目前不抵扣模型费用"}。退款需联系管理员人工处理并核对结果。`
           : "支付宝 / 微信充值尚未开通，正在等待支付通道配置完成。退款需联系管理员人工处理并核对结果。" });
   }
   const user = suppliedUser ?? await requireUser(request, env);

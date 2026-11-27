@@ -117,7 +117,7 @@ async function create(request:Request,env:GenerationEnv,user:UserRecord,now:numb
   ]);
   const row=result[1].results[0] as unknown as JobRow|undefined;
   if(!row){await session(request,env,user,now);if(parsed.reference)await findReference(env,user.id,parsed.reference.id,now);const count=await env.DB.prepare(`SELECT COUNT(*) AS n FROM generation_jobs WHERE user_id=? AND finalized_at IS NULL AND expires_at>${SQL_NOW}`).bind(user.id).first<{n:number}>();
-    throw new ApiError(count&&count.n>=5?429:402,count&&count.n>=5?'正在生成的任务过多，请先等待完成。':'可用 Credit 不足，请充值后重试。',{code:count&&count.n>=5?'generation_limit':'insufficient_credits',maxCredits:policy.maxCredits});}
+    throw new ApiError(count&&count.n>=5?429:402,count&&count.n>=5?'正在生成的任务过多，请先等待完成。':'金币不足，请充值后重试。',{code:count&&count.n>=5?'generation_limit':'insufficient_credits',maxCredits:policy.maxCredits});}
   if(row.request_fingerprint!==parsed.fingerprint)throw new ApiError(409,'该请求编号已用于另一条生成请求。');
   if(result[0].meta.changes!==1)return json({accountId:user.id,job:publicJob(row)});
   try{

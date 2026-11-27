@@ -205,14 +205,14 @@ export async function quoteCreditUsage(request: Request, env: Env, user: UserRec
   if (!available) throw new ApiError(401, "账户或登录状态已失效，请重新登录。");
   const config = creditBillingConfig(env);
   if (!config.enabled) {
-    if (env.CREDIT_BILLING_ENABLED === "true") throw new ApiError(503, "模型 Credit 费率配置无效，请稍后重试。");
+    if (env.CREDIT_BILLING_ENABLED === "true") throw new ApiError(503, "模型 金币费率配置无效，请稍后重试。");
     return { enabled: false as const };
   }
-  if (input.operation !== "chat" && (user.isGuest || available.is_guest === 1)) throw new ApiError(403, "请登录正式账户使用充值 Credit。");
+  if (input.operation !== "chat" && (user.isGuest || available.is_guest === 1)) throw new ApiError(403, "请登录正式账户使用充值金币。");
   if (!config.revision || !config.inputCreditsPer1000 || !config.outputCreditsPer1000)
-    throw new ApiError(503, "模型 Credit 费率配置无效，请稍后重试。");
+    throw new ApiError(503, "模型 金币费率配置无效，请稍后重试。");
   if (!integer(available.balance, 0, Number.MAX_SAFE_INTEGER) || !integer(available.reserved_credits, 0, Number.MAX_SAFE_INTEGER))
-    throw new ApiError(503, "账户 Credit 余额需要核对，请联系管理员。");
+    throw new ApiError(503, "账户 金币余额需要核对，请联系管理员。");
   const costPolicy = requestCostPolicy(config, input.model, input.operation);
   const required = (maxOutputTokens: number) => costPolicy
     ? reserveDzmmCreditCost(input.inputTokenUpperBound, maxOutputTokens, costPolicy)
@@ -226,8 +226,8 @@ export async function quoteCreditUsage(request: Request, env: Env, user: UserRec
     return { enabled: true as const, maxOutputTokens: input.maxOutputTokens, requiredCredits: available.balance, availableCredits: available.balance };
   }
   if (minimumCredits > available.balance) {
-    const held = available.reserved_credits ? `；其中 ${available.reserved_credits} Credit 正被其他请求预留，结算后会返还未使用部分` : "";
-    throw new ApiError(402, `当前可用 ${available.balance} Credit，本次上下文和最短回复至少需要 ${minimumCredits} Credit${held}。请缩短上下文或充值后重试。`,
+    const held = available.reserved_credits ? `；其中 ${available.reserved_credits} 金币 正被其他请求预留，结算后会返还未使用部分` : "";
+    throw new ApiError(402, `当前可用 ${available.balance} 金币，本次上下文和最短回复至少需要 ${minimumCredits} 金币${held}。请缩短上下文或充值后重试。`,
       { code: "insufficient_credits", availableCredits: available.balance, requiredCredits: minimumCredits, reservedCredits: available.reserved_credits });
   }
   // Billing charges are monotone but rounded together. Binary search the exact
@@ -247,7 +247,7 @@ export async function reserveCreditUsage(request: Request, env: Env, user: UserR
   const input = requestValue(value), now = nowValue(options), token = tokenFrom(request);
   if (!token) throw new ApiError(401, "登录状态已失效，请重新登录。");
   const account = await currentBillingAccount(request,env,user.id,now);
-  if (account.is_guest===1) throw new ApiError(403, "请登录正式账户使用充值 Credit。");
+  if (account.is_guest===1) throw new ApiError(403, "请登录正式账户使用充值金币。");
   const exemptPrevious=await env.DB.prepare('SELECT * FROM super_generation_usage WHERE user_id=? AND request_id=?').bind(user.id,input.requestId).first<UsageRow>();
   if(exemptPrevious) {
     if(!sameRequest(exemptPrevious,input))throw new ApiError(409,"该请求编号已用于另一条模型请求。");
@@ -266,7 +266,7 @@ export async function reserveCreditUsage(request: Request, env: Env, user: UserR
   }
   const config = creditBillingConfig(env);
   if (!config.enabled || !config.revision || !config.inputCreditsPer1000 || !config.outputCreditsPer1000)
-    throw new ApiError(503, "模型 Credit 计费尚未启用。");
+    throw new ApiError(503, "模型 金币计费尚未启用。");
   const costPolicy = requestCostPolicy(config, input.model, input.operation);
   const estimated = costPolicy ? reserveDzmmCreditCost(input.inputTokenUpperBound, input.maxOutputTokens, costPolicy)
     : chargeDzmmCreditTokens(input.inputTokenUpperBound, input.maxOutputTokens, config.inputCreditsPer1000, config.outputCreditsPer1000);
@@ -292,7 +292,7 @@ export async function reserveCreditUsage(request: Request, env: Env, user: UserR
   ]);
   const row = results[3].results[0] as unknown as UsageRow | undefined;
   if (!results[4].results.length) throw new ApiError(401, "账户或登录状态已失效，请重新登录。");
-  if (!row) throw new ApiError(402, "可用 Credit 不足，请充值后重试。", { code: "insufficient_credits" });
+  if (!row) throw new ApiError(402, "金币不足，请充值后重试。", { code: "insufficient_credits" });
   if (!sameRequest(row, input)) throw new ApiError(409, "该请求编号已用于另一条模型请求。");
   const created = results[2].meta.changes === 1;
   return { receipt: creditUsageReceipt(row), created, ...(created ? { claimToken } : {}) };

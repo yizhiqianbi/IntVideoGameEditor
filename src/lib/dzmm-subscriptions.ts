@@ -219,7 +219,7 @@ async function request(path: string, body?: unknown, signal?: AbortSignal): Prom
     const value: unknown = await response.json().catch(() => null);
     controller.signal.throwIfAborted();
     if (!response.ok) throw new DzmmPaymentError(response.status, record(value) && text(value.error, 500) ? value.error
-      : response.status === 401 ? "请登录后查看订阅或领取 Credit。" : "订阅请求失败，请稍后重试。");
+      : response.status === 401 ? "请登录后查看订阅或领取金币。" : "订阅请求失败，请稍后重试。");
     return value;
   } catch (error) {
     if (signal?.aborted || error instanceof DzmmPaymentError) throw error;

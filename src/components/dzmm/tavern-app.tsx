@@ -44,6 +44,7 @@ import { DZMM_CONVERSATION_BACKUP_MAX_BYTES, parseDzmmConversationBackup } from 
 import { filterDzmmConversations, filterDzmmSearchRows } from "@/lib/dzmm-conversation-search";
 import { createDzmmUnavailableConversationBackup, parseDzmmUnavailableConversationBackup } from "@/lib/dzmm-unavailable-conversation-backup";
 import { fetchDzmmBillingConfig, type DzmmBillingConfig } from "@/lib/dzmm-billing-client";
+import { fetchDzmmPaymentWallet } from "@/lib/dzmm-payments";
 import { createDzmmStoryMemory, matchesDzmmStoryMemory, type DzmmStoryState } from "@/lib/dzmm-story-memory";
 import { appendDzmmWorldSnapshot, createDzmmWorldState,
   pruneDzmmWorldJournal, recordDzmmWorldModeChange, resolveDzmmWorldRuntime,
@@ -458,6 +459,29 @@ export default function TavernApp() {
   const [lastFailedTurn, setLastFailedTurn] = useState<{ conversationId: string; regenerate: boolean; explicitText?: string } | null>(null);
   const [billingConfig, setBillingConfig] = useState<DzmmBillingConfig | null>(null);
   const [billingRefresh, setBillingRefresh] = useState(0);
+  const [firstRechargeHalfAvailable, setFirstRechargeHalfAvailable] = useState(false);
+  useEffect(() => {
+    if (!XUMENG_PAYMENTS_ENABLED || !cloud.user) {
+      setFirstRechargeHalfAvailable(false);
+      return;
+    }
+    if (cloud.user.isGuest) {
+      setFirstRechargeHalfAvailable(true);
+      return;
+    }
+    const accountId = cloud.user.id;
+    const abort = new AbortController();
+    void fetchDzmmPaymentWallet(abort.signal)
+      .then((wallet) => {
+        if (!abort.signal.aborted && wallet.accountId === accountId) {
+          setFirstRechargeHalfAvailable(wallet.firstRechargeHalfAvailable === true);
+        }
+      })
+      .catch(() => {
+        if (!abort.signal.aborted) setFirstRechargeHalfAvailable(false);
+      });
+    return () => abort.abort();
+  }, [cloud.user?.id, cloud.user?.isGuest, billingRefresh]);
   const [checkinPrompt, setCheckinPrompt] = useState(false);
   const [chatBalance, setChatBalance] = useState<number | null>(null);
   const [rechargeNeeded, setRechargeNeeded] = useState(false);
@@ -3290,6 +3314,7 @@ export default function TavernApp() {
         navigate={navigate}
         avatar={state.preferences.avatar}
         accountLabel={accountLabel}
+        firstRechargeHalfAvailable={firstRechargeHalfAvailable}
         copy={copy}
         t={t}
       />
@@ -3408,7 +3433,7 @@ export default function TavernApp() {
         </div>
         <div className={s.topEnd}>
           {XUMENG_PAYMENTS_ENABLED && <a href="#vip" className={s.vipEntry} aria-label={t("vipCenter")} onClick={event => { event.preventDefault(); navigate("vip"); }}>
-            <Icon name="crown" size={15} /><span>{copy.planEntry}</span><em className={s.vipEntryTag}>首充5折</em>
+            <Icon name="crown" size={15} /><span>{copy.planEntry}</span>
           </a>}
           <button className={s.account} onClick={() => navigate("profile")}>
             <span className={s.avatar}><AccountAvatar src={state.preferences.avatar} className={s.avatarImage} /></span>
@@ -4329,7 +4354,7 @@ export default function TavernApp() {
       {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} locale={locale} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {view === "app" && !detail && <InstallApp locale={locale} onBack={() => navigate("characters")} />}
       {view === "checkin" && !detail && (cloud.user ? <DailyCheckin locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onBack={() => navigate("tasks")} onTasks={() => navigate("tasks")} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
-      {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} onCheckin={() => navigate("checkin")} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
+      {(view === "recharge" || view === "vip") && !detail && (cloud.user ? <Recharge locale={locale} key={`${cloud.user.id}:${cloud.user.isGuest}`} focusVip={view === "vip"} userId={cloud.user.id} isGuest={cloud.user.isGuest} onRequireAccount={() => openAccount("login")} onBack={() => navigate("profile")} onCheckin={() => navigate("checkin")} onWalletChanged={(wallet) => { if (wallet.accountId === cloud.user?.id) setFirstRechargeHalfAvailable(wallet.firstRechargeHalfAvailable === true); }} returnOrderId={paymentReturn?.get("payment_order") || undefined} cancelled={paymentReturn?.get("payment") === "cancel"} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {view === "studio" && !detail && <CreatorCenter locale={locale} key={profileUser.id} section={creatorSection} user={cloud.user} drafts={state.custom} onCreate={() => openStudio("new")} onEdit={openStudio} onCharacter={showDetail} onRequireAccount={() => openAccount("register")} onCatalogChanged={cloud.refreshCatalog} onRoute={openCreatorRoute} />}
       {(view === "live" || view === "voice") && !detail && performanceLibrary.error && <div className={s.error} role="alert">{performanceLibrary.error}<button onClick={performanceLibrary.refresh}>重试加载人物</button></div>}
       {view === "live" && !detail && !XUMENG_CALLS_ENABLED && <main className={s.profileEmpty}><h1>{copy.callsClosed}</h1><p>{XUMENG_CALLS_LOCKED_MESSAGE}</p><button className={s.secondary} onClick={() => navigate("characters")}>{copy.backToRoles}</button></main>}

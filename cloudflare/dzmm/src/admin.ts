@@ -129,7 +129,7 @@ async function mutate(request:Request,env:Env,user:UserRecord,target:string,kind
   const body=await readJson(request,2048),keys=['accountId','requestId','reason',kind==='credits'?'delta':'role'];
   if(Object.keys(body).some(key=>!keys.includes(key))||body.accountId!==user.id||typeof body.requestId!=='string'||!UUID.test(body.requestId)
     ||typeof body.reason!=='string'||!body.reason.trim()||body.reason.length>200||/[\0\r\n]/.test(body.reason))throw new ApiError(400,'请提供当前管理账户、请求编号和操作理由。');
-  if(kind==='credits'&&(!Number.isSafeInteger(body.delta)||body.delta===0||Math.abs(Number(body.delta))>1000000))throw new ApiError(400,'每次调整必须是非零整数，范围为正负 1,000,000 Credit。');
+  if(kind==='credits'&&(!Number.isSafeInteger(body.delta)||body.delta===0||Math.abs(Number(body.delta))>1000000))throw new ApiError(400,'每次调整必须是非零整数，范围为正负 1,000,000 金币。');
   if(kind==='role'&&(body.role!=='user'&&body.role!=='super'))throw new ApiError(400,'账户角色无效。');
   if(kind==='role'&&body.role==='user'&&target===user.id)throw new ApiError(409,'不能撤销自己当前使用的 Super 权限。');
   const requestId=body.requestId.toLowerCase(),reason=body.reason.trim(),action=kind==='credits'?'credit_adjustment':'role_change',hash=digest(tokenFrom(request)!);
@@ -156,7 +156,7 @@ async function mutate(request:Request,env:Env,user:UserRecord,target:string,kind
   if(!audit) {
     const actor=await requireUser(request,env);if(actor.isGuest||actor.role!=='super')throw new ApiError(403,'Super 权限已改变，请重新登录。');
     const targetRow=await env.DB.prepare('SELECT is_guest FROM users WHERE id=?').bind(target).first<{is_guest:number}>();
-    if(!targetRow)throw new ApiError(404,'账户不存在。');if(targetRow.is_guest)throw new ApiError(400,'游客账户不能调整 Credit 或提升权限。');
+    if(!targetRow)throw new ApiError(404,'账户不存在。');if(targetRow.is_guest)throw new ApiError(400,'游客账户不能调整金币 或提升权限。');
     throw new ApiError(409,kind==='credits'?'可用余额不足以完成扣减，或累计调整超出限制。':'必须保留至少一个 Super 账户。');
   }
   if(!matches(audit))throw new ApiError(409,'该管理请求编号已用于其他操作。');

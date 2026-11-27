@@ -105,10 +105,10 @@ async function reserve(request: Request, env: Env, user: UserRecord, now: number
   await sessionHash(request, env, user, now);
   const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
   if (!wallet || Number(wallet.balance) < priced.credits) {
-    throw new ApiError(402, `可用 Credit 不足，这次需要 ${priced.credits} Credit。`, { code: "insufficient_credits", requiredCredits: priced.credits });
+    throw new ApiError(402, `金币不足，这次需要 ${priced.credits} 金币。`, { code: "insufficient_credits", requiredCredits: priced.credits });
   }
   const open = await env.DB.prepare(`SELECT COUNT(*) AS n FROM canvas_generation_charges WHERE user_id=? AND status='reserved' AND expires_at>?`).bind(user.id, now).first<{ n: number }>();
-  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "正在生成的任务过多，请先等待完成。" : `可用 Credit 不足，这次需要 ${priced.credits} Credit。`);
+  throw new ApiError(open && open.n >= HOLD_LIMIT ? 429 : 402, open && open.n >= HOLD_LIMIT ? "正在生成的任务过多，请先等待完成。" : `金币不足，这次需要 ${priced.credits} 金币。`);
 }
 
 async function settle(request: Request, env: Env, user: UserRecord, now: number, id: string, outcome: "charged" | "released"): Promise<Response> {
@@ -124,7 +124,7 @@ async function settle(request: Request, env: Env, user: UserRecord, now: number,
   const row = await env.DB.prepare("SELECT id,status,credits,claim_hash,kind FROM canvas_generation_charges WHERE id=? AND user_id=?").bind(id, user.id).first<ChargeRow>();
   if (!row || row.claim_hash !== claim) throw new ApiError(404, "生成扣费记录不存在。");
   if (updated.meta.changes === 1 || row.status === outcome) return json(receipt(user.id, { ...row, status: outcome }));
-  throw new ApiError(409, outcome === "charged" ? "这次预留已经失效，没有扣 Credit。" : "这次预留不能再退回。");
+  throw new ApiError(409, outcome === "charged" ? "这次预留已经失效，没有扣金币。" : "这次预留不能再退回。");
 }
 
 export async function handleCanvasGenerationBilling(request: Request, env: Env, user: UserRecord, now: number): Promise<Response | null> {

@@ -9,7 +9,7 @@ import type { DzmmTaskCenter, DzmmTaskClaim, DzmmTaskClaimResult, DzmmTaskId } f
 const DAY = 24 * 60 * 60 * 1000;
 const REWARD_VALIDITY = 30 * DAY;
 const TASKS: Array<{ id: DzmmTaskId; title: string; description: string; points: number; target: number }> = [
-  { id: "daily_checkin", title: "每日签到", description: "每天回来签到领取 Credit，北京时间 0 点重置。", points: 50, target: 1 },
+  { id: "daily_checkin", title: "每日签到", description: "每天回来签到领取金币，北京时间 0 点重置。", points: 50, target: 1 },
   { id: "first_conversation", title: "和角色说第一句话", description: "选一个喜欢的角色，发送第一句话并保存对话。", points: 5, target: 1 },
   { id: "publish_character", title: "发布你的第一个角色", description: "创建一个原创角色，审核通过并上架后领取奖励。", points: 20, target: 1 },
   { id: "follow_authors", title: "关注五位作者", description: "在角色广场关注 5 位作者，解锁更多故事。", points: 5, target: 5 },
@@ -68,10 +68,10 @@ export async function readTaskCenter(env: Env, user: UserRecord, now = Date.now(
   const rewardStats = result[2].results[0] as Record<string, number | null>;
   const wallet = result[4].results[0] as { balance: number } | undefined;
   if (!wallet || !Number.isSafeInteger(Number(wallet.balance)) || Number(wallet.balance) < 0)
-    throw new ApiError(503, "Credit 钱包余额需要核对，请稍后重试。");
+    throw new ApiError(503, "金币钱包余额需要核对，请稍后重试。");
   return {
     accountId: user.id, isGuest, serverTime: now, resetAt: nextBeijingMidnight(now), timezone: "Asia/Shanghai",
-    pointsKind: "credit", modelBillingLinked: true, rewardUnit: "Credit", note: "任务和邀请奖励会直接计入聊天 Credit 钱包，可用于聊天与记忆；Credit 到账后长期有效。",
+    pointsKind: "credit", modelBillingLinked: true, rewardUnit: "Credit", note: "任务和邀请奖励会直接计入聊天金币钱包，可用于聊天与记忆；金币到账后长期有效。",
     points: { balance: Number(wallet.balance), totalEarned: Number(rewardStats.total_earned), expired: Number(rewardStats.expired),
       expiringSoon: Number(rewardStats.expiring_soon), earliestExpiryAt: rewardStats.earliest_expiry_at === null ? null : Number(rewardStats.earliest_expiry_at) },
     checkin,
@@ -105,7 +105,7 @@ export async function handleTasks(request: Request, env: Env, user: UserRecord):
   const body = await readJson(request, 2048);
   if (typeof body.accountId !== "string" || body.accountId !== user.id) throw new ApiError(401, "当前账户已切换，请刷新任务中心后重试。");
   if (Object.keys(body).some(key => key !== "accountId")) throw new ApiError(400, "任务进度、奖励与领取日期只能由服务端确定。");
-  if (user.isGuest) throw new ApiError(403, "请先注册或登录，再领取 Credit 奖励。");
+  if (user.isGuest) throw new ApiError(403, "请先注册或登录，再领取 金币奖励。");
   await rateLimit(request, env, "tasks-claim-account", 90, user.id);
   await rateLimit(request, env, "tasks-claim-ip", 300);
   const taskId = match[1] as DzmmTaskId;
@@ -132,7 +132,7 @@ export async function handleTasks(request: Request, env: Env, user: UserRecord):
     .bind(user.id, taskId, claimPeriod).first<ClaimRow>();
   if (!inserted) {
     if (claimed) throw new ApiError(409, "这项任务奖励已领取。", { center });
-    if (center.isGuest) throw new ApiError(403, "请先注册或登录，再领取 Credit 奖励。");
+    if (center.isGuest) throw new ApiError(403, "请先注册或登录，再领取 金币奖励。");
     throw new ApiError(400, "任务条件尚未完成，请先完成任务再领取奖励。", { center });
   }
   if (!claimed) throw new ApiError(409, "任务状态已改变，请刷新任务中心后重试。");

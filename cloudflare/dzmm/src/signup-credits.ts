@@ -24,7 +24,7 @@ export function publicSignupCreditConfig() {
     includesAutomaticReplySuggestions: true,
     oncePerAccount: true,
     billingRule: "actual_cost_x3" as const,
-    note: `注册后即可开始游玩，注册一次性赠送 ${NEW_SIGNUP_CREDITS} Credit。实际可用轮数受模型、上下文和回复长度影响；预留并非实际扣费，未使用部分返还，按实际成本的三倍计费。`,
+    note: `注册后即可开始游玩，注册一次性赠送 ${NEW_SIGNUP_CREDITS} 金币。实际可用轮数受模型、上下文和回复长度影响；预留并非实际扣费，未使用部分返还，按实际成本的三倍计费。`,
   };
 }
 

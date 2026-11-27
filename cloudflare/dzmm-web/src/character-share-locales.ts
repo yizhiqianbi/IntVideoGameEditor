@@ -141,7 +141,7 @@ export const CHARACTER_LOCALE_COPY: Readonly<Record<XumengLocale, CharacterLocal
       },
       {
         question: `Are my private chats with ${name} visible on this public page?`,
-        answer: `No. Public character pages only display the character summary, tags, and cover artwork. Private chats, account data, and Credit balances remain strictly private.`,
+        answer: `No. Public character pages only display the character summary, tags, and cover artwork. Private chats, account data, and Coin balances remain strictly private.`,
       },
     ],
   },

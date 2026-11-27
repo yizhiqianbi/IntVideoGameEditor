@@ -173,7 +173,7 @@ async function create(env: Env, auth: Auth, body: Record<string, unknown>) {
   const requestId = typeof body.requestId === "string" ? uid(body.requestId) : uid("");
   const title = text(body.title, "标题", 80), description = text(body.description, "任务说明", 4000), requirements = text(body.requirements, "验收要求", 2000);
   if (typeof body.category !== "string" || !CATEGORIES.has(body.category)) throw new ApiError(400, "请选择任务分类。");
-  if (![5, 10, 20].includes(Number(body.rewardPoints)) || typeof body.rewardPoints !== "number") throw new ApiError(400, "任务奖励仅支持 5、10、20 Credit。");
+  if (![5, 10, 20].includes(Number(body.rewardPoints)) || typeof body.rewardPoints !== "number") throw new ApiError(400, "任务奖励仅支持 5、10、20 金币。");
   if (!Number.isSafeInteger(body.slots) || Number(body.slots) < 1 || Number(body.slots) > 20) throw new ApiError(400, "任务名额需要 1 至 20 个。");
   if (!Number.isSafeInteger(body.deadlineAt)) throw new ApiError(400, "任务期限无效。");
   let instructions: TaskMarketInstructions;

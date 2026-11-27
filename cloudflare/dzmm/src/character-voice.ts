@@ -134,7 +134,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     if (winner?.status === "ready") return readyResponse(env, winner, now);
     if (winner?.status === "pending") throw new ApiError(409, "这段台词正在朗读，请稍后重试。", { retryAfter: 3 });
     const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
-    if (!wallet || Number(wallet.balance) < VOICE_CREDITS) throw new ApiError(402, "当前可用 Credit 不足，角色朗读需要 20 Credit。", { code: "insufficient_credits", requiredCredits: VOICE_CREDITS, availableCredits: Number(wallet?.balance ?? 0) });
+    if (!wallet || Number(wallet.balance) < VOICE_CREDITS) throw new ApiError(402, "当前金币不足，角色朗读需要 20 金币。", { code: "insufficient_credits", requiredCredits: VOICE_CREDITS, availableCredits: Number(wallet?.balance ?? 0) });
     const rights = await chatMediaMembership(env, user, now);
     if (!rights.active && !rights.adminPreview) throw new ApiError(403, "角色朗读需要有效 VIP 会员。");
     throw new ApiError(429, "今日语音额度已用完，明天再试。", { code: "voice_daily_quota", usage: await chatMediaUsage(env, user.id, now) });

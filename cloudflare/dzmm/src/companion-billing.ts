@@ -85,7 +85,7 @@ export async function companionReserve(env: Env, input: unknown) {
   const row = result[1].results[0] as unknown as CompanionReceiptRow | undefined;
   if (!row) {
     const wallet = result[2].results[0] as { balance: number } | undefined;
-    throw new ApiError(402, `当前可用 ${wallet?.balance ?? 0} Credit，本次需要 2 Credit。`, { code: "insufficient_credits", availableCredits: wallet?.balance ?? 0, requiredCredits: 2 });
+    throw new ApiError(402, `当前可用 ${wallet?.balance ?? 0} 金币，本次需要 2 金币。`, { code: "insufficient_credits", availableCredits: wallet?.balance ?? 0, requiredCredits: 2 });
   }
   const created = row.id === id;
   return { enabled: true as const, created, receipt: receipt(row), ...(created ? { claimToken } : {}) };
@@ -123,7 +123,7 @@ export async function companionGet(env: Env, input: unknown) {
 }
 
 export async function companionOverview(env: Env, request: Request, user: UserRecord) {
-  if (user.isGuest) throw new ApiError(403, "请登录正式账户查看女友聊天 Credit。");
+  if (user.isGuest) throw new ApiError(403, "请登录正式账户查看女友聊天金币。");
   await expire(env, user.id);
   const results = await env.DB.batch([
     env.DB.prepare("SELECT balance,reserved_credits FROM credit_usage_balances WHERE user_id=?").bind(user.id),

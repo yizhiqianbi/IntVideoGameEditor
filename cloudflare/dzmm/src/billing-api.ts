@@ -9,7 +9,7 @@ export async function handleBillingApi(request: Request, env: Env, suppliedUser?
   if (request.method !== "GET") throw new ApiError(405, "计费查询仅支持 GET。");
   if (path === "/v1/billing/config") return json(publicCreditBillingConfig(env));
   const user = suppliedUser ?? await requireUser(request, env);
-  if (user.isGuest) throw new ApiError(403, "请登录正式账户查看 Credit 消费记录。");
+  if (user.isGuest) throw new ApiError(403, "请登录正式账户查看 金币消费记录。");
   if ([...url.searchParams.keys()].some(key => key !== "limit" && key !== "cursor")) throw new ApiError(400, "消费记录查询参数无效。");
   const sourceLimit = url.searchParams.get("limit") ?? "20", limit = Number(sourceLimit);
   if (!/^\d{1,2}$/.test(sourceLimit) || limit < 1 || limit > 50) throw new ApiError(400, "每页记录数量应在 1 至 50 之间。");

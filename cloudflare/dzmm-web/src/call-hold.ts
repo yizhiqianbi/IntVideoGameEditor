@@ -25,7 +25,7 @@ export async function reserveCall(env: { BACKEND: Backend }, request: Request, k
   const payload = await upstream.json().catch(() => null) as { error?: unknown; reservationId?: unknown; claimToken?: unknown; credits?: unknown } | null;
   if (upstream.status === 401) return failure(401, "请先登录正式账号，再使用通话。");
   if (upstream.status === 403) return failure(403, "请先登录正式账号，再使用通话。");
-  if (upstream.status === 402) return failure(402, typeof payload?.error === "string" ? payload.error : `可用 Credit 不足，语音和视频通话需要至少 ${CALL_CREDITS} Credit。`);
+  if (upstream.status === 402) return failure(402, typeof payload?.error === "string" ? payload.error : `金币不足，语音和视频通话需要至少 ${CALL_CREDITS} 金币。`);
   if (upstream.status === 429) return failure(429, typeof payload?.error === "string" ? payload.error : "已有一通预扣中的通话，请先结束再拨。");
   if (!upstream.ok || payload?.credits !== CALL_CREDITS || typeof payload.reservationId !== "string" || typeof payload.claimToken !== "string") {
     return failure(502, "扣费没有完成，通话没有接通。");
