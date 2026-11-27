@@ -33,9 +33,11 @@ const scripts = html => [...html.matchAll(/<script\s+type=["']application\/ld\+j
 });
 const hasText = (html, pattern) => pattern.test(html);
 
-const [home, llms, llmsFull, robots, sitemap, character, about, faq, characters, feed] = await Promise.all([
-  get("/"), get("/llms.txt"), get("/llms-full.txt"), get("/robots.txt"), get("/sitemap.xml"), get(characterPath),
-  get("/about"), get("/faq"), get("/characters"), get("/feed.xml"),
+const [home, llms, llmsFull, robots, sitemap, character, enCharacter, about, faq, characters, tags, altZh, altEn, feed] = await Promise.all([
+  get("/"), get("/llms.txt"), get("/llms-full.txt"), get("/robots.txt"), get("/sitemap.xml"),
+  get(characterPath), get(`/en${characterPath}`),
+  get("/about"), get("/faq"), get("/characters"), get("/tags"),
+  get("/alternatives/character-ai"), get("/en/alternatives/character-ai"), get("/feed.xml"),
 ]);
 const homeLd = scripts(home.text);
 const characterLd = scripts(character.text);
@@ -44,23 +46,25 @@ const mainEntities = characterLd.flatMap(node => node?.mainEntity ? [node.mainEn
 const sitemapLocs = [...sitemap.text.matchAll(/<loc>([^<]+)<\/loc>/gi)].map(match => match[1]);
 const seoChecks = {
   html: home.status === 200 && /text\/html/i.test(home.contentType),
-  title: (() => { const t = home.text.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim() ?? ""; return t.length >= 10 && t.length <= 65; })(),
+  title: (() => { const t = home.text.match(/<title>([^<]+)<\/title>/i)?.[1]?.trim() ?? ""; return t.length >= 10 && t.length <= 65 && !/成人内容|adult content/i.test(t); })(),
   description: meta(home.text, "description").length >= 40 && meta(home.text, "description").length <= 180,
   canonical: link(home.text, "canonical") === "https://xumengchat.top/",
   robotsIndex: /index\s*,\s*follow/i.test(meta(home.text, "robots")),
-  openGraph: ["og:title", "og:description", "og:type", "og:url", "og:image"].every(key => Boolean(meta(home.text, key, "property"))),
-  twitter: ["twitter:card", "twitter:title", "twitter:description", "twitter:image"].every(key => Boolean(meta(home.text, key))),
+  openGraph: ["og:title", "og:description", "og:type", "og:url", "og:image"].every(key => Boolean(meta(home.text, key, "property"))) && meta(home.text, "og:image:width", "property") === "1200",
+  twitterLargeCard: meta(home.text, "twitter:card") === "summary_large_image" && ["twitter:title", "twitter:description", "twitter:image"].every(key => Boolean(meta(home.text, key))),
+  noCompetitorFooterLinks: !/candy\.ai|crushon\.ai|spicychat\.ai|janitorai\.com|https:\/\/character\.ai/i.test(home.text),
   jsonLd: homeLd.length > 0,
   mobileViewport: /<meta\s+name=["']viewport["'][^>]+width=device-width/i.test(home.text),
-  sitemap: sitemap.status === 200 && sitemapLocs.length >= 10 && sitemapLocs.every(url => /^https:\/\//i.test(url)),
+  sitemap: sitemap.status === 200 && sitemapLocs.length >= 40 && sitemapLocs.every(url => /^https:\/\//i.test(url)),
+  localizedCharacterRoute: enCharacter.status === 200 && /lang=["']en-US["']/i.test(enCharacter.text) && /hreflang=["']en["']/i.test(enCharacter.text),
 };
 const pageLocs = [...sitemap.text.matchAll(/<url>\s*<loc>([^<]+)<\/loc>/g)].map(match => match[1]);
 const geoChecks = {
-  semanticHomeCopy: hasText(home.text, /<h1>[^<]*(?:叙梦|角色卡|互动故事)/i) && hasText(home.text, /公开角色/i),
+  semanticHomeCopy: hasText(home.text, /<h1>[^<]*(?:叙梦|角色卡|互动故事)/i) && hasText(home.text, /公开角色/i) && !/<noscript[^>]*id=["']xumeng-public-fallback["']/i.test(home.text),
   homeGraph: ["WebSite", "Organization", "WebApplication", "ItemList"].every(type => graphTypes.includes(type)),
-  characterGraph: character.status === 200 && characterLd.some(node => node?.["@type"] === "WebPage") && mainEntities.some(node => node?.["@type"] === "CreativeWork"),
+  characterGraph: character.status === 200 && characterLd.some(node => node?.["@type"] === "WebPage") && mainEntities.some(node => node?.["@type"] === "CreativeWork") && characterLd.some(node => node?.["@type"] === "FAQPage"),
   characterBreadcrumb: characterLd.some(node => node?.breadcrumb?.["@type"] === "BreadcrumbList"),
-  llmsSource: llms.status === 200 && /text\/plain/i.test(llms.contentType) && /^# 叙梦/m.test(llms.text) && (llms.text.match(/\/c\/[a-z0-9-]+/g) ?? []).length >= 8,
+  llmsSource: llms.status === 200 && /text\/plain/i.test(llms.contentType) && /^# 叙梦/m.test(llms.text) && (llms.text.match(/\/c\/[a-z0-9-]+/g) ?? []).length >= 8 && /SillyTavern/i.test(llms.text),
   llmsFull: llmsFull.status === 200 && /text\/plain/i.test(llmsFull.contentType) && /可引用事实/.test(llmsFull.text) && /不要引用/.test(llmsFull.text),
   privacyBoundary: /私人会话|账号信息|余额|未公开/i.test(llms.text) && !/性虐|性奴|色情/i.test(`${llms.text}\n${llmsFull.text}`),
   crawlBoundary: /Disallow:\s*\/api\//i.test(robots.text) && /Disallow:\s*\/health/i.test(robots.text) && sitemapLocs.every(url => !/\/api\//i.test(url)),
@@ -68,7 +72,9 @@ const geoChecks = {
   aboutPage: about.status === 200 && /<h1>叙梦是什么/.test(about.text) && about.text.includes("application/ld+json"),
   faqPage: faq.status === 200 && /FAQPage/.test(faq.text) && /叙梦是什么？/.test(faq.text),
   characterDirectory: characters.status === 200 && (characters.text.match(/\/c\/xumeng-foreverse-/g) ?? []).length >= 8,
-  sitemapGuides: ["/about", "/faq", "/characters", "/community-guidelines"].every(path => pageLocs.some(url => url.endsWith(path))),
+  tagHubs: tags.status === 200 && /\/tags\/ancient/.test(tags.text),
+  comparisonPages: altZh.status === 200 && altEn.status === 200 && /<table/i.test(altZh.text) && /<table/i.test(altEn.text),
+  sitemapGuides: ["/about", "/faq", "/characters", "/tags", "/alternatives/character-ai", "/en/alternatives/character-ai", "/guides/character-card-worldbook", "/community-guidelines"].every(path => pageLocs.some(url => url.endsWith(path))),
   feed: feed.status === 200 && /application\/atom\+xml/i.test(feed.contentType) && /<feed xmlns="http:\/\/www\.w3\.org\/2005\/Atom">/.test(feed.text),
 };
 const count = checks => Object.values(checks).filter(Boolean).length;
@@ -76,7 +82,22 @@ const result = {
   generatedAt: new Date().toISOString(),
   base,
   characterPath,
-  production: { home: { status: home.status, contentType: home.contentType }, llms: { status: llms.status, contentType: llms.contentType }, llmsFull: { status: llmsFull.status, contentType: llmsFull.contentType }, robots: { status: robots.status, contentType: robots.contentType }, sitemap: { status: sitemap.status, contentType: sitemap.contentType, urlCount: pageLocs.length }, character: { status: character.status, contentType: character.contentType }, about: { status: about.status }, faq: { status: faq.status }, characters: { status: characters.status }, feed: { status: feed.status } },
+  production: {
+    home: { status: home.status, contentType: home.contentType },
+    llms: { status: llms.status, contentType: llms.contentType },
+    llmsFull: { status: llmsFull.status, contentType: llmsFull.contentType },
+    robots: { status: robots.status, contentType: robots.contentType },
+    sitemap: { status: sitemap.status, contentType: sitemap.contentType, urlCount: pageLocs.length },
+    character: { status: character.status, contentType: character.contentType },
+    enCharacter: { status: enCharacter.status, contentType: enCharacter.contentType },
+    about: { status: about.status },
+    faq: { status: faq.status },
+    characters: { status: characters.status },
+    tags: { status: tags.status },
+    altZh: { status: altZh.status },
+    altEn: { status: altEn.status },
+    feed: { status: feed.status },
+  },
   seo: { score: Math.round(count(seoChecks) / Object.keys(seoChecks).length * 100), passed: count(seoChecks), total: Object.keys(seoChecks).length, checks: seoChecks },
   geo: { score: Math.round(count(geoChecks) / Object.keys(geoChecks).length * 100), passed: count(geoChecks), total: Object.keys(geoChecks).length, checks: geoChecks },
   note: "技术分数衡量公开可抓取信号，不代表排名、点击或回答引擎引用已经增长。",

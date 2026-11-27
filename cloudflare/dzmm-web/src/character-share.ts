@@ -1,5 +1,12 @@
 import { xumengPublicTailHtml } from "../../../src/lib/xumeng-public-tail";
+import { XUMENG_LOCALE_OPTIONS, type XumengLocale } from "../../../src/lib/xumeng-i18n";
 import { CHARACTER_SHARE_INDEX, type CharacterShareRecord } from "./character-share-index";
+import {
+  CHARACTER_LOCALE_COPY,
+  FEATURED_CHARACTER_TRANSLATIONS,
+  tagHubForRawTag,
+  type PublicTagHub,
+} from "./character-share-locales";
 import { gtmBodyHtml, gtmHeadHtml } from "./gtm";
 
 const SITE = "https://xumengchat.top";
@@ -26,6 +33,15 @@ export function characterShareLocations(): string[] {
   return CHARACTER_SHARE_INDEX.map(card => `${SITE}/c/${card.id}`);
 }
 
+export function characterSharePathForLocale(id: string, locale: XumengLocale): string {
+  const prefix = CHARACTER_LOCALE_COPY[locale]?.routePrefix ?? "";
+  return `${prefix}/c/${id}`;
+}
+
+export function characterShareUrlForLocale(id: string, locale: XumengLocale): string {
+  return `${SITE}${characterSharePathForLocale(id, locale)}`;
+}
+
 // Keep the answer-engine entrypoint intentionally small and human-curated. It
 // describes only public, general-audience cards and never exposes private
 // conversations, account data, or the full imported card payload.
@@ -40,19 +56,96 @@ const GEO_FEATURED_IDS = [
   "xumeng-foreverse-jiangchiye",
 ] as const;
 
+const SAFE_PUBLIC_FOREVERSE_IDS = [
+  ...GEO_FEATURED_IDS,
+  "xumeng-foreverse-naifuer",
+  "xumeng-foreverse-sunianzhi",
+  "xumeng-foreverse-xuanjing",
+  "xumeng-foreverse-nie-xiaoqian",
+  "xumeng-foreverse-caleb",
+  "xumeng-foreverse-edmund-harrower",
+  "xumeng-foreverse-frankie-doyle",
+  "xumeng-foreverse-redline-salvage",
+  "xumeng-foreverse-rosalind",
+  "xumeng-foreverse-the-lighthouse",
+] as const;
+
 export function characterShareGEOEntries(): readonly CharacterShareRecord[] {
   return GEO_FEATURED_IDS
     .map(id => byId.get(id))
     .filter((card): card is CharacterShareRecord => Boolean(card));
 }
 
-function relatedFeaturedCharacters(card: CharacterShareRecord): readonly CharacterShareRecord[] {
+export function safePublicCatalogEntries(): readonly CharacterShareRecord[] {
+  return SAFE_PUBLIC_FOREVERSE_IDS
+    .map(id => byId.get(id))
+    .filter((card): card is CharacterShareRecord => Boolean(card));
+}
+
+export function charactersForTagHub(hub: PublicTagHub): readonly CharacterShareRecord[] {
+  const targets = new Set(hub.matchTags.map(tag => tag.toLowerCase()));
+  return safePublicCatalogEntries().filter(card =>
+    (card.tags ?? []).some(tag => targets.has(tag.trim().toLowerCase())),
+  );
+}
+
+export function localizedCharacterRecord(card: CharacterShareRecord, locale: XumengLocale): CharacterShareRecord {
+  if (locale === "zh-Hans") return card;
+  const copy = CHARACTER_LOCALE_COPY[locale];
+  const override = FEATURED_CHARACTER_TRANSLATIONS[card.id]?.[locale];
+  if (override) {
+    return {
+      ...card,
+      title: shareTitleForLocale(override.name, locale),
+      description: override.description,
+      tags: override.tags ?? card.tags,
+      // Keep original opening only when locale is Traditional Chinese or card is natively English
+      opening: locale === "zh-Hant" || /^[\x00-\x7f]+$/.test(card.description.slice(0, 32)) ? card.opening : undefined,
+    };
+  }
+  const baseName = stripTitleSuffix(card.title);
+  return {
+    ...card,
+    title: shareTitleForLocale(baseName, locale),
+    tags: card.tags,
+    opening: locale === "zh-Hant" || (locale === "en" && /[A-Za-z]{4,}/.test(card.opening ?? "")) ? card.opening : undefined,
+    ...(copy ? {} : {}),
+  };
+}
+
+function stripTitleSuffix(title: string): string {
+  return title.replace(/\s*-\s*(?:AI角色聊天|AI Character Chat|AIキャラクターチャット|AI 캐릭터 채팅)\s*$/i, "").trim() || title;
+}
+
+function shareTitleForLocale(name: string, locale: XumengLocale): string {
+  const suffix = CHARACTER_LOCALE_COPY[locale]?.titleSuffix ?? SUFFIX;
+  const clean = name.replace(/\s+/g, " ").trim() || CHARACTER_LOCALE_COPY[locale]?.siteName || "叙梦角色";
+  const chars = [...clean];
+  if (clean.endsWith(suffix)) return chars.slice(0, 70).join("");
+  const room = 70 - [...suffix].length;
+  const trimmed = chars.length > room ? `${chars.slice(0, room - 1).join("").trimEnd()}…` : clean;
+  return trimmed + suffix;
+}
+
+function relatedFeaturedCharacters(card: CharacterShareRecord, locale: XumengLocale): readonly CharacterShareRecord[] {
+  const pool = safePublicCatalogEntries().filter(item => item.id !== card.id);
+  if (pool.length === 0) return [];
+  const cardTags = new Set((card.tags ?? []).map(tag => tag.trim().toLowerCase()));
+  const featuredSet = new Set<string>(GEO_FEATURED_IDS);
   const featured = characterShareGEOEntries();
-  if (featured.length <= 1) return [];
-  const currentIndex = featured.findIndex(item => item.id === card.id);
-  const start = currentIndex >= 0 ? currentIndex + 1 : 0;
-  return Array.from({ length: Math.min(3, featured.length - 1) }, (_, offset) => featured[(start + offset) % featured.length])
-    .filter((item): item is CharacterShareRecord => Boolean(item && item.id !== card.id));
+  const currentFeaturedIndex = featured.findIndex(item => item.id === card.id);
+  const nextFeaturedId = currentFeaturedIndex >= 0
+    ? featured[(currentFeaturedIndex + 1) % featured.length]?.id
+    : featured[0]?.id;
+
+  const scored = pool.map((item, idx) => {
+    const overlap = (item.tags ?? []).reduce((sum, tag) => sum + (cardTags.has(tag.trim().toLowerCase()) ? 1 : 0), 0);
+    const nextBoost = item.id === nextFeaturedId ? 100 : 0;
+    const featuredBoost = featuredSet.has(item.id) ? 2 : 0;
+    return { item, score: nextBoost + overlap * 4 + featuredBoost, idx };
+  });
+  scored.sort((a, b) => (b.score - a.score) || (a.idx - b.idx));
+  return scored.slice(0, 6).map(entry => localizedCharacterRecord(entry.item, locale));
 }
 
 export function shareTitle(name: string): string {
@@ -98,8 +191,19 @@ function escapeHtml(value: string): string {
   })[character] ?? character);
 }
 
-function structuredData(card: ShareCard): string {
-  const page = `${SITE}/c/${card.id}`;
+function characterHreflangTags(id: string): string {
+  const links = XUMENG_LOCALE_OPTIONS.map(option => {
+    const copy = CHARACTER_LOCALE_COPY[option.locale];
+    return `<link rel="alternate" hreflang="${copy.hreflang}" href="${characterShareUrlForLocale(id, option.locale)}" />`;
+  });
+  links.push(`<link rel="alternate" hreflang="x-default" href="${characterShareUrlForLocale(id, "zh-Hans")}" />`);
+  return links.join("\n    ");
+}
+
+function structuredData(card: ShareCard, locale: XumengLocale): string {
+  const copy = CHARACTER_LOCALE_COPY[locale];
+  const page = characterShareUrlForLocale(card.id, locale);
+  const keywords = card.tags?.length ? card.tags.join(", ") : undefined;
   return JSON.stringify({
     "@context": "https://schema.org",
     "@type": "WebPage",
@@ -107,13 +211,13 @@ function structuredData(card: ShareCard): string {
     name: card.title,
     description: card.description,
     url: page,
-    inLanguage: "zh-CN",
-    isPartOf: { "@type": "WebSite", "@id": `${SITE}/#website`, name: "叙梦", url: `${SITE}/` },
+    inLanguage: copy.htmlLang,
+    isPartOf: { "@type": "WebSite", "@id": `${SITE}/#website`, name: copy.siteName, url: `${SITE}/` },
     breadcrumb: {
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "叙梦", item: `${SITE}/` },
-        { "@type": "ListItem", position: 2, name: "公开角色", item: `${SITE}/characters` },
+        { "@type": "ListItem", position: 1, name: copy.breadcrumbHome, item: `${SITE}${copy.homePath}` },
+        { "@type": "ListItem", position: 2, name: copy.breadcrumbCharacters, item: `${SITE}${copy.charactersPath}` },
         { "@type": "ListItem", position: 3, name: card.title, item: page },
       ],
     },
@@ -125,32 +229,83 @@ function structuredData(card: ShareCard): string {
       description: card.description,
       image: card.url,
       url: page,
-      inLanguage: "zh-CN",
-      genre: "互动角色卡",
+      inLanguage: copy.htmlLang,
+      genre: copy.genre,
+      ...(keywords ? { keywords } : {}),
+      ...(card.author ? { author: { "@type": "Organization", name: card.author } } : {}),
       isAccessibleForFree: true,
       isPartOf: { "@id": `${SITE}/#website` },
-      publisher: { "@type": "Organization", name: "叙梦", url: `${SITE}/` },
+      publisher: { "@type": "Organization", name: copy.siteName, url: `${SITE}/` },
     },
   }).replace(/<\//g, "<\\/");
 }
 
-function characterSummary(card: ShareCard): string {
-  const title = escapeHtml(card.title);
-  const description = escapeHtml(card.description);
-  const open = `/#character/${card.id}`;
-  const related = relatedFeaturedCharacters(card).map(item => `<li><a href="/c/${item.id}">${escapeHtml(item.title)}</a><span>：${escapeHtml(item.description)}</span></li>`).join("");
-  return `<article><nav aria-label="面包屑"><a href="/">叙梦</a> · <a href="/characters">公开角色</a></nav><h1>${title}</h1><p>${description}</p><p>这是叙梦（XUMENG）的公开角色卡摘要。私人会话、账号信息、余额与未公开内容不会出现在本页。</p><p><a id="xumeng-share-open" href="${open}">在叙梦开始角色互动</a> · <a href="/characters">更多公开角色</a></p><section aria-labelledby="related-characters"><h2 id="related-characters">更多精选公开角色</h2><ul>${related}</ul></section></article>`;
+function faqStructuredData(card: ShareCard, locale: XumengLocale): string {
+  const copy = CHARACTER_LOCALE_COPY[locale];
+  const baseName = stripTitleSuffix(card.title);
+  const faqs = copy.buildFaq(baseName);
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: faqs.map(item => ({
+      "@type": "Question",
+      name: item.question,
+      acceptedAnswer: { "@type": "Answer", text: item.answer },
+    })),
+  }).replace(/<\//g, "<\\/");
 }
 
-export function renderCharacterSharePage(card: ShareCard): string {
-  const page = `${SITE}/c/${card.id}`;
+function characterSummary(card: ShareCard, locale: XumengLocale): string {
+  const copy = CHARACTER_LOCALE_COPY[locale];
   const title = escapeHtml(card.title);
+  const baseName = stripTitleSuffix(card.title);
   const description = escapeHtml(card.description);
-  const image = escapeHtml(card.url);
-  const open = `/#character/${card.id}`;
-  const jsonLd = structuredData(card);
+  const open = `${copy.routePrefix}/#character/${card.id}`;
+  const languageNav = XUMENG_LOCALE_OPTIONS.map(option => {
+    const href = characterSharePathForLocale(card.id, option.locale);
+    const hreflang = CHARACTER_LOCALE_COPY[option.locale].hreflang;
+    return `<a href="${href}" hreflang="${hreflang}">${escapeHtml(option.label)}</a>`;
+  }).join(" · ");
+
+  const tagItems = (card.tags ?? []).slice(0, 10).map(rawTag => {
+    const hub = tagHubForRawTag(rawTag);
+    const label = escapeHtml(rawTag);
+    return hub
+      ? `<li><a href="/tags/${hub.slug}">${label}</a></li>`
+      : `<li>${label}</li>`;
+  }).join("");
+  const tagsSection = tagItems
+    ? `<section aria-labelledby="character-tags"><h2 id="character-tags">${escapeHtml(copy.tagsHeading)}</h2><ul style="display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;margin:8px 0 16px">${tagItems}</ul></section>`
+    : "";
+
+  const openingSection = card.opening
+    ? `<section aria-labelledby="character-opening"><h2 id="character-opening">${escapeHtml(copy.openingHeading)}</h2><blockquote style="margin:8px 0 16px;padding:12px 16px;border-left:3px solid #ff477e;background:rgba(255,255,255,0.04)">${escapeHtml(card.opening)}</blockquote></section>`
+    : "";
+
+  const faqItems = copy.buildFaq(baseName)
+    .map(item => `<dt style="font-weight:600;margin-top:12px">${escapeHtml(item.question)}</dt><dd style="margin:4px 0 0">${escapeHtml(item.answer)}</dd>`)
+    .join("");
+  const faqSection = `<section aria-labelledby="character-faq"><h2 id="character-faq">${escapeHtml(copy.faqHeading)}</h2><dl>${faqItems}</dl></section>`;
+
+  const related = relatedFeaturedCharacters(card, locale)
+    .map(item => `<li><a href="${characterSharePathForLocale(item.id, locale)}">${escapeHtml(item.title)}</a><span>：${escapeHtml(item.description)}</span></li>`)
+    .join("");
+
+  return `<article><nav aria-label="语言版本">${languageNav}</nav><nav aria-label="面包屑"><a href="${copy.homePath}">${escapeHtml(copy.breadcrumbHome)}</a> · <a href="${copy.charactersPath}">${escapeHtml(copy.breadcrumbCharacters)}</a></nav><h1>${title}</h1><p>${description}</p>${tagsSection}${openingSection}<p>${escapeHtml(copy.summaryNote)}</p><p><a id="xumeng-share-open" href="${open}">${escapeHtml(copy.startChatCta)}</a> · <a href="${copy.charactersPath}">${escapeHtml(copy.moreCharactersCta)}</a></p>${faqSection}<section aria-labelledby="related-characters"><h2 id="related-characters">${escapeHtml(copy.relatedHeading)}</h2><ul>${related}</ul></section></article>`;
+}
+
+export function renderCharacterSharePage(card: ShareCard, locale: XumengLocale = "zh-Hans"): string {
+  const localizedCard: ShareCard = { ...card, ...localizedCharacterRecord(card, locale) };
+  const copy = CHARACTER_LOCALE_COPY[locale];
+  const page = characterShareUrlForLocale(localizedCard.id, locale);
+  const title = escapeHtml(localizedCard.title);
+  const description = escapeHtml(localizedCard.description);
+  const image = escapeHtml(localizedCard.url);
+  const open = `${copy.routePrefix}/#character/${localizedCard.id}`;
+  const jsonLd = structuredData(localizedCard, locale);
+  const faqLd = faqStructuredData(localizedCard, locale);
   return `<!doctype html>
-<html lang="zh-CN">
+<html lang="${copy.htmlLang}">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -158,18 +313,17 @@ export function renderCharacterSharePage(card: ShareCard): string {
     <meta name="description" content="${description}" />
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <link rel="canonical" href="${page}" />
-    <link rel="alternate" hreflang="zh-CN" href="${page}" />
-    <link rel="alternate" hreflang="x-default" href="${page}" />
+    ${characterHreflangTags(localizedCard.id)}
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="叙梦" />
-    <meta property="og:locale" content="zh_CN" />
+    <meta property="og:site_name" content="${escapeHtml(copy.siteName)}" />
+    <meta property="og:locale" content="${copy.ogLocale}" />
     <meta property="og:url" content="${page}" />
     <meta property="og:title" content="${title}" />
     <meta property="og:description" content="${description}" />
     <meta property="og:image" content="${image}" />
-    <meta property="og:image:type" content="${card.type}" />
-    <meta property="og:image:width" content="${card.width}" />
-    <meta property="og:image:height" content="${card.height}" />
+    <meta property="og:image:type" content="${localizedCard.type}" />
+    <meta property="og:image:width" content="${localizedCard.width}" />
+    <meta property="og:image:height" content="${localizedCard.height}" />
     <meta property="og:image:alt" content="${title}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${title}" />
@@ -177,18 +331,19 @@ export function renderCharacterSharePage(card: ShareCard): string {
     <meta name="twitter:image" content="${image}" />
     <meta name="twitter:image:alt" content="${title}" />
     <style>
-      html, body { margin: 0; min-height: 100%; background: #07070b; color: #f4efe8; font: 16px/1.5 system-ui, sans-serif; }
+      html, body { margin: 0; min-height: 100%; background: #07070b; color: #f4efe8; font: 16px/1.6 system-ui, sans-serif; }
       a { color: inherit; }
       img { display: block; width: 100%; height: auto; }
     </style>
     <script type="application/ld+json">${jsonLd}</script>
+    <script type="application/ld+json">${faqLd}</script>
     ${gtmHeadHtml}
   </head>
   <body>
     ${gtmBodyHtml}
     <main>
-      <a href="${open}"><img src="${image}" alt="${title}" width="${card.width}" height="${card.height}" /></a>
-      <div style="padding:24px 20px;max-width:760px;margin:0 auto">${characterSummary(card)}</div>
+      <a href="${open}"><img src="${image}" alt="${title}" width="${localizedCard.width}" height="${localizedCard.height}" /></a>
+      <div style="padding:24px 20px;max-width:760px;margin:0 auto">${characterSummary(localizedCard, locale)}</div>
     </main>
     <footer style="max-width:760px;margin:0 auto;padding:0 20px 32px;font:14px/1.7 system-ui,sans-serif">${xumengPublicTailHtml()}</footer>
     <script>
@@ -218,25 +373,32 @@ function setMeta(html: string, attribute: "property" | "name", key: string, cont
   return html.replace("</head>", `    <meta ${attribute}="${key}" content="${content}" />\n  </head>`);
 }
 
-/** Put the character card on the real app shell so the address bar can stay /c/id. */
-export function applyCharacterShareTags(html: string, card: ShareCard): string {
-  const page = `${SITE}/c/${card.id}`;
-  const title = escapeHtml(card.title);
-  const description = escapeHtml(card.description);
-  const image = escapeHtml(card.url);
-  const jsonLd = structuredData(card);
-  let next = html.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
+/** Put the character card on the real app shell so the address bar can stay /c/id or /{locale}/c/id. */
+export function applyCharacterShareTags(html: string, card: ShareCard, locale: XumengLocale = "zh-Hans"): string {
+  const localizedCard: ShareCard = { ...card, ...localizedCharacterRecord(card, locale) };
+  const copy = CHARACTER_LOCALE_COPY[locale];
+  const page = characterShareUrlForLocale(localizedCard.id, locale);
+  const title = escapeHtml(localizedCard.title);
+  const description = escapeHtml(localizedCard.description);
+  const image = escapeHtml(localizedCard.url);
+  const jsonLd = structuredData(localizedCard, locale);
+  const faqLd = faqStructuredData(localizedCard, locale);
+  let next = html.replace(/<html\s+lang="[^"]*"/i, `<html lang="${copy.htmlLang}"`);
+  next = next.replace(/<title>[^<]*<\/title>/i, `<title>${title}</title>`);
   next = next.replace(/(<link\s+rel="canonical"\s+href=")[^"]*("\s*\/?>)/i, `$1${page}$2`);
-  next = next.replace(/(<link\s+rel="alternate"\s+hreflang="(?:zh-CN|x-default)"\s+href=")[^"]*("\s*\/?>)/gi, `$1${page}$2`);
+  next = next.replace(/\s*<link\s+rel="alternate"\s+hreflang="[^"]*"\s+href="[^"]*"\s*\/?>/gi, "");
+  next = next.replace(/(<link\s+rel="canonical"\s+href="[^"]*"\s*\/?>)/i, `$1\n    ${characterHreflangTags(localizedCard.id)}`);
   next = next.replace(/(<meta\s+property="og:url"\s+content=")[^"]*("\s*\/?>)/i, `$1${page}$2`);
   for (const [attribute, key, content] of [
     ["name", "description", description],
+    ["property", "og:site_name", escapeHtml(copy.siteName)],
+    ["property", "og:locale", copy.ogLocale],
     ["property", "og:title", title],
     ["property", "og:description", description],
     ["property", "og:image", image],
-    ["property", "og:image:type", card.type],
-    ["property", "og:image:width", String(card.width)],
-    ["property", "og:image:height", String(card.height)],
+    ["property", "og:image:type", localizedCard.type],
+    ["property", "og:image:width", String(localizedCard.width)],
+    ["property", "og:image:height", String(localizedCard.height)],
     ["property", "og:image:alt", title],
     ["name", "twitter:card", "summary_large_image"],
     ["name", "twitter:title", title],
@@ -246,9 +408,10 @@ export function applyCharacterShareTags(html: string, card: ShareCard): string {
     ["name", "robots", "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"],
   ] as const) next = setMeta(next, attribute, key, content);
   next = next.replace(/\s*<script\s+type="application\/ld\+json">[\s\S]*?<\/script>/gi, "");
+  next = next.replace(/<section\s+id="xumeng-public-fallback"[^>]*>[\s\S]*?<\/section>/gi, "");
   next = next.replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, block => block.includes("googletagmanager.com") ? block : "");
-  next = next.replace("</head>", `    <script type="application/ld+json">${jsonLd}</script>\n  </head>`);
-  const fallback = `<noscript><main style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif">${characterSummary(card)}</main></noscript>`;
+  next = next.replace("</head>", `    <script type="application/ld+json">${jsonLd}</script>\n    <script type="application/ld+json">${faqLd}</script>\n  </head>`);
+  const fallback = `<section id="xumeng-public-fallback" aria-label="${title}"><main style="max-width:760px;margin:0 auto;padding:32px 20px;font:16px/1.7 system-ui,sans-serif">${characterSummary(localizedCard, locale)}</main></section>`;
   next = next.replace("</body>", `${fallback}\n  </body>`);
   return next;
 }
@@ -292,11 +455,12 @@ function catalogCard(id: string): ShareCard | null {
   return { ...card, url: `${SITE}/assets/xumeng/share/${id}.jpg`, type: "image/jpeg", width: 1200, height: 630 };
 }
 
-function htmlResponse(request: Request, html: string, cacheSeconds: number): Response {
+function htmlResponse(request: Request, html: string, cacheSeconds: number, locale: XumengLocale): Response {
   return new Response(request.method === "HEAD" ? null : html, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
+      "Content-Language": CHARACTER_LOCALE_COPY[locale].htmlLang,
       "Cache-Control": `public, max-age=${cacheSeconds}`,
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "strict-origin-when-cross-origin",
@@ -420,7 +584,7 @@ export async function characterShareCoverResponse(request: Request, env: { BACKE
     return textResponse(request, missing ? 404 : 502, missing ? "图片不存在。" : "图片暂时不可用。");
   }
   if (type !== expected) {
-    await upstream.body.cancel();
+    await upstream.body?.cancel();
     return textResponse(request, 404, "图片不存在。");
   }
   const headers = new Headers({
@@ -451,19 +615,33 @@ async function publishedCard(env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher 
     await upstream.body?.cancel();
     throw new Error("catalog unavailable");
   }
-  const payload = await upstream.json() as { character?: { name?: unknown; description?: unknown; cover?: unknown } };
+  const payload = await upstream.json() as { character?: { name?: unknown; description?: unknown; cover?: unknown; tags?: unknown } };
   const character = payload.character;
   if (!character || typeof character.name !== "string" || !character.name.trim()) return null;
   const description = typeof character.description === "string" ? character.description : "";
   const cover = typeof character.cover === "string" ? character.cover : "";
+  const tags = Array.isArray(character.tags)
+    ? character.tags.filter((item): item is string => typeof item === "string" && item.trim().length > 0).slice(0, 12)
+    : undefined;
   const plan = cover ? shareImagePlan(cover, id) : null;
   const image = plan ? await loadShareImage(env, plan) : null;
   // The card is public even when its cover is on a host this page will not fetch.
   // The app shell loads that cover itself; the preview falls back to the brand mark.
-  return { id, title: shareTitle(character.name), description: shareDescription(description), ...(image ?? BRAND_SHARE_IMAGE) };
+  return {
+    id,
+    title: shareTitle(character.name),
+    description: shareDescription(description),
+    ...(tags?.length ? { tags } : {}),
+    ...(image ?? BRAND_SHARE_IMAGE),
+  };
 }
 
-export async function characterShareResponse(request: Request, env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher }, id: string): Promise<Response> {
+export async function characterShareResponse(
+  request: Request,
+  env: { ASSETS: ShareFetcher; BACKEND: ShareFetcher },
+  id: string,
+  locale: XumengLocale = "zh-Hans",
+): Promise<Response> {
   if (request.method !== "GET" && request.method !== "HEAD") {
     return new Response(JSON.stringify({ error: "请求方法不支持。" }), {
       status: 405,
@@ -472,18 +650,18 @@ export async function characterShareResponse(request: Request, env: { ASSETS: Sh
   }
   if (!SHARE_ID.test(id)) return textResponse(request, 404, "角色不存在。");
   const listed = catalogCard(id);
-  if (listed) return shareDocument(request, env, listed);
+  if (listed) return shareDocument(request, env, listed, locale);
   if (!PUBLICATION_ID.test(id)) return textResponse(request, 404, "角色不存在。");
   try {
     const published = await publishedCard(env, id);
     if (!published) return textResponse(request, 404, "角色不存在。");
-    return shareDocument(request, env, published);
+    return shareDocument(request, env, published, locale);
   } catch {
     return textResponse(request, 503, "角色页面暂时不可用。");
   }
 }
 
-async function shareDocument(request: Request, env: { ASSETS: ShareFetcher }, card: ShareCard): Promise<Response> {
+async function shareDocument(request: Request, env: { ASSETS: ShareFetcher }, card: ShareCard, locale: XumengLocale): Promise<Response> {
   const shellUrl = new URL(request.url);
   shellUrl.pathname = "/";
   shellUrl.search = "";
@@ -492,8 +670,8 @@ async function shareDocument(request: Request, env: { ASSETS: ShareFetcher }, ca
   const type = shell.headers.get("Content-Type") ?? "";
   if (!shell.ok || !type.includes("text/html")) {
     await shell.body?.cancel();
-    return htmlResponse(request, renderCharacterSharePage(card), 60);
+    return htmlResponse(request, renderCharacterSharePage(card, locale), 60, locale);
   }
-  const html = applyCharacterShareTags(await shell.text(), card);
-  return htmlResponse(request, html, 300);
+  const html = applyCharacterShareTags(await shell.text(), card, locale);
+  return htmlResponse(request, html, 300, locale);
 }

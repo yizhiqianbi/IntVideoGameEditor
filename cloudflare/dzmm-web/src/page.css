@@ -20,6 +20,7 @@ body,
   min-height: 100dvh;
 }
 
+#root:not(:empty) ~ #xumeng-public-fallback,
 #root:not(:empty) ~ #xumeng-public-tail {
   display: none;
 }

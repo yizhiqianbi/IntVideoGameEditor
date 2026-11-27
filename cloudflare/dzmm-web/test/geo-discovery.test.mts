@@ -5,10 +5,12 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 import { characterShareGEOEntries, renderCharacterSharePage } from "../src/character-share";
 import { CHARACTER_SHARE_INDEX } from "../src/character-share-index";
+import { PUBLIC_TAG_HUBS } from "../src/character-share-locales";
 import {
   GEO_BOUNDARY,
   GEO_DEFINITION,
   GEO_META_DESCRIPTION,
+  GEO_OG_IMAGE,
   GEO_UPDATED,
   geoAnswers,
   publicAtomFeed,
@@ -19,6 +21,7 @@ import {
   publicSitemapXml,
   publishedSitemapCharacters,
 } from "../src/geo-discovery";
+import { submitIndexNowUrls } from "../src/indexnow";
 import { XUMENG_PAYMENT_INFO_PAGES } from "../../../src/lib/xumeng-payment-info";
 import { fetchRequest, type Env } from "../src/worker";
 
@@ -40,6 +43,10 @@ test("discovery documents cite the same public facts and stay inside the privacy
   const featured = characterShareGEOEntries();
   assert.match(llms, /^# 叙梦/m);
   assert.match(llms, new RegExp(GEO_BOUNDARY.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(llms, /SillyTavern V2/);
+  assert.match(llms, /\/alternatives\/character-ai/);
+  assert.match(llms, /\/en\/alternatives\/character-ai/);
+  assert.match(llms, /\/guides\/character-card-worldbook/);
   assert.equal(featured.length, 8);
   for (const card of featured) {
     assert.match(llms, new RegExp(`/c/${card.id}`));
@@ -65,6 +72,9 @@ test("robots names answer-engine crawlers without opening private routes", () =>
   for (const group of groups) {
     assert.match(group, /Allow: \/\n/);
     assert.match(group, /Allow: \/c\/\n/);
+    assert.match(group, /Allow: \/en\/\n/);
+    assert.match(group, /Allow: \/tags\/\n/);
+    assert.match(group, /Allow: \/alternatives\/\n/);
     assert.match(group, /Allow: \/assets\/xumeng\/share\/\n/);
     assert.match(group, /Disallow: \/api\//);
     assert.match(group, /Disallow: \/health/);
@@ -74,7 +84,7 @@ test("robots names answer-engine crawlers without opening private routes", () =>
   assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
 });
 
-test("sitemap lists editorial pages and public characters without private or draft urls", () => {
+test("sitemap lists editorial pages, tags, alternatives, multilingual pages and public characters without private or draft urls", () => {
   const xml = publicSitemapXml();
   const locs = pageLocs(xml);
   assert.deepEqual(locs, publicSitemapLocations());
@@ -85,7 +95,23 @@ test("sitemap lists editorial pages and public characters without private or dra
     `${ORIGIN}/characters`,
     `${ORIGIN}/community-guidelines`,
   ]);
-  assert.equal(locs.filter(loc => loc.includes("/c/")).length, CHARACTER_SHARE_INDEX.length);
+  for (const expected of [
+    `${ORIGIN}/tags`,
+    `${ORIGIN}/tags/ancient`,
+    `${ORIGIN}/alternatives/character-ai`,
+    `${ORIGIN}/en/alternatives/character-ai`,
+    `${ORIGIN}/guides/character-card-worldbook`,
+    `${ORIGIN}/guides/ai-interactive-drama`,
+    `${ORIGIN}/en/characters`,
+    `${ORIGIN}/en/c/xumeng-foreverse-peiyu`,
+    `${ORIGIN}/jp/c/xumeng-foreverse-peiyu`,
+    `${ORIGIN}/ko/c/xumeng-foreverse-peiyu`,
+    `${ORIGIN}/zh-tw/c/xumeng-foreverse-peiyu`,
+  ]) {
+    assert.ok(locs.includes(expected), `missing sitemap url: ${expected}`);
+  }
+  // Base /c/ routes + 4 localized variants for 8 featured cards
+  assert.equal(locs.filter(loc => loc.includes("/c/")).length, CHARACTER_SHARE_INDEX.length + 8 * 4);
   for (const page of XUMENG_PAYMENT_INFO_PAGES) assert.equal(locs.includes(`${ORIGIN}${page.path}`), false);
   assert.doesNotMatch(xml, /#|nsfw|porn|\/api\/|foreign|malicious/);
   assert.match(xml, /xmlns:image="http:\/\/www\.google\.com\/schemas\/sitemap-image\/1\.1"/);
@@ -148,8 +174,27 @@ test("served sitemap reads the listed catalog and falls back without it", async 
   assert.doesNotMatch(fallback, /attacker|hidden/);
 });
 
-test("answer pages, feeds and aliases are served without the app shell", async () => {
-  for (const path of ["/llms.txt", "/llms-full.txt", "/.well-known/llms.txt", "/about", "/faq", "/characters", "/feed.xml"]) {
+test("answer pages, GEO comparisons, guides, tag hubs, localized directories and feeds are served without the app shell", async () => {
+  const routes = [
+    "/llms.txt",
+    "/llms-full.txt",
+    "/.well-known/llms.txt",
+    "/about",
+    "/faq",
+    "/characters",
+    "/en/characters",
+    "/zh-tw/characters",
+    "/jp/characters",
+    "/ko/characters",
+    "/tags",
+    ...PUBLIC_TAG_HUBS.map(hub => `/tags/${hub.slug}`),
+    "/alternatives/character-ai",
+    "/en/alternatives/character-ai",
+    "/guides/character-card-worldbook",
+    "/guides/ai-interactive-drama",
+    "/feed.xml",
+  ];
+  for (const path of routes) {
     const response = await fetchRequest(new Request(`https://foreign.example${path}?utm=1`), env);
     const body = await response.text();
     assert.equal(response.status, 200, path);
@@ -164,11 +209,26 @@ test("answer pages, feeds and aliases are served without the app shell", async (
   }
   const about = await (await fetchRequest(new Request(`${ORIGIN}/about`), env)).text();
   assert.match(about, /<h1>叙梦是什么<\/h1>/);
-  assert.match(about, /https:\/\/candy\.ai\//);
-  assert.match(about, /AI成人短剧/);
+  assert.doesNotMatch(about, /candy\.ai|crushon\.ai|spicychat\.ai|janitorai\.com|https:\/\/character\.ai/);
+  assert.match(about, /AI互动短剧/);
+  assert.match(about, new RegExp(GEO_OG_IMAGE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(about, /content="summary_large_image"/);
   assert.doesNotMatch(about, /三上悠|新垣结|橋本環奈|木村拓哉|泷泽萝拉|桃乃木/);
   assert.match(about, /AboutPage/);
   assert.match(about, new RegExp(GEO_DEFINITION.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+
+  const altZh = await (await fetchRequest(new Request(`${ORIGIN}/alternatives/character-ai`), env)).text();
+  assert.match(altZh, /<table>/i);
+  assert.match(altZh, /hreflang="en" href="https:\/\/xumengchat\.top\/en\/alternatives\/character-ai"/);
+  assert.match(altZh, /FAQPage/);
+
+  const altEn = await (await fetchRequest(new Request(`${ORIGIN}/en/alternatives/character-ai`), env)).text();
+  assert.match(altEn, /<html lang="en-US">/);
+  assert.match(altEn, /hreflang="zh-CN" href="https:\/\/xumengchat\.top\/alternatives\/character-ai"/);
+
+  const missingTag = await fetchRequest(new Request(`${ORIGIN}/tags/does-not-exist`), env);
+  assert.equal(missingTag.status, 404);
+
   const faq = await (await fetchRequest(new Request(`${ORIGIN}/FAQ/`), env));
   assert.equal(faq.status, 308);
   assert.equal(faq.headers.get("location"), `${ORIGIN}/faq`);
@@ -179,35 +239,48 @@ test("answer pages, feeds and aliases are served without the app shell", async (
   assert.deepEqual(faqLd.mainEntity?.map(item => item.acceptedAnswer?.text), geoAnswers().map(item => item.answer));
   const characters = await (await fetchRequest(new Request(`${ORIGIN}/characters`), env)).text();
   assert.equal([...characters.matchAll(/<h2>/g)].length, 8);
+  const enCharacters = await (await fetchRequest(new Request(`${ORIGIN}/en/characters`), env)).text();
+  assert.match(enCharacters, /<html lang="en-US">/);
+  assert.match(enCharacters, /\/en\/c\/xumeng-foreverse-peiyu/);
   const feed = await fetchRequest(new Request(`${ORIGIN}/feed.xml`), env);
   assert.match(feed.headers.get("content-type") ?? "", /application\/atom\+xml/);
   const mirror = await (await fetchRequest(new Request(`${ORIGIN}/.well-known/llms.txt`), env)).text();
   assert.equal(mirror, publicLlmsTxt());
 });
 
-test("homepage html repeats the citable definition and featured catalog", async () => {
+test("homepage html repeats the citable definition, uses 1200x630 OG card, removes competitor footer links and keeps real DOM intro", async () => {
   const html = await readFile(resolve(root, "../index.html"), "utf8");
   const title = html.match(/<title>([^<]+)<\/title>/)?.[1] ?? "";
   const description = html.match(/<meta name="description" content="([^"]*)"/)?.[1] ?? "";
-  assert.equal(title, "叙梦｜互动故事、AI陪伴、互动短剧与成人内容");
+  assert.equal(title, "叙梦｜AI角色扮演、互动故事、AI陪伴与互动短剧");
   assert.ok(title.length >= 10 && title.length <= 65);
+  assert.doesNotMatch(title, /成人内容|adult content/i);
   assert.equal(description, GEO_META_DESCRIPTION);
   assert.ok(description.length >= 40 && description.length <= 180);
   assert.match(html, /name="robots" content="index, follow"/);
   assert.match(html, /name="googlebot" content="index, follow, max-image-preview:large/);
+  assert.match(html, /property="og:image" content="https:\/\/xumengchat\.top\/assets\/xumeng\/share\/xumeng-og\.jpg"/);
+  assert.match(html, /property="og:image:width" content="1200"/);
+  assert.match(html, /property="og:image:height" content="630"/);
+  assert.match(html, /name="twitter:card" content="summary_large_image"/);
+  assert.match(html, /<section id="xumeng-public-fallback"/);
+  assert.doesNotMatch(html, /<noscript id="xumeng-public-fallback"/);
   assert.ok(html.includes(GEO_DEFINITION));
   assert.ok(html.includes(GEO_BOUNDARY));
   assert.match(html, /href="\/llms-full\.txt"/);
   assert.match(html, /href="\/feed\.xml"/);
   assert.match(html, /href="\/sitemap\.xml"/);
+  assert.match(html, /href="\/alternatives\/character-ai"/);
+  assert.match(html, /href="\/tags"/);
   assert.match(html, /href="https:\/\/huangguo\.chat\/"/);
-  assert.match(html, /href="https:\/\/candy\.ai\/"/);
-  assert.match(html, />角色卡</);
+  assert.doesNotMatch(html, /candy\.ai|crushon\.ai|spicychat\.ai|janitorai\.com|https:\/\/character\.ai/);
   assert.doesNotMatch(html, /三上悠|新垣结|橋本環奈|木村拓哉|泷泽萝拉|桃乃木/);
   assert.doesNotMatch(html, /\/dzmm|DZMM/);
-  const graph = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1] ?? "{}") as { "@graph"?: { "@type"?: string }[] };
+  const graph = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1] ?? "{}") as { "@graph"?: { "@type"?: string; potentialAction?: unknown; sameAs?: string[] }[] };
   const types = graph["@graph"]?.map(node => node["@type"]);
   for (const type of ["WebSite", "Organization", "WebApplication", "WebPage", "ItemList"]) assert.ok(types?.includes(type), type);
+  assert.ok(graph["@graph"]?.find(node => node["@type"] === "WebSite")?.potentialAction);
+  assert.ok((graph["@graph"]?.find(node => node["@type"] === "Organization")?.sameAs?.length ?? 0) >= 1);
   for (const card of characterShareGEOEntries()) {
     assert.ok(html.includes(card.id));
     assert.ok(html.includes(card.title));
@@ -215,22 +288,64 @@ test("homepage html repeats the citable definition and featured catalog", async 
   }
 });
 
-test("a character page is a quotable creative work with a breadcrumb", () => {
+test("a character page is a quotable creative work with breadcrumb, tags, opening preview and FAQ schema", () => {
   const card = CHARACTER_SHARE_INDEX.find(item => item.id === "xumeng-foreverse-peiyu");
   assert.ok(card);
   const html = renderCharacterSharePage({ ...card, url: `${ORIGIN}/assets/xumeng/share/${card.id}.jpg`, type: "image/jpeg", width: 1200, height: 630 });
-  const structured = JSON.parse(html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/)?.[1] ?? "") as {
+  const scripts = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)].map(match => JSON.parse(match[1]));
+  assert.equal(scripts.length, 2);
+  const structured = scripts[0] as {
     breadcrumb?: { itemListElement?: { item?: string }[] };
-    mainEntity?: { "@type"?: string; genre?: string };
+    mainEntity?: { "@type"?: string; genre?: string; keywords?: string };
   };
   assert.equal(structured.mainEntity?.["@type"], "CreativeWork");
   assert.equal(structured.mainEntity?.genre, "互动角色卡");
+  assert.ok(structured.mainEntity?.keywords?.includes("古风"));
+  assert.equal((scripts[1] as { "@type"?: string })["@type"], "FAQPage");
   assert.deepEqual(structured.breadcrumb?.itemListElement?.map(item => item.item), [
     `${ORIGIN}/`,
     `${ORIGIN}/characters`,
     `${ORIGIN}/c/${card.id}`,
   ]);
+  assert.match(html, /开场情境预览/);
+  assert.match(html, /href="\/tags\/ancient"/);
   assert.match(html, /私人会话、账号信息、余额与未公开内容不会出现在本页/);
   assert.doesNotMatch(html, /xumeng-icon-512|content="512"/);
   assert.doesNotMatch(html, new RegExp('content="summary"'));
+});
+
+test("IndexNow key file and ops submission route work strictly with configured key", async () => {
+  const key = "xumeng-indexnow-key-20261127";
+  const configuredEnv = { ...env, INDEXNOW_KEY: key } as Env;
+  const keyRes = await fetchRequest(new Request(`${ORIGIN}/${key}.txt`), configuredEnv);
+  assert.equal(keyRes.status, 200);
+  assert.equal(await keyRes.text(), key);
+  const keyHead = await fetchRequest(new Request(`${ORIGIN}/${key}.txt`, { method: "HEAD" }), configuredEnv);
+  assert.equal(keyHead.status, 200);
+  assert.equal(await keyHead.text(), "");
+
+  const unauth = await fetchRequest(new Request(`${ORIGIN}/api/ops/indexnow`, { method: "POST" }), configuredEnv);
+  assert.equal(unauth.status, 401);
+
+  const skipped = await submitIndexNowUrls([`${ORIGIN}/`], {});
+  assert.equal(skipped.ok, false);
+  assert.equal(skipped.submitted, 0);
+
+  let sentPayload: { host?: string; key?: string; keyLocation?: string; urlList?: string[] } | null = null;
+  const submitted = await submitIndexNowUrls(
+    [`${ORIGIN}/`, `${ORIGIN}/en`, "https://foreign.example/evil", `${ORIGIN}/#hash`],
+    { INDEXNOW_KEY: key },
+    async (_input, init) => {
+      sentPayload = JSON.parse(String(init?.body ?? "{}")) as typeof sentPayload;
+      return new Response(null, { status: 200 });
+    },
+  );
+  assert.equal(submitted.ok, true);
+  assert.equal(submitted.submitted, 2);
+  assert.deepEqual(sentPayload, {
+    host: "xumengchat.top",
+    key,
+    keyLocation: `${ORIGIN}/${key}.txt`,
+    urlList: [`${ORIGIN}/`, `${ORIGIN}/en`],
+  });
 });

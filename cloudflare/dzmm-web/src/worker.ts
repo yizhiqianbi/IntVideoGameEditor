@@ -37,7 +37,8 @@ import { CHAT_CLIP_MODEL } from "../../../src/lib/xumeng-chat-prompt-format";
 import { generateVideoCharacter } from "./video-character";
 import { createRechargeLocation, createReturnClearCookie, hasCreateReturnCookie, mainSiteRechargeLanding } from "../../../src/lib/xumeng-create-return";
 import { characterShareCoverResponse, characterShareResponse } from "./character-share";
-import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
+import { communityGuidelinesJsonLd, geoCanonicalPath, geoDiscoveryResponse, localizedLandingAlternates, localizedLandingJsonLd, localizedLandingLocale, localizedLandingPath, localizedLandingSeo, publicSitemapLocations, publicSitemapResponse, renderLocalizedLandingFallback } from "./geo-discovery";
+import { indexNowKeyResponse, submitIndexNowUrls, validIndexNowKey, type IndexNowEnv } from "./indexnow";
 import { XUMENG_USER_CARD_ASSET_PATHS } from "./user-card-assets";
 import { h3Query, h3Upstream } from "./h3-channel";
 import { h3CanvasSize, runH3CanvasVideo, runH3ReferenceVideo } from "./h3-r2v";
@@ -47,7 +48,7 @@ export { ViduLiveStudio } from "./vidu-live-studio";
 
 type ServiceFetcher = { fetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> };
 
-export interface Env extends LiveGatewayEnvironment, MiniCpmPhoneEnvironment, CompanionGatewayEnvironment {
+export interface Env extends LiveGatewayEnvironment, MiniCpmPhoneEnvironment, CompanionGatewayEnvironment, IndexNowEnv {
   ASSETS: ServiceFetcher;
   BACKEND: ServiceFetcher;
   BILLING?: DzmmBillingRpcBinding;
@@ -221,11 +222,12 @@ async function localizedLandingResponse(request: Request, env: Env, locale: impo
   const shell = await env.ASSETS.fetch(new Request(shellUrl, { method: "GET" }));
   if (!shell.ok || !shell.headers.get("Content-Type")?.includes("text/html")) return shell;
   const seo = localizedLandingSeo(locale);
-  const canonical = `${new URL(request.url).origin}${localizedLandingPath(locale)}`;
+  const canonical = `${CANONICAL_ORIGIN}${localizedLandingPath(locale)}`;
+  const htmlLang = seo.ogLocale.replace("_", "-");
   const alternates = localizedLandingAlternates().map(item => `<link rel="alternate" hreflang="${item.hreflang}" href="${item.href}" />`).join("")
-    + `<link rel="alternate" hreflang="x-default" href="${new URL(request.url).origin}/" />`;
+    + `<link rel="alternate" hreflang="x-default" href="${CANONICAL_ORIGIN}/" />`;
   const rewritten = new HTMLRewriter()
-    .on("html", { element: element => { element.setAttribute("lang", seo.ogLocale.replace("_", "-")); } })
+    .on("html", { element: element => { element.setAttribute("lang", htmlLang); } })
     .on("title", { element: element => { element.setInnerContent(seo.title); } })
     .on('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]', { element: element => { element.setAttribute("content", seo.description); } })
     .on('meta[property="og:title"], meta[name="twitter:title"]', { element: element => { element.setAttribute("content", seo.title); } })
@@ -235,10 +237,11 @@ async function localizedLandingResponse(request: Request, env: Env, locale: impo
     .on('link[rel="alternate"][hreflang]', { element: element => { element.remove(); } })
     .on("head", { element: element => { element.append(alternates, { html: true }); } })
     .on('script[type="application/ld+json"]', { element: element => { element.setInnerContent(localizedLandingJsonLd(locale), { html: true }); } })
-    .on("noscript#xumeng-public-fallback", { element: element => { element.setInnerContent(renderLocalizedLandingFallback(locale), { html: true }); } })
+    .on("#xumeng-public-fallback", { element: element => { element.setInnerContent(renderLocalizedLandingFallback(locale), { html: true }); } })
     .transform(shell);
   const headers = new Headers(rewritten.headers);
   headers.delete("ETag"); headers.delete("Last-Modified"); headers.delete("Content-Length");
+  headers.set("Content-Language", htmlLang);
   headers.set("Cache-Control", "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400");
   headers.set("X-Content-Type-Options", "nosniff");
   if (request.method === "HEAD") await rewritten.body?.cancel();
@@ -1530,11 +1533,11 @@ export async function fetchRequest(
         .on('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]', { element: element => { element.setAttribute("content", paymentInfoPage.description); } })
         .on('meta[property="og:title"], meta[name="twitter:title"]', { element: element => { element.setAttribute("content", paymentInfoPage.title); } })
         .on('link[rel="canonical"]', { element: element => { element.setAttribute("href", canonical); } })
-        .on('link[hreflang]', { element: element => { element.setAttribute("href", canonical); } })
+        .on('link[hreflang]', { element: element => { const lang = element.getAttribute("hreflang"); if (lang === "zh-CN" || lang === "x-default") element.setAttribute("href", canonical); else element.remove(); } })
         .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
         .on('meta[name="robots"], meta[name="googlebot"], meta[name="bingbot"]', { element: element => { if (XUMENG_PAYMENT_INFO_DRAFT) element.setAttribute("content", "noindex, nofollow"); } })
         .on('script[type="application/ld+json"]', { element: element => { element.remove(); } })
-        .on("noscript#xumeng-public-fallback", { element: element => { element.remove(); } })
+        .on("#xumeng-public-fallback", { element: element => { element.remove(); } })
         .on("#root", { element: element => { element.setInnerContent(renderXumengPaymentInfoPage(paymentInfoPage), { html: true }); } })
         .transform(shell);
       const headers = new Headers(rewritten.headers);
@@ -1560,10 +1563,10 @@ export async function fetchRequest(
         .on('meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]', { element: element => { element.setAttribute("content", XUMENG_COMMUNITY_GUIDELINES_DESCRIPTION); } })
         .on('meta[property="og:title"], meta[name="twitter:title"]', { element: element => { element.setAttribute("content", XUMENG_COMMUNITY_GUIDELINES_TITLE); } })
         .on('link[rel="canonical"]', { element: element => { element.setAttribute("href", canonical); } })
-        .on('link[hreflang]', { element: element => { element.setAttribute("href", canonical); } })
+        .on('link[hreflang]', { element: element => { const lang = element.getAttribute("hreflang"); if (lang === "zh-CN" || lang === "x-default") element.setAttribute("href", canonical); else element.remove(); } })
         .on('meta[property="og:url"]', { element: element => { element.setAttribute("content", canonical); } })
         .on('script[type="application/ld+json"]', { element: element => { element.setInnerContent(communityGuidelinesJsonLd()); } })
-        .on("noscript#xumeng-public-fallback", { element: element => { element.remove(); } })
+        .on("#xumeng-public-fallback", { element: element => { element.remove(); } })
         .on('script[type="module"]', { element: element => { element.remove(); } })
         .on("#root", { element: element => { element.setInnerContent(renderXumengCommunityGuidelines(), { html: true }); } })
         .transform(shell);
@@ -1574,6 +1577,8 @@ export async function fetchRequest(
       if (request.method === "HEAD") await rewritten.body?.cancel();
       return new Response(request.method === "HEAD" ? null : rewritten.body, { status: rewritten.status, headers });
     }
+    const indexNowKey = indexNowKeyResponse(request, path, env);
+    if (indexNowKey) return indexNowKey;
     if (normalizedPath === "/nsfw" || normalizedPath === "/porn") return redirectPage(request, "/", 302);
     const geoPath = geoCanonicalPath(normalizedPath);
     if (geoPath) {
@@ -1581,6 +1586,12 @@ export async function fetchRequest(
       if (path !== geoPath) return redirectPage(request, geoPath);
       if (geoPath === "/sitemap.xml") return await publicSitemapResponse(request, env.BACKEND);
       return geoDiscoveryResponse(request, geoPath) ?? json({ error: "页面不存在。" }, 404);
+    }
+    if (normalizedPath.startsWith("/tags/")) {
+      return new Response(request.method === "HEAD" ? null : "标签页面不存在。", {
+        status: 404,
+        headers: { "Content-Type": "text/plain; charset=utf-8", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" },
+      });
     }
     if (path === "/dzmm" || path === LEGACY_ASSET_PREFIX) return redirectPage(request, "/");
     if (path.startsWith(LEGACY_ASSET_PREFIX)) {
@@ -1604,6 +1615,22 @@ export async function fetchRequest(
       });
     }
     if (path.startsWith("/api/")) {
+      if (path === "/api/ops/indexnow") {
+        if (request.method !== "POST") return json({ error: "请求方法不支持。" }, 405, { Allow: "POST" });
+        const configuredKey = validIndexNowKey(env.INDEXNOW_KEY);
+        if (!configuredKey) return json({ error: "IndexNow 尚未配置。" }, 503);
+        const auth = request.headers.get("Authorization")?.trim() ?? "";
+        if (auth !== `Bearer ${configuredKey}`) return json({ error: "未授权。" }, 401);
+        let urls: string[] = publicSitemapLocations();
+        try {
+          const parsed = await request.json() as { urls?: unknown };
+          if (Array.isArray(parsed?.urls) && parsed.urls.length > 0) {
+            urls = parsed.urls.filter((item): item is string => typeof item === "string");
+          }
+        } catch { /* Default to canonical sitemap locations when body is empty. */ }
+        const result = await submitIndexNowUrls(urls, env);
+        return json(result, result.ok ? 200 : 502);
+      }
       if (path === TELEGRAM_FEEDBACK_WEBHOOK) return await telegramFeedbackWebhook(request, env);
       if (path === "/api/payments/stripe/webhook") return await stripeWebhook(request, env);
       if (path === "/api/payments/nowpayments/ipn") return await nowpaymentsWebhook(request, env);
@@ -1764,8 +1791,26 @@ export async function fetchRequest(
     }
     const characterCover = /^\/c\/(published-[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})\/([1-9]\d{0,8})\/cover\.(png|jpe?g)$/.exec(normalizedPath);
     if (characterCover) return await characterShareCoverResponse(request, env, characterCover[1], characterCover[2], characterCover[3]);
-    const characterShare = /^\/c\/([a-z0-9][a-z0-9-]{0,119})$/.exec(normalizedPath);
-    if (characterShare) return await characterShareResponse(request, env, characterShare[1]);
+    const characterShare = /^\/(?:(en|zh-cn|zh-tw|jp|ko)\/)?c\/([a-z0-9][a-z0-9-]{0,119})$/.exec(normalizedPath);
+    if (characterShare) {
+      const prefix = characterShare[1];
+      const id = characterShare[2];
+      if (prefix === "zh-cn") return redirectPage(request, `/c/${id}`);
+      const canonicalCharPath = prefix ? `/${prefix}/c/${id}` : `/c/${id}`;
+      if (path !== canonicalCharPath && (request.method === "GET" || request.method === "HEAD")) {
+        return redirectPage(request, canonicalCharPath);
+      }
+      const locale: import("../../../src/lib/xumeng-i18n").XumengLocale = prefix === "en"
+        ? "en"
+        : prefix === "zh-tw"
+          ? "zh-Hant"
+          : prefix === "jp"
+            ? "ja"
+            : prefix === "ko"
+              ? "ko"
+              : "zh-Hans";
+      return await characterShareResponse(request, env, id, locale);
+    }
     const studioCanvas = studioCanvasRedirect(request, normalizedPath);
     if (studioCanvas) return studioCanvas;
     if (normalizedPath === "/ops") {

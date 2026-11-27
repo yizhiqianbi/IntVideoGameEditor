@@ -33,7 +33,7 @@ test("a listed character page carries the card tags before any script", () => {
   assert.match(html, /<img src="https:\/\/xumengchat\.top\/assets\/xumeng\/share\/xumeng-foreverse-peiyu\.jpg"/);
   assert.match(html, /<main>[\s\S]*<h1>裴聿 - AI角色聊天<\/h1>/);
   assert.match(html, /在叙梦开始角色互动/);
-  assert.match(html, /更多精选公开角色/);
+  assert.match(html, /相似与精选公开角色/);
   assert.match(html, /href="\/c\/xumeng-foreverse-tangtuantuan"/);
   assert.match(html, /if \(invite\.length < 6\) return;/);
   assert.match(html, /<link rel="canonical" href="https:\/\/xumengchat\.top\/c\/xumeng-foreverse-peiyu" \/>/);
@@ -73,6 +73,8 @@ test("share covers are real 1200 by 630 jpegs", async () => {
   assert.equal(CHARACTER_SHARE_INDEX.length, listed.length - listed.filter((id: string) => retired.has(id)).length);
   const bytes = new Uint8Array(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "../dist/assets/xumeng/share/xumeng-foreverse-peiyu.jpg")));
   assert.deepEqual(readImageSize(bytes), { type: "image/jpeg", width: 1200, height: 630 });
+  const ogBytes = new Uint8Array(await readFile(resolve(dirname(fileURLToPath(import.meta.url)), "../dist/assets/xumeng/share/xumeng-og.jpg")));
+  assert.deepEqual(readImageSize(ogBytes), { type: "image/jpeg", width: 1200, height: 630 });
 });
 
 test("published covers stay on an allowed public image", () => {
@@ -100,9 +102,42 @@ test("the app shell keeps the character card and drops the homepage card", () =>
   assert.ok(jsonLd);
   assert.equal((JSON.parse(jsonLd) as { mainEntity?: { name?: string } }).mainEntity?.name, "裴聿 - AI角色聊天");
   assert.match(html, /id="root"/);
-  assert.match(html, /<noscript>[\s\S]*<h1>裴聿 - AI角色聊天<\/h1>/);
+  assert.match(html, /<section id="xumeng-public-fallback"[\s\S]*<h1>裴聿 - AI角色聊天<\/h1>/);
   assert.doesNotMatch(html, /叙梦 · 角色与故事|与角色相遇，让故事继续。|xumeng-icon-512|content="512"/);
   assert.doesNotMatch(html, new RegExp('content="summary"'));
+});
+
+test("localized character routes serve translated metadata, canonical and reciprocal hreflang", async () => {
+  const shell = `<!doctype html><html lang="zh-CN"><head><title>叙梦</title><meta name="description" content="desc" /><link rel="canonical" href="https://xumengchat.top/" /><meta property="og:url" content="https://xumengchat.top/" /><meta property="og:locale" content="zh_CN" /><meta property="og:title" content="叙梦" /><meta property="og:description" content="desc" /><meta property="og:image" content="https://xumengchat.top/assets/xumeng/share/xumeng-og.jpg" /></head><body><div id="root"></div><section id="xumeng-public-fallback"><p>home</p></section></body></html>`;
+  const env = {
+    ASSETS: { fetch: async () => new Response(shell, { headers: { "Content-Type": "text/html; charset=utf-8" } }) },
+    BACKEND: { fetch: async () => new Response("no", { status: 500 }) },
+    CHAT_RATE_LIMITER: { limit: async () => ({ success: true }) },
+  } as Env;
+  const enPage = await fetchRequest(new Request("https://xumengchat.top/en/c/xumeng-foreverse-peiyu"), env);
+  const enHtml = await enPage.text();
+  assert.equal(enPage.status, 200);
+  assert.equal(enPage.headers.get("content-language"), "en-US");
+  assert.match(enHtml, /<html lang="en-US">/);
+  assert.match(enHtml, /<title>Pei Yu - AI Character Chat<\/title>/);
+  assert.match(enHtml, /<link rel="canonical" href="https:\/\/xumengchat\.top\/en\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /<link rel="alternate" hreflang="zh-CN" href="https:\/\/xumengchat\.top\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /<link rel="alternate" hreflang="en" href="https:\/\/xumengchat\.top\/en\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /<link rel="alternate" hreflang="ja" href="https:\/\/xumengchat\.top\/jp\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /<link rel="alternate" hreflang="ko" href="https:\/\/xumengchat\.top\/ko\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /<link rel="alternate" hreflang="zh-TW" href="https:\/\/xumengchat\.top\/zh-tw\/c\/xumeng-foreverse-peiyu" \/>/);
+  assert.match(enHtml, /Start Interactive Chat on XUMENG/);
+
+  const jpPage = await fetchRequest(new Request("https://xumengchat.top/jp/c/xumeng-foreverse-peiyu"), env);
+  assert.equal(jpPage.status, 200);
+  assert.match(await jpPage.text(), /AIキャラクターチャット/);
+
+  const zhCnRedirect = await fetchRequest(new Request("https://xumengchat.top/zh-cn/c/xumeng-foreverse-peiyu"), env);
+  assert.equal(zhCnRedirect.status, 308);
+  assert.equal(zhCnRedirect.headers.get("location"), "https://xumengchat.top/c/xumeng-foreverse-peiyu");
+
+  const missingEn = await fetchRequest(new Request("https://xumengchat.top/en/c/missing-character"), env);
+  assert.equal(missingEn.status, 404);
 });
 
 test("llms.txt describes only public answer-engine sources", async () => {
