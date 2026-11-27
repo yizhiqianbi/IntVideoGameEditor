@@ -1,17 +1,29 @@
 import { DzmmPaymentError, type DzmmPaymentContext, type DzmmPaymentMethodOption, type DzmmPaymentMethod } from "./dzmm-payments";
 
 export type DzmmSubscriptionPlan = {
-  id: string; label: string; revision: number; amountMinor: number; currency: "cny";
+  id: string; label: string; tier?: number; revision: number; amountMinor: number; currency: "cny";
   durationDays: 7 | 30; dailyCredits: number; maxClaims: 7 | 30; timezone: "Asia/Shanghai";
+  dailyAudioLimit?: number; dailyImageLimit?: number;
 };
 export type DzmmSubscriptionConfig = {
   provider: "zpay"; mode: "live"; testMode: false; enabled: boolean;
   timezone: "Asia/Shanghai"; renewal: "manual"; autoRenew: false; modelBillingLinked: boolean;
   methods: DzmmPaymentMethodOption[]; plans: DzmmSubscriptionPlan[]; note: string;
 };
+export type DzmmSubscriptionUpgradeQuote = {
+  fromSubscriptionId: string;
+  fromPlanId: string;
+  fromLabel: string;
+  remainingUnits: number;
+  totalUnits: number;
+  listAmountMinor: number;
+  tradeInMinor: number;
+  payableAmountMinor: number;
+};
 export type DzmmSubscription = {
-  id: string; orderId: string; planId: string; label: string; status: "active" | "queued" | "expired" | "revoked";
+  id: string; orderId: string; planId: string; tier?: number; label: string; status: "active" | "queued" | "expired" | "revoked" | "upgraded";
   startsAt: number; expiresAt: number; dailyCredits: number; claimsCount: number; maxClaims: 7 | 30 | 90;
+  upgradedToOrderId?: string | null;
 };
 export type DzmmSubscriptionCheckin = {
   subscriptionId: string | null; dayKey: string; timezone: "Asia/Shanghai";
@@ -20,11 +32,13 @@ export type DzmmSubscriptionCheckin = {
 export type DzmmSubscriptionOverview = {
   accountId: string; provider: "zpay"; mode: "live"; testMode: false; serverTime: number;
   balance: number; totalSubscriptionGranted: number; subscriptions: DzmmSubscription[]; checkin: DzmmSubscriptionCheckin;
+  upgrades?: Record<string, DzmmSubscriptionUpgradeQuote>;
   superAccess?: boolean; creditUnlimited?: boolean;
 };
 export type DzmmSubscriptionOrder = {
   id: string; accountId: string; planId: string; planRevision: number; label: string;
-  amountMinor: number; currency: "cny"; durationDays: 7 | 30; dailyCredits: number; maxClaims: 7 | 30;
+  amountMinor: number; listAmountMinor?: number; tradeInMinor?: number; upgradeFromSubscriptionId?: string | null;
+  currency: "cny"; durationDays: 7 | 30; dailyCredits: number; maxClaims: 7 | 30;
   provider: "zpay"; mode: "live"; method: DzmmPaymentMethod;
   status: "pending" | "paid" | "expired" | "failed" | "refunded";
   createdAt: number; updatedAt: number; paidAt: number | null; checkoutUrl: string | null; subscriptionId: string | null;
@@ -33,6 +47,8 @@ export type DzmmSubscriptionOrderResult = DzmmSubscriptionOverview & { order: Dz
 export type DzmmSubscriptionCheckoutRequest = {
   accountId: string; planId: string; planRevision: number; requestId: string;
   provider: "zpay"; mode: "live"; method: DzmmPaymentMethod;
+  upgradeFromSubscriptionId?: string;
+  expectedAmountMinor?: number;
 };
 export type DzmmSubscriptionCheckoutResult = {
   accountId: string; provider: "zpay"; mode: "live"; testMode: false; order: DzmmSubscriptionOrder; checkoutUrl: string;
@@ -77,23 +93,55 @@ export function isDzmmSubscriptionCheckoutUrl(value: unknown, orderId?: string, 
 
 function parsePlan(value: unknown): DzmmSubscriptionPlan {
   if (!record(value) || !text(value.id) || !text(value.label) || !amount(value.revision) || value.revision <= 0
+    || (value.tier !== undefined && (!amount(value.tier) || value.tier <= 0 || value.tier > 99))
+    || (value.dailyAudioLimit !== undefined && (!amount(value.dailyAudioLimit) || value.dailyAudioLimit <= 0 || value.dailyAudioLimit > 1000))
+    || (value.dailyImageLimit !== undefined && (!amount(value.dailyImageLimit) || value.dailyImageLimit <= 0 || value.dailyImageLimit > 500))
     || !amount(value.amountMinor) || value.amountMinor <= 0 || value.currency !== "cny"
     || (value.durationDays !== 7 && value.durationDays !== 30) || !amount(value.dailyCredits) || value.dailyCredits <= 0
     || value.maxClaims !== value.durationDays || value.timezone !== "Asia/Shanghai") throw malformed();
-  return { id: value.id, label: value.label, revision: value.revision, amountMinor: value.amountMinor,
-    currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30, timezone: "Asia/Shanghai" };
+  return { id: value.id, label: value.label, ...(value.tier !== undefined ? { tier: value.tier } : {}),
+    revision: value.revision, amountMinor: value.amountMinor,
+    currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30, timezone: "Asia/Shanghai",
+    ...(value.dailyAudioLimit !== undefined ? { dailyAudioLimit: value.dailyAudioLimit } : {}),
+    ...(value.dailyImageLimit !== undefined ? { dailyImageLimit: value.dailyImageLimit } : {}) };
+}
+
+function parseUpgradeQuote(value: unknown): DzmmSubscriptionUpgradeQuote {
+  if (!record(value) || !text(value.fromSubscriptionId) || !value.fromSubscriptionId.startsWith("sub_") || !UUID.test(value.fromSubscriptionId.slice(4))
+    || !text(value.fromPlanId) || !text(value.fromLabel)
+    || !amount(value.remainingUnits) || value.remainingUnits <= 0 || !amount(value.totalUnits) || value.totalUnits <= 0
+    || value.remainingUnits > value.totalUnits
+    || !amount(value.listAmountMinor) || value.listAmountMinor <= 0
+    || !amount(value.tradeInMinor) || value.tradeInMinor <= 0
+    || !amount(value.payableAmountMinor) || value.payableAmountMinor <= 0
+    || value.tradeInMinor + value.payableAmountMinor !== value.listAmountMinor) throw malformed();
+  return {
+    fromSubscriptionId: value.fromSubscriptionId,
+    fromPlanId: value.fromPlanId,
+    fromLabel: value.fromLabel,
+    remainingUnits: value.remainingUnits,
+    totalUnits: value.totalUnits,
+    listAmountMinor: value.listAmountMinor,
+    tradeInMinor: value.tradeInMinor,
+    payableAmountMinor: value.payableAmountMinor,
+  };
 }
 
 function parseSubscription(value: unknown): DzmmSubscription {
   if (!record(value) || !text(value.id) || !text(value.orderId) || !value.orderId.startsWith("sp_") || !UUID.test(value.orderId.slice(3)) || !text(value.planId) || !text(value.label)
-    || !["active", "queued", "expired", "revoked"].includes(value.status as string)
+    || (value.tier !== undefined && (!amount(value.tier) || value.tier <= 0 || value.tier > 99))
+    || !["active", "queued", "expired", "revoked", "upgraded"].includes(value.status as string)
     || !timestamp(value.startsAt) || !timestamp(value.expiresAt) || value.expiresAt <= value.startsAt
     || !amount(value.dailyCredits) || value.dailyCredits <= 0 || !amount(value.claimsCount)
     || (value.maxClaims !== 7 && value.maxClaims !== 30 && value.maxClaims !== 90) || value.claimsCount > value.maxClaims
-    || (value.maxClaims === 90 && (value.planId !== "vip_quarterly" || value.dailyCredits !== 500))) throw malformed();
-  return { id: value.id, orderId: value.orderId, planId: value.planId, label: value.label, status: value.status as DzmmSubscription["status"],
+    || (value.maxClaims === 90 && (value.planId !== "vip_quarterly" || value.dailyCredits !== 500))
+    || (value.upgradedToOrderId !== undefined && value.upgradedToOrderId !== null && (!text(value.upgradedToOrderId) || !value.upgradedToOrderId.startsWith("sp_")))) throw malformed();
+  return { id: value.id, orderId: value.orderId, planId: value.planId,
+    ...(value.tier !== undefined ? { tier: value.tier } : {}),
+    label: value.label, status: value.status as DzmmSubscription["status"],
     startsAt: value.startsAt, expiresAt: value.expiresAt, dailyCredits: value.dailyCredits,
-    claimsCount: value.claimsCount, maxClaims: value.maxClaims };
+    claimsCount: value.claimsCount, maxClaims: value.maxClaims,
+    ...(value.upgradedToOrderId !== undefined ? { upgradedToOrderId: value.upgradedToOrderId as string | null } : {}) };
 }
 
 function parseOverview(value: unknown, expected: DzmmPaymentContext): DzmmSubscriptionOverview {
@@ -105,6 +153,16 @@ function parseOverview(value: unknown, expected: DzmmPaymentContext): DzmmSubscr
   if (!text(value.accountId) || !timestamp(value.serverTime) || !amount(value.balance) || !amount(value.totalSubscriptionGranted)
     || !Array.isArray(value.subscriptions) || value.subscriptions.length > 200 || !record(value.checkin)) throw malformed();
   const subscriptions = value.subscriptions.map(parseSubscription);
+  let upgrades: Record<string, DzmmSubscriptionUpgradeQuote> | undefined;
+  if (value.upgrades !== undefined) {
+    if (!record(value.upgrades)) throw malformed();
+    const parsed: Record<string, DzmmSubscriptionUpgradeQuote> = {};
+    for (const [planId, rawQuote] of Object.entries(value.upgrades)) {
+      if (!text(planId, 80)) throw malformed();
+      parsed[planId] = parseUpgradeQuote(rawQuote);
+    }
+    if (Object.keys(parsed).length) upgrades = parsed;
+  }
   const checkin = value.checkin;
   if ((checkin.subscriptionId !== null && !text(checkin.subscriptionId)) || !day(checkin.dayKey) || checkin.timezone !== "Asia/Shanghai"
     || typeof checkin.claimed !== "boolean" || typeof checkin.claimable !== "boolean" || !amount(checkin.rewardCredits)
@@ -117,6 +175,7 @@ function parseOverview(value: unknown, expected: DzmmPaymentContext): DzmmSubscr
   if (checkin.claimed && (checkin.claimedAt === null || !checkin.subscriptionId || checkin.rewardCredits <= 0)) throw malformed();
   return { accountId: value.accountId, provider: "zpay", mode: "live", testMode: false, serverTime: value.serverTime,
     balance: value.balance, totalSubscriptionGranted: value.totalSubscriptionGranted, subscriptions,
+    ...(upgrades ? { upgrades } : {}),
     checkin: { subscriptionId: checkin.subscriptionId as string | null, dayKey: checkin.dayKey, timezone: "Asia/Shanghai",
       claimed: checkin.claimed, claimable: checkin.claimable, rewardCredits: checkin.rewardCredits,
       claimedAt: checkin.claimedAt as number | null, resetAt: checkin.resetAt },
@@ -127,14 +186,22 @@ function parseOverview(value: unknown, expected: DzmmPaymentContext): DzmmSubscr
 function parseOrder(value: unknown, accountId: string): DzmmSubscriptionOrder {
   if (!record(value) || !text(value.id) || !value.id.startsWith("sp_") || !UUID.test(value.id.slice(3))
     || value.accountId !== accountId || !text(value.planId) || !amount(value.planRevision) || value.planRevision <= 0 || !text(value.label)
-    || !amount(value.amountMinor) || value.amountMinor <= 0 || value.currency !== "cny" || value.durationDays !== 30
-    || !amount(value.dailyCredits) || value.dailyCredits <= 0 || value.maxClaims !== 30 || value.provider !== "zpay" || value.mode !== "live"
+    || !amount(value.amountMinor) || value.amountMinor <= 0 || value.currency !== "cny"
+    || (value.durationDays !== 7 && value.durationDays !== 30)
+    || !amount(value.dailyCredits) || value.dailyCredits <= 0 || value.maxClaims !== value.durationDays || value.provider !== "zpay" || value.mode !== "live"
+    || (value.listAmountMinor !== undefined && (!amount(value.listAmountMinor) || value.listAmountMinor <= 0))
+    || (value.tradeInMinor !== undefined && !amount(value.tradeInMinor))
+    || (value.upgradeFromSubscriptionId !== undefined && value.upgradeFromSubscriptionId !== null && (!text(value.upgradeFromSubscriptionId) || !value.upgradeFromSubscriptionId.startsWith("sub_")))
     || !method(value.method) || !["pending", "paid", "expired", "failed", "refunded"].includes(value.status as string)
     || !timestamp(value.createdAt) || !timestamp(value.updatedAt) || (value.paidAt !== null && !timestamp(value.paidAt))
     || (value.subscriptionId !== null && !text(value.subscriptionId))
     || (value.checkoutUrl !== null && !isDzmmSubscriptionCheckoutUrl(value.checkoutUrl, value.id))) throw malformed();
   return { id: value.id, accountId, planId: value.planId, planRevision: value.planRevision, label: value.label,
-    amountMinor: value.amountMinor, currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30,
+    amountMinor: value.amountMinor,
+    ...(value.listAmountMinor !== undefined ? { listAmountMinor: value.listAmountMinor } : {}),
+    ...(value.tradeInMinor !== undefined ? { tradeInMinor: value.tradeInMinor } : {}),
+    ...(value.upgradeFromSubscriptionId !== undefined ? { upgradeFromSubscriptionId: value.upgradeFromSubscriptionId as string | null } : {}),
+    currency: "cny", durationDays: value.durationDays as 7 | 30, dailyCredits: value.dailyCredits, maxClaims: value.maxClaims as 7 | 30,
     provider: "zpay", mode: "live", method: value.method, status: value.status as DzmmSubscriptionOrder["status"],
     createdAt: value.createdAt, updatedAt: value.updatedAt, paidAt: value.paidAt as number | null, checkoutUrl: value.checkoutUrl as string | null,
     subscriptionId: value.subscriptionId as string | null };
@@ -208,14 +275,18 @@ export async function fetchDzmmSubscriptionRequest(body: DzmmSubscriptionCheckou
 
 function validateCheckout(body: DzmmSubscriptionCheckoutRequest, expectedPlan: DzmmSubscriptionPlan) {
   if (!text(body.accountId) || !text(body.planId) || !amount(body.planRevision) || body.planRevision <= 0 || !UUID.test(body.requestId)
-    || body.mode !== "live" || body.provider !== "zpay" || !method(body.method) || body.planId !== expectedPlan.id || body.planRevision !== expectedPlan.revision) {
+    || body.mode !== "live" || body.provider !== "zpay" || !method(body.method) || body.planId !== expectedPlan.id || body.planRevision !== expectedPlan.revision
+    || (body.upgradeFromSubscriptionId !== undefined && (!text(body.upgradeFromSubscriptionId) || !body.upgradeFromSubscriptionId.startsWith("sub_") || !UUID.test(body.upgradeFromSubscriptionId.slice(4))))
+    || (body.expectedAmountMinor !== undefined && (!amount(body.expectedAmountMinor) || body.expectedAmountMinor <= 0))) {
     throw new DzmmPaymentError(400, "订阅请求无效，请刷新套餐后重试。");
   }
 }
 function assertCheckoutOrder(order: DzmmSubscriptionOrder, body: DzmmSubscriptionCheckoutRequest, expectedPlan: DzmmSubscriptionPlan) {
   if (order.planId !== body.planId || order.method !== body.method) throw malformed();
-  if (order.planRevision !== expectedPlan.revision || order.amountMinor !== expectedPlan.amountMinor || order.dailyCredits !== expectedPlan.dailyCredits
-    || order.durationDays !== expectedPlan.durationDays || order.maxClaims !== expectedPlan.maxClaims) {
+  const expectedAmount = body.expectedAmountMinor ?? expectedPlan.amountMinor;
+  if (order.planRevision !== expectedPlan.revision || order.amountMinor !== expectedAmount || order.dailyCredits !== expectedPlan.dailyCredits
+    || order.durationDays !== expectedPlan.durationDays || order.maxClaims !== expectedPlan.maxClaims
+    || (body.upgradeFromSubscriptionId !== undefined && order.upgradeFromSubscriptionId !== body.upgradeFromSubscriptionId)) {
     throw new DzmmPaymentError(409, "订阅价格或权益已更新，请刷新并确认新套餐后再支付。");
   }
 }

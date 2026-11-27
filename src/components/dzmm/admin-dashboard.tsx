@@ -61,7 +61,7 @@ const roleLabel = (role: DzmmAdminRole) => role === "super" ? "Super" : "普通�
 const provider = (v: string) => ({ zpay: "Z-Pay", stripe: "Stripe", subscription: "VIP 订阅", nowpayments: "NOWPayments", guagua: "呱呱支付", waffo: "Waffo" }[v] ?? v);
 const paymentMode = (mode: string) => mode === "live" ? "线上" : mode === "sandbox" ? "沙盒" : "测试";
 const manageableAccount = (id: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-const statusLabel = (v: string) => ({ active: "生效中", scheduled: "等待生效", expired: "已到期", revoked: "已撤销", pending: "待处理", paid: "已支付", failed: "失败", refunded: "已退款", partially_refunded: "部分退款", reserved: "已预留", settled: "已结算", released: "已释放" }[v] ?? v);
+const statusLabel = (v: string) => ({ active: "生效中", scheduled: "等待生效", upgraded: "已升级", expired: "已到期", revoked: "已撤销", pending: "待处理", paid: "已支付", failed: "失败", refunded: "已退款", partially_refunded: "部分退款", reserved: "已预留", settled: "已结算", released: "已释放" }[v] ?? v);
 const watchKind = (kind: string) => ({ unlock: "付费解锁", free: "免费试看", vip: "会员播放", paid: "解锁后再看" }[kind] ?? kind);
 const spendScene = (scene: string) => ({ chat: "聊天", video_unlock: "短剧解锁", chat_image: "聊天出图", chat_audio: "聊天语音", canvas_image: "创作出图", canvas_video: "创作视频", generation_image: "生成图片", generation_video: "生成视频", call: "通话", companion: "陪伴", studio_still: "工作室静帧" }[scene] ?? scene);
 const errorMessage = (v: unknown, fallback: string) => v instanceof Error ? v.message : fallback;
@@ -90,7 +90,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
     feedback: { label: c.adFeedback, description: c.adFeedbackBody },
     ops: { label: c.adOps, description: c.adOpsBody },
   };
-  const statusText = (value: string) => ({ active: c.adActive, scheduled: c.adScheduled, expired: c.adExpired, revoked: c.adRevoked, pending: c.adPending, paid: c.adPaid, failed: c.adFailed, refunded: c.adRefunded, partially_refunded: c.adPartial, reserved: c.adReserved, settled: c.adSettled, released: c.adReleased }[value] ?? value);
+  const statusText = (value: string) => ({ active: c.adActive, scheduled: c.adScheduled, upgraded: "已升级", expired: c.adExpired, revoked: c.adRevoked, pending: c.adPending, paid: c.adPaid, failed: c.adFailed, refunded: c.adRefunded, partially_refunded: c.adPartial, reserved: c.adReserved, settled: c.adSettled, released: c.adReleased }[value] ?? value);
   const roleName = (role: DzmmAdminRole) => role === "super" ? "Super" : c.adUserRole;
   const channelName = (v: string) => ({ zpay: "Z-Pay", stripe: "Stripe", subscription: c.adSubscription, nowpayments: "NOWPayments", guagua: "呱呱支付", waffo: "Waffo" }[v] ?? v);
   const permitted = Boolean(user && !user.isGuest && user.role === "super");

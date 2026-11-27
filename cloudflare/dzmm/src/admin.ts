@@ -113,7 +113,7 @@ async function listing(env:Env,user:UserRecord,url:URL,kind:'orders'|'usage'|'au
   const {limit,offset}=page(url,['userId']),filter=userFilter(url);
   const source=kind==='orders'?ORDERS:kind==='usage'?USAGE:kind==='audit'?'SELECT *,target_user_id AS user_id FROM admin_audit':
     `SELECT p.id,p.user_id,u.nickname,o.plan_id,o.label,o.daily_credits,o.max_claims,p.starts_at,p.expires_at,
-      CASE WHEN p.revoked_at IS NOT NULL THEN 'revoked' WHEN p.starts_at>${NOW} THEN 'scheduled' WHEN p.expires_at<=${NOW} THEN 'expired' ELSE 'active' END AS status,
+      CASE WHEN p.upgraded_to_order_id IS NOT NULL THEN 'upgraded' WHEN p.revoked_at IS NOT NULL THEN 'revoked' WHEN p.starts_at>${NOW} THEN 'scheduled' WHEN p.expires_at<=${NOW} THEN 'expired' ELSE 'active' END AS status,
       (SELECT COUNT(*) FROM subscription_daily_claims c WHERE c.subscription_id=p.id) AS claims_count,p.created_at FROM subscription_periods p
       JOIN subscription_orders o ON o.id=p.order_id JOIN users u ON u.id=p.user_id`;
   const results=await env.DB.batch([env.DB.prepare(`SELECT * FROM (${source}) WHERE (? IS NULL OR user_id=?) ORDER BY created_at DESC,id DESC LIMIT ? OFFSET ?`).bind(filter,filter,limit,offset),

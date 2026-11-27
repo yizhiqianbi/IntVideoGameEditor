@@ -12,7 +12,7 @@
     "NOWPAYMENTS_ENABLED": "false",
     "NOWPAYMENTS_PAY_CURRENCY": "usdttrc20",
     "SUBSCRIPTION_ENABLED": "false",
-    "SUBSCRIPTION_PLANS_JSON": "[{\"id\":\"vip_monthly\",\"label\":\"叙梦 VIP\",\"revision\":3,\"amountMinor\":2800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":300,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\"}]",
+    "SUBSCRIPTION_PLANS_JSON": "[{\"id\":\"vip_weekly\",\"label\":\"体验周卡\",\"tier\":1,\"revision\":3,\"amountMinor\":1800,\"currency\":\"cny\",\"durationDays\":7,\"dailyCredits\":300,\"maxClaims\":7,\"timezone\":\"Asia/Shanghai\",\"dailyAudioLimit\":10,\"dailyImageLimit\":3},{\"id\":\"vip_monthly_basic\",\"label\":\"基础月卡\",\"tier\":2,\"revision\":2,\"amountMinor\":3800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":300,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\",\"dailyAudioLimit\":20,\"dailyImageLimit\":5},{\"id\":\"vip_monthly_pro\",\"label\":\"进阶月卡\",\"tier\":3,\"revision\":2,\"amountMinor\":8800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":750,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\",\"dailyAudioLimit\":40,\"dailyImageLimit\":10},{\"id\":\"vip_monthly_ultra\",\"label\":\"尊享月卡\",\"tier\":4,\"revision\":2,\"amountMinor\":18800,\"currency\":\"cny\",\"durationDays\":30,\"dailyCredits\":1700,\"maxClaims\":30,\"timezone\":\"Asia/Shanghai\",\"dailyAudioLimit\":80,\"dailyImageLimit\":20}]",
     "PAYMENTS_RETURN_ORIGIN": "https://xumengchat.top",
     "EMAIL_AUTH_ENABLED": "false",
     "EMAIL_PROVIDER": "cloudflare",

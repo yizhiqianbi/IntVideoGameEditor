@@ -11,6 +11,7 @@ import { parseDzmmConversationOpening } from "../../../src/lib/dzmm-conversation
 import { splitDzmmCharacterPresentation } from "../../../src/lib/dzmm-character-presentation";
 import { composeDzmmIllustration, parseDzmmIllustrationDraft } from "../../../src/lib/dzmm-illustration";
 import { chatMediaSourceHash, parseChatMediaDirectoryRequest, readChatMediaDirectory } from "./chat-media-directory";
+import { resolveSubscriptionMediaLimits, type SubscriptionPlanLike } from "./subscription-upgrade";
 
 export { chatMediaSourceHash };
 import { generateSeedreamFlash } from "../../../src/lib/xumeng-seedream";
@@ -67,11 +68,24 @@ function publicAsset(row: AssetRow): ChatMediaAsset {
     ...(row.kind === "audio" ? { audioTextChars: row.audio_text_chars!, totalTextChars: row.total_text_chars! } : {}) };
 }
 async function membership(env: Env, user: UserRecord, now: number) {
-  const period = user.isGuest ? null : await env.DB.prepare(`SELECT MAX(expires_at) AS expires_at FROM subscription_periods
-    WHERE user_id=? AND revoked_at IS NULL AND starts_at<=? AND expires_at>?`).bind(user.id, now, now).first<{ expires_at: number | null }>();
+  const period = user.isGuest ? null : await env.DB.prepare(`SELECT p.expires_at, o.plan_id, o.duration_days, o.daily_credits
+    FROM subscription_periods p JOIN subscription_orders o ON o.id=p.order_id
+    WHERE p.user_id=? AND p.revoked_at IS NULL AND p.starts_at<=? AND p.expires_at>?
+    ORDER BY p.expires_at DESC LIMIT 1`).bind(user.id, now, now)
+    .first<{ expires_at: number | null; plan_id: string | null; duration_days: number | null; daily_credits: number | null }>();
   const account=await env.DB.prepare("SELECT is_guest,role FROM users WHERE id=?").bind(user.id).first<{is_guest:number;role:string}>();
   const unlimited=account?.is_guest===0 && account.role==='super';
-  return { active: period?.expires_at != null, expiresAt: period?.expires_at ?? null, adminPreview: unlimited, unlimited };
+  let plans: SubscriptionPlanLike[] = [];
+  if (env.SUBSCRIPTION_PLANS_JSON) {
+    try {
+      const parsed = JSON.parse(env.SUBSCRIPTION_PLANS_JSON);
+      if (Array.isArray(parsed)) plans = parsed as SubscriptionPlanLike[];
+    } catch { /* fallback to tier defaults */ }
+  }
+  const limits = period?.expires_at != null
+    ? resolveSubscriptionMediaLimits({ planId: period.plan_id, durationDays: period.duration_days, dailyCredits: period.daily_credits }, plans)
+    : LIMITS;
+  return { active: period?.expires_at != null, expiresAt: period?.expires_at ?? null, adminPreview: unlimited, unlimited, limits };
 }
 async function message(env: Env, userId: string, conversationId: string, messageId: string): Promise<MessageRow | null> {
   return env.DB.prepare("SELECT content,role FROM messages WHERE user_id=? AND conversation_id=? AND id=?")
@@ -649,6 +663,8 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     reference = cover;
   }
   await minuteLimit(env,user.id,now);
+  const tierVip = await membership(env, user, now);
+  const activeLimits = tierVip.limits;
   const id = existing?.id ?? crypto.randomUUID(), token = crypto.randomUUID();
   const objectKey = `chat-media/${user.id}/${id}/${token}.${kind === "audio" ? "audio" : "image"}`;
   const timeout = Math.max(1,Math.min(TIMEOUTS[kind], kind === "audio" ? options.audioTimeoutMs ?? TIMEOUTS.audio : options.imageTimeoutMs ?? TIMEOUTS.image));
@@ -663,7 +679,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
       AND EXISTS(SELECT 1 FROM credit_usage_balances WHERE user_id=?2 AND balance>=?14)
       AND EXISTS(SELECT 1 FROM sessions WHERE user_id=?2 AND token_hash=?13 AND expires_at>MAX(?6,${sqlNow}))
       AND NOT EXISTS(SELECT 1 FROM chat_media_assets WHERE user_id=?2 AND conversation_id=?9 AND message_id=?10 AND kind=?4 AND source_hash=?12 AND (status='pending' OR (status='ready' AND ?15=0)))`)
-      .bind(token,user.id,id,kind,dayKey(now),now,now+timeout+30_000,LIMITS[kind],conversationId,messageId,source.content,sourceHash,sessionHash,CREDIT_COST[kind],Number(regenerate)),
+      .bind(token,user.id,id,kind,dayKey(now),now,now+timeout+30_000,activeLimits[kind],conversationId,messageId,source.content,sourceHash,sessionHash,CREDIT_COST[kind],Number(regenerate)),
     env.DB.prepare(`INSERT INTO chat_media_assets(id,user_id,conversation_id,message_id,kind,source_hash,status,processing_token,object_key,created_at,updated_at)
       SELECT ?1,?2,?3,?4,?5,?6,'pending',?7,?8,?9,?9 WHERE EXISTS(SELECT 1 FROM chat_media_usage WHERE id=?7 AND status='pending')
       ON CONFLICT(user_id,conversation_id,message_id,kind,source_hash) DO UPDATE SET status='pending',processing_token=excluded.processing_token,
@@ -682,7 +698,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
     const wallet = await env.DB.prepare("SELECT balance FROM credit_usage_balances WHERE user_id=?").bind(user.id).first<{ balance: number }>();
     const cost = CREDIT_COST[kind];
     if (!wallet || Number(wallet.balance) < cost) throw new ApiError(402,`当前可用 Credit 不足，${kind === "audio" ? "语音" : "剧情图片"}每次约需 ${cost} Credit。`,{ code: "insufficient_credits", requiredCredits: cost, availableCredits: Number(wallet?.balance ?? 0) });
-    throw new ApiError(429,kind === "audio" ? "今日语音额度已用完，明天再试。" : "今日剧情图片额度已用完，明天再试。",{ limits:LIMITS,usage:await usage(env,user.id,now) });
+    throw new ApiError(429,kind === "audio" ? "今日语音额度已用完，明天再试。" : "今日剧情图片额度已用完，明天再试。",{ limits:activeLimits,usage:await usage(env,user.id,now) });
   }
   let putAttempted = false, committed = false;
   let stage = "provider";
@@ -873,7 +889,7 @@ export async function handleChatMedia(request:Request,env:Env,user:UserRecord,op
       id:row.id,messageId:row.message_id,kind:row.kind,sourceHash:row.source_hash,expiresAt:row.pending_expires_at!,
     }));
     const enabled = audioConfigured(env), vip = await membership(env,user,now);
-    return json({accountId:user.id,conversationId,quotaUnlimited:vip.unlimited,vip,features:{audio:enabled,image:imageGenerationAllowed(env)},limits:LIMITS,
+    return json({accountId:user.id,conversationId,quotaUnlimited:vip.unlimited,vip,features:{audio:enabled,image:imageGenerationAllowed(env)},limits:vip.limits,
       usage:await usage(env,user.id,now),assets:page.matching.filter(row=>row.status==="ready").map(publicAsset),pending,directory:page.directory});
   }
   // One query observes ready assets and active reservations at the same point.
@@ -891,6 +907,6 @@ export async function handleChatMedia(request:Request,env:Env,user:UserRecord,op
   }));
   const enabled = audioConfigured(env);
   const vip=await membership(env,user,now);
-  return json({accountId:user.id,conversationId,quotaUnlimited:vip.unlimited,vip,features:{audio:enabled,image:imageGenerationAllowed(env)},limits:LIMITS,
+  return json({accountId:user.id,conversationId,quotaUnlimited:vip.unlimited,vip,features:{audio:enabled,image:imageGenerationAllowed(env)},limits:vip.limits,
     usage:await usage(env,user.id,now),assets:matching.filter(row=>row.status==="ready").map(publicAsset),pending});
 }

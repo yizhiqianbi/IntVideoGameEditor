@@ -107,6 +107,8 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
   if (existing?.status === "ready") return readyResponse(env, existing, now);
   if (existing?.status === "pending") throw new ApiError(409, "这段台词正在朗读，请稍后重试。", { retryAfter: 3 });
   await chatMediaMinuteLimit(env, user.id, now);
+  const tierRights = await chatMediaMembership(env, user, now);
+  const activeAudioLimit = tierRights.limits.audio ?? LIMIT;
   const id = existing?.id ?? crypto.randomUUID(), token = crypto.randomUUID(), objectKey = `character-voice/${user.id}/${id}/${token}.audio`;
   const timeout = Math.max(1, Math.min(TIMEOUT, options.audioTimeoutMs ?? TIMEOUT));
   const reserved = await env.DB.batch([
@@ -119,7 +121,7 @@ async function generate(request: Request, env: Env, user: UserRecord, now: numbe
       AND EXISTS(SELECT 1 FROM credit_usage_balances WHERE user_id=?2 AND balance>=?10)
       AND EXISTS(SELECT 1 FROM sessions WHERE user_id=?2 AND token_hash=?9 AND expires_at>MAX(?5,${SQL_NOW}))
       AND NOT EXISTS(SELECT 1 FROM character_voice_assets WHERE user_id=?2 AND source_hash=?8 AND status IN ('pending','ready'))`)
-      .bind(token, user.id, id, chatMediaDayKey(now), now, now + timeout + 30_000, LIMIT, sourceHash, sessionHash, VOICE_CREDITS),
+      .bind(token, user.id, id, chatMediaDayKey(now), now, now + timeout + 30_000, activeAudioLimit, sourceHash, sessionHash, VOICE_CREDITS),
     env.DB.prepare(`INSERT INTO character_voice_assets(id,user_id,name,source_key,source_text,source_hash,model,status,processing_token,object_key,created_at,updated_at,voice_id)
       SELECT ?1,?2,?3,?4,?5,?6,?7,'pending',?8,?9,?10,?10,?11 WHERE EXISTS(SELECT 1 FROM chat_media_usage WHERE id=?8 AND status='pending')
       ON CONFLICT(user_id,source_hash) DO UPDATE SET status='pending',processing_token=excluded.processing_token,object_key=excluded.object_key,

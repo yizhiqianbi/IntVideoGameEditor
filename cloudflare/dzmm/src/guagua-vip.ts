@@ -1,18 +1,19 @@
 import { createHash, randomInt } from "node:crypto";
 import { inviteRebateStatement } from "./dream-coin";
 import { ApiError } from "./http";
+import { periodActivationStatements } from "./subscription-upgrade";
 import type { Env } from "./types";
 
 export const VIP_ORDER_ID = /^sp_[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/;
 const ORIGIN = "https://xumengchat.top";
 const VIP_SQL = `SELECT v.subscription_order_id,v.mer_order_tid,v.merchant_mid,v.channel_code,v.pay_url,v.provider_trade_no,
-  o.amount_minor,o.user_id,o.status,o.paid_at
+  o.amount_minor,o.user_id,o.status,o.paid_at,o.upgrade_from_subscription_id
   FROM guagua_vip_orders v JOIN subscription_orders o ON o.id=v.subscription_order_id`;
 
 export type GuaguaVipPayment = {
   subscription_order_id: string; mer_order_tid: string; merchant_mid: string; channel_code: string;
   pay_url: string | null; provider_trade_no: string | null; amount_minor: number; user_id: string;
-  status: string; paid_at: number | null;
+  status: string; paid_at: number | null; upgrade_from_subscription_id?: string | null;
 };
 export type GuaguaVipFact = { merOrderTid: string; tid: string; amountMinor: number; status: number };
 
@@ -55,11 +56,14 @@ export async function fulfillGuaguaVip(env: Env, payment: GuaguaVipPayment, fact
       .bind(eventId, source, fact.tid, nonce, now, payment.subscription_order_id, payment.amount_minor, payment.merchant_mid, payment.channel_code, fact.tid),
     env.DB.prepare(`UPDATE subscription_orders SET provider_trade_no=COALESCE(provider_trade_no,?),status='paid',paid_at=COALESCE(paid_at,?),updated_at=MAX(updated_at,?)
       WHERE id=? AND ${gate}`).bind(fact.tid, now, now, payment.subscription_order_id, eventId, nonce),
-    env.DB.prepare(`INSERT INTO subscription_periods(id,user_id,order_id,source_event_id,starts_at,expires_at,created_at)
-      SELECT ?,user_id,id,?,MAX(?,COALESCE((SELECT MAX(p.expires_at) FROM subscription_periods p WHERE p.user_id=subscription_orders.user_id AND p.revoked_at IS NULL),?)),
-        MAX(?,COALESCE((SELECT MAX(p.expires_at) FROM subscription_periods p WHERE p.user_id=subscription_orders.user_id AND p.revoked_at IS NULL),?))+duration_days*86400000,?
-      FROM subscription_orders WHERE id=? AND paid_at IS NOT NULL AND ${gate} ON CONFLICT(order_id) DO NOTHING`)
-      .bind(`sub_${crypto.randomUUID()}`, eventId, now, now, now, now, now, payment.subscription_order_id, eventId, nonce),
+    ...periodActivationStatements(env, {
+      userId: payment.user_id,
+      orderId: payment.subscription_order_id,
+      upgradeFromSubscriptionId: payment.upgrade_from_subscription_id ?? null,
+      eventId,
+      nonce,
+      now,
+    }),
     env.DB.prepare(`UPDATE guagua_vip_orders SET provider_trade_no=COALESCE(provider_trade_no,?)
       WHERE subscription_order_id=? AND (provider_trade_no IS NULL OR provider_trade_no=?)`).bind(fact.tid, payment.subscription_order_id, fact.tid),
     inviteRebateStatement(env, payment.user_id, `sp:${payment.subscription_order_id}`, payment.amount_minor, now, "subscription_events", eventId, nonce),

@@ -142,3 +142,61 @@ test("final observations from another return order or changed immutable offer ca
   assert.equal(preserveDzmmSubscriptionFinalOrder(null, order("paid")), null);
   assert.equal(preserveDzmmSubscriptionFinalOrder(pending, order()), pending);
 });
+test("weekly plans and prorated upgrade intents round-trip and settle against the discounted payable amount", () => {
+  const store = storage();
+  const weeklyPlan: DzmmSubscriptionPlan = {
+    id: "vip_weekly", label: "体验周卡", tier: 1, revision: 2, amountMinor: 2800,
+    currency: "cny", durationDays: 7, dailyCredits: 300, maxClaims: 7, timezone: "Asia/Shanghai",
+  };
+  const weeklyIntent = createDzmmSubscriptionPurchaseIntent(owner, weeklyPlan, "wxpay", 1000, requestId);
+  saveDzmmSubscriptionPurchaseIntent(store, weeklyIntent);
+  assert.deepEqual(readDzmmSubscriptionPurchaseIntent(store, owner), { state: "ready", intent: weeklyIntent });
+  assert.equal(clearDzmmSubscriptionPurchaseIntent(store, weeklyIntent, {
+    ...order("paid"),
+    planId: "vip_weekly",
+    planRevision: 2,
+    label: "体验周卡",
+    amountMinor: 2800,
+    durationDays: 7,
+    dailyCredits: 300,
+    maxClaims: 7,
+    method: "wxpay",
+  }), true);
+
+  const proPlan: DzmmSubscriptionPlan = {
+    id: "vip_monthly_pro", label: "进阶月卡", tier: 3, revision: 1, amountMinor: 9800,
+    currency: "cny", durationDays: 30, dailyCredits: 600, maxClaims: 30, timezone: "Asia/Shanghai",
+  };
+  const fromSubId = `sub_${otherRequestId}`;
+  const upgradeIntent = createDzmmSubscriptionPurchaseIntent(owner, proPlan, "wxpay", 2000, requestId, {
+    fromSubscriptionId: fromSubId,
+    payableAmountMinor: 7800,
+  });
+  saveDzmmSubscriptionPurchaseIntent(store, upgradeIntent);
+  assert.deepEqual(readDzmmSubscriptionPurchaseIntent(store, owner), { state: "ready", intent: upgradeIntent });
+  assert.equal(clearDzmmSubscriptionPurchaseIntent(store, upgradeIntent, {
+    ...order("paid"),
+    planId: "vip_monthly_pro",
+    planRevision: 1,
+    label: "进阶月卡",
+    amountMinor: 9800,
+    durationDays: 30,
+    dailyCredits: 600,
+    maxClaims: 30,
+    method: "wxpay",
+  }), false);
+  assert.equal(clearDzmmSubscriptionPurchaseIntent(store, upgradeIntent, {
+    ...order("paid"),
+    planId: "vip_monthly_pro",
+    planRevision: 1,
+    label: "进阶月卡",
+    amountMinor: 7800,
+    listAmountMinor: 9800,
+    tradeInMinor: 2000,
+    upgradeFromSubscriptionId: fromSubId,
+    durationDays: 30,
+    dailyCredits: 600,
+    maxClaims: 30,
+    method: "wxpay",
+  }), true);
+});

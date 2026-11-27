@@ -80,7 +80,8 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
   const currentOrder = !isGuest && order?.accountId === userId && available && order.id === activeOrderId ? order : null;
   const currentIntent = !isGuest && purchaseIntent?.request.accountId === userId ? purchaseIntent : null;
   const recoveredOrder = !isGuest && recoveryOrder?.accountId === userId ? recoveryOrder : null;
-  const defaultPlan = config?.plans && config.plans.length >= 2 ? config.plans[1] : config?.plans[0];
+  const defaultPlan = config?.plans?.find(entry => entry.id === "vip_monthly_pro")
+    ?? (config?.plans && config.plans.length >= 2 ? config.plans[config.plans.length - 1] : config?.plans[0]);
   const plan = config?.plans.find(entry => entry.id === selected) ?? defaultPlan;
   const availableMethods = paymentConfig?.provider === "guagua"
     ? (config?.methods.filter(entry => entry.id === "wxpay") ?? [])
@@ -256,9 +257,18 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     if (!available || !paymentReady || !config?.enabled || !targetPlan || !methodId || !intentReady || intentOwner.current !== userId || intentError) return;
     const existing = intentRef.current;
     if (retryOriginal ? !existing || !originalRetryAvailable : !!existing) return;
+    const upgradeQuote = !existing ? current?.upgrades?.[targetPlan.id] : undefined;
     let submitted: DzmmSubscriptionPurchaseIntent;
-    try { submitted = existing ?? createDzmmSubscriptionPurchaseIntent(userId, targetPlan, methodId as DzmmPaymentMethod); }
-    catch (failure) { setIntentError(errorText(failure)); return; }
+    try {
+      submitted = existing ?? createDzmmSubscriptionPurchaseIntent(
+        userId,
+        targetPlan,
+        methodId as DzmmPaymentMethod,
+        Date.now(),
+        crypto.randomUUID(),
+        upgradeQuote ? { fromSubscriptionId: upgradeQuote.fromSubscriptionId, payableAmountMinor: upgradeQuote.payableAmountMinor } : undefined,
+      );
+    } catch (failure) { setIntentError(errorText(failure)); return; }
     intentRef.current = submitted; setPurchaseIntent(submitted); setLookupMissing(false); setRecoveryOrder(null); setRecoveryError("");
     try {
       saveDzmmSubscriptionPurchaseIntent(window.sessionStorage, submitted);
@@ -358,8 +368,11 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
   }
 
   let receiptMessage = "正在核对付款与会员权益。支付完成后，请以这里显示的开通结果为准。";
-  if (receivedSubscription?.status === "active") receiptMessage = `已开通${receivedSubscription.label}，有效至 ${date(receivedSubscription.expiresAt)}。现在可查看今日签到状态。`;
+  if (receivedSubscription?.status === "active") receiptMessage = currentOrder?.tradeInMinor
+    ? `已补差价升级至${receivedSubscription.label}，已抵扣原卡剩余 ${money(currentOrder.tradeInMinor)}，新周期有效至 ${date(receivedSubscription.expiresAt)}。`
+    : `已开通${receivedSubscription.label}，有效至 ${date(receivedSubscription.expiresAt)}。现在可查看今日签到状态。`;
   else if (receivedSubscription?.status === "queued") receiptMessage = `已购买${receivedSubscription.label}，将于 ${date(receivedSubscription.startsAt)} 生效，接续已有会员周期。`;
+  else if (receivedSubscription?.status === "upgraded") receiptMessage = "这期会员已折抵升级至更高等级套餐，新会员权益已立即生效。";
   else if (receivedSubscription?.status === "expired") receiptMessage = "这期会员已到期，已领取的 金币 仍保留在余额中。";
   else if (receivedSubscription?.status === "revoked" || currentOrder?.status === "refunded") receiptMessage = "这笔会员权益已停止，具体处理结果以订单记录为准。";
   else if (currentOrder?.status === "paid") receiptMessage = "付款已确认，会员开通结果仍在核对中。请稍后重新核对。";
@@ -368,10 +381,11 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
     : XUMENG_PAYMENTS_ENABLED ? "暂未确认收到付款。已付款可重新核对；尚未付款可继续支付此订单。" : "暂未确认收到付款。人民币收款已停用，已付款可继续核对结果。";
   else if (currentOrder?.status === "expired") receiptMessage = XUMENG_PAYMENTS_ENABLED ? "订单已过期，未开通会员。你可以重新选择套餐购买。" : "订单已过期，未开通会员。人民币收款已停用。";
   else if (currentOrder?.status === "failed") receiptMessage = XUMENG_PAYMENTS_ENABLED ? "这笔付款未完成，未开通会员。你可以重新选择套餐购买。" : "这笔付款未完成，未开通会员。人民币收款已停用。";
-  const receiptTitle = receivedSubscription?.status === "active" ? "VIP 已开通"
+  const receiptTitle = receivedSubscription?.status === "active" ? (currentOrder?.tradeInMinor ? "VIP 升级成功" : "VIP 已开通")
     : receivedSubscription?.status === "queued" ? "续订已确认 · 待生效"
     : currentOrder ? orderStatus[currentOrder.status] : "核对会员订单";
   const membershipStatus = activeSubscription ? "生效中" : queued.length ? "待生效"
+    : lastSubscription?.status === "upgraded" ? "已升级"
     : lastSubscription?.status === "expired" ? "已到期" : lastSubscription?.status === "revoked" ? "已停止"
     : isGuest ? "登录后查看" : current ? "未开通" : loading || !paymentConfig ? "读取中" : "暂未读取";
   const membershipTitle = activeSubscription?.label ?? (queued.length ? queued[0].label : lastSubscription?.label) ?? "叙梦 VIP";
@@ -441,7 +455,7 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         : XUMENG_PAYMENTS_ENABLED ? "购买结果尚未确认。请先恢复原购买记录，再继续付款。" : "原购买结果尚未确认。人民币收款已停用，可恢复记录核对结果。"}</p>
       {(currentIntent || recoveredOrder) && <dl className={s.orderFacts}>
         <div><dt>原套餐</dt><dd>{currentIntent?.plan.label ?? recoveredOrder?.label}</dd></div>
-        <div><dt>支付金额</dt><dd>{money(currentIntent?.plan.amountMinor ?? recoveredOrder!.amountMinor)}</dd></div>
+        <div><dt>支付金额</dt><dd>{money(currentIntent?.request.expectedAmountMinor ?? currentIntent?.plan.amountMinor ?? recoveredOrder!.amountMinor)}</dd></div>
         <div><dt>每日领取</dt><dd>{number(currentIntent?.plan.dailyCredits ?? recoveredOrder!.dailyCredits)} 金币</dd></div>
         <div><dt>支付方式</dt><dd>{(currentIntent?.request.method ?? recoveredOrder?.method) === "wxpay" ? "微信支付" : "支付宝"}</dd></div>
       </dl>}
@@ -471,7 +485,8 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
       <div className={s.receiptHeading}><strong>{receiptTitle}</strong>{verifying && <span>核对中…</span>}</div>
       <p>{isGuest ? "登录订单所属账号后查看会员开通结果。" : receiptMessage}</p>
       {currentOrder && <dl className={s.orderFacts}>
-        <div><dt>支付金额</dt><dd>{money(currentOrder.amountMinor)}</dd></div>
+        <div><dt>实付金额</dt><dd>{money(currentOrder.amountMinor)}</dd></div>
+        {currentOrder.tradeInMinor ? <div><dt>旧卡折抵</dt><dd>-{money(currentOrder.tradeInMinor)}</dd></div> : null}
         <div><dt>会员周期</dt><dd>{currentOrder.durationDays} 天</dd></div>
         <div><dt>每日领取</dt><dd>{number(currentOrder.dailyCredits)} 金币</dd></div>
       </dl>}
@@ -527,70 +542,66 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
         </div>
       )}
       {config?.plans.length ? <>
-        <div className={`${s.plans} ${config.plans.length === 1 ? s.plansSingle : ""}`} role="list" aria-label="VIP 会员套餐">
+        <div className={`${s.plans} ${config.plans.length === 1 ? s.plansSingle : config.plans.length === 4 ? s.plansQuad : ""}`} role="list" aria-label="VIP 会员套餐">
           {config.plans.map((entry, idx) => {
+            const upgrade = current?.upgrades?.[entry.id];
+            const effectiveAmountMinor = upgrade ? upgrade.payableAmountMinor : entry.amountMinor;
             const perDay = entry.durationDays > 0 ? (entry.amountMinor / 100 / entry.durationDays).toFixed(2) : "0.00";
             const totalGrant = entry.dailyCredits * entry.maxClaims;
+            const coinsPerYuan = entry.amountMinor > 0 ? Math.round((totalGrant * 100) / entry.amountMinor) : 0;
             const isSingle = config.plans.length === 1;
-            const isPopular = isSingle || (config.plans.length >= 2 && idx === Math.min(1, config.plans.length - 1));
+            const tier = entry.tier ?? (entry.durationDays === 7 ? 1 : idx + 1);
+            const audioLimit = entry.dailyAudioLimit ?? (tier >= 4 ? 80 : tier === 3 ? 40 : tier === 2 ? 20 : 10);
+            const imageLimit = entry.dailyImageLimit ?? (tier >= 4 ? 20 : tier === 3 ? 10 : tier === 2 ? 5 : 3);
+            const isPopular = isSingle
+              || (config.plans.length >= 4 && tier === 3)
+              || (config.plans.length >= 2 && config.plans.length < 4 && idx === Math.min(1, config.plans.length - 1));
             const isBest = config.plans.length >= 3 && idx === config.plans.length - 1;
+            const isCurrentActive = activeSubscription?.planId === entry.id;
             const isSelected = entry.id === plan?.id;
-            const tierTone = isPopular ? s.planToneRose : isBest ? s.planTonePlum : s.planToneAmber;
-            const ctaText = acting === "purchase" && isSelected ? "正在跳转支付…"
-              : !methodId ? "支付通道暂未开通"
-              : !config.enabled ? "购买暂未开放"
+            const tierTone = isPopular ? s.planToneRose : isBest ? s.planTonePlum : tier === 2 ? s.planToneCyan : s.planToneAmber;
+            const badgeText = isCurrentActive ? "当前生效"
+              : isSingle ? "尊享特权"
+              : isPopular ? "最受欢迎"
+              : isBest ? "重度旗舰"
+              : tier === 2 ? "超高性价比"
+              : "灵活体验";
+            const badgeClass = isCurrentActive ? `${s.planTag} ${s.planTagCurrent}`
+              : isPopular || isSingle ? `${s.planTag} ${s.planTagHot}`
+              : isBest ? `${s.planTag} ${s.planTagBest}`
+              : tier === 2 ? `${s.planTag} ${s.planTagCyan}`
+              : s.planTag;
+            const ctaText = acting === "purchase" && isSelected ? "跳转支付中…"
+              : !methodId ? "通道暂未开通"
+              : !config.enabled ? "暂未开放"
               : isGuest ? `登录开通 · ${money(entry.amountMinor)}`
               : purchaseBlocked ? currentIntent ? "请先处理原订单" : "请先恢复记录"
-              : `${activeSubscription || queued.length ? "续订" : "立即开通"} · ${money(entry.amountMinor)}`;
+              : upgrade ? `补差价升级 · ${money(upgrade.payableAmountMinor)}`
+              : activeSubscription || queued.length ? `续订延长 · ${money(entry.amountMinor)}`
+              : `立即开通`;
             return <article className={`${s.plan} ${tierTone} ${isPopular ? s.planFeatured : ""} ${isSelected ? s.selected : ""}`} key={entry.id} onClick={() => setSelected(entry.id)}>
               <div className={s.planBanner} aria-hidden="true" />
               <div className={s.planHeader}>
                 <div className={s.planTitleRow}>
                   <h3 className={s.planName}>{entry.label}</h3>
-                  {isSingle ? <em className={`${s.planTag} ${s.planTagHot}`}>尊享特权</em>
-                    : isPopular ? <em className={`${s.planTag} ${s.planTagHot}`}>最受欢迎</em>
-                    : isBest ? <em className={`${s.planTag} ${s.planTagBest}`}>尊享超省</em>
-                    : <em className={s.planTag}>灵活体验</em>}
+                  <em className={badgeClass}>{badgeText}</em>
                 </div>
-                <p className={s.planSubtitle}>最高累计领 {number(totalGrant)} 金币 · 全站媒体特权</p>
+                <p className={s.planSubtitle}>每元享 <strong>{coinsPerYuan}</strong> 金币 · {entry.durationDays} 天</p>
               </div>
 
-              <ul className={s.perkList}>
-                <li>
-                  <span className={s.perkIcon}><Icon name="gem" size={14} /></span>
-                  <span className={s.perkText}>每日领 <strong>{number(entry.dailyCredits)} 金币</strong></span>
-                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
-                </li>
-                <li>
-                  <span className={s.perkIcon}><Icon name="mic" size={14} /></span>
-                  <span className={s.perkText}>中文语音 <strong>20 条/天</strong></span>
-                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
-                </li>
-                <li>
-                  <span className={s.perkIcon}><Icon name="sparkles" size={14} /></span>
-                  <span className={s.perkText}>高清剧情图 <strong>5 张/天</strong></span>
-                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
-                </li>
-                <li>
-                  <span className={s.perkIcon}><Icon name="video" size={14} /></span>
-                  <span className={s.perkText}>全站精选短剧<strong>免费畅看</strong></span>
-                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
-                </li>
-                <li>
-                  <span className={s.perkIcon}><Icon name="shield" size={14} /></span>
-                  <span className={s.perkText}>一次性付费 · <strong>不自动续费</strong></span>
-                  <span className={s.perkMark}><Icon name="check" size={13} /></span>
-                </li>
-              </ul>
-
-              <div className={s.planFooter}>
-                <div className={s.priceBox}>
-                  <strong className={s.price}>{money(entry.amountMinor)}<small> / {entry.durationDays}天</small></strong>
-                  <span className={s.perDayHint}>折合 ¥{perDay}/天</span>
+              <div className={s.planPriceHero}>
+                <div className={s.priceStack}>
+                  <strong className={s.price}>{money(effectiveAmountMinor)}<small>/{entry.durationDays}天</small></strong>
+                  {upgrade && <del className={s.listPrice}>{money(entry.amountMinor)}</del>}
+                </div>
+                <div className={s.priceMetaRow}>
+                  {upgrade
+                    ? <span className={s.saveChip}>已抵扣 {money(upgrade.tradeInMinor)}</span>
+                    : <span className={s.perDayHint}>折合 ¥{perDay}/天</span>}
                 </div>
                 <button
                   type="button"
-                  className={`${s.cardCta} ${isPopular ? s.cardCtaHot : ""}`}
+                  className={`${s.cardCta} ${isPopular || upgrade ? s.cardCtaHot : ""}`}
                   disabled={busy || purchaseBlocked || !config.enabled || !methodId}
                   onClick={event => {
                     event.stopPropagation();
@@ -600,20 +611,63 @@ export function SubscriptionCenter({ userId, isGuest, paymentConfig, refreshKey 
                 >
                   {ctaText}
                 </button>
+                {upgrade ? (
+                  <p className={s.upgradeNote} role="note">
+                    抵扣「{upgrade.fromLabel}」余期，立即开启完整 {entry.durationDays} 天
+                  </p>
+                ) : current?.upgrades && Object.keys(current.upgrades).length > 0 ? (
+                  <p className={s.upgradeNote}>
+                    {isCurrentActive ? "同档续订将顺延至当前周期结束后生效" : "按原价购买，自动顺延排队生效"}
+                  </p>
+                ) : null}
               </div>
+
+              <ul className={s.perkList}>
+                <li>
+                  <span className={s.perkIcon}><Icon name="gem" size={13} /></span>
+                  <span className={s.perkText}>每日签到 <strong>{number(entry.dailyCredits)} 金币</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="sparkles" size={13} /></span>
+                  <span className={s.perkText}>满签累计 <strong>{number(totalGrant)} 金币</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="mic" size={13} /></span>
+                  <span className={s.perkText}>中文语音 <strong>{audioLimit} 条/天</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="image" size={13} /></span>
+                  <span className={s.perkText}>高清剧情图 <strong>{imageLimit} 张/天</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="video" size={13} /></span>
+                  <span className={s.perkText}>全站短剧 <strong>免费畅看</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+                <li>
+                  <span className={s.perkIcon}><Icon name="shield" size={13} /></span>
+                  <span className={s.perkText}>一次付费 · <strong>不自动续费</strong></span>
+                  <span className={s.perkMark}><Icon name="check" size={12} /></span>
+                </li>
+              </ul>
             </article>;
           })}
         </div>
-        <p className={s.payFootnote}>{activeMethodLabel}一次性安全支付 · 不自动续费 · 已领金币永不过期</p>
+        <p className={s.payFootnote}>{activeMethodLabel}一次性安全支付 · 支持有效期内补差价升级 · 不自动续费 · 已领金币永不过期</p>
       </> : <p className={s.empty}>{loading || !paymentConfig ? "正在读取 VIP 套餐…"
         : !available ? "VIP 购买暂不可用，请稍后刷新状态。"
         : error ? "暂时无法读取 VIP 套餐，请稍后刷新状态。" : "VIP 套餐准备中，开放后可在这里购买。"}</p>}
     </div>}
     <details className={s.rulesFold}>
-      <summary>权益与领取说明</summary>
+      <summary>权益、补差价升级与领取说明</summary>
       <p className={s.mediaNote}>会员生效后，在聊天消息菜单生成语音与剧情图片。每日新生成额度独立于金币，北京时间零点重置；重复播放或查看同条消息的缓存不占新额度。单段语音最多 800 字。</p>
       <ul className={s.rulesList} aria-label="VIP 领取与续订规则">
         <li>每日北京时间 00:00 重置，每天手动领取一次；每期领取上限以购买方案与会员状态为准，当天未领取的额度不补发。</li>
+        <li>补差价升级：有效期内升级更高等级月卡时，系统按当前生效卡的剩余未领比例自动折抵金额，支付差价后旧卡立即结清并立即开启完整 30 天新周期；若今日已签到，明日 00:00 起按新等级每日领取，新卡 30 次额度完整保留。购买同档或低档会员则按原价顺延排队生效。</li>
         <li>{XUMENG_PAYMENTS_ENABLED ? "无需 VIP 也可直接购买金币，两种来源进入同一个余额，已到账金币不随会员到期失效。" : (XUMENG_USDT_ENABLED ? "人民币充值已停用，已有余额与会员每日权益继续保留；USDT 购买状态见下方。" : "充值暂未开放，已有余额与会员每日权益继续保留。")}</li>
         <li>{config?.modelBillingLinked ? "金币可用于按实际 Token 结算的聊天，费率与记忆计费规则见消费区。" : "当前金币尚未接入聊天扣费。"}</li>
       </ul>
