@@ -1178,9 +1178,28 @@
   .xmgen .top,
   .xmgen:has(.home) .top,
   .xmgen .top-home {
-    height: 54px;
-    padding-inline: 14px;
-    grid-template-columns: auto 1fr auto;
+    height: auto;
+    min-height: 54px;
+    padding: 8px 14px;
+    grid-template-columns: auto 1fr;
+    gap: 8px;
+  }
+  .xmgen .top.top-tools > span:last-child {
+    display: none;
+  }
+  .xmgen .tool-tabs {
+    justify-self: end;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .xmgen .tool-tabs::-webkit-scrollbar {
+    display: none;
+  }
+  .xmgen .tool-tabs button {
+    padding: 6px 11px;
+    font-size: 12px;
+    white-space: nowrap;
   }
   .xmgen .home,
   .xmgen .studio {
@@ -1201,5 +1220,87 @@
   .xmgen .tech-card {
     aspect-ratio: 3 / 4;
   }
+}
+
+.xmgen .tool-tabs {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  border-radius: 999px;
+}
+.xmgen .tool-tabs button {
+  white-space: nowrap;
+}
+
+.xmgen .active-template-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--line));
+  background: color-mix(in srgb, var(--surface) 92%, var(--gold) 8%);
+}
+.xmgen .active-template-thumb {
+  width: 44px;
+  height: 56px;
+  border-radius: 9px;
+  object-fit: cover;
+  flex: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+.xmgen .active-template-info {
+  min-width: 0;
+  flex: 1;
+  display: grid;
+  gap: 2px;
+}
+.xmgen .active-template-info span {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--gold);
+}
+.xmgen .active-template-info strong {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xmgen .active-template-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+.xmgen .active-template-swap {
+  height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--soft) 86%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+.xmgen .active-template-swap:hover {
+  border-color: color-mix(in srgb, var(--gold) 50%, var(--line));
+}
+.xmgen .active-template-clear {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+}
+.xmgen .active-template-clear:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--soft) 72%, transparent);
 }
 

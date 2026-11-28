@@ -25,6 +25,7 @@ import {
   consumePendingGenerationTemplateId,
   fetchCoverAsReferenceFile,
   readTemplateBridgeCharacter,
+  setPendingAigenTemplate,
   setTemplateBridgeCharacter,
   type TemplateBridgeCharacter,
 } from "../../lib/xumeng-template-bridge";
@@ -38,7 +39,7 @@ type Props = {
   onRequireAccount: () => void;
   onRecharge?: () => void;
   onBack?: () => void;
-  onOpenAigen?: () => void;
+  onOpenAigenTool?: (tool: "image" | "video") => void;
   onLaunchTour?: () => void;
 };
 const running = (job: GenerationJob) => job.finalizedAt === null;
@@ -48,7 +49,7 @@ const date = (value: number) => new Date(value).toLocaleString("zh-CN", { month:
 const jobTemplateLabel = (job: GenerationJob) => { const template = getGenerationTemplate(job.templateId); return template?.kind === job.kind ? template.label : null; };
 type Submission = { fingerprint: string; requestId: string; expectedMaxCredits?: number; status: "submitted" | "awaiting_confirmation" };
 
-export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", onRequireAccount, onRecharge, onBack, onOpenAigen, onLaunchTour }: Props) {
+export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", onRequireAccount, onRecharge, onBack, onOpenAigenTool, onLaunchTour }: Props) {
   const c = xumengStudio(locale);
   const [bridgeRole, setBridgeRole] = useState<TemplateBridgeCharacter | null>(() => readTemplateBridgeCharacter());
   const [bridgeLoading, setBridgeLoading] = useState(false);
@@ -423,6 +424,19 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   }
   function selectTemplate(value: GenerationTemplate) {
     if (busy || uploadingReference || checkingReference) return;
+    if (onOpenAigenTool && (value.customTemplate || value.studioFree)) {
+      const compiled = compileGenerationTemplateDraft(value, createGenerationTemplateDraft(value));
+      setPendingAigenTemplate({
+        id: value.id,
+        label: value.label,
+        kind: value.kind,
+        prompt: compiled || value.description || "",
+        demoPosterUrl: value.demoPosterUrl,
+        demoVideoUrl: value.demoVideoUrl,
+      });
+      onOpenAigenTool(value.kind);
+      return;
+    }
     if (template?.id === value.id) { revealReference.current = true; setWorkspaceMode("create"); return; }
     if (template || hasLegacyDraft) setPendingTemplate(value);
     else applyTemplate(value);
@@ -669,22 +683,76 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   const quotedConfirm = currentQuote ? xumengStudioFill(c.gsConfirm, { credits: points(currentQuote.maxCredits) }) : "";
   const chargesCredit = actionLabel === c.gsMakeVideo || actionLabel === c.gsMakingVideo || actionLabel === c.gsMakingImage || actionLabel === xumengStudioFill(c.gsMakeImage, { credits: points(STUDIO_STILL_CREDITS) }) || actionLabel === quotedConfirm || (busy && !h3Video && !gpuStill && Boolean(currentQuote) && !isGuest && !recovering && actionLabel === c.gsWorking);
 
+  const pageTitle = workspaceMode === "templates"
+    ? c.gsTemplateSquare
+    : kind === "video"
+      ? (locale === "en" ? "Image to Video" : "图生视频")
+      : (locale === "en" ? "AI Image" : "AI 生图");
+
   return <main className={s.workspace}>
-    <header className={s.header}><div>{onBack && <button type="button" className={s.backLink} onClick={onBack}><Icon name="back" size={15} />{c.gsCreate}</button>}<h1>{c.gsImageVideo}</h1></div>{isGuest ? <button className={s.wallet} onClick={onRequireAccount}>{c.gsLoginUse}<Icon name="chevron" size={14} /></button> : onRecharge ? <button className={s.wallet} onClick={onRecharge}>{balance === null ? c.gsWallet : `${points(balance)} 金币`}<Icon name="chevron" size={14} /></button> : <span className={s.wallet}>{c.gsPaymentsClosed}</span>}</header>
+    <header className={s.header} data-tour="tpl-nav">
+      <div>
+        {workspaceMode === "create" ? (
+          <button
+            type="button"
+            className={s.backLink}
+            disabled={busy || uploadingReference || checkingReference}
+            onClick={() => setWorkspaceMode("templates")}
+          >
+            <Icon name="back" size={15} />
+            {c.gsTemplateSquare}
+          </button>
+        ) : onBack ? (
+          <button type="button" className={s.backLink} onClick={onBack}>
+            <Icon name="back" size={15} />
+            {c.gsCreate}
+          </button>
+        ) : null}
+        <h1>{pageTitle}</h1>
+      </div>
+      <div className={s.workspaceNavTools}>
+        {workspaceMode === "templates" && (template || hasLegacyDraft || recovering) && (
+          <button
+            type="button"
+            className={s.tool}
+            aria-label={hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}
+            title={hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}
+            disabled={busy || uploadingReference || checkingReference}
+            onClick={() => setWorkspaceMode("create")}
+          >
+            <Icon name="sparkles" size={16} />
+          </button>
+        )}
+        {onLaunchTour && workspaceMode === "templates" && (
+          <button
+            type="button"
+            className={s.tool}
+            aria-label={locale === "en" ? "Guided tour" : "新手引导"}
+            title={locale === "en" ? "Guided tour" : "新手引导"}
+            onClick={onLaunchTour}
+          >
+            <Icon name="help" size={16} />
+          </button>
+        )}
+        <button
+          type="button"
+          className={`${s.historyLink} ${s.tool}`}
+          aria-label={c.gsHistory}
+          title={c.gsHistory}
+          disabled={busy || uploadingReference || checkingReference}
+          onClick={() => {
+            setWorkspaceMode("create");
+            requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" }));
+          }}
+        >
+          <Icon name="book" size={16} />
+        </button>
+        {isGuest ? <button className={s.wallet} onClick={onRequireAccount}>{c.gsLoginUse}<Icon name="chevron" size={14} /></button> : onRecharge ? <button className={s.wallet} onClick={onRecharge}>{balance === null ? c.gsWallet : `${points(balance)} 金币`}<Icon name="chevron" size={14} /></button> : <span className={s.wallet}>{c.gsPaymentsClosed}</span>}
+      </div>
+    </header>
     {error && <div className={s.error} role="alert">{error}<button onClick={() => setError("")} aria-label={c.gsCloseError}><Icon name="close" size={16} /></button></div>}
     {notice && <p className={s.notice} role="status">{notice}</p>}
     {recovering && workspaceMode === "templates" && <div className={s.recoveryBanner} role="status"><p>{c.gsRecoverBanner}</p><button type="button" className={s.secondary} disabled={busy || loading} onClick={() => { setWorkspaceMode("create"); void recoverSubmission(); }}>{c.gsCheckJob}</button></div>}
-    <div className={s.workspaceNav} data-tour="tpl-nav">
-      <div role="group" aria-label={c.gsViews}>
-        <button type="button" aria-pressed={workspaceMode === "templates"} disabled={busy || uploadingReference || checkingReference} onClick={() => setWorkspaceMode("templates")}><Icon name="grid" size={16}/>{c.gsTemplateSquare}</button>
-        <button type="button" aria-pressed={workspaceMode === "create"} disabled={busy || uploadingReference || checkingReference || (!template && !hasLegacyDraft && !recovering)} onClick={() => setWorkspaceMode("create")}><Icon name="sparkles" size={16}/>{hasLegacyDraft ? c.gsSavedPrompt : c.gsFromTemplate}</button>
-        {onOpenAigen && <button type="button" disabled={busy || uploadingReference || checkingReference} onClick={onOpenAigen}><Icon name="sliders" size={16}/>{locale === "en" ? "Free AI Tools" : "自由工具"}</button>}
-      </div>
-      <div className={s.workspaceNavTools}>
-        {onLaunchTour && <button type="button" className={s.tool} aria-label={locale === "en" ? "Guided tour" : "新手引导"} title={locale === "en" ? "Guided tour" : "新手引导"} onClick={onLaunchTour}><Icon name="help" size={16}/></button>}
-        <button type="button" className={`${s.historyLink} ${s.tool}`} aria-label={c.gsHistory} title={c.gsHistory} disabled={busy || uploadingReference || checkingReference} onClick={() => { setWorkspaceMode("create"); requestAnimationFrame(() => results.current?.scrollIntoView({ behavior: "instant", block: "start" })); }}><Icon name="book" size={16}/></button>
-      </div>
-    </div>
     {bridgeRole && (
       <div className={s.roleBridgeBanner} role="status">
         <img src={bridgeRole.coverUrl} alt={bridgeRole.name} />

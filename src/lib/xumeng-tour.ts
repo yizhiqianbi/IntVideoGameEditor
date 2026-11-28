@@ -66,8 +66,8 @@ export function getXumengTourSteps(tourId: XumengTourId, locale: XumengLocale): 
           {
             id: "tpl-nav",
             selector: '[data-tour="tpl-nav"]',
-            title: "模板广场 × 自由工具统一工作台",
-            body: "在这里随时切换「模板广场」「按模板生成」和「自由工具（图生视频 / AI生图 / 换脸等）」，创作不再东找西找。",
+            title: "模板广场",
+            body: "在这里浏览视频动作与图片风格模板，选中任意模板后会直接跳转到对应的 AI 工具开始生成。",
             icon: "sparkles",
             padding: 6,
           },

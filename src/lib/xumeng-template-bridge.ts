@@ -4,8 +4,18 @@ export interface TemplateBridgeCharacter {
   coverUrl: string;
 }
 
+export interface PendingAigenTemplate {
+  id: string;
+  label: string;
+  kind: "image" | "video";
+  prompt: string;
+  demoPosterUrl?: string;
+  demoVideoUrl?: string;
+}
+
 const ROLE_KEY = "xumeng:template-bridge:role:v1";
 const TEMPLATE_KEY = "xumeng:template-bridge:template:v1";
+const AIGEN_TEMPLATE_KEY = "xumeng:template-bridge:aigen-template:v1";
 
 export function setTemplateBridgeCharacter(character: TemplateBridgeCharacter | null): void {
   if (typeof window === "undefined") return;
@@ -51,6 +61,39 @@ export function consumePendingGenerationTemplateId(): string | null {
     const id = window.sessionStorage.getItem(TEMPLATE_KEY);
     if (id) window.sessionStorage.removeItem(TEMPLATE_KEY);
     return id || null;
+  } catch {
+    return null;
+  }
+}
+
+export function setPendingAigenTemplate(template: PendingAigenTemplate | null): void {
+  if (typeof window === "undefined") return;
+  try {
+    if (!template) window.sessionStorage.removeItem(AIGEN_TEMPLATE_KEY);
+    else window.sessionStorage.setItem(AIGEN_TEMPLATE_KEY, JSON.stringify(template));
+  } catch {
+    // Ignore storage failures.
+  }
+}
+
+export function consumePendingAigenTemplate(): PendingAigenTemplate | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = window.sessionStorage.getItem(AIGEN_TEMPLATE_KEY);
+    if (!raw) return null;
+    window.sessionStorage.removeItem(AIGEN_TEMPLATE_KEY);
+    const parsed = JSON.parse(raw) as Partial<PendingAigenTemplate> | null;
+    if (!parsed || typeof parsed.id !== "string" || typeof parsed.label !== "string" || (parsed.kind !== "image" && parsed.kind !== "video")) {
+      return null;
+    }
+    return {
+      id: parsed.id,
+      label: parsed.label,
+      kind: parsed.kind,
+      prompt: typeof parsed.prompt === "string" ? parsed.prompt : "",
+      demoPosterUrl: typeof parsed.demoPosterUrl === "string" ? parsed.demoPosterUrl : undefined,
+      demoVideoUrl: typeof parsed.demoVideoUrl === "string" ? parsed.demoVideoUrl : undefined,
+    };
   } catch {
     return null;
   }

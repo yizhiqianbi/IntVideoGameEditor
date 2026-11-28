@@ -312,6 +312,7 @@ export default function TavernApp() {
   const studioBusy = useRef(false);
   const [pendingLeave, setPendingLeave] = useState<{ title: string; description: string; confirmLabel?: string; proceed: () => void } | null>(null);
   const [creatorSection, setCreatorSection] = useState<"home" | "roles">("home");
+  const [aigenTool, setAigenTool] = useState<"video" | "image" | "face" | "coat" | "novel">("video");
   const [creatorInitial, setCreatorInitial] = useState<{ id?: string; roomCode?: string }>({});
   const creatorRoute = useRef("");
   const creatorDirty = useRef(false);
@@ -1764,7 +1765,15 @@ export default function TavernApp() {
       } else if (target === "videos" || xumengVideoDramaIdFromRoute(target)) {
         setDetail(null);
         setView("videos");
-      } else if (["play-games", "characters", "chat", "forum", "profile", "settings", "presets", "admin", "search", "studio", "novels", "live", "voice", "generation", "aigen", "tasks", "app", "recharge", "vip", "invite", "checkin"].includes(target)) {
+      } else if (target === "aigen" || target.startsWith("aigen/")) {
+        const sub = target.startsWith("aigen/") ? target.slice(6) : "";
+        const nextTool = (["video", "image", "face", "coat", "novel"] as const).includes(sub as "video" | "image" | "face" | "coat" | "novel")
+          ? (sub as "video" | "image" | "face" | "coat" | "novel")
+          : "video";
+        setAigenTool(nextTool);
+        setDetail(null);
+        setView("aigen");
+      } else if (["play-games", "characters", "chat", "forum", "profile", "settings", "presets", "admin", "search", "studio", "novels", "live", "voice", "generation", "tasks", "app", "recharge", "vip", "invite", "checkin"].includes(target)) {
         setDetail(null);
         if (target === "chat") { setGameRequest(null); setConversationType("stories"); }
         if (target === "forum") setForumPostId(null);
@@ -1956,7 +1965,16 @@ export default function TavernApp() {
   }
   function leaveGame() { setGameRequest(null); setActiveId(null); navigate("chat", "chat/games"); }
   function openCreatorRoute(route: string) {
-    if (["studio", "novels", "presets", "voice", "characters", "generation", "aigen"].includes(route)) { navigate(route as View); return; }
+    if (route === "aigen" || route.startsWith("aigen/")) {
+      const sub = route.startsWith("aigen/") ? route.slice(6) : "";
+      const nextTool = (["video", "image", "face", "coat", "novel"] as const).includes(sub as "video" | "image" | "face" | "coat" | "novel")
+        ? (sub as "video" | "image" | "face" | "coat" | "novel")
+        : "video";
+      setAigenTool(nextTool);
+      navigate("aigen", sub ? `aigen/${nextTool}` : "aigen");
+      return;
+    }
+    if (["studio", "novels", "presets", "voice", "characters", "generation"].includes(route)) { navigate(route as View); return; }
     if (creatorDirty.current || creatorBusy.current || studioDirty.current || studioBusy.current || novelDirty.current || novelBusy.current || anyReplyActive()) {
       setNotice("请先保存或完成当前操作，再打开其他作品。"); return;
     }
@@ -2018,7 +2036,7 @@ export default function TavernApp() {
     return itemView === view
       || (itemView === "characters" && view === "play-games")
       || (itemView === "chat" && view === "live")
-      || (itemView === "studio" && (view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "generation"));
+      || (itemView === "studio" && (view === "studio-edit" || view === "games" || view === "scenarios" || view === "novels" || view === "aigen"));
   }
   function performActiveCharacter(target: "live" | "voice", mode: "phone" | "video" = "phone") {
     if (!activeCharacter || !active) return;
@@ -3389,7 +3407,7 @@ export default function TavernApp() {
           </a>
         </nav>
         <ResponsiveNavigation key={view} items={localizedNav} tools={localizedTools} secondaryTools={cloud.user?.role === "super" ? [...localizedSecondaryTools, localizedAdmin] : localizedSecondaryTools}
-          currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "scenarios" || view === "novels" || view === "generation" || view === "aigen" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
+          currentView={view === "play-games" ? "characters" : view === "studio-edit" || view === "scenarios" || view === "novels" || view === "aigen" ? "studio" : view === "live" ? "chat" : view === "checkin" ? "tasks" : view}
           onNavigate={openNav} onHome={() => navigate("characters")} locale={locale}
           footer={<><button type="button" className={s.navDrawerTool} onClick={() => setActiveTour(view === "chat" && activeId ? "chat" : view === "generation" ? "generation" : "discover")}><Icon name="help" size={18} /><span>{locale === "en" ? "Guided tour" : "新手引导"}</span></button><button type="button" className={s.navDrawerTool} onClick={cycleTheme}><Icon name={themeIcon} size={18} /><span>{themeLabel}</span></button><label className={s.navDrawerTool}><span className={s.srOnly}>{t("language")}</span><select aria-label={t("language")} value={locale} onChange={(event) => savePreferences({ ...state.preferences, locale: event.target.value as XumengLocale })}>{XUMENG_LOCALES.map(option => <option key={option} value={option}>{xumengLocaleLabel(option)}</option>)}</select></label></>} />
         {(view === "characters" || view === "play-games") && !detail && !query.trim() && <div className={s.audienceHost}>{audienceTabs(s.topAudience)}</div>}
@@ -4366,8 +4384,8 @@ export default function TavernApp() {
 
       <Deferred>
       {view === "videos" && !detail && <VideoChannel locale={locale} signedIn={Boolean(cloud.user && !cloud.user.isGuest)} characters={characters} onOpenCharacter={id => { const character = characters.find(item => item.id === id); if (character) showDetail(character); }} onOpenPlay={() => navigate("characters")} onOpenStory={id => { if (cloud.user?.isGuest) { setNotice(copy.guestMustRegister); openAccount("register"); return; } const character = characters.find(item => item.id === id); if (character) startChat(character); }} onCreateCharacter={createCharacterFromVideo} onRequireAccount={() => openAccount("login")} />}
-      {view === "aigen" && !detail && <Suspense fallback={null}><AigenVercel locale={locale} userId={cloud.user?.id} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRoute={openCreatorRoute} onBack={() => navigate("studio")} /></Suspense>}
-      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? <GenerationStudio locale={locale} key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? "guest"} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => openQuickRecharge("当前工坊页原位快捷充值，到账后可立刻继续生图与视频。") : undefined} onOpenAigen={() => navigate("aigen")} onLaunchTour={() => setActiveTour("generation")} onBack={() => navigate("studio")} /> : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
+      {view === "aigen" && !detail && <Suspense fallback={null}><AigenVercel locale={locale} initialTool={aigenTool} userId={cloud.user?.id} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRoute={openCreatorRoute} onBack={() => navigate("studio")} /></Suspense>}
+      {view === "generation" && !detail && (XUMENG_GENERATION_WORKSPACE_ENABLED ? <GenerationStudio locale={locale} key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? "guest"} isGuest={!cloud.user || cloud.user.isGuest} onRequireAccount={() => openAccount("register")} onRecharge={XUMENG_PAYMENTS_ENABLED ? () => openQuickRecharge("当前工坊页原位快捷充值，到账后可立刻继续生图与视频。") : undefined} onOpenAigenTool={(tool) => openCreatorRoute(`aigen/${tool}`)} onLaunchTour={() => setActiveTour("generation")} onBack={() => navigate("studio")} /> : <GenerationHistory key={cloud.user?.id ?? "guest"} userId={cloud.user?.id ?? ""} isGuest={cloud.user?.isGuest ?? true} onRequireAccount={() => openAccount("login")} />)}
 
       {view === "tasks" && !detail && (cloud.user ? <TaskHub key={`${cloud.user.id}:${cloud.user.isGuest}`} userId={cloud.user.id} isGuest={cloud.user.isGuest} locale={locale} isSuper={cloud.user.role === "super"} characters={cloud.catalog} selection={taskSelection} onSelectionChange={(selection) => updateTaskSelection(cloud.user!.id, selection)} onCharacter={(id, selection) => { const character = cloud.catalog.find(card => card.id === id); if (character) showDetail(character, selection); }} onNavigate={(target) => { navigate(target); }} onRequireAccount={() => openAccount("register")} beforeRefresh={cloud.saveNow} /> : <main className={s.profileEmpty}><p>{copy.loadingAccount}</p></main>)}
       {view === "app" && !detail && <InstallApp locale={locale} onBack={() => navigate("characters")} />}

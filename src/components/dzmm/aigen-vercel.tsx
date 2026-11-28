@@ -3,26 +3,31 @@
 import { useEffect, useRef, useState } from "react";
 import type { XumengLocale } from "../../lib/xumeng-i18n";
 import { prepareReferenceImage } from "../../lib/xumeng-reference-file";
+import {
+  consumePendingAigenTemplate,
+  fetchCoverAsReferenceFile,
+  readTemplateBridgeCharacter,
+  type PendingAigenTemplate,
+} from "../../lib/xumeng-template-bridge";
 import "./aigen-vercel.css";
 
-type View = "home" | "video" | "image" | "face" | "coat" | "novel";
-type Props = { locale?: XumengLocale; userId?: string; isGuest?: boolean; onRequireAccount?: () => void; onRoute: (route: string) => void; onBack: () => void };
-
-const MODULE_ART: Record<string, string> = {
-  video: "/assets/xumeng/content-covers/create-generate.webp",
-  image: "/assets/xumeng/content-covers/create-girlfriend.webp",
-  face: "/assets/xumeng/content-covers/create-role.webp",
-  coat: "/assets/xumeng/content-covers/create-scenario.webp",
-  novel: "/assets/xumeng/content-covers/create-novel.webp",
+export type AigenTool = "video" | "image" | "face" | "coat" | "novel";
+type Props = {
+  locale?: XumengLocale;
+  initialTool?: AigenTool;
+  userId?: string;
+  isGuest?: boolean;
+  onRequireAccount?: () => void;
+  onRoute: (route: string) => void;
+  onBack: () => void;
 };
 
-const MODULES = [
-  { id: "video", label: "图生视频", line: "图片转动态视频", mark: "动" },
-  { id: "image", label: "AI生图", line: "文字或参考图生图", mark: "图" },
-  { id: "face", label: "AI换脸", line: "替换人物面部", mark: "脸" },
-  { id: "coat", label: "脱衣服", line: "人物去衣", mark: "衣" },
-  { id: "novel", label: "AI小说", line: "大纲与章节创作", mark: "文" },
-] as const;
+const TOOL_TABS: ReadonlyArray<{ id: Exclude<AigenTool, "novel">; label: string; labelEn: string }> = [
+  { id: "video", label: "图生视频", labelEn: "Image to Video" },
+  { id: "image", label: "AI生图", labelEn: "AI Image" },
+  { id: "face", label: "AI换脸", labelEn: "Face Swap" },
+  { id: "coat", label: "脱衣服", labelEn: "Undress" },
+];
 
 const COMMON_NOTES = [
   "只生成虚构的成年角色。",
@@ -96,9 +101,57 @@ function Result({ url, kind, busy }: { url: string; kind: "image" | "video"; bus
   </aside>;
 }
 
-function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" | "face" | "coat"; userId?: string; isGuest?: boolean; onRequireAccount?: () => void }) {
+function ActiveTemplateStrip({
+  template,
+  onChangeTemplate,
+  onClear,
+}: {
+  template: PendingAigenTemplate;
+  onChangeTemplate: () => void;
+  onClear: () => void;
+}) {
+  return (
+    <div className="active-template-bar" role="status">
+      {template.demoPosterUrl ? (
+        <img className="active-template-thumb" src={template.demoPosterUrl} alt="" />
+      ) : null}
+      <div className="active-template-info">
+        <span>已选模板</span>
+        <strong>{template.label}</strong>
+      </div>
+      <div className="active-template-actions">
+        <button type="button" className="active-template-swap" onClick={onChangeTemplate}>更换模板</button>
+        <button type="button" className="active-template-clear" aria-label="清除模板" onClick={onClear}>×</button>
+      </div>
+    </div>
+  );
+}
+
+function ImageForm({
+  mode,
+  template,
+  onChangeTemplate,
+  onClearTemplate,
+  userId,
+  isGuest,
+  onRequireAccount,
+}: {
+  mode: "image" | "face" | "coat";
+  template?: PendingAigenTemplate | null;
+  onChangeTemplate?: () => void;
+  onClearTemplate?: () => void;
+  userId?: string;
+  isGuest?: boolean;
+  onRequireAccount?: () => void;
+}) {
   const [files, setFiles] = useState<Array<{ data: string; preview: string } | null>>(mode === "face" ? [null, null] : [null]);
-  const [prompt, setPrompt] = useState(mode === "face" ? "把第二张图的人脸换到第一张图的人物脸上，保持画面、服装、光线和背景不变，只替换面部，自然真实。" : mode === "coat" ? "把人物身上的衣服脱掉，保留面部、发型、姿势和背景，自然真实。" : "");
+  const [prompt, setPrompt] = useState(
+    mode === "face"
+      ? "把第二张图的人脸换到第一张图的人物脸上，保持画面、服装、光线和背景不变，只替换面部，自然真实。"
+      : mode === "coat"
+        ? "把人物身上的衣服脱掉，保留面部、发型、姿势和背景，自然真实。"
+        : template?.prompt ?? "",
+  );
   const [busy, setBusy] = useState(false);
   const [polishing, setPolishing] = useState(false);
   const [error, setError] = useState("");
@@ -107,6 +160,27 @@ function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" 
   const leadTitle = mode === "face" ? "AI 换脸" : mode === "coat" ? "脱衣服" : "AI 生图";
   const lead = mode === "face" ? "上传画面图与脸部图" : mode === "coat" ? "上传人物图" : "参考图可选";
   const needed = mode === "face" ? 2 : mode === "coat" ? 1 : 0;
+
+  useEffect(() => {
+    if (mode !== "image" || !template) return;
+    if (template.prompt) setPrompt(template.prompt);
+  }, [mode, template?.id, template?.prompt]);
+
+  useEffect(() => {
+    if (mode !== "image" || !template) return;
+    const bridge = readTemplateBridgeCharacter();
+    if (!bridge) return;
+    const controller = new AbortController();
+    void fetchCoverAsReferenceFile(bridge.coverUrl, bridge.name, controller.signal)
+      .then((file) => packedImage(file))
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setFiles((current) => (current[0] ? current : [{ data, preview: data }]));
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [mode, template?.id]);
 
   async function pick(index: number, file: File | undefined) {
     if (!file) return;
@@ -159,6 +233,9 @@ function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" 
   return <>
     <form className="form" onSubmit={event => void submit(event)}>
       <Lead title={leadTitle} line={lead} />
+      {mode === "image" && template && onChangeTemplate && onClearTemplate ? (
+        <ActiveTemplateStrip template={template} onChangeTemplate={onChangeTemplate} onClear={onClearTemplate} />
+      ) : null}
       <div className="stage">
         <div className="upload-row">
           {Array.from({ length: mode === "face" ? 2 : 1 }, (_, index) => <Upload key={index} title={index === 1 ? "上传脸部图" : mode === "coat" ? "上传人物图" : mode === "face" ? "上传画面图" : "上传参考图（选填）"} hint="JPG、PNG、WEBP" preview={files[index]?.preview ?? ""} disabled={busy} onFile={file => void pick(index, file)} />)}
@@ -173,9 +250,23 @@ function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" 
   </>;
 }
 
-function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isGuest?: boolean; onRequireAccount?: () => void }) {
+function VideoForm({
+  template,
+  onChangeTemplate,
+  onClearTemplate,
+  userId,
+  isGuest,
+  onRequireAccount,
+}: {
+  template?: PendingAigenTemplate | null;
+  onChangeTemplate?: () => void;
+  onClearTemplate?: () => void;
+  userId?: string;
+  isGuest?: boolean;
+  onRequireAccount?: () => void;
+}) {
   const [file, setFile] = useState<{ data: string; preview: string } | null>(null);
-  const [prompt, setPrompt] = useState("");
+  const [prompt, setPrompt] = useState(template?.prompt ?? "");
   const [seconds, setSeconds] = useState("5");
   const [busy, setBusy] = useState(false);
   const [polishing, setPolishing] = useState(false);
@@ -183,6 +274,27 @@ function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isG
   const [result, setResult] = useState("");
   const alive = useRef(true);
   useEffect(() => () => { alive.current = false; }, []);
+
+  useEffect(() => {
+    if (!template) return;
+    if (template.prompt) setPrompt(template.prompt);
+  }, [template?.id, template?.prompt]);
+
+  useEffect(() => {
+    if (!template) return;
+    const bridge = readTemplateBridgeCharacter();
+    if (!bridge) return;
+    const controller = new AbortController();
+    void fetchCoverAsReferenceFile(bridge.coverUrl, bridge.name, controller.signal)
+      .then((selected) => packedImage(selected))
+      .then((data) => {
+        if (!controller.signal.aborted) {
+          setFile((current) => current ?? { data, preview: data });
+        }
+      })
+      .catch(() => undefined);
+    return () => controller.abort();
+  }, [template?.id]);
 
   async function pick(selected: File | undefined) {
     if (!selected) return;
@@ -241,6 +353,9 @@ function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isG
   return <>
     <form className="form" onSubmit={event => void submit(event)}>
       <Lead title="图生视频" line="上传参考图并填写动作描述" />
+      {template && onChangeTemplate && onClearTemplate ? (
+        <ActiveTemplateStrip template={template} onChangeTemplate={onChangeTemplate} onClear={onClearTemplate} />
+      ) : null}
       <div className="stage">
         <Upload title="点击上传图片" hint="支持 JPG、PNG" preview={file?.preview ?? ""} disabled={busy} onFile={selected => void pick(selected)} />
       </div>
@@ -268,49 +383,100 @@ function NovelIntro({ onCreate }: { onCreate: () => void }) {
   </form>;
 }
 
-const MODULE_MOTION: Record<string, string> = {
-  video: "/assets/xumeng/content-covers/motion/create-generate.mp4",
-  image: "/assets/xumeng/content-covers/motion/create-girlfriend.mp4",
-  face: "/assets/xumeng/content-covers/motion/create-role.mp4",
-  coat: "/assets/xumeng/content-covers/motion/create-scenario.mp4",
-  novel: "/assets/xumeng/content-covers/motion/create-novel.mp4",
-};
-
-function HubCard({ id, feature, onOpen }: { id: View; feature?: boolean; onOpen: (view: View) => void }) {
-  const item = MODULES.find(module => module.id === id)!;
-  const [motion, setMotion] = useState(true);
-  const [artOk, setArtOk] = useState(true);
-  return <button type="button" className={feature ? "tech-feature" : "tech-card"} data-id={id} onClick={() => onOpen(id)}>
-    {artOk ? <img className="tech-art" src={MODULE_ART[id]} alt="" onError={() => setArtOk(false)} /> : null}
-    {motion ? <video className="tech-art tech-motion" src={MODULE_MOTION[id]} poster={artOk ? MODULE_ART[id] : undefined} muted loop playsInline autoPlay preload="metadata" onError={() => setMotion(false)} /> : null}
-    <span className="tech-art-shade" aria-hidden="true" />
-    <span className="banner-copy"><strong>{item.label}</strong><small>{item.line}</small></span>
-  </button>;
-}
-
-export function AigenVercel({ onRoute, onBack, userId, isGuest, onRequireAccount, locale = "zh-Hans" }: Props) {
-  const [view, setView] = useState<View>("home");
+export function AigenVercel({
+  initialTool = "video",
+  onRoute,
+  onBack,
+  userId,
+  isGuest,
+  onRequireAccount,
+  locale = "zh-Hans",
+}: Props) {
+  const [activeTemplate, setActiveTemplate] = useState<PendingAigenTemplate | null>(() => consumePendingAigenTemplate());
+  const [view, setView] = useState<AigenTool>(() => {
+    if (activeTemplate) return activeTemplate.kind === "video" ? "video" : "image";
+    return initialTool;
+  });
   const isEn = locale === "en";
-  const title = view === "home" ? (isEn ? "Free AI Tools" : "自由 AI 工具") : MODULES.find(module => module.id === view)?.label ?? "AI生成";
-  const back = () => view === "home" ? onBack() : setView("home");
-  return <div className="xmgen">
-    <header className={view === "home" ? "top top-home" : "top"}>
-      <button type="button" className="brand" onClick={back}>{view === "home" ? (isEn ? "← Create" : "← 返回创作") : (isEn ? "Back" : "返回")}</button>
-      {view === "home" ? (
-        <div className="mode-switch" role="tablist" aria-label={isEn ? "AI workspace mode" : "AI 生成模式"}>
-          <button type="button" role="tab" aria-selected={false} onClick={() => onRoute("generation")}>{isEn ? "Templates" : "模板广场"}</button>
-          <button type="button" role="tab" aria-selected={true} className="mode-active">{isEn ? "Free Tools" : "自由工具"}</button>
+
+  useEffect(() => {
+    const incoming = consumePendingAigenTemplate();
+    if (incoming) {
+      setActiveTemplate(incoming);
+      setView(incoming.kind === "video" ? "video" : "image");
+      return;
+    }
+    setView(initialTool);
+  }, [initialTool]);
+
+  const selectTool = (tool: Exclude<AigenTool, "novel">) => {
+    setView(tool);
+    if (activeTemplate && activeTemplate.kind !== tool) {
+      setActiveTemplate(null);
+    }
+    onRoute(`aigen/${tool}`);
+  };
+
+  const back = () => {
+    if (activeTemplate) {
+      setActiveTemplate(null);
+      onRoute("generation");
+      return;
+    }
+    onBack();
+  };
+
+  return (
+    <div className="xmgen">
+      <header className="top top-tools">
+        <button type="button" className="brand" onClick={back}>
+          {activeTemplate
+            ? (isEn ? "← Templates" : "← 模板广场")
+            : (isEn ? "← Create" : "← 返回创作")}
+        </button>
+        <div className="mode-switch tool-tabs" role="tablist" aria-label={isEn ? "AI Tools" : "AI 工具"}>
+          {TOOL_TABS.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              role="tab"
+              aria-selected={view === tab.id}
+              className={view === tab.id ? "mode-active" : undefined}
+              onClick={() => selectTool(tab.id)}
+            >
+              {isEn ? tab.labelEn : tab.label}
+            </button>
+          ))}
         </div>
-      ) : <h1 className="top-title">{title}</h1>}
-      <span />
-    </header>
-    {view === "home" ? <section className="home" aria-label="创作模块">
-      <HubCard id="video" feature onOpen={setView} />
-      <div className="tech-grid">{(["image", "face", "coat", "novel"] as const).map(id => <HubCard id={id} key={id} onOpen={setView} />)}</div>
-    </section> : <section className="studio">
-      {view === "video" ? <VideoForm userId={userId} isGuest={isGuest} onRequireAccount={onRequireAccount} /> : view === "novel" ? <NovelIntro onCreate={() => onRoute("novels/new/novel")} /> : <ImageForm mode={view} userId={userId} isGuest={isGuest} onRequireAccount={onRequireAccount} />}
-    </section>}
-  </div>;
+        <span />
+      </header>
+      <section className="studio">
+        {view === "video" ? (
+          <VideoForm
+            template={activeTemplate?.kind === "video" ? activeTemplate : null}
+            onChangeTemplate={() => onRoute("generation")}
+            onClearTemplate={() => setActiveTemplate(null)}
+            userId={userId}
+            isGuest={isGuest}
+            onRequireAccount={onRequireAccount}
+          />
+        ) : view === "novel" ? (
+          <NovelIntro onCreate={() => onRoute("novels/new/novel")} />
+        ) : (
+          <ImageForm
+            key={view}
+            mode={view}
+            template={view === "image" && activeTemplate?.kind === "image" ? activeTemplate : null}
+            onChangeTemplate={() => onRoute("generation")}
+            onClearTemplate={() => setActiveTemplate(null)}
+            userId={userId}
+            isGuest={isGuest}
+            onRequireAccount={onRequireAccount}
+          />
+        )}
+      </section>
+    </div>
+  );
 }
 
 export default AigenVercel;

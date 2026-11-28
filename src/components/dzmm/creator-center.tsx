@@ -9,7 +9,8 @@ import type { XumengLocale } from "@/lib/xumeng-i18n";
 import { xumengPage } from "@/lib/xumeng-page-copy";
 import { xumengCardCoverUrl } from "@/lib/xumeng-routes";
 import { STUDIO_COVER_FALLBACKS, type StudioCoverSlot } from "@/lib/xumeng-studio-covers";
-import { setPendingGenerationTemplateId } from "@/lib/xumeng-template-bridge";
+import { setPendingAigenTemplate, setPendingGenerationTemplateId } from "@/lib/xumeng-template-bridge";
+import { compileGenerationTemplateDraft, createGenerationTemplateDraft } from "@/lib/xumeng-generation-draft";
 import type { GenerationTemplate } from "@/lib/xumeng-generation-templates";
 import PublishingCenter from "./publishing-center";
 import Icon, { BrandIcon, CoinIcon, type BrandIconName } from "./icons";
@@ -28,8 +29,17 @@ export type CreatorCenterProps = {
   locale?: XumengLocale;
 };
 
+type AiToolItem = {
+  key: "video" | "image" | "face" | "coat" | "novel";
+  label: string;
+  hint: string;
+  tag: string;
+  cover: string;
+  run: () => void;
+};
+
 type CreateModeItem = {
-  key: "novel" | "girlfriend" | "scenario";
+  key: "girlfriend" | "scenario";
   label: string;
   hint: string;
   badge: string;
@@ -109,16 +119,50 @@ export default function CreatorCenter({
   const registered = Boolean(user && !user.isGuest);
   const start = (route: string) => (registered ? onRoute(route) : onRequireAccount());
 
-  const modes: CreateModeItem[] = [
+  const aiTools: AiToolItem[] = [
+    {
+      key: "video",
+      label: isEn ? "Image to Video" : "图生视频",
+      hint: isEn ? "Animate still images" : "图片转动态视频",
+      tag: isEn ? "Video" : "动态",
+      cover: covers.generate,
+      run: () => onRoute("aigen/video"),
+    },
+    {
+      key: "image",
+      label: isEn ? "AI Image" : "AI 生图",
+      hint: isEn ? "Text or ref to image" : "文字或参考图生图",
+      tag: isEn ? "Image" : "生图",
+      cover: covers.girlfriend,
+      run: () => onRoute("aigen/image"),
+    },
+    {
+      key: "face",
+      label: isEn ? "Face Swap" : "AI 换脸",
+      hint: isEn ? "Swap character face" : "替换人物面部",
+      tag: isEn ? "Face" : "换脸",
+      cover: covers.role,
+      run: () => onRoute("aigen/face"),
+    },
+    {
+      key: "coat",
+      label: isEn ? "Undress" : "脱衣服",
+      hint: isEn ? "Remove outfit cleanly" : "人物一键去衣",
+      tag: isEn ? "Edit" : "去衣",
+      cover: covers.scenario,
+      run: () => onRoute("aigen/coat"),
+    },
     {
       key: "novel",
-      label: copy.novelsStories,
-      hint: copy.createNovelHint,
-      badge: isEn ? "Story" : "长篇互动",
-      brandIcon: "novelBook",
+      label: isEn ? "AI Novel" : "AI 小说",
+      hint: isEn ? "Outlines & chapters" : "大纲与章节创作",
+      tag: isEn ? "Story" : "小说",
       cover: covers.novel,
       run: () => start("novels/new/novel"),
     },
+  ];
+
+  const modes: CreateModeItem[] = [
     {
       key: "girlfriend",
       label: copy.uploadGirlfriend,
@@ -218,14 +262,50 @@ export default function CreatorCenter({
                   <span>{copy.myWorks}</span>
                   {drafts.length > 0 && <em className={s.quickBadge}>{drafts.length}</em>}
                 </button>
-                {XUMENG_GENERATION_WORKSPACE_ENABLED && (
-                  <button type="button" className={`${s.quickBtn} ${s.quickBtnAccent}`} onClick={() => onRoute("aigen")}>
-                    <Icon name="sparkles" size={15} />
-                    <span>{isEn ? "Free AI Tools" : "自由生图工具"}</span>
-                  </button>
-                )}
               </div>
             </header>
+
+            {/* Direct AI Tools Grid */}
+            {XUMENG_GENERATION_WORKSPACE_ENABLED && (
+              <section className={s.aiToolsSection} aria-label={isEn ? "AI Tools" : "AI 工具"}>
+                <div className={s.sectionHead}>
+                  <div className={s.sectionTitleWrap}>
+                    <BrandIcon name="templateSquare" size={26} />
+                    <div>
+                      <h2>{isEn ? "AI Tools" : "AI 工具"}</h2>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className={s.worksAll}
+                    onClick={() => onRoute("generation")}
+                  >
+                    {isEn ? "Template Square" : "去模板广场"}
+                    <Icon name="chevron" size={14} />
+                  </button>
+                </div>
+                <div className={s.aiToolsGrid}>
+                  {aiTools.map((tool) => (
+                    <button
+                      key={tool.key}
+                      type="button"
+                      className={s.aiToolCard}
+                      data-tool={tool.key}
+                      onClick={tool.run}
+                      title={tool.label}
+                    >
+                      <img className={s.aiToolArt} src={tool.cover} alt="" loading="eager" decoding="async" onError={hideBrokenImg} />
+                      <span className={s.aiToolShade} aria-hidden="true" />
+                      <span className={s.aiToolTag}>{tool.tag}</span>
+                      <div className={s.aiToolCopy}>
+                        <strong>{tool.label}</strong>
+                        <small>{tool.hint}</small>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Primary Bento Hero Row */}
             <section
@@ -289,16 +369,16 @@ export default function CreatorCenter({
                       </span>
                     </div>
                     <div className={s.heroCopy}>
-                      <strong>{isEn ? "Template Square" : "AI 模板广场"}</strong>
+                      <strong>{isEn ? "Template Square" : "模板广场"}</strong>
                       <p>
                         {isEn
-                          ? "Motion & style templates"
-                          : "视频动作 / 图片画风"}
+                          ? "Pick a motion or style template, then generate in AI Tools"
+                          : "挑选视频动作 / 图片画风模板，选中即跳转 AI 工具"}
                       </p>
                     </div>
                     <div className={s.heroFoot}>
                       <span className={s.heroCtaRose}>
-                        <span>{isEn ? "Open Templates" : "进入模板广场"}</span>
+                        <span>{isEn ? "Browse Templates" : "浏览模板"}</span>
                         <Icon name="sparkles" size={14} />
                       </span>
                     </div>
@@ -352,9 +432,6 @@ export default function CreatorCenter({
                     </div>
                   </div>
                   <div className={s.shelfHeadActions}>
-                    <button type="button" className={s.worksAll} onClick={() => onRoute("aigen")}>
-                      {isEn ? "Free Tools" : "自由工具"}
-                    </button>
                     <button
                       type="button"
                       className={`${s.worksAll} ${s.shelfPrimaryBtn}`}
@@ -372,8 +449,21 @@ export default function CreatorCenter({
                       type="button"
                       className={s.templateTile}
                       onClick={() => {
-                        setPendingGenerationTemplateId(tpl.id);
-                        onRoute("generation");
+                        if (tpl.customTemplate || tpl.studioFree) {
+                          const compiled = compileGenerationTemplateDraft(tpl, createGenerationTemplateDraft(tpl));
+                          setPendingAigenTemplate({
+                            id: tpl.id,
+                            label: tpl.label,
+                            kind: tpl.kind,
+                            prompt: compiled || tpl.description || "",
+                            demoPosterUrl: tpl.demoPosterUrl,
+                            demoVideoUrl: tpl.demoVideoUrl,
+                          });
+                          onRoute(`aigen/${tpl.kind}`);
+                        } else {
+                          setPendingGenerationTemplateId(tpl.id);
+                          onRoute("generation");
+                        }
                       }}
                     >
                       <img src={tpl.demoPosterUrl} alt="" loading="lazy" decoding="async" onError={hideBrokenImg} />
