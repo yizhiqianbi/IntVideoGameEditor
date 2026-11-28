@@ -183,9 +183,7 @@ export default function CreatorCenter({
           <>
             <header className={s.header}>
               <div>
-                <p>{copy.creatorEyebrow}</p>
                 <h1>{copy.rolesAndPosts}</h1>
-                <span>{copy.rolesLead}</span>
               </div>
               <div className={s.headerActions}>
                 <button type="button" onClick={() => onRoute("studio")}>
@@ -212,16 +210,7 @@ export default function CreatorCenter({
             {/* Studio Header Bar */}
             <header className={s.studioBar}>
               <div className={s.studioTitle}>
-                <span className={s.studioEyebrow}>
-                  <span className={s.eyebrowDot} aria-hidden="true" />
-                  {copy.creatorEyebrow}
-                </span>
                 <h1>{copy.beginCreate}</h1>
-                <p>
-                  {isEn
-                    ? "Build interactive characters, stories, companions, and AI motion scenes from one studio."
-                    : "角色卡、AI 动效模板、互动小说与专属陪伴，一站式开启你的叙事创作。"}
-                </p>
               </div>
               <div className={s.studioQuickActions}>
                 <button type="button" className={s.quickBtn} onClick={() => onRoute("studio/roles")}>
@@ -298,16 +287,13 @@ export default function CreatorCenter({
                       <span className={s.heroIconBoxRose}>
                         <BrandIcon name="templateSquare" size={34} />
                       </span>
-                      <span className={s.heroTagPill}>
-                        {isEn ? "Motion · Style" : "动效 · 画风 · 角色带入"}
-                      </span>
                     </div>
                     <div className={s.heroCopy}>
                       <strong>{isEn ? "Template Square" : "AI 模板广场"}</strong>
                       <p>
                         {isEn
-                          ? "One-click motion & style templates, plus free AI studio tools."
-                          : "挑现成动作与画风模板一键出图/出视频，支持直接带入角色立绘。"}
+                          ? "Motion & style templates"
+                          : "视频动作 / 图片画风"}
                       </p>
                     </div>
                     <div className={s.heroFoot}>
@@ -363,11 +349,6 @@ export default function CreatorCenter({
                     <BrandIcon name="videoReel" size={26} />
                     <div>
                       <h2>{isEn ? "Template Square Picks" : "模板广场精选"}</h2>
-                      <p>
-                        {isEn
-                          ? "Pick a motion or style card — or bring any character portrait directly in."
-                          : "精选高人气动效与画风卡片，一键复刻大片质感。"}
-                      </p>
                     </div>
                   </div>
                   <div className={s.shelfHeadActions}>
@@ -414,7 +395,6 @@ export default function CreatorCenter({
                   <BrandIcon name="chatBubble" size={26} />
                   <div>
                     <h2>{copy.myWorks}</h2>
-                    <p>{drafts.length ? copy.studioWorksHint : copy.studioWorksEmpty}</p>
                   </div>
                 </div>
                 {drafts.length > 0 && (

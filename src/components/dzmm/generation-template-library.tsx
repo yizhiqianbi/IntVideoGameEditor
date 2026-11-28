@@ -170,13 +170,6 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
   const isEn = locale === "en";
 
   return <section className={s.library} hidden={!visible} aria-label={c.gsShelf} aria-busy={!ready}>
-    <div className={s.howToStrip} aria-label={isEn ? "How to use templates" : "使用步骤"}>
-      <div className={s.howStep}><span>1</span><strong>{isEn ? "Pick a template" : "选动作或画风模板"}</strong></div>
-      <span className={s.howArrow} aria-hidden="true">→</span>
-      <div className={s.howStep}><span>2</span><strong>{isEn ? "Auto-fill character or upload photo" : "自动带入角色或传参考图"}</strong></div>
-      <span className={s.howArrow} aria-hidden="true">→</span>
-      <div className={s.howStep}><span>3</span><strong>{isEn ? "Quote & generate in 1 tap" : "实时估价 · 一键生成"}</strong></div>
-    </div>
     <div className={s.toolbar} data-tour="tpl-search">
       <div className={s.kindTabs} role="tablist" aria-label={isEn ? "Template type" : "模板类型"}>
         <button type="button" role="tab" aria-selected={activeKind === "all"} aria-pressed={activeKind === "all"} disabled={!ready} onClick={() => updateFilters({ kind: "all" })}>
@@ -195,8 +188,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
     </div>
     <div className={`${s.parts} ${showVideos && showImages ? "" : s.partsSingle}`}>
       {showVideos && <section className={s.part} aria-label={c.gsMakeVideos}>
-        <div className={s.listHeader}><div><h2>{c.gsMakeVideos}</h2>
-          <p>{c.gsVideoLead}</p></div><span>{videos.length}</span></div>
+        <div className={s.listHeader}><div><h2>{c.gsMakeVideos}</h2></div><span>{videos.length}</span></div>
         <div className={s.groupTabs} role="tablist" aria-label={c.gsVideoCats}>
           <button type="button" aria-pressed={videoGroup === "all"} disabled={!ready} onClick={() => setVideoGroup("all")}>{c.gsAll}</button>
           {videoGroups.map(group => <button type="button" key={group.id} aria-pressed={videoGroup === group.id} disabled={!ready}
@@ -205,8 +197,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
         <div className={s.posterGrid}>{videos.map(item => (item.demoPosterUrl || item.demoVideoUrl) ? posterCard(item) : stillCard(item))}</div>
       </section>}
       {showImages && <section className={s.part} aria-label={c.gsMakeImages}>
-        <div className={s.listHeader}><div><h2>{c.gsMakeImages}</h2>
-          <p>{c.gsImageLead}</p></div><span>{images.length}</span></div>
+        <div className={s.listHeader}><div><h2>{c.gsMakeImages}</h2></div><span>{images.length}</span></div>
         {freeStill && <button type="button" className={s.freeEntry} disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: freeStill.label })}
           onClick={() => { if (!busy && ready) onSelect(freeStill); }}>
           <Icon name="sparkles" size={20}/><span><strong>{freeStill.label}</strong><small>{c.gsFreeEntry}</small></span><Icon name="chevron" size={16}/></button>}

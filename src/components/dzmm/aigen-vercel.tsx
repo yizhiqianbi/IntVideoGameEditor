@@ -17,11 +17,11 @@ const MODULE_ART: Record<string, string> = {
 };
 
 const MODULES = [
-  { id: "video", label: "图生视频", line: "将图片转为动态视频", mark: "动" },
-  { id: "image", label: "AI生图", line: "输入文字，生成专属画面", mark: "图" },
-  { id: "face", label: "AI换脸", line: "上传图片，生成换脸作品", mark: "脸" },
-  { id: "coat", label: "脱衣服", line: "一键脱掉衣服", mark: "衣" },
-  { id: "novel", label: "AI小说", line: "一键创作你的故事", mark: "文" },
+  { id: "video", label: "图生视频", line: "图片转动态视频", mark: "动" },
+  { id: "image", label: "AI生图", line: "文字或参考图生图", mark: "图" },
+  { id: "face", label: "AI换脸", line: "替换人物面部", mark: "脸" },
+  { id: "coat", label: "脱衣服", line: "人物去衣", mark: "衣" },
+  { id: "novel", label: "AI小说", line: "大纲与章节创作", mark: "文" },
 ] as const;
 
 const COMMON_NOTES = [
@@ -104,8 +104,8 @@ function ImageForm({ mode, userId, isGuest, onRequireAccount }: { mode: "image" 
   const [error, setError] = useState("");
   const [result, setResult] = useState("");
   const poll = useTaskPoll();
-  const leadTitle = mode === "face" ? "只替换面部" : mode === "coat" ? "脱掉衣服" : "用文字描绘你的画面";
-  const lead = mode === "face" ? "上传画面图 + 脸部图，保留原画面、服装和光线" : mode === "coat" ? "上传人物图，一键去掉衣服" : "参考图可选，写清主体、场景和风格";
+  const leadTitle = mode === "face" ? "AI 换脸" : mode === "coat" ? "脱衣服" : "AI 生图";
+  const lead = mode === "face" ? "上传画面图与脸部图" : mode === "coat" ? "上传人物图" : "参考图可选";
   const needed = mode === "face" ? 2 : mode === "coat" ? 1 : 0;
 
   async function pick(index: number, file: File | undefined) {
@@ -240,7 +240,7 @@ function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isG
 
   return <>
     <form className="form" onSubmit={event => void submit(event)}>
-      <Lead title="上传一张图，让它动起来" line="描述动作和镜头，选择时长" />
+      <Lead title="图生视频" line="上传参考图并填写动作描述" />
       <div className="stage">
         <Upload title="点击上传图片" hint="支持 JPG、PNG" preview={file?.preview ?? ""} disabled={busy} onFile={selected => void pick(selected)} />
       </div>
@@ -256,7 +256,7 @@ function VideoForm({ userId, isGuest, onRequireAccount }: { userId?: string; isG
 
 function NovelIntro({ onCreate }: { onCreate: () => void }) {
   return <form className="form" onSubmit={event => { event.preventDefault(); onCreate(); }}>
-    <Lead title="让灵感成为故事" line="写下人物和情节，进入小说工作台生成" />
+    <Lead title="AI 小说" line="人物设定、大纲与章节创作" />
     <div className="notes">
       <ul>
         <li>支持人物设定、剧情大纲与章节生成</li>
@@ -305,14 +305,6 @@ export function AigenVercel({ onRoute, onBack, userId, isGuest, onRequireAccount
       <span />
     </header>
     {view === "home" ? <section className="home" aria-label="创作模块">
-      <button type="button" className="tpl-banner" onClick={() => onRoute("generation")}>
-        <div className="tpl-banner-copy">
-          <span className="tpl-banner-badge">{isEn ? "RECOMMENDED" : "热门体系入口"}</span>
-          <strong>{isEn ? "Explore Template Square" : "进入模板广场 · 挑现成动作与画风一键做同款"}</strong>
-          <small>{isEn ? "Pick a video motion or image style card — even pre-fill any character's portrait." : "内置视频动作演示与图片画风卡片，支持直接带入角色立绘作为参考图。"}</small>
-        </div>
-        <span className="tpl-banner-cta">{isEn ? "Open →" : "去选模板 →"}</span>
-      </button>
       <HubCard id="video" feature onOpen={setView} />
       <div className="tech-grid">{(["image", "face", "coat", "novel"] as const).map(id => <HubCard id={id} key={id} onOpen={setView} />)}</div>
     </section> : <section className="studio">

@@ -98,7 +98,7 @@ export function DiscoveryTagPicker({ open, onClose, options, selected, limit, on
   const close = () => { setQuery(""); onClose(); };
   return <div className={s.tagPickerBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
     <section className={s.tagPicker} ref={pickerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="global-tag-picker-title" onMouseDown={(event) => event.stopPropagation()}>
-      <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="global-tag-picker-title">{copy.pickTags}</h2><p>{xumengPageFill(copy.pickTagsHint, { limit })}</p></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={close}><Icon name="close" size={18} /></button></header>
+      <header className={s.tagPickerHeader}><div><h2 id="global-tag-picker-title">{copy.pickTags}</h2><p>{xumengPageFill(copy.pickTagsHint, { limit })}</p></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={close}><Icon name="close" size={18} /></button></header>
       <label className={s.tagPickerSearch}><Icon name="search" size={16} /><input autoFocus value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.searchTags} aria-label={copy.searchTags} /></label>
       <div className={s.tagPickerChips} role="group" aria-label={copy.categoryTags}><button type="button" className={selected.length === 0 ? s.tagPickerChipOn : s.tagPickerChip} aria-pressed={selected.length === 0} onClick={onClear}>{copy.all}</button>{visible.map((item) => {
         const on = selected.includes(item.id);
@@ -182,9 +182,7 @@ export function CatalogDiscovery({ characters, authors, favorites, likes, prefer
     {!category ? <>
       <section className={s.tagEntry} aria-labelledby="all-tags-title">
         <div className={s.tagEntryCopy}>
-          <span className={s.tagEntryKicker}>DISCOVER</span>
           <h2 id="all-tags-title">{copy.exploreByTag}</h2>
-          <p>{copy.exploreByTagBody}</p>
         </div>
         <button type="button" className={s.tagEntryButton} onClick={() => setTagPickerOpen(true)}><Icon name="search" size={18} />{copy.openAllTags}</button>
       </section>
@@ -193,7 +191,7 @@ export function CatalogDiscovery({ characters, authors, favorites, likes, prefer
       </div>
       {tagPickerOpen && <div className={s.tagPickerBackdrop} role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) setTagPickerOpen(false); }}>
         <section className={s.tagPicker} ref={tagPickerRef} tabIndex={-1} role="dialog" aria-modal="true" aria-labelledby="tag-picker-title" onMouseDown={(event) => event.stopPropagation()}>
-          <header className={s.tagPickerHeader}><div><span className={s.tagEntryKicker}>EXPLORE</span><h2 id="tag-picker-title">{copy.pickTags}</h2></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={() => setTagPickerOpen(false)}><Icon name="close" size={18} /></button></header>
+          <header className={s.tagPickerHeader}><div><h2 id="tag-picker-title">{copy.pickTags}</h2></div><button type="button" className={s.tagPickerClose} aria-label={copy.closeTags} onClick={() => setTagPickerOpen(false)}><Icon name="close" size={18} /></button></header>
           <div className={s.tagPickerGrid}>{DZMM_DISCOVERY_CATEGORIES.map((item) => <button type="button" className={s.tagPickerTag} key={item.slug} onClick={() => choose(item.slug)}><span>{xumengCategoryName(locale, item.slug, item.name)}</span><small>{item.tags.slice(0, 2).join(" · ")}</small><Icon name="chevron" size={15} /></button>)}</div>
         </section>
       </div>}
