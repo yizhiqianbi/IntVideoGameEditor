@@ -1412,19 +1412,34 @@
     padding: 18px 14px 56px;
   }
   .aiToolsGrid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    display: flex;
+    overflow-x: auto;
     gap: 10px;
+    margin-inline: -14px;
+    padding: 2px 14px 4px;
+    scroll-padding-inline: 14px;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .aiToolsGrid::-webkit-scrollbar {
+    display: none;
   }
   .aiToolCard {
-    min-height: 144px;
+    flex: 0 0 132px;
+    min-height: 156px;
     padding: 12px;
     border-radius: 15px;
+    scroll-snap-align: start;
   }
   .aiToolCopy strong {
-    font-size: 15px;
+    font-size: 14.5px;
   }
   .aiToolCopy small {
-    font-size: 11.5px;
+    font-size: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .createHome {
     gap: 16px;
