@@ -220,8 +220,8 @@
   align-items: flex-start;
   justify-content: space-between;
   width: 100%;
-  min-height: 228px;
-  padding: 24px 26px;
+  min-height: 204px;
+  padding: 22px 24px;
   border-radius: 22px;
   border: 1px solid var(--line);
   background: #1a0d16;
@@ -462,106 +462,99 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  min-height: 168px;
-  padding: 14px;
+  justify-content: space-between;
+  gap: 14px;
+  min-height: 118px;
+  padding: 15px 15px 14px;
   border-radius: 18px;
-  border: 1px solid color-mix(in srgb, var(--line) 90%, rgba(255, 255, 255, 0.08));
-  background: linear-gradient(155deg, #1b1724 0%, #12101a 100%);
-  color: #ffffff;
+  border: 1px solid var(--line);
+  background:
+    radial-gradient(120% 110% at 100% 0%, var(--tool-glow, rgba(245, 196, 81, 0.14)), transparent 64%),
+    color-mix(in srgb, var(--surface) 94%, transparent);
+  color: var(--text);
   text-align: left;
   font: inherit;
   cursor: pointer;
-  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
 .aiToolCard[data-tool="video"] {
-  background: linear-gradient(145deg, #2d1a14 0%, #5e2f1e 55%, #1c1317 100%);
+  --tool-accent: #f2be5c;
+  --tool-glow: rgba(242, 190, 92, 0.16);
 }
 .aiToolCard[data-tool="image"] {
-  background: linear-gradient(145deg, #1d2744 0%, #523874 55%, #15192a 100%);
+  --tool-accent: #f06292;
+  --tool-glow: rgba(240, 98, 146, 0.16);
 }
 .aiToolCard[data-tool="face"] {
-  background: linear-gradient(145deg, #2a1826 0%, #66294b 55%, #18111b 100%);
+  --tool-accent: #c084fc;
+  --tool-glow: rgba(192, 132, 252, 0.16);
 }
 .aiToolCard[data-tool="coat"] {
-  background: linear-gradient(145deg, #241634 0%, #5d306d 55%, #150f20 100%);
+  --tool-accent: #fb7185;
+  --tool-glow: rgba(251, 113, 133, 0.16);
 }
 .aiToolCard[data-tool="novel"] {
-  background: linear-gradient(145deg, #142a3a 0%, #26596e 55%, #0f1b24 100%);
+  --tool-accent: #60a5fa;
+  --tool-glow: rgba(96, 165, 250, 0.16);
 }
 
 .aiToolCard:hover {
   transform: translateY(-2px);
-  border-color: color-mix(in srgb, var(--gold) 58%, var(--line));
-  box-shadow: 0 18px 34px -22px rgba(0, 0, 0, 0.72);
+  border-color: color-mix(in srgb, var(--tool-accent, var(--gold)) 54%, var(--line));
+  box-shadow: 0 14px 28px -22px rgba(0, 0, 0, 0.65);
 }
 
-.aiToolArt {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  object-position: center 22%;
-  opacity: 0.78;
-  transition: transform 0.36s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.24s ease;
-}
-
-.aiToolCard:hover .aiToolArt {
-  transform: scale(1.05);
-  opacity: 0.88;
-}
-
-.aiToolShade {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(8, 8, 13, 0.08) 0%,
-    rgba(8, 8, 13, 0.32) 48%,
-    rgba(8, 8, 13, 0.88) 100%
-  );
-  pointer-events: none;
-}
-
-.aiToolTag {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  z-index: 2;
-  display: inline-flex;
+.aiToolTop {
+  display: flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
-  border-radius: 999px;
-  background: rgba(12, 12, 18, 0.68);
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  color: rgba(255, 245, 224, 0.94);
-  font-size: 11px;
-  font-weight: 650;
-  backdrop-filter: blur(8px);
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.aiToolIcon {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 11px;
+  background: color-mix(in srgb, var(--tool-accent, var(--gold)) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tool-accent, var(--gold)) 34%, transparent);
+  color: var(--tool-accent, var(--gold));
+  flex: none;
+}
+
+.aiToolArrow {
+  color: var(--muted);
+  opacity: 0.65;
+  transition: transform 0.2s ease, opacity 0.2s ease, color 0.2s ease;
+}
+
+.aiToolCard:hover .aiToolArrow {
+  transform: translateX(2px);
+  opacity: 1;
+  color: var(--text);
 }
 
 .aiToolCopy {
-  position: relative;
-  z-index: 2;
   display: grid;
   gap: 3px;
 }
 
 .aiToolCopy strong {
-  font-size: 16px;
-  font-weight: 760;
-  line-height: 1.2;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 1.22;
+  color: var(--text);
 }
 
 .aiToolCopy small {
   font-size: 12px;
   line-height: 1.35;
-  color: rgba(244, 242, 248, 0.82);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .modeGrid {
@@ -1426,20 +1419,23 @@
     display: none;
   }
   .aiToolCard {
-    flex: 0 0 132px;
-    min-height: 156px;
+    flex: 0 0 138px;
+    min-height: 104px;
+    gap: 10px;
     padding: 12px;
     border-radius: 15px;
     scroll-snap-align: start;
   }
+  .aiToolIcon {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+  }
   .aiToolCopy strong {
-    font-size: 14.5px;
+    font-size: 14px;
   }
   .aiToolCopy small {
     font-size: 11px;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
   .createHome {
     gap: 16px;

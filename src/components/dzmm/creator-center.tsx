@@ -13,7 +13,7 @@ import { setPendingAigenTemplate, setPendingGenerationTemplateId } from "@/lib/x
 import { compileGenerationTemplateDraft, createGenerationTemplateDraft } from "@/lib/xumeng-generation-draft";
 import type { GenerationTemplate } from "@/lib/xumeng-generation-templates";
 import PublishingCenter from "./publishing-center";
-import Icon, { BrandIcon, CoinIcon, type BrandIconName } from "./icons";
+import Icon, { BrandIcon, CoinIcon, type BrandIconName, type IconName } from "./icons";
 import s from "./creator-center.module.css";
 
 export type CreatorCenterProps = {
@@ -33,8 +33,7 @@ type AiToolItem = {
   key: "video" | "image" | "face" | "coat" | "novel";
   label: string;
   hint: string;
-  tag: string;
-  cover: string;
+  icon: IconName;
   run: () => void;
 };
 
@@ -124,40 +123,35 @@ export default function CreatorCenter({
       key: "video",
       label: isEn ? "Image to Video" : "图生视频",
       hint: isEn ? "Animate still images" : "图片转动态视频",
-      tag: isEn ? "Video" : "动态",
-      cover: covers.generate,
+      icon: "video",
       run: () => onRoute("aigen/video"),
     },
     {
       key: "image",
       label: isEn ? "AI Image" : "AI 生图",
-      hint: isEn ? "Text or ref to image" : "文字或参考图生图",
-      tag: isEn ? "Image" : "生图",
-      cover: covers.girlfriend,
+      hint: isEn ? "Text or ref to image" : "文字 / 参考图生图",
+      icon: "image",
       run: () => onRoute("aigen/image"),
     },
     {
       key: "face",
       label: isEn ? "Face Swap" : "AI 换脸",
       hint: isEn ? "Swap character face" : "替换人物面部",
-      tag: isEn ? "Face" : "换脸",
-      cover: covers.role,
+      icon: "user",
       run: () => onRoute("aigen/face"),
     },
     {
       key: "coat",
       label: isEn ? "Undress" : "脱衣服",
       hint: isEn ? "Remove outfit cleanly" : "人物一键去衣",
-      tag: isEn ? "Edit" : "去衣",
-      cover: covers.scenario,
+      icon: "sparkles",
       run: () => onRoute("aigen/coat"),
     },
     {
       key: "novel",
       label: isEn ? "AI Novel" : "AI 小说",
       hint: isEn ? "Outlines & chapters" : "大纲与章节创作",
-      tag: isEn ? "Story" : "小说",
-      cover: covers.novel,
+      icon: "book",
       run: () => start("novels/new/novel"),
     },
   ];
@@ -265,53 +259,8 @@ export default function CreatorCenter({
               </div>
             </header>
 
-            {/* Direct AI Tools Grid */}
-            {XUMENG_GENERATION_WORKSPACE_ENABLED && (
-              <section className={s.aiToolsSection} aria-label={isEn ? "AI Tools" : "AI 工具"}>
-                <div className={s.sectionHead}>
-                  <div className={s.sectionTitleWrap}>
-                    <BrandIcon name="templateSquare" size={26} />
-                    <div>
-                      <h2>{isEn ? "AI Tools" : "AI 工具"}</h2>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    className={s.worksAll}
-                    onClick={() => onRoute("generation")}
-                  >
-                    {isEn ? "Template Square" : "去模板广场"}
-                    <Icon name="chevron" size={14} />
-                  </button>
-                </div>
-                <div className={s.aiToolsGrid}>
-                  {aiTools.map((tool) => (
-                    <button
-                      key={tool.key}
-                      type="button"
-                      className={s.aiToolCard}
-                      data-tool={tool.key}
-                      onClick={tool.run}
-                      title={tool.label}
-                    >
-                      <img className={s.aiToolArt} src={tool.cover} alt="" loading="eager" decoding="async" onError={hideBrokenImg} />
-                      <span className={s.aiToolShade} aria-hidden="true" />
-                      <span className={s.aiToolTag}>{tool.tag}</span>
-                      <div className={s.aiToolCopy}>
-                        <strong>{tool.label}</strong>
-                        <small>{tool.hint}</small>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* Primary Bento Hero Row */}
-            <section
-              className={XUMENG_GENERATION_WORKSPACE_ENABLED ? s.heroBento : `${s.heroBento} ${s.heroBentoSingle}`}
-              aria-label={copy.beginCreate}
-            >
+            {/* Primary Character Creation Hero */}
+            <section className={`${s.heroBento} ${s.heroBentoSingle}`} aria-label={copy.createRole}>
               <button
                 type="button"
                 className={`${s.heroCard} ${s.heroRole}`}
@@ -324,7 +273,7 @@ export default function CreatorCenter({
                 <div className={s.heroInner}>
                   <div className={s.heroTopRow}>
                     <span className={s.heroIconBox}>
-                      <BrandIcon name="createRole" size={34} />
+                      <BrandIcon name="createRole" size={30} />
                     </span>
                     <span className={s.heroPricePill}>
                       <CoinIcon size={14} />
@@ -351,43 +300,9 @@ export default function CreatorCenter({
                   </div>
                 </div>
               </button>
-
-              {XUMENG_GENERATION_WORKSPACE_ENABLED && (
-                <button
-                  type="button"
-                  className={`${s.heroCard} ${s.heroTemplate}`}
-                  onClick={() => onRoute("generation")}
-                  title={isEn ? "Template Square & AI Generation" : "模板广场 · AI 图生视频"}
-                  aria-label={isEn ? "Template Square & AI Generation" : "模板广场 · AI 图生视频"}
-                >
-                  <img className={s.heroArt} src={covers.generate} alt="" loading="eager" decoding="async" onError={hideBrokenImg} />
-                  <span className={s.heroMaskRose} aria-hidden="true" />
-                  <div className={s.heroInner}>
-                    <div className={s.heroTopRow}>
-                      <span className={s.heroIconBoxRose}>
-                        <BrandIcon name="templateSquare" size={34} />
-                      </span>
-                    </div>
-                    <div className={s.heroCopy}>
-                      <strong>{isEn ? "Template Square" : "模板广场"}</strong>
-                      <p>
-                        {isEn
-                          ? "Pick a motion or style template, then generate in AI Tools"
-                          : "挑选视频动作 / 图片画风模板，选中即跳转 AI 工具"}
-                      </p>
-                    </div>
-                    <div className={s.heroFoot}>
-                      <span className={s.heroCtaRose}>
-                        <span>{isEn ? "Browse Templates" : "浏览模板"}</span>
-                        <Icon name="sparkles" size={14} />
-                      </span>
-                    </div>
-                  </div>
-                </button>
-              )}
             </section>
 
-            {/* 3-Column Creation Modes Strip */}
+            {/* 2-Column Interactive Creation Modes */}
             <section className={s.modeSection} aria-label={isEn ? "More creation modes" : "更多创作模式"}>
               <div className={s.modeGrid}>
                 {modes.map((item) => (
@@ -421,14 +336,49 @@ export default function CreatorCenter({
               </div>
             </section>
 
-            {/* Featured Template Gallery */}
-            {XUMENG_GENERATION_WORKSPACE_ENABLED && featuredTemplates.length > 0 && (
-              <section className={s.templateShelf} aria-label={isEn ? "Featured Templates" : "模板广场精选"}>
+            {/* Direct AI Tools Strip */}
+            {XUMENG_GENERATION_WORKSPACE_ENABLED && (
+              <section className={s.aiToolsSection} aria-label={isEn ? "AI Tools" : "AI 工具"}>
                 <div className={s.sectionHead}>
                   <div className={s.sectionTitleWrap}>
-                    <BrandIcon name="videoReel" size={26} />
+                    <h2>{isEn ? "AI Tools" : "AI 工具"}</h2>
+                  </div>
+                </div>
+                <div className={s.aiToolsGrid}>
+                  {aiTools.map((tool) => (
+                    <button
+                      key={tool.key}
+                      type="button"
+                      className={s.aiToolCard}
+                      data-tool={tool.key}
+                      onClick={tool.run}
+                      title={tool.label}
+                    >
+                      <div className={s.aiToolTop}>
+                        <span className={s.aiToolIcon} aria-hidden="true">
+                          <Icon name={tool.icon} size={18} />
+                        </span>
+                        <span className={s.aiToolArrow} aria-hidden="true">
+                          <Icon name="chevron" size={14} />
+                        </span>
+                      </div>
+                      <div className={s.aiToolCopy}>
+                        <strong>{tool.label}</strong>
+                        <small>{tool.hint}</small>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* Single Template Square Shelf */}
+            {XUMENG_GENERATION_WORKSPACE_ENABLED && featuredTemplates.length > 0 && (
+              <section className={s.templateShelf} aria-label={isEn ? "Template Square" : "模板广场"}>
+                <div className={s.sectionHead}>
+                  <div className={s.sectionTitleWrap}>
                     <div>
-                      <h2>{isEn ? "Template Square Picks" : "模板广场精选"}</h2>
+                      <h2>{isEn ? "Template Square" : "模板广场"}</h2>
                     </div>
                   </div>
                   <div className={s.shelfHeadActions}>
