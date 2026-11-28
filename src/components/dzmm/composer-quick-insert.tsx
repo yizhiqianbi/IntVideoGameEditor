@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import styles from "./composer-quick-insert.module.css";
 
 /** `text` is inserted at the caret; the caret lands at `caret` characters into it. */
@@ -21,24 +22,61 @@ const SNIPPETS: { label: string; hint: string; text: string; caret?: number }[] 
 
 export function ComposerQuickInsert({ disabled, onInsert }: { disabled: boolean; onInsert: (text: string, caret: number) => void }) {
   const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useLayoutEffect(() => {
+    if (!open) return;
+    const sync = () => {
+      const rect = root.current?.getBoundingClientRect();
+      if (!rect) return;
+      const menuW = Math.min(356, window.innerWidth - 24);
+      const left = Math.max(12, Math.min(rect.left - 4, window.innerWidth - menuW - 12));
+      const bottom = Math.max(12, window.innerHeight - rect.top + 10);
+      setPos({ left, bottom });
+    };
+    sync();
+    window.addEventListener("resize", sync);
+    window.addEventListener("scroll", sync, true);
+    return () => {
+      window.removeEventListener("resize", sync);
+      window.removeEventListener("scroll", sync, true);
+    };
+  }, [open]);
+
   useEffect(() => {
     if (!open) return;
     const close = (event: PointerEvent | KeyboardEvent) => {
-      if (event instanceof KeyboardEvent ? event.key === "Escape" : !root.current?.contains(event.target as Node)) setOpen(false);
+      if (event instanceof KeyboardEvent) {
+        if (event.key === "Escape") setOpen(false);
+        return;
+      }
+      const target = event.target as Node;
+      if (!root.current?.contains(target) && !menuRef.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("pointerdown", close);
     document.addEventListener("keydown", close);
     return () => { document.removeEventListener("pointerdown", close); document.removeEventListener("keydown", close); };
   }, [open]);
+
   return <div ref={root} className={styles.root}>
     <button type="button" className={styles.toggle} aria-label="快捷插入" aria-expanded={open} title="快捷插入旁白、OOC、内心等标记"
       disabled={disabled} onClick={() => setOpen(value => !value)}>{"{ }"}</button>
-    {open && <div className={styles.menu} role="menu" aria-label="快捷插入">
-      {SNIPPETS.map(snippet => <button type="button" role="menuitem" key={snippet.label}
-        onClick={() => { onInsert(snippet.text, snippet.caret ?? snippet.text.length); setOpen(false); }}>
-        <strong>{snippet.label}</strong><small>{snippet.hint}</small>
-      </button>)}
-    </div>}
+    {open && typeof document !== "undefined" && createPortal(
+      <div
+        ref={menuRef}
+        className={`${styles.menu} ${styles.menuPortal}`}
+        role="menu"
+        aria-label="快捷插入"
+        style={pos ? { left: `${pos.left}px`, bottom: `${pos.bottom}px` } : undefined}
+      >
+        {SNIPPETS.map(snippet => <button type="button" role="menuitem" key={snippet.label}
+          onClick={() => { onInsert(snippet.text, snippet.caret ?? snippet.text.length); setOpen(false); }}>
+          <strong>{snippet.label}</strong><small>{snippet.hint}</small>
+        </button>)}
+      </div>,
+      document.body,
+    )}
   </div>;
 }

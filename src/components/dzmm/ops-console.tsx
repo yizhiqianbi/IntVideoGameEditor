@@ -1,7 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from "react";
-import { DzmmAdminError, fetchDzmmAdminBanners, saveDzmmAdminBanner, updateDzmmAdminBanner, deleteDzmmAdminBanner, fetchStudioCovers, uploadStudioCover, resetStudioCover, type DzmmAdminBanner, type StudioCoverRow } from "@/lib/dzmm-admin-client";
+import {
+  DzmmAdminError,
+  fetchDzmmAdminBanners, saveDzmmAdminBanner, updateDzmmAdminBanner, deleteDzmmAdminBanner,
+  fetchStudioCovers, uploadStudioCover, resetStudioCover,
+  fetchAdminGenerationTemplates, createAdminGenerationTemplate, updateAdminGenerationTemplate,
+  uploadAdminGenerationTemplatePoster, uploadAdminGenerationTemplateVideo, clearAdminGenerationTemplateVideo, deleteAdminGenerationTemplate,
+  type AdminGenerationTemplate, type DzmmAdminBanner, type StudioCoverRow,
+} from "@/lib/dzmm-admin-client";
+import { CUSTOM_TEMPLATE_ASPECT_RATIOS, invalidateCustomGenerationTemplatesCache, loadPublicCustomGenerationTemplates } from "@/lib/xumeng-custom-templates";
 import { STUDIO_COVER_FALLBACKS, STUDIO_COVER_LABELS, STUDIO_COVER_SLOTS } from "@/lib/xumeng-studio-covers";
 import {
   actOpsCharacter, deleteOpsOrientation, deleteOpsSubtag, fetchOpsAnalytics, fetchOpsCharacters, fetchOpsModelPrices,
@@ -13,12 +21,12 @@ import {
 import { reviewDzmmSubmission, unpublishDzmmCharacter } from "@/lib/dzmm-publishing";
 import s from "./admin-dashboard.module.css";
 
-type View = "packages" | "prices" | "orientations" | "subtags" | "voices" | "characters" | "recharges" | "analytics" | "reviews" | "banners" | "covers";
+type View = "packages" | "prices" | "orientations" | "subtags" | "voices" | "characters" | "recharges" | "analytics" | "reviews" | "banners" | "covers" | "templates";
 const VIEWS: { id: View; label: string }[] = [
   { id: "packages", label: "充值套餐" }, { id: "prices", label: "积分单价" }, { id: "orientations", label: "性向" },
   { id: "subtags", label: "子标签" }, { id: "voices", label: "语音" }, { id: "characters", label: "官方角色" },
   { id: "recharges", label: "充值记录" }, { id: "analytics", label: "数据看板" }, { id: "reviews", label: "审核队列" },
-  { id: "banners", label: "横幅" }, { id: "covers", label: "创作封面" },
+  { id: "banners", label: "横幅" }, { id: "covers", label: "创作封面" }, { id: "templates", label: "模板管理" },
 ];
 const SCENE_LABEL: Record<string, string> = { suggestion: "建议回复（每千 token）", image: "图片（每次）", video: "视频（每次）", character: "创建角色（每次）", voice: "语音（每次）" };
 const number = (value: number) => value.toLocaleString("zh-CN");
@@ -57,6 +65,7 @@ export default function OpsConsole({ accountId, view: forced, onUnauthorized }: 
     {current === "reviews" ? <Reviews accountId={accountId} /> : null}
     {current === "banners" ? <Banners accountId={accountId} /> : null}
     {current === "covers" ? <StudioCovers accountId={accountId} /> : null}
+    {current === "templates" ? <GenerationTemplates accountId={accountId} /> : null}
   </div>;
 }
 
@@ -460,5 +469,291 @@ function Banners({ accountId }: { accountId: string }) {
     </form>
     <Notice value={notice} />
     <ul>{rows.map(row => <li key={row.id}><strong>{row.deletedAt ? "已删除" : row.enabled === false ? "停用" : "启用"} · {row.position}</strong> {row.title} {row.body} {row.deletedAt ? null : <><button className={s.text} type="button" onClick={() => fill(row)}>编辑</button> <button className={s.text} type="button" onClick={() => void remove(row.id)}>删除</button></>}</li>)}</ul>
+  </Panel>;
+}
+
+function GenerationTemplates({ accountId }: { accountId: string }) {
+  const [rows, setRows] = useState<AdminGenerationTemplate[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [busyId, setBusyId] = useState("");
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [kind, setKind] = useState<"image" | "video">("image");
+  const [label, setLabel] = useState("");
+  const [englishLabel, setEnglishLabel] = useState("");
+  const [groupLabel, setGroupLabel] = useState("自定义精选");
+  const [aspectRatio, setAspectRatio] = useState("3:4");
+  const [sortOrder, setSortOrder] = useState("100");
+  const [enabled, setEnabled] = useState(true);
+  const [tagsText, setTagsText] = useState("");
+  const [description, setDescription] = useState("");
+  const [promptPattern, setPromptPattern] = useState("");
+  const [posterFile, setPosterFile] = useState<File | null>(null);
+  const [posterPreview, setPosterPreview] = useState<string>("");
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [filterKind, setFilterKind] = useState<"all" | "image" | "video">("all");
+  const [notice, setNotice] = useState("");
+
+  const syncPublic = useCallback(() => {
+    invalidateCustomGenerationTemplatesCache();
+    void loadPublicCustomGenerationTemplates(true);
+  }, []);
+
+  const load = useCallback(() => {
+    setLoading(true);
+    void fetchAdminGenerationTemplates(accountId)
+      .then(setRows)
+      .catch(error => setNotice(report(error)))
+      .finally(() => setLoading(false));
+  }, [accountId]);
+
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => () => { if (posterPreview.startsWith("blob:")) URL.revokeObjectURL(posterPreview); }, [posterPreview]);
+
+  function resetForm() {
+    setEditingId(null);
+    setKind("image");
+    setLabel("");
+    setEnglishLabel("");
+    setGroupLabel("自定义精选");
+    setAspectRatio("3:4");
+    setSortOrder("100");
+    setEnabled(true);
+    setTagsText("");
+    setDescription("");
+    setPromptPattern("");
+    setPosterFile(null);
+    setVideoFile(null);
+    setPosterPreview(prev => { if (prev.startsWith("blob:")) URL.revokeObjectURL(prev); return ""; });
+  }
+
+  function startEdit(row: AdminGenerationTemplate) {
+    setEditingId(row.id);
+    setKind(row.kind);
+    setLabel(row.label);
+    setEnglishLabel(row.englishLabel);
+    setGroupLabel(row.groupLabel || "自定义精选");
+    setAspectRatio(row.aspectRatio || (row.kind === "video" ? "9:16" : "3:4"));
+    setSortOrder(String(row.sortOrder));
+    setEnabled(row.enabled);
+    setTagsText(row.tags.join(", "));
+    setDescription(row.description);
+    setPromptPattern(row.promptPattern);
+    setPosterFile(null);
+    setVideoFile(null);
+    setPosterPreview(prev => { if (prev.startsWith("blob:")) URL.revokeObjectURL(prev); return row.demoPosterUrl ?? ""; });
+    setNotice(`正在编辑模板「${row.label}」`);
+  }
+
+  function pickPoster(file?: File) {
+    if (!file) return;
+    setPosterFile(file);
+    const url = URL.createObjectURL(file);
+    setPosterPreview(prev => { if (prev.startsWith("blob:")) URL.revokeObjectURL(prev); return url; });
+  }
+
+  async function save(event: FormEvent) {
+    event.preventDefault();
+    const cleanLabel = label.trim();
+    const cleanPrompt = promptPattern.trim();
+    if (!cleanLabel) { setNotice("请填写模板名称。"); return; }
+    if (!cleanPrompt) { setNotice("请填写模板提示词。"); return; }
+    const parsedSort = Number(sortOrder);
+    if (!Number.isInteger(parsedSort) || parsedSort < 0 || parsedSort > 99999) {
+      setNotice("排序权重请填写 0 到 99999 的整数。");
+      return;
+    }
+    setSaving(true);
+    setNotice("");
+    try {
+      const payload = {
+        kind,
+        label: cleanLabel,
+        englishLabel: englishLabel.trim(),
+        description: description.trim(),
+        groupLabel: groupLabel.trim() || "自定义精选",
+        tags: tagsText.split(/[,，\s]+/).map(item => item.trim()).filter(Boolean),
+        aspectRatio,
+        promptPattern: cleanPrompt,
+        sortOrder: parsedSort,
+        enabled,
+      };
+      const saved = editingId
+        ? await updateAdminGenerationTemplate(accountId, editingId, payload)
+        : await createAdminGenerationTemplate(accountId, payload);
+      if (posterFile) await uploadAdminGenerationTemplatePoster(accountId, saved.id, posterFile);
+      if (videoFile) await uploadAdminGenerationTemplateVideo(accountId, saved.id, videoFile);
+      setNotice(editingId ? `模板「${cleanLabel}」已更新并同步到模板广场。` : `模板「${cleanLabel}」已上传并上线到模板广场。`);
+      resetForm();
+      load();
+      syncPublic();
+    } catch (error) {
+      setNotice(report(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function quickUploadPoster(row: AdminGenerationTemplate, file?: File) {
+    if (!file) return;
+    setBusyId(row.id);
+    try {
+      await uploadAdminGenerationTemplatePoster(accountId, row.id, file);
+      setNotice(`「${row.label}」封面已更新。`);
+      load();
+      syncPublic();
+    } catch (error) { setNotice(report(error)); }
+    finally { setBusyId(""); }
+  }
+
+  async function quickUploadVideo(row: AdminGenerationTemplate, file?: File) {
+    if (!file) return;
+    setBusyId(row.id);
+    try {
+      await uploadAdminGenerationTemplateVideo(accountId, row.id, file);
+      setNotice(`「${row.label}」动效视频已更新。`);
+      load();
+      syncPublic();
+    } catch (error) { setNotice(report(error)); }
+    finally { setBusyId(""); }
+  }
+
+  async function removeVideo(row: AdminGenerationTemplate) {
+    setBusyId(row.id);
+    try {
+      await clearAdminGenerationTemplateVideo(accountId, row.id);
+      setNotice(`「${row.label}」动效视频已移除。`);
+      load();
+      syncPublic();
+    } catch (error) { setNotice(report(error)); }
+    finally { setBusyId(""); }
+  }
+
+  async function toggleEnabled(row: AdminGenerationTemplate) {
+    setBusyId(row.id);
+    try {
+      await updateAdminGenerationTemplate(accountId, row.id, { enabled: !row.enabled });
+      setNotice(row.enabled ? `「${row.label}」已下架。` : `「${row.label}」已上架。`);
+      load();
+      syncPublic();
+    } catch (error) { setNotice(report(error)); }
+    finally { setBusyId(""); }
+  }
+
+  async function remove(row: AdminGenerationTemplate) {
+    if (!window.confirm(`确定删除模板「${row.label}」吗？封面和动效文件也会一并清理。`)) return;
+    setBusyId(row.id);
+    try {
+      await deleteAdminGenerationTemplate(accountId, row.id);
+      if (editingId === row.id) resetForm();
+      setNotice(`模板「${row.label}」已删除。`);
+      load();
+      syncPublic();
+    } catch (error) { setNotice(report(error)); }
+    finally { setBusyId(""); }
+  }
+
+  const visibleRows = filterKind === "all" ? rows : rows.filter(row => row.kind === filterKind);
+
+  return <Panel
+    title="创作模板上传与管理"
+    note="在这里上传新的图片风格 / 视频动作模板，支持自定义封面（JPG/PNG/WebP ≤ 5 MB）、可选动效预览视频（MP4/WebM ≤ 25 MB）、分组和提示词。保存后前台「模板广场」实时生效。提示词中可使用 {{keywords}} 让用户补充关键词。">
+    <form className={s.tplForm} onSubmit={event => void save(event)}>
+      <div className={s.tplFormGrid}>
+        <label>模板名称 *<input value={label} maxLength={60} placeholder="例如：黑金肖像 / 霓虹夜色" onChange={event => setLabel(event.target.value)} required /></label>
+        <label>英文副标题<input value={englishLabel} maxLength={80} placeholder="可选：Obsidian Portrait" onChange={event => setEnglishLabel(event.target.value)} /></label>
+        <label>模板类型<select value={kind} onChange={event => {
+          const next = event.target.value as "image" | "video";
+          setKind(next);
+          if (!editingId) setAspectRatio(next === "video" ? "9:16" : "3:4");
+        }}><option value="image">图片风格</option><option value="video">视频动作</option></select></label>
+        <label>前台分组<input value={groupLabel} maxLength={24} placeholder="例如：自定义精选 / 写真" onChange={event => setGroupLabel(event.target.value)} /></label>
+        <label>默认比例<select value={aspectRatio} onChange={event => setAspectRatio(event.target.value)}>
+          {CUSTOM_TEMPLATE_ASPECT_RATIOS.map(ratio => <option key={ratio} value={ratio}>{ratio}</option>)}
+        </select></label>
+        <label>排序权重（越小越靠前）<input value={sortOrder} inputMode="numeric" onChange={event => setSortOrder(event.target.value)} /></label>
+        <label>上架状态<select value={enabled ? "1" : "0"} onChange={event => setEnabled(event.target.value === "1")}><option value="1">立即上架</option><option value="0">暂存下架</option></select></label>
+        <label>搜索标签（逗号分隔）<input value={tagsText} placeholder="例如：肖像, 质感, 电影光" onChange={event => setTagsText(event.target.value)} /></label>
+      </div>
+      <label className={s.tplFullField}>模板说明<input value={description} maxLength={240} placeholder="一句话介绍模板效果，会展示在创作台顶部" onChange={event => setDescription(event.target.value)} /></label>
+      <label className={s.tplFullField}>模板提示词 *<textarea rows={4} value={promptPattern} maxLength={4000} placeholder="填写完整生成提示词；如需允许用户在创作台补充关键词，可写 {{keywords}}" onChange={event => setPromptPattern(event.target.value)} required /></label>
+      <div className={s.tplMediaRow}>
+        <div className={s.tplUploadBox}>
+          <span>封面图（JPG/PNG/WebP，≤ 5 MB）</span>
+          <div className={s.tplUploadControl}>
+            {posterPreview ? <img src={posterPreview} alt="" className={s.tplThumbPreview} /> : <div className={s.tplThumbEmpty}>未选封面</div>}
+            <div>
+              <label className={s.outline} style={{ display: "inline-flex", alignItems: "center", padding: "7px 12px", borderRadius: 8, cursor: "pointer" }}>
+                {posterFile ? "重选封面" : "选择封面图"}
+                <input type="file" accept="image/jpeg,image/png,image/webp" style={{ display: "none" }} onChange={event => { pickPoster(event.target.files?.[0]); event.target.value = ""; }} />
+              </label>
+              {posterFile ? <small>{posterFile.name}</small> : <small>建议 3:4 或 9:16 竖图</small>}
+            </div>
+          </div>
+        </div>
+        <div className={s.tplUploadBox}>
+          <span>动效预览视频（可选，MP4/WebM，≤ 25 MB）</span>
+          <div className={s.tplUploadControl}>
+            <label className={s.outline} style={{ display: "inline-flex", alignItems: "center", padding: "7px 12px", borderRadius: 8, cursor: "pointer" }}>
+              {videoFile ? "重选视频" : "选择动效视频"}
+              <input type="file" accept="video/mp4,video/webm" style={{ display: "none" }} onChange={event => { setVideoFile(event.target.files?.[0] ?? null); event.target.value = ""; }} />
+            </label>
+            <small>{videoFile ? videoFile.name : "视频模板上传后支持鼠标悬停动效预览"}</small>
+          </div>
+        </div>
+      </div>
+      <div className={s.tplFormActions}>
+        <button className={s.primary} type="submit" disabled={saving}>{saving ? "保存上传中…" : editingId ? "保存修改" : "创建并上线模板"}</button>
+        {editingId ? <button className={s.outline} type="button" disabled={saving} onClick={resetForm}>取消编辑</button> : null}
+      </div>
+    </form>
+
+    <Notice value={notice} />
+
+    <div className={s.tplListHeader}>
+      <strong>已上传模板（{rows.length}）</strong>
+      <div className={s.tplKindFilter}>
+        <button type="button" className={filterKind === "all" ? s.primary : s.outline} onClick={() => setFilterKind("all")}>全部</button>
+        <button type="button" className={filterKind === "image" ? s.primary : s.outline} onClick={() => setFilterKind("image")}>图片 ({rows.filter(r => r.kind === "image").length})</button>
+        <button type="button" className={filterKind === "video" ? s.primary : s.outline} onClick={() => setFilterKind("video")}>视频 ({rows.filter(r => r.kind === "video").length})</button>
+      </div>
+    </div>
+
+    {loading ? <p className={s.secondaryLine}>加载模板列表中…</p> : !visibleRows.length ? <p className={s.secondaryLine}>暂无自定义模板。在上方填写名称、提示词并选择封面图即可发布到前台模板广场。</p> : (
+      <div className={s.tplCardGrid}>
+        {visibleRows.map(row => (
+          <article key={row.id} className={s.tplAdminCard} data-enabled={row.enabled ? "1" : "0"}>
+            <div className={s.tplCardMedia}>
+              {row.demoPosterUrl ? <img src={row.demoPosterUrl} alt="" /> : <div className={s.tplCardMediaEmpty}>无封面</div>}
+              <span className={s.tplBadge}>{row.kind === "video" ? "视频" : "图片"} · {row.aspectRatio}</span>
+              {row.demoVideoUrl ? <span className={s.tplVideoBadge}>动效</span> : null}
+            </div>
+            <div className={s.tplCardBody}>
+              <div className={s.tplCardTop}>
+                <strong>{row.label}</strong>
+                <span className={s.status} data-status={row.enabled ? "active" : "revoked"}>{row.enabled ? "已上架" : "已下架"}</span>
+              </div>
+              <small className={s.tplCardMeta}>{row.groupLabel} · 排序 {row.sortOrder} · {when(row.updatedAt)}</small>
+              {row.description ? <p className={s.tplCardDesc}>{row.description}</p> : null}
+              <p className={s.tplCardPrompt}>{row.promptPattern}</p>
+              <div className={s.tplCardActions}>
+                <button type="button" className={s.text} disabled={busyId === row.id} onClick={() => startEdit(row)}>编辑</button>
+                <button type="button" className={s.text} disabled={busyId === row.id} onClick={() => void toggleEnabled(row)}>{row.enabled ? "下架" : "上架"}</button>
+                <label className={s.text} style={{ cursor: "pointer" }}>
+                  换封面
+                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busyId === row.id} style={{ display: "none" }} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; void quickUploadPoster(row, file); }} />
+                </label>
+                <label className={s.text} style={{ cursor: "pointer" }}>
+                  {row.demoVideoUrl ? "换视频" : "传视频"}
+                  <input type="file" accept="video/mp4,video/webm" disabled={busyId === row.id} style={{ display: "none" }} onChange={event => { const file = event.target.files?.[0]; event.target.value = ""; void quickUploadVideo(row, file); }} />
+                </label>
+                {row.demoVideoUrl ? <button type="button" className={s.text} disabled={busyId === row.id} onClick={() => void removeVideo(row)}>删视频</button> : null}
+                <button type="button" className={s.text} disabled={busyId === row.id} onClick={() => void remove(row)}>删除</button>
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    )}
   </Panel>;
 }

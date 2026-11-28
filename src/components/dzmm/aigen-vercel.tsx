@@ -279,9 +279,10 @@ const MODULE_MOTION: Record<string, string> = {
 function HubCard({ id, feature, onOpen }: { id: View; feature?: boolean; onOpen: (view: View) => void }) {
   const item = MODULES.find(module => module.id === id)!;
   const [motion, setMotion] = useState(true);
+  const [artOk, setArtOk] = useState(true);
   return <button type="button" className={feature ? "tech-feature" : "tech-card"} data-id={id} onClick={() => onOpen(id)}>
-    <img className="tech-art" src={MODULE_ART[id]} alt="" />
-    {motion ? <video className="tech-art tech-motion" src={MODULE_MOTION[id]} poster={MODULE_ART[id]} muted loop playsInline autoPlay preload="metadata" onError={() => setMotion(false)} /> : null}
+    {artOk ? <img className="tech-art" src={MODULE_ART[id]} alt="" onError={() => setArtOk(false)} /> : null}
+    {motion ? <video className="tech-art tech-motion" src={MODULE_MOTION[id]} poster={artOk ? MODULE_ART[id] : undefined} muted loop playsInline autoPlay preload="metadata" onError={() => setMotion(false)} /> : null}
     <span className="tech-art-shade" aria-hidden="true" />
     <span className="banner-copy"><strong>{item.label}</strong><small>{item.line}</small></span>
   </button>;

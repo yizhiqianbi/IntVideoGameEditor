@@ -8,7 +8,7 @@ import ForumView from "./forum-view";
 import OpsConsole, { type OpsView } from "./ops-console";
 import s from "./ops-shell.module.css";
 
-const SECTIONS = ["analytics", "users", "recharges", "packages", "subscriptions", "banners", "covers", "characters", "reviews", "forum", "orientations", "subtags", "voices", "usage", "prices", "audit", "feedback"] as const;
+const SECTIONS = ["analytics", "users", "recharges", "packages", "subscriptions", "banners", "covers", "templates", "characters", "reviews", "forum", "orientations", "subtags", "voices", "usage", "prices", "audit", "feedback"] as const;
 type Section = typeof SECTIONS[number];
 type Ready = { status: "ready"; user: DzmmCloudUser; preview: boolean };
 type Phase = { status: "loading" } | { status: "login"; error: string } | { status: "forbidden"; nickname: string } | Ready;
@@ -22,6 +22,7 @@ const ENTRIES: Entry[] = [
   { id: "subscriptions", label: "VIP 会员", group: "资金管理", sub: true, eyebrow: "FINANCE", description: "查看会员有效期和积分领取记录。" },
   { id: "banners", label: "Banner 管理", group: "", sub: false, eyebrow: "CONTENT", description: "管理首页横幅的文案、链接和图片。" },
   { id: "covers", label: "创作封面", group: "", sub: false, eyebrow: "CONTENT", description: "更换创作台入口图。没上传时用站内那张。" },
+  { id: "templates", label: "模板管理", group: "", sub: false, eyebrow: "CONTENT", description: "上传与管理前台模板广场的图片风格和视频动作模板。" },
   { id: "characters", label: "官方角色", group: "角色管理", sub: true, eyebrow: "ROLES", description: "新建、编辑和上下架叙梦官方角色。" },
   { id: "reviews", label: "公开审核", group: "角色管理", sub: true, eyebrow: "ROLES", description: "处理用户公开角色。通过和拒绝走原来的审核接口。" },
   { id: "forum", label: "论坛", group: "角色管理", sub: true, eyebrow: "ROLES", description: "处理论坛主题、回复和举报。" },
@@ -53,7 +54,7 @@ function readUser(value: unknown): DzmmCloudUser | null {
   return { id: user.id, email: user.email ?? null, nickname: user.nickname, isGuest: user.isGuest, role: user.role };
 }
 function isOps(section: Section): section is OpsView {
-  return section === "analytics" || section === "recharges" || section === "packages" || section === "banners" || section === "covers" || section === "characters" || section === "reviews" || section === "orientations" || section === "subtags" || section === "voices" || section === "prices";
+  return section === "analytics" || section === "recharges" || section === "packages" || section === "banners" || section === "covers" || section === "templates" || section === "characters" || section === "reviews" || section === "orientations" || section === "subtags" || section === "voices" || section === "prices";
 }
 function isAdmin(section: Section): section is AdminSection {
   return section === "users" || section === "subscriptions" || section === "usage" || section === "audit";

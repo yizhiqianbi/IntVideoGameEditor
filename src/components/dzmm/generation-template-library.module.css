@@ -258,3 +258,154 @@
     gap: 10px;
   }
 }
+
+/* ===== 模板广场画廊级视觉升级（全宽大海报 + 单行分类条 + 黑金高级质感） ===== */
+.parts {
+  grid-template-columns: 1fr;
+  gap: 28px;
+}
+.part {
+  max-height: none;
+  overflow: visible;
+  padding-right: 0;
+}
+.part .listHeader {
+  margin: 0 0 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+}
+.part .listHeader h2 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+}
+.part .listHeader > span {
+  padding: 3px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.groupTabs {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  gap: 7px;
+  margin: 0 0 14px;
+  padding: 2px 0 4px;
+}
+.groupTabs::-webkit-scrollbar {
+  display: none;
+}
+.groupTabs button {
+  flex: none;
+  white-space: nowrap;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 550;
+  background: color-mix(in srgb, var(--surface) 88%, transparent);
+  border-color: var(--line);
+  transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+}
+.groupTabs button:hover:not([aria-pressed="true"]) {
+  border-color: color-mix(in srgb, var(--gold) 45%, var(--line));
+  background: color-mix(in srgb, var(--soft) 80%, transparent);
+}
+.groupTabs button[aria-pressed="true"] {
+  background: linear-gradient(125deg, var(--pink), var(--pink-deep));
+  box-shadow: 0 6px 16px -8px var(--rose-glow);
+}
+.posterGrid,
+.partsSingle .posterGrid {
+  grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+  gap: 14px;
+}
+.poster {
+  border-radius: 15px !important;
+  transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.22s ease;
+}
+.poster .cardImage {
+  aspect-ratio: 3 / 4;
+  border-radius: 15px;
+  border: 1px solid color-mix(in srgb, var(--line) 96%, transparent);
+  background:
+    radial-gradient(ellipse 80% 60% at 50% 18%, color-mix(in srgb, var(--pink) 10%, transparent), transparent 65%),
+    linear-gradient(165deg, color-mix(in srgb, var(--soft) 88%, var(--surface)), color-mix(in srgb, var(--bg) 96%, #000));
+  box-shadow: 0 14px 28px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.poster img {
+  background: transparent;
+  object-position: center 20%;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.poster:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 20px 38px -18px rgba(0, 0, 0, 0.92);
+}
+.poster:hover:not(:disabled) .cardImage {
+  border-color: color-mix(in srgb, var(--gold) 58%, var(--pink) 30%);
+  box-shadow: 0 18px 36px -18px rgba(0, 0, 0, 0.92), 0 0 22px -10px var(--rose-glow);
+}
+.poster:hover:not(:disabled) img {
+  transform: scale(1.05);
+}
+.poster strong {
+  padding: 36px 12px 11px;
+  background: linear-gradient(
+    to top,
+    rgba(5, 5, 8, 0.94) 0%,
+    rgba(5, 5, 8, 0.62) 48%,
+    transparent 100%
+  );
+  font-size: 13px;
+  font-weight: 680;
+  letter-spacing: 0.01em;
+}
+.videoChip {
+  top: 9px;
+  right: 9px;
+  padding: 4px 8px;
+  font-size: 10.5px;
+  background: rgba(8, 8, 12, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+.freeEntry {
+  margin: 0 0 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border-color: color-mix(in srgb, var(--gold) 32%, var(--line));
+  background:
+    radial-gradient(ellipse 60% 140% at 100% 0%, color-mix(in srgb, var(--gold) 12%, transparent), transparent 64%),
+    color-mix(in srgb, var(--surface) 94%, transparent);
+}
+.freeEntry:hover {
+  border-color: color-mix(in srgb, var(--gold) 60%, var(--line));
+}
+.howToStrip {
+  border-color: color-mix(in srgb, var(--gold) 22%, var(--line));
+  background:
+    radial-gradient(ellipse 60% 160% at 0% 50%, color-mix(in srgb, var(--pink) 9%, transparent), transparent 60%),
+    color-mix(in srgb, var(--surface) 92%, transparent);
+}
+.kindTabs {
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border-color: var(--line);
+}
+.search {
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border-color: var(--line);
+}
+@media (max-width: 760px) {
+  .parts {
+    gap: 22px;
+  }
+  .posterGrid,
+  .partsSingle .posterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+}
+

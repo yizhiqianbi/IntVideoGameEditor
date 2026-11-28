@@ -13,7 +13,7 @@ export const GENERATION_TEMPLATE_CATEGORIES = [
 ] as const;
 
 export type GenerationTemplateCategory = typeof GENERATION_TEMPLATE_CATEGORIES[number]["id"];
-export type GenerationTemplateField = { id: string; label: string; placeholder: string; description?: string };
+export type GenerationTemplateField = { id: string; label: string; placeholder: string; description?: string; optional?: boolean };
 export type GenerationTemplate = {
   id: string;
   kind: GenerationKind;
@@ -54,6 +54,10 @@ export type GenerationTemplate = {
   };
   /** Studio still from the reference image and the user's keywords, with no template image. */
   studioFree?: true;
+  /** Admin-uploaded custom template loaded dynamically from D1/R2. */
+  customTemplate?: true;
+  /** Display group label for admin-uploaded custom templates. */
+  customGroup?: string;
 };
 export type GenerationTemplateFilters = {
   kind?: GenerationKind | "all";
@@ -121,9 +125,22 @@ export function getGenerationTemplateCategory(id: GenerationTemplateCategory) {
   return GENERATION_TEMPLATE_CATEGORIES.find(category => category.id === id) ?? null;
 }
 
+let customGenerationTemplates: readonly GenerationTemplate[] = [];
+
+export function registerCustomGenerationTemplates(templates: readonly GenerationTemplate[]): void {
+  customGenerationTemplates = [...templates];
+}
+
+export function getCustomGenerationTemplates(): readonly GenerationTemplate[] {
+  return customGenerationTemplates;
+}
+
 /** IDs are exact catalog values, never object keys or user-provided prompt fragments. */
 export function getGenerationTemplate(id: string | null | undefined): GenerationTemplate | null {
-  return typeof id === "string" ? GENERATION_TEMPLATES.find(template => template.id === id) ?? null : null;
+  if (typeof id !== "string") return null;
+  return GENERATION_TEMPLATES.find(template => template.id === id)
+    ?? customGenerationTemplates.find(template => template.id === id)
+    ?? null;
 }
 
 /** A fresh object lets the editor modify examples without mutating the catalog. */
@@ -139,7 +156,10 @@ function normalize(value: string): string {
 
 /** Kind, category and every query term must intersect; existing order and item references are preserved. */
 export function filterGenerationTemplates(
-  filters: GenerationTemplateFilters = {}, templates: readonly GenerationTemplate[] = ACTIVE_GENERATION_TEMPLATES,
+  filters: GenerationTemplateFilters = {},
+  templates: readonly GenerationTemplate[] = customGenerationTemplates.length
+    ? [...customGenerationTemplates, ...ACTIVE_GENERATION_TEMPLATES]
+    : ACTIVE_GENERATION_TEMPLATES,
 ): readonly GenerationTemplate[] {
   const { kind, category } = filters;
   if (kind !== undefined && kind !== "all" && kind !== "image" && kind !== "video") return [];
@@ -150,15 +170,15 @@ export function filterGenerationTemplates(
   return templates.filter(template => {
     if (kind && kind !== "all" && template.kind !== kind) return false;
     if (category && category !== "all" && !template.categories.includes(category)) return false;
-    const text = [template.label, template.englishLabel, template.description, ...template.tags,
+    const text = [template.label, template.englishLabel, template.description, template.customGroup ?? "", ...template.tags,
       ...template.categories.map(id => getGenerationTemplateCategory(id)?.label ?? "")].map(normalize);
     return terms.every(term => text.some(field => field.includes(term)));
   });
 }
 
 export function fillGenerationTemplate(template: GenerationTemplate, values: Record<string, string>): string {
-  if (template.fields.some(field => !values[field.id]?.trim())) throw new Error("请填写模板中的每个字段。");
-  const result = template.pattern.replace(/\{\{([a-z]+)\}\}/g, (_, id: string) => values[id].trim());
+  if (template.fields.some(field => !field.optional && !values[field.id]?.trim())) throw new Error("请填写模板中的每个字段。");
+  const result = template.pattern.replace(/\{\{([a-z]+)\}\}/g, (_, id: string) => (values[id] ?? "").trim()).trim();
   if (result.length > 4000) throw new Error("模板内容过长，请缩短字段后再试。");
   return result;
 }

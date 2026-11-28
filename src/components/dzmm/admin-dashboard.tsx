@@ -16,7 +16,7 @@ import FeedbackInbox from "./feedback-inbox";
 import OpsConsole from "./ops-console";
 import s from "./admin-dashboard.module.css";
 
-type Tab = "overview" | "users" | "subscriptions" | "orders" | "usage" | "watches" | "spends" | "audit" | "publishing" | "forum" | "feedback" | "ops";
+type Tab = "overview" | "users" | "subscriptions" | "orders" | "usage" | "watches" | "spends" | "audit" | "publishing" | "forum" | "feedback" | "templates" | "ops";
 export type AdminSection = "users" | "subscriptions" | "usage" | "audit";
 type Data = { kind: "overview"; value: DzmmAdminOverview } | { kind: "users"; value: DzmmAdminPage<DzmmAdminUser> }
   | { kind: "subscriptions"; value: DzmmAdminPage<DzmmAdminSubscription> } | { kind: "orders"; value: DzmmAdminPage<DzmmAdminOrder> }
@@ -44,6 +44,7 @@ const TABS: { id: Tab; label: string; icon: IconName; description: string }[] = 
   { id: "publishing", label: "角色审核", icon: "check", description: "审核用户提交的公开角色" },
   { id: "forum", label: "论坛管理", icon: "chat", description: "处理主题、回复与举报" },
   { id: "feedback", label: "群反馈", icon: "chat", description: "查看 Telegram 群里的反馈，保存你的处理判断" },
+  { id: "templates", label: "模板上传", icon: "image", description: "上传与管理图片风格 / 视频动作模板，前台模板广场实时生效" },
   { id: "ops", label: "运营", icon: "sliders", description: "套餐、单价、标签、官方角色、充值与看板" },
 ];
 const LIMIT = 20;
@@ -88,6 +89,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
     publishing: { label: c.adReview, description: c.adReviewBody },
     forum: { label: c.adForum, description: c.adForumBody },
     feedback: { label: c.adFeedback, description: c.adFeedbackBody },
+    templates: { label: locale === "en" ? "Templates" : "模板上传", description: locale === "en" ? "Upload and manage custom image & video templates." : "上传与管理自定义图片/视频模板，前台模板广场实时生效" },
     ops: { label: c.adOps, description: c.adOpsBody },
   };
   const statusText = (value: string) => ({ active: c.adActive, scheduled: c.adScheduled, upgraded: "已升级", expired: c.adExpired, revoked: c.adRevoked, pending: c.adPending, paid: c.adPaid, failed: c.adFailed, refunded: c.adRefunded, partially_refunded: c.adPartial, reserved: c.adReserved, settled: c.adSettled, released: c.adReleased }[value] ?? value);
@@ -119,7 +121,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
   const alive = useRef(true);
   const workingRef = useRef(false);
   const dialog = useRef<HTMLDivElement>(null);
-  const moderation = tab === "publishing" || tab === "forum" || tab === "feedback" || tab === "ops";
+  const moderation = tab === "publishing" || tab === "forum" || tab === "feedback" || tab === "templates" || tab === "ops";
   const dialogOpen = action?.accountId === accountId && permitted;
   const dialogConfirmed = action?.confirmed ?? false;
 
@@ -136,7 +138,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
   const load = useCallback(async () => {
     readController.current?.abort();
     const run = ++generation.current;
-    if (!permitted || tab === "publishing" || tab === "forum" || tab === "feedback" || tab === "ops") return;
+    if (!permitted || tab === "publishing" || tab === "forum" || tab === "feedback" || tab === "templates" || tab === "ops") return;
     const controller = new AbortController();
     readController.current = controller;
     setRemote({ accountId, tab, loading: true, error: "", data: null, fetchedAt: null });
@@ -259,7 +261,7 @@ export default function AdminDashboard({ user, onRequireAccount, publishingRevie
       <section className={s.workspace} aria-label={tabText[tab].label}>
         {section ? null : <div className={s.sectionHeading}><div><h2>{tabText[tab].label}</h2><p>{tabText[tab].description}</p></div>{!moderation && current.fetchedAt && <small>{xumengStudioFill(c.adUpdated, { time: date(current.fetchedAt) })}</small>}</div>}
         {notice && noticeAccountId === accountId && <p className={s.notice} role="status">{notice}</p>}
-        {tab === "publishing" ? <div className={s.embedded}>{publishingReview}</div> : tab === "forum" ? <div className={s.embedded}>{forumModeration}</div> : tab === "feedback" ? <FeedbackInbox key={accountId} accountId={accountId} onRequireAccount={onRequireAccount} /> : tab === "ops" ? <OpsConsole accountId={accountId} /> : <>
+        {tab === "publishing" ? <div className={s.embedded}>{publishingReview}</div> : tab === "forum" ? <div className={s.embedded}>{forumModeration}</div> : tab === "feedback" ? <FeedbackInbox key={accountId} accountId={accountId} onRequireAccount={onRequireAccount} /> : tab === "templates" ? <OpsConsole accountId={accountId} view="templates" /> : tab === "ops" ? <OpsConsole accountId={accountId} /> : <>
           {tab !== "overview" && <form className={s.filters} onSubmit={applyFilters}>
             {tab === "users" ? <><label className={s.search}>{c.adFindUser}<input aria-label={c.adFindPh} type="search" value={search} maxLength={100} onChange={event => setSearch(event.target.value)} placeholder={c.adFindPh} disabled={working} /></label><label>{c.adAccess}<select value={roleFilter} disabled={working} onChange={event => setRoleFilter(event.target.value as "" | DzmmAdminRole)}><option value="">{c.adAllAccess}</option><option value="user">{c.adUserRole}</option><option value="super">Super</option></select></label><label>{c.adKind}<select value={accountKind} disabled={working} onChange={event => setAccountKind(event.target.value as "" | "guest" | "registered")}><option value="">{c.adAllKinds}</option><option value="registered">{c.adRegistered}</option><option value="guest">{c.adGuest}</option></select></label><label>{c.adFullId}<input value={exactId} maxLength={36} onChange={event => setExactId(event.target.value)} disabled={working} /></label><label>{c.adInviter}<input value={inviterId} maxLength={36} onChange={event => setInviterId(event.target.value)} disabled={working} /></label><label>{c.adFrom}<input type="datetime-local" value={registeredFrom} onChange={event => setRegisteredFrom(event.target.value)} disabled={working} /></label><label>{c.adTo}<input type="datetime-local" value={registeredTo} onChange={event => setRegisteredTo(event.target.value)} disabled={working} /></label></> : <label className={s.search}>{c.adAccountId}<input value={userIdInput} onChange={event => setUserIdInput(event.target.value)} placeholder={c.adAccountPh} maxLength={36} disabled={working} /></label>}
             <button className={s.outline} type="submit" disabled={working || current.loading}><Icon name="search" size={15} />{c.adQuery}</button>{(tab === "users" ? filters.q || filters.role || filters.accountKind || filters.exactId || filters.inviterId || filters.from || filters.to : filters.userId) && <button className={s.text} type="button" disabled={working || current.loading} onClick={() => { setSearch(""); setRoleFilter(""); setUserIdInput(""); setAccountKind(""); setExactId(""); setInviterId(""); setRegisteredFrom(""); setRegisteredTo(""); setFilters({ q: "", role: "", userId: "", accountKind: "", exactId: "", inviterId: "", from: "", to: "" }); setOffset(0); }}>{c.adClearFilters}</button>}

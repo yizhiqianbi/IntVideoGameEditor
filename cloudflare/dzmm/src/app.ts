@@ -1,6 +1,7 @@
 import { handleAdmin } from "./admin";
 import { listPublicHomeBanners } from "./home-banners";
 import { listPublicStudioCovers, publicStudioCover } from "./studio-covers";
+import { listPublicGenerationTemplates, publicGenerationTemplateMedia } from "./generation-templates";
 import { handleProductEvent, publicCatalogFilters, publicScenePrices } from "./ops-console";
 import { handleTelegramFeedback } from "./telegram-feedback";
 import { handleAuth, requireUser } from "./auth";
@@ -90,6 +91,11 @@ export async function fetchRequest(request: Request, env: Env, ctx?: BackgroundE
         response = await listPublicStudioCovers(env);
       } else if (request.method === "GET" && /^\/v1\/studio\/covers\/[a-z]+$/.test(path)) {
         response = await publicStudioCover(env, path.slice("/v1/studio/covers/".length)) ?? new Response("not found", { status: 404 });
+      } else if (request.method === "GET" && path === "/v1/generation-templates") {
+        response = await listPublicGenerationTemplates(env);
+      } else if (request.method === "GET" && /^\/v1\/generation-templates\/tpl_[a-z0-9]{6,24}\/(poster|video)$/.test(path)) {
+        const parts = path.split("/");
+        response = await publicGenerationTemplateMedia(request, env, parts[3], parts[4] as "poster" | "video") ?? new Response("not found", { status: 404 });
       } else if (request.method === "GET" && path === "/v1/billing/scene-prices") {
         response = await publicScenePrices(env);
       } else if (request.method === "GET" && path === "/v1/catalog/filters") {

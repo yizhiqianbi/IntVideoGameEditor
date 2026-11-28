@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { KREA2_IMAGE_GROUPS } from "../../lib/xumeng-krea2-stills";
+import { loadPublicCustomGenerationTemplates, subscribeCustomGenerationTemplates } from "../../lib/xumeng-custom-templates";
 import { GENERATION_TEMPLATE_CATEGORIES, filterGenerationTemplates,
   type GenerationTemplate, type GenerationTemplateCategory } from "../../lib/xumeng-generation-templates";
 import type { GenerationKind } from "../../lib/xumeng-generation";
@@ -49,6 +50,12 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
   const [filters, setFilters] = useState<LibraryFilters>({ key: "", ...defaultFilters });
   const [imageGroup, setImageGroup] = useState("all");
   const [videoGroup, setVideoGroup] = useState("all");
+  const [, setCustomVersion] = useState(0);
+  useEffect(() => {
+    const unsubscribe = subscribeCustomGenerationTemplates(() => setCustomVersion(v => v + 1));
+    void loadPublicCustomGenerationTemplates();
+    return unsubscribe;
+  }, []);
   const activeKey = useRef(storageKey);
   const hydratedKey = useRef<string | null>(null);
   activeKey.current = storageKey;
@@ -113,16 +120,19 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
   };
   const stopPreview = (id: string) => setPreviewId(current => current === id ? null : current);
   let taggedFirstCard = false;
+  const [brokenIds, setBrokenIds] = useState<Record<string, true>>({});
   const posterCard = (item: GenerationTemplate) => {
     const isFirst = !taggedFirstCard;
     if (isFirst) taggedFirstCard = true;
+    const isBroken = Boolean(brokenIds[item.id]);
     return <button type="button" className={`${s.card} ${s.poster}`} key={item.id}
       data-tour={isFirst ? "tpl-card" : undefined}
       disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}
       onMouseEnter={() => startPreview(item)} onMouseLeave={() => stopPreview(item.id)}
       onFocus={() => startPreview(item)} onBlur={() => stopPreview(item.id)}>
-      <span className={s.cardImage}><img src={item.demoPosterUrl} alt="" loading="lazy" decoding="async" />
-        {item.demoVideoUrl && previewId === item.id && <HoverPreview src={item.demoVideoUrl} poster={item.demoPosterUrl} />}
+      <span className={s.cardImage}>
+        {item.demoPosterUrl && !isBroken && <img src={item.demoPosterUrl} alt="" loading="lazy" decoding="async" onError={() => setBrokenIds(prev => prev[item.id] ? prev : { ...prev, [item.id]: true })} />}
+        {item.demoVideoUrl && previewId === item.id && <HoverPreview src={item.demoVideoUrl} poster={isBroken ? undefined : item.demoPosterUrl} />}
         {item.demoVideoUrl && <span className={s.videoChip} aria-hidden="true"><Icon name="play" size={10} />{locale === "en" ? "Motion" : "动效"}</span>}
         <strong>{item.label}</strong></span>
     </button>;
@@ -131,13 +141,30 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
     disabled={busy || !ready} aria-label={xumengStudioFill(c.gsUseTemplateAria, { label: item.label })} onClick={() => { if (!busy && ready) onSelect(item); }}>
     <strong>{item.label}</strong><span>{item.description}</span></button>;
   const activeKind = ready ? filters.kind : "all";
-  const videoPool = matching.filter(item => item.kind === "video" && item.demoVideoUrl);
-  const videoGroups = KREA2_IMAGE_GROUPS.filter(group => videoPool.some(item => item.h3Lora?.group === group.id));
-  const videos = videoGroup === "all" ? videoPool : videoPool.filter(item => item.h3Lora?.group === videoGroup);
+  const videoPool = matching.filter(item => item.kind === "video" && (item.demoVideoUrl || item.customTemplate));
+  const customVideoGroups = Array.from(new Set(videoPool.map(item => item.customGroup).filter((g): g is string => Boolean(g))))
+    .map(label => ({ id: `custom:${label}`, label }));
+  const videoGroups = [
+    ...customVideoGroups,
+    ...KREA2_IMAGE_GROUPS.filter(group => videoPool.some(item => item.h3Lora?.group === group.id))
+      .map(group => ({ id: group.id, label: xumengStudioGroupLabel(locale, group.id, group.label) })),
+  ];
+  const matchesGroup = (item: GenerationTemplate, groupId: string, kind: "image" | "video") => {
+    if (groupId === "all") return true;
+    if (groupId.startsWith("custom:")) return item.customGroup === groupId.slice("custom:".length);
+    return kind === "video" ? item.h3Lora?.group === groupId : item.krea2Lora?.group === groupId;
+  };
+  const videos = videoPool.filter(item => matchesGroup(item, videoGroup, "video"));
   const freeStill = matching.find(item => item.studioFree);
   const imagePool = matching.filter(item => item.kind === "image" && !item.studioFree);
-  const imageGroups = KREA2_IMAGE_GROUPS.filter(group => imagePool.some(item => item.krea2Lora?.group === group.id));
-  const images = imageGroup === "all" ? imagePool : imagePool.filter(item => item.krea2Lora?.group === imageGroup);
+  const customImageGroups = Array.from(new Set(imagePool.map(item => item.customGroup).filter((g): g is string => Boolean(g))))
+    .map(label => ({ id: `custom:${label}`, label }));
+  const imageGroups = [
+    ...customImageGroups,
+    ...KREA2_IMAGE_GROUPS.filter(group => imagePool.some(item => item.krea2Lora?.group === group.id))
+      .map(group => ({ id: group.id, label: xumengStudioGroupLabel(locale, group.id, group.label) })),
+  ];
+  const images = imagePool.filter(item => matchesGroup(item, imageGroup, "image"));
   const showVideos = activeKind !== "image" && videos.length > 0;
   const showImages = activeKind !== "video" && (imagePool.length > 0 || Boolean(freeStill));
   const isEn = locale === "en";
@@ -173,9 +200,9 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
         <div className={s.groupTabs} role="tablist" aria-label={c.gsVideoCats}>
           <button type="button" aria-pressed={videoGroup === "all"} disabled={!ready} onClick={() => setVideoGroup("all")}>{c.gsAll}</button>
           {videoGroups.map(group => <button type="button" key={group.id} aria-pressed={videoGroup === group.id} disabled={!ready}
-            onClick={() => setVideoGroup(group.id)}>{xumengStudioGroupLabel(locale, group.id, group.label)}<em>{videoPool.filter(item => item.h3Lora?.group === group.id).length}</em></button>)}
+            onClick={() => setVideoGroup(group.id)}>{group.label}<em>{videoPool.filter(item => matchesGroup(item, group.id, "video")).length}</em></button>)}
         </div>
-        <div className={s.posterGrid}>{videos.map(posterCard)}</div>
+        <div className={s.posterGrid}>{videos.map(item => (item.demoPosterUrl || item.demoVideoUrl) ? posterCard(item) : stillCard(item))}</div>
       </section>}
       {showImages && <section className={s.part} aria-label={c.gsMakeImages}>
         <div className={s.listHeader}><div><h2>{c.gsMakeImages}</h2>
@@ -186,7 +213,7 @@ export default function GenerationTemplateLibrary({ userId, visible, busy, local
         <div className={s.groupTabs} role="tablist" aria-label={c.gsImageCats}>
           <button type="button" aria-pressed={imageGroup === "all"} disabled={!ready} onClick={() => setImageGroup("all")}>{c.gsAll}</button>
           {imageGroups.map(group => <button type="button" key={group.id} aria-pressed={imageGroup === group.id} disabled={!ready}
-            onClick={() => setImageGroup(group.id)}>{xumengStudioGroupLabel(locale, group.id, group.label)}<em>{imagePool.filter(item => item.krea2Lora?.group === group.id).length}</em></button>)}
+            onClick={() => setImageGroup(group.id)}>{group.label}<em>{imagePool.filter(item => matchesGroup(item, group.id, "image")).length}</em></button>)}
         </div>
         <div className={s.posterGrid}>{images.map(item => item.demoPosterUrl ? posterCard(item) : stillCard(item))}</div>
       </section>}

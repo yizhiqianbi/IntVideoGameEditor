@@ -411,3 +411,100 @@ export async function uploadStudioCover(accountId: string, slot: string, file: B
 export async function resetStudioCover(accountId: string, slot: string, signal?: AbortSignal): Promise<void> {
   await request(`/studio-covers/${encodeURIComponent(slot)}/delete`, accountId, { accountId }, signal);
 }
+
+export type AdminGenerationTemplate = {
+  id: string;
+  kind: "image" | "video";
+  label: string;
+  englishLabel: string;
+  description: string;
+  groupLabel: string;
+  tags: string[];
+  aspectRatio: string;
+  promptPattern: string;
+  demoPosterUrl: string | null;
+  demoVideoUrl: string | null;
+  sortOrder: number;
+  enabled: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+export type AdminGenerationTemplateInput = {
+  kind: "image" | "video";
+  label: string;
+  englishLabel?: string;
+  description?: string;
+  groupLabel?: string;
+  tags?: string[] | string;
+  aspectRatio?: string;
+  promptPattern: string;
+  sortOrder?: number;
+  enabled?: boolean;
+};
+
+function parseAdminTemplate(value: unknown): AdminGenerationTemplate {
+  if (!record(value) || typeof value.id !== "string" || (value.kind !== "image" && value.kind !== "video")
+    || typeof value.label !== "string" || typeof value.promptPattern !== "string") throw malformed();
+  return {
+    id: value.id,
+    kind: value.kind,
+    label: value.label,
+    englishLabel: typeof value.englishLabel === "string" ? value.englishLabel : "",
+    description: typeof value.description === "string" ? value.description : "",
+    groupLabel: typeof value.groupLabel === "string" ? value.groupLabel : "自定义精选",
+    tags: Array.isArray(value.tags) ? value.tags.filter((item): item is string => typeof item === "string") : [],
+    aspectRatio: typeof value.aspectRatio === "string" ? value.aspectRatio : "3:4",
+    promptPattern: value.promptPattern,
+    demoPosterUrl: typeof value.demoPosterUrl === "string" ? value.demoPosterUrl : null,
+    demoVideoUrl: typeof value.demoVideoUrl === "string" ? value.demoVideoUrl : null,
+    sortOrder: typeof value.sortOrder === "number" ? value.sortOrder : 100,
+    enabled: value.enabled !== false,
+    createdAt: typeof value.createdAt === "number" ? value.createdAt : 0,
+    updatedAt: typeof value.updatedAt === "number" ? value.updatedAt : 0,
+  };
+}
+
+export async function fetchAdminGenerationTemplates(accountId: string, signal?: AbortSignal): Promise<AdminGenerationTemplate[]> {
+  const value = await request("/generation-templates", accountId, undefined, signal);
+  if (!Array.isArray(value.templates)) throw malformed();
+  return value.templates.map(parseAdminTemplate);
+}
+
+export async function createAdminGenerationTemplate(accountId: string, input: AdminGenerationTemplateInput, signal?: AbortSignal): Promise<AdminGenerationTemplate> {
+  const value = await request("/generation-templates", accountId, { accountId, ...input }, signal);
+  return parseAdminTemplate(value.template);
+}
+
+export async function updateAdminGenerationTemplate(accountId: string, id: string, patch: Partial<AdminGenerationTemplateInput>, signal?: AbortSignal): Promise<AdminGenerationTemplate> {
+  const value = await request(`/generation-templates/${encodeURIComponent(id)}`, accountId, { accountId, ...patch }, signal);
+  return parseAdminTemplate(value.template);
+}
+
+async function uploadAdminTemplateAsset(accountId: string, id: string, asset: "poster" | "video", file: Blob, fallbackError: string, signal?: AbortSignal): Promise<AdminGenerationTemplate> {
+  if (!uuid(accountId)) throw new DzmmAdminError(401, "管理账号无效，请重新登录。");
+  const response = await fetch(`${API}/generation-templates/${encodeURIComponent(id)}/${asset}`, {
+    method: "POST", credentials: "same-origin", cache: "no-store", redirect: "error", signal,
+    headers: { Accept: "application/json", "Content-Type": file.type || "application/octet-stream" },
+    body: file,
+  });
+  const value: unknown = await response.json().catch(() => null);
+  if (!response.ok || !record(value)) throw new DzmmAdminError(response.status, record(value) && text(value.error, 500) ? value.error : fallbackError);
+  if (value.accountId !== accountId) throw malformed();
+  return parseAdminTemplate(value.template);
+}
+
+export const uploadAdminGenerationTemplatePoster = (accountId: string, id: string, file: Blob, signal?: AbortSignal) =>
+  uploadAdminTemplateAsset(accountId, id, "poster", file, "模板封面没有传上去。", signal);
+
+export const uploadAdminGenerationTemplateVideo = (accountId: string, id: string, file: Blob, signal?: AbortSignal) =>
+  uploadAdminTemplateAsset(accountId, id, "video", file, "动效视频没有传上去。", signal);
+
+export async function clearAdminGenerationTemplateVideo(accountId: string, id: string, signal?: AbortSignal): Promise<AdminGenerationTemplate> {
+  const value = await request(`/generation-templates/${encodeURIComponent(id)}/video/delete`, accountId, { accountId }, signal);
+  return parseAdminTemplate(value.template);
+}
+
+export async function deleteAdminGenerationTemplate(accountId: string, id: string, signal?: AbortSignal): Promise<void> {
+  await request(`/generation-templates/${encodeURIComponent(id)}/delete`, accountId, { accountId }, signal);
+}

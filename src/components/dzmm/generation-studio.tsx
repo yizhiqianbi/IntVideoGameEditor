@@ -8,6 +8,7 @@ import { createGeneration, deleteGeneration, fetchGenerationConfig, fetchGenerat
 import { recoverGenerationReferenceWithDeadline } from "../../lib/xumeng-reference-recovery";
 import { prepareReferenceImage } from "../../lib/xumeng-reference-file";
 import { getGenerationTemplate, type GenerationTemplate } from "../../lib/xumeng-generation-templates";
+import { loadPublicCustomGenerationTemplates, subscribeCustomGenerationTemplates } from "../../lib/xumeng-custom-templates";
 import { requestKrea2Still } from "../../lib/xumeng-krea2-bridge";
 import { requestH3ReferenceVideo } from "../../lib/xumeng-h3-r2v";
 import { requestAiapiStill, requestAiapiVideo } from "../../lib/xumeng-aiapi-bridge";
@@ -80,6 +81,12 @@ export default function GenerationStudio({ userId, isGuest, locale = "zh-Hans", 
   const [polishing, setPolishing] = useState(false);
   const [promptOverride, setPromptOverride] = useState("");
   const [templateId, setTemplateId] = useState("");
+  const [, setCustomCatalogVersion] = useState(0);
+  useEffect(() => {
+    const unsubscribe = subscribeCustomGenerationTemplates(() => setCustomCatalogVersion(v => v + 1));
+    void loadPublicCustomGenerationTemplates();
+    return unsubscribe;
+  }, []);
   const [editorMode, setEditorMode] = useState<"template" | "legacy">("template");
   const [templateDrafts, setTemplateDrafts] = useState<GenerationTemplateDrafts>({});
   const [pendingTemplate, setPendingTemplate] = useState<GenerationTemplate | null>(null);

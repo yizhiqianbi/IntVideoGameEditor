@@ -1074,6 +1074,7 @@
   animation: appear 0.2s;
 }
 .chatLayout {
+  position: relative;
   height: calc(100svh - 64px);
   display: flex;
   overflow: hidden;
@@ -1088,12 +1089,12 @@
   flex-direction: column;
   overflow: hidden;
   background: linear-gradient(180deg, color-mix(in srgb, var(--im-sidebar) 96%, var(--pink) 4%), var(--im-sidebar));
-  transition: width .18s ease;
+  transition: width .18s ease, min-width .18s ease;
 }
 @media (min-width: 768px) {
   .chatLayout[data-list="closed"] .chatSidebar {
-    width: 84px;
-    min-width: 84px;
+    width: 76px;
+    min-width: 76px;
   }
   .chatLayout[data-list="closed"] .conversationSearch,
   .chatLayout[data-list="closed"] .chatSidebar [role="group"],
@@ -1104,7 +1105,21 @@
     display: none;
   }
   .chatLayout[data-list="closed"] .conversationList {
-    padding-top: 8px;
+    padding: 58px 0 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+  .chatLayout[data-list="closed"] .conversation,
+  .chatLayout[data-list="closed"] .chatSidebar button[class*="companionEntry"] {
+    width: 56px;
+    min-width: 56px;
+    margin: 0;
+    padding: 4px;
+    gap: 0;
+    justify-content: center;
+    border-radius: 16px;
   }
   .chatLayout[data-list="closed"] .conversationMeta,
   .chatLayout[data-list="closed"] .chatSidebar button > span:last-child:not([class*="conversationAvatar"]):not([class*="companionFace"]) {
@@ -1118,32 +1133,38 @@
   }
 }
 .chatLayout > .chatListToggle {
-  position: relative;
-  z-index: 4;
+  position: absolute;
+  top: 16px;
+  left: 312px;
+  transform: translateX(-50%);
+  z-index: 6;
   display: grid;
   flex: none;
   place-items: center;
-  align-self: flex-start;
   width: 28px;
   height: 28px;
-  margin-top: 18px;
-  margin-left: -14px;
-  margin-right: -14px;
   padding: 0;
-  border: 1px solid color-mix(in srgb, var(--gold) 32%, var(--line));
+  border: 1px solid color-mix(in srgb, var(--gold) 36%, var(--line));
   border-radius: 50%;
-  background: color-mix(in srgb, var(--surface) 78%, var(--text));
+  background: color-mix(in srgb, var(--surface) 92%, var(--bg));
   color: var(--gold);
   cursor: pointer;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, .28), 0 0 0 3px color-mix(in srgb, var(--gold) 7%, transparent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, .36), 0 0 0 3px color-mix(in srgb, var(--gold) 8%, transparent);
+  transition: left .18s ease, top .18s ease, background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
 }
-.chatListToggle svg { transform: rotate(180deg); }
-.chatLayout[data-list="closed"] .chatListToggle {
-  margin-left: -14px;
-  margin-right: -14px;
+.chatListToggle svg { transform: rotate(180deg); transition: transform .18s ease; }
+.chatLayout[data-list="closed"] > .chatListToggle {
+  top: 14px;
+  left: 38px;
+  width: 32px;
+  height: 32px;
 }
 .chatLayout[data-list="closed"] .chatListToggle svg { transform: none; }
-.chatListToggle:hover { color: var(--text); }
+.chatListToggle:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--gold) 68%, var(--line));
+  background: color-mix(in srgb, var(--gold) 16%, var(--surface));
+}
 .chatListToggle:focus-visible { outline: 2px solid var(--pink); outline-offset: 2px; }
 .sidebarTitle {
   padding: 8px 12px 18px;
@@ -5531,116 +5552,147 @@
 /* ===== 黑金主题 (Obsidian — 默认纯黑高级感) ===== */
 .dark.obsidian {
   --bg: #050507;
-  --surface: #0d0d11;
-  --soft: #16161d;
-  --text: #f7f7f9;
-  --muted: #8f8f9e;
-  --line: rgba(255, 255, 255, 0.085);
-  --pink: #ff4d84;
-  --pink-soft: rgba(255, 77, 132, 0.14);
-  --dialogue: #ff80a8;
-  --gold: #f5c458;
-  --pink-deep: #c4245a;
-  --rose-glow: rgba(255, 77, 132, 0.3);
-  --gold-soft: rgba(245, 196, 88, 0.14);
-  --im-canvas: #060609;
-  --im-bubble-in: #111117;
-  --im-bubble-out: #5b1836;
-  --im-sidebar: #08080b;
+  --surface: #101016;
+  --soft: #1a1a23;
+  --text: #ffffff;
+  --muted: #c6c6d6;
+  --line: rgba(255, 255, 255, 0.125);
+  --pink: #ff5c90;
+  --pink-soft: rgba(255, 92, 144, 0.16);
+  --dialogue: #ff94b8;
+  --gold: #ffd166;
+  --pink-deep: #d62d68;
+  --rose-glow: rgba(255, 92, 144, 0.34);
+  --gold-soft: rgba(255, 209, 102, 0.16);
+  --im-canvas: #07070b;
+  --im-bubble-in: #14141c;
+  --im-bubble-out: #681c3e;
+  --im-sidebar: #0a0a0f;
   background-color: #050507;
   background-image:
-    radial-gradient(ellipse 68% 36% at 88% -8%, rgba(255, 77, 132, 0.075), transparent 62%),
-    radial-gradient(ellipse 52% 30% at 12% 0%, rgba(245, 196, 88, 0.05), transparent 58%),
+    radial-gradient(ellipse 68% 36% at 88% -8%, rgba(255, 92, 144, 0.08), transparent 62%),
+    radial-gradient(ellipse 52% 30% at 12% 0%, rgba(255, 209, 102, 0.055), transparent 58%),
     linear-gradient(180deg, #07070a 0%, #050507 52%, #030305 100%);
 }
+.dark.obsidian input::placeholder,
+.dark.obsidian textarea::placeholder {
+  color: #a6a6ba;
+}
 .dark.obsidian .topbar {
-  background: rgba(5, 5, 7, 0.84);
-  border-bottom-color: rgba(255, 255, 255, 0.075);
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.025);
+  background: rgba(5, 5, 7, 0.86);
+  border-bottom-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.03);
 }
 .dark.obsidian .search {
-  background: rgba(255, 255, 255, 0.04);
-  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .dark.obsidian .search:focus-within {
-  background: #0d0d11;
-  border-color: rgba(255, 77, 132, 0.55);
-  box-shadow: 0 0 0 3px rgba(255, 77, 132, 0.12);
+  background: #101016;
+  border-color: rgba(255, 92, 144, 0.6);
+  box-shadow: 0 0 0 3px rgba(255, 92, 144, 0.14);
 }
 .dark.obsidian .themeToggle,
 .dark.obsidian .account {
-  background: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.13);
+  color: #f4f4f9;
 }
 .dark.obsidian .localePicker select {
-  background-color: rgba(255, 255, 255, 0.045);
-  border-color: rgba(255, 255, 255, 0.09);
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.13);
+  color: #f4f4f9;
 }
 .dark.obsidian .themeToggle:hover,
 .dark.obsidian .account:hover {
-  border-color: rgba(245, 196, 88, 0.42);
-  background: rgba(245, 196, 88, 0.08);
+  border-color: rgba(255, 209, 102, 0.5);
+  background: rgba(255, 209, 102, 0.1);
 }
 .dark.obsidian .navDrawer {
-  background: #08080b;
-  color: #f7f7f9;
-  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0a0a0f;
+  color: #ffffff;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
 }
 .dark.obsidian .mobileNav {
-  background: rgba(7, 7, 10, 0.92);
-  border-top-color: rgba(255, 255, 255, 0.085);
+  background: rgba(8, 8, 12, 0.94);
+  border-top-color: rgba(255, 255, 255, 0.11);
 }
 .dark.obsidian .utilityNav {
-  background: rgba(11, 11, 15, 0.92);
-  border-color: rgba(255, 255, 255, 0.085);
+  background: rgba(14, 14, 20, 0.94);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 .dark.obsidian .utilityNav a {
-  color: #b7b7c6;
+  color: #d6d6e6;
 }
 .dark.obsidian .utilityNav a:hover,
 .dark.obsidian .utilityNav a.utilityActive {
   color: #fff;
-  background: rgba(255, 77, 132, 0.18);
+  background: rgba(255, 92, 144, 0.22);
 }
 .dark.obsidian .shelfHero {
-  background: #08080b;
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0b0b10;
+  border: 1px solid rgba(255, 255, 255, 0.11);
 }
 .dark.obsidian .shelfHeroShade {
   background: linear-gradient(90deg, rgba(5, 5, 7, 0.9) 0%, rgba(5, 5, 7, 0.54) 38%, rgba(5, 5, 7, 0.08) 66%);
 }
 .dark.obsidian .cardGrid:not(.singleLayout) .card {
-  background: #0d0d11;
-  border-color: rgba(255, 255, 255, 0.085);
+  background: #101016;
+  border-color: rgba(255, 255, 255, 0.11);
   box-shadow: 0 18px 36px -16px rgba(0, 0, 0, 0.88);
 }
 .dark.obsidian .cardGrid:not(.singleLayout) .card:hover {
-  border-color: rgba(245, 196, 88, 0.44);
-  box-shadow: 0 24px 48px -14px rgba(0, 0, 0, 0.95), 0 0 24px -8px rgba(255, 77, 132, 0.3);
+  border-color: rgba(255, 209, 102, 0.5);
+  box-shadow: 0 24px 48px -14px rgba(0, 0, 0, 0.95), 0 0 24px -8px rgba(255, 92, 144, 0.34);
 }
 @media (min-width: 1280px) {
   .dark.obsidian .appRail {
-    background: linear-gradient(180deg, rgba(9, 9, 13, 0.98) 0%, rgba(5, 5, 7, 0.98) 100%);
-    border-right-color: rgba(255, 255, 255, 0.075);
+    background: linear-gradient(180deg, rgba(11, 11, 16, 0.98) 0%, rgba(6, 6, 9, 0.98) 100%);
+    border-right-color: rgba(255, 255, 255, 0.1);
+  }
+  .dark.obsidian .appRail nav a {
+    color: #dadbe8;
+  }
+  .dark.obsidian .railLabel {
+    color: #a8a8bc;
   }
   .dark.obsidian .appRail nav a:hover {
-    background: rgba(255, 255, 255, 0.045);
-    border-color: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.11);
   }
   .dark.obsidian .appRail nav a.navActive {
-    background: linear-gradient(96deg, rgba(255, 77, 132, 0.16), rgba(245, 196, 88, 0.06));
-    border-color: rgba(255, 77, 132, 0.3);
-    color: #f7f7f9;
-    box-shadow: inset 2px 0 0 #ff4d84, 0 8px 20px -14px rgba(255, 77, 132, 0.45);
+    background: linear-gradient(96deg, rgba(255, 92, 144, 0.19), rgba(255, 209, 102, 0.07));
+    border-color: rgba(255, 92, 144, 0.36);
+    color: #ffffff;
+    box-shadow: inset 2px 0 0 #ff5c90, 0 8px 20px -14px rgba(255, 92, 144, 0.45);
   }
   .dark.obsidian .railUser {
-    background: rgba(255, 255, 255, 0.03);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.045);
+    border-color: rgba(255, 255, 255, 0.11);
   }
   .dark.obsidian .railUser:hover {
-    border-color: rgba(245, 196, 88, 0.36);
-    background: rgba(255, 255, 255, 0.055);
+    border-color: rgba(255, 209, 102, 0.42);
+    background: rgba(255, 255, 255, 0.07);
   }
+}
+.dark.obsidian .chatLayout {
+  background: #07070b;
+  background-image: none;
+}
+.dark.obsidian .chatSidebar {
+  background: linear-gradient(180deg, #0b0b11 0%, #07070b 100%);
+  border-right-color: rgba(255, 255, 255, 0.1);
+}
+.dark.obsidian .chatListToggle {
+  background: #14141c;
+  color: #ffffff;
+  border-color: rgba(255, 209, 102, 0.45);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.6), 0 0 0 3px rgba(255, 209, 102, 0.1);
+}
+.dark.obsidian .chatListToggle:hover {
+  background: #1f1b13;
+  border-color: rgba(255, 209, 102, 0.78);
 }
 
 

@@ -78,6 +78,36 @@
   white-space: nowrap;
   max-width: 100%;
 }
+.menuPortal {
+  position: fixed;
+  z-index: 90;
+  color: var(--text, #f7f7f9);
+  background: color-mix(in srgb, var(--surface, #0d0d11) 96%, var(--bg, #050507));
+  border-color: color-mix(in srgb, var(--pink, #ff4d84) 28%, var(--line, rgba(255, 255, 255, 0.1)));
+}
+.menuPortal button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--line, rgba(255, 255, 255, 0.1)) 76%, transparent);
+  background: color-mix(in srgb, var(--soft, #16161d) 72%, transparent);
+  text-align: left;
+  color: var(--text, #f7f7f9);
+  cursor: pointer;
+  transition: background 0.14s ease, border-color 0.14s ease, transform 0.12s ease;
+}
+.menuPortal button:hover,
+.menuPortal button:focus-visible {
+  background: color-mix(in srgb, var(--pink, #ff4d84) 16%, var(--soft, #16161d));
+  border-color: color-mix(in srgb, var(--pink, #ff4d84) 44%, var(--line, rgba(255, 255, 255, 0.12)));
+  transform: translateY(-1px);
+}
 @keyframes quickInsertPop {
   from { opacity: 0; transform: translateY(6px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }

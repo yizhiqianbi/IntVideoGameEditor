@@ -3603,7 +3603,7 @@ export default function TavernApp() {
                 </button>)}</>
                 : <div className={gameNavigation.listState}><p>{conversationQuery && visibleBuiltinGames.length === 0 ? copy.noMatchGames : copy.noOwnGames}</p>{!conversationQuery && <button onClick={() => openCreatorRoute("studio/games")}>{copy.uploadGame}</button>}</div>}
               </>}
-              {conversationType === "chats" && visibleGirlfriends.map(person => <button key={person.id} className={gameNavigation.companionEntry} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
+              {conversationType === "chats" && visibleGirlfriends.map(person => <button key={person.id} className={gameNavigation.companionEntry} title={person.nickname} aria-current={companionInMain && mineId === person.id ? "page" : undefined} aria-label={`${person.nickname}，${person.lines[0] || ""}`} onClick={() => openMineGirlfriend(person.id)}>
                 <span className={gameNavigation.companionFace}><span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span></span>
                 <span className={gameNavigation.companionCopy}><strong>{person.nickname}</strong><small>{person.lines[0]}</small></span>
               </button>)}
@@ -3612,7 +3612,7 @@ export default function TavernApp() {
                 const row = chatInbox.get(lane);
                 const preview = row?.preview || person.line;
                 const unread = row?.unread ?? 0;
-                return <button key={person.castId || person.variant} className={gameNavigation.companionEntry} aria-current={companionInMain && companionVariant === person.variant && (person.variant !== "cast" || castCompanion?.id === person.castId) ? "page" : undefined} aria-label={unread ? fill(copy.namedPreview, { name: `${person.name}，${unread}`, preview }) : fill(copy.namedPreview, { name: person.name, preview })} onMouseEnter={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onFocus={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onClick={() => openCompanion(person.variant, undefined, person.castId || undefined)}>
+                return <button key={person.castId || person.variant} className={gameNavigation.companionEntry} title={person.name} aria-current={companionInMain && companionVariant === person.variant && (person.variant !== "cast" || castCompanion?.id === person.castId) ? "page" : undefined} aria-label={unread ? fill(copy.namedPreview, { name: `${person.name}，${unread}`, preview }) : fill(copy.namedPreview, { name: person.name, preview })} onMouseEnter={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onFocus={() => warmCompanion(person.variant === "cast" ? "cast" : person.variant, person.castId || undefined)} onClick={() => openCompanion(person.variant, undefined, person.castId || undefined)}>
                   <span className={gameNavigation.companionFace}>
                     <span className={gameNavigation.companionAvatar} aria-hidden="true"><img src={person.cover} alt="" /></span>
                     {unread > 0 && <b className={gameNavigation.companionBadge} aria-hidden="true">{unread > 99 ? "99+" : unread}</b>}
