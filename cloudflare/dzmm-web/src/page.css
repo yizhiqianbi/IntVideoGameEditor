@@ -9,6 +9,10 @@
   padding: 0;
 }
 
+dialog {
+  margin: auto;
+}
+
 html,
 body,
 #root {
