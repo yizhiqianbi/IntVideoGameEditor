@@ -1,6 +1,6 @@
 # 叙梦 / XUMENG 充值记录
 
-当前状态（2026-10-05，Asia/Shanghai）：本站已部署 Z-Pay 人民币充值，配置为 `provider: "zpay"`、`mode: "live"`、`currency: "cny"`、`enabled: false`。套餐为 ¥28/88/188 对应 2,800/8,800/18,800 点；商户通道与凭据尚待登录后核实，未开放真实付款。详见 [Z-Pay 上线记录](xumeng-zpay.md)。历史 Stripe 数据与回调保留；当前未接聊天或模型扣费。
+当前状态（2026-10-05，Asia/Shanghai）：本站已部署 Z-Pay 人民币充值，配置为 `provider: "zpay"`、`mode: "live"`、`currency: "cny"`、`enabled: false`。套餐为 ¥28/88/188 对应 2,800/8,800/18,800 点；商户通道与凭据尚待登录后核实，未开放真实付款。详见 [Z-Pay 上线记录](xumeng-zpay.md)。呱呱商户资料见 [呱呱对接](xumeng-guagua.md)。历史 Stripe 数据与回调保留；当前未接聊天或模型扣费。
 
 以下保存 2026-10-04 的 Stripe 真实模式准备和沙盒验收，所列版本、套餐与结果均为该历史阶段，并非当前 Z-Pay 上线结果。
 
