@@ -207,9 +207,12 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   const [hookOpen, setHookOpen] = useState(false);
   const stageRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
+  const scrubRef = useRef<HTMLDivElement>(null);
   const video0Ref = useRef<HTMLVideoElement>(null);
   const video1Ref = useRef<HTMLVideoElement>(null);
   const activeSlotRef = useRef<0 | 1>(0);
+  const lastUiTimeRef = useRef(0);
+  const [isSliding, setIsSliding] = useState(false);
   const pointer = useRef<{ id: number; x: number; y: number; axis: "none" | "x" | "y" } | null>(null);
   const seekGesture = useRef<{ id: number; startX: number; startTime: number; active: boolean } | null>(null);
   const [seekHud, setSeekHud] = useState<{ target: number; delta: number } | null>(null);
@@ -341,16 +344,32 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     return slotVideo(activeSlotRef.current === 0 ? 1 : 0);
   }
 
-  function revealFrame() {
-    const node = currentVideo();
-    if (!node || !frameReady.current || visualRef.current !== indexRef.current || node.videoWidth < 1) return;
+  function revealFrame(nodeOverride?: HTMLVideoElement | null) {
+    const node = nodeOverride ?? currentVideo();
+    if (!node || !frameReady.current || visualRef.current !== indexRef.current || sliding.current) return;
+    if (node.readyState < 2 && node.videoWidth < 1 && node.currentTime <= 0) return;
     node.style.opacity = "1";
-    setPaused(false);
+    setFrameShown(true);
+    setBuffering(false);
+    if (!node.paused) setPaused(false);
+  }
+
+  function markFrameReady(slot: 0 | 1, node: HTMLVideoElement | null) {
+    if (activeSlotRef.current !== slot || !node) return;
+    if (node.readyState < 2 && node.videoWidth < 1 && node.currentTime <= 0) return;
+    noteFrame(node);
+    frameReady.current = true;
+    setVideoError(false);
+    setBuffering(false);
+    setFrameShown(true);
+    revealFrame(node);
   }
 
   function startPlayback(node: HTMLVideoElement) {
     if (!node.paused && node.readyState >= 2) {
+      frameReady.current = true;
       setPaused(false);
+      revealFrame(node);
       return;
     }
     node.muted = userMutedRef.current || autoMutedRef.current;
@@ -358,13 +377,23 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
     if (!attempt) return;
     void attempt.then(() => {
       setPaused(false);
+      if (node.readyState >= 2 || node.videoWidth > 0) {
+        frameReady.current = true;
+        revealFrame(node);
+      }
       if (!node.muted) claimXumengAudioFocus("video-channel");
     }).catch((error: unknown) => {
       if (!node.paused || (error instanceof DOMException && error.name === "AbortError")) return;
       node.muted = true;
       autoMutedRef.current = true;
       setAutoMuted(true);
-      void node.play().then(() => setPaused(false)).catch(() => setPaused(true));
+      void node.play().then(() => {
+        setPaused(false);
+        if (node.readyState >= 2 || node.videoWidth > 0) {
+          frameReady.current = true;
+          revealFrame(node);
+        }
+      }).catch(() => setPaused(true));
     });
   }
 
@@ -389,6 +418,14 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
   }, [episode?.id]);
 
   useLayoutEffect(() => {
+    const node = currentVideo();
+    if (!node) return;
+    if (frameShown && !isSliding && episodeOpen && !videoError) {
+      node.style.removeProperty("opacity");
+    }
+  }, [frameShown, isSliding, episodeOpen, videoError, activeSlot]);
+
+  useLayoutEffect(() => {
     if (!pendingReset.current) return;
     pendingReset.current = false;
     const track = trackRef.current;
@@ -397,8 +434,13 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       track.style.transform = "translate3d(0, 0, 0)";
     }
     const node = currentVideo();
-    if (node) node.style.transform = "translate3d(0, 0, 0)";
-    revealFrame();
+    if (node) {
+      node.style.transform = "translate3d(0, 0, 0)";
+      if (node.readyState >= 2 || node.videoWidth > 0 || node.currentTime > 0) {
+        frameReady.current = true;
+      }
+    }
+    revealFrame(node);
   }, [visualIndex]);
 
   useEffect(() => {
@@ -504,11 +546,11 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
         }
       }
       startPlayback(standbyNode);
-      if (standbyNode.readyState >= 2) {
+      if (standbyNode.readyState >= 2 || standbyNode.videoWidth > 0) {
         frameReady.current = true;
         setFrameShown(true);
         setBuffering(false);
-        revealFrame();
+        revealFrame(standbyNode);
       }
       return;
     }
@@ -522,11 +564,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       setFrameShown(false);
       setBuffering(false);
       activeNode.style.opacity = "0";
-      if (activeNode.getAttribute("src")) {
-        activeNode.pause();
-        activeNode.removeAttribute("src");
-        activeNode.load();
-      }
+      activeNode.pause();
       activeNode.dataset.clip = episode.id;
       activeNode.src = url;
       activeNode.load();
@@ -539,24 +577,31 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       }
     }
     startPlayback(activeNode);
-    if (activeNode.readyState >= 2) {
+    if (activeNode.readyState >= 2 || activeNode.videoWidth > 0) {
       frameReady.current = true;
       setFrameShown(true);
-      revealFrame();
+      revealFrame(activeNode);
     }
   }, [episode?.id, episodeOpen, videoRetry]);
 
   useEffect(() => {
+    // Wait until the active clip has rendered & isn't buffering so standby preloading never steals bandwidth.
+    if (!frameShown || buffering) return;
     const standbyNode = standbyVideo();
     if (!standbyNode || !nextPreloadEpisode || !episode || nextPreloadEpisode.id === episode.id) return;
     if (standbyNode.dataset.clip === nextPreloadEpisode.id) return;
-    standbyNode.pause();
-    standbyNode.muted = true;
-    standbyNode.style.opacity = "0";
-    standbyNode.dataset.clip = nextPreloadEpisode.id;
-    standbyNode.src = xumengVideoMediaUrl(nextPreloadEpisode.mediaKey);
-    standbyNode.load();
-  }, [nextPreloadEpisode?.id, nextPreloadEpisode?.mediaKey, episode?.id, activeSlot]);
+    const timer = window.setTimeout(() => {
+      const node = standbyVideo();
+      if (!node || node.dataset.clip === nextPreloadEpisode.id) return;
+      node.pause();
+      node.muted = true;
+      node.style.opacity = "0";
+      node.dataset.clip = nextPreloadEpisode.id;
+      node.src = xumengVideoMediaUrl(nextPreloadEpisode.mediaKey);
+      node.load();
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [frameShown, buffering, nextPreloadEpisode?.id, nextPreloadEpisode?.mediaKey, episode?.id, activeSlot]);
 
   useEffect(() => {
     if (!toast) return;
@@ -656,6 +701,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       return;
     }
     sliding.current = true;
+    setIsSliding(true);
     move(direction);
     placeTrack(direction > 0 ? -track.clientHeight : track.clientHeight, true, false);
     let finished = false;
@@ -664,6 +710,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       if (event instanceof TransitionEvent && (event.target !== track || event.propertyName !== "transform")) return;
       finished = true;
       sliding.current = false;
+      setIsSliding(false);
       track.removeEventListener("transitionend", finish);
       window.clearTimeout(timer);
       pendingReset.current = true;
@@ -742,6 +789,10 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       node.muted = userMutedRef.current;
       void node.play().then(() => {
         setPaused(false);
+        if (node.readyState >= 2 || node.videoWidth > 0) {
+          frameReady.current = true;
+          revealFrame(node);
+        }
         if (!node.muted) claimXumengAudioFocus("video-channel");
       }).catch(() => setPaused(true));
       return;
@@ -942,21 +993,24 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
         : <p className={s.status}>{copy.noShorts}</p>)}
       {drama && episode && playing && <div className={s.reel}>
         <div className={s.track} ref={trackRef}>
-          {panels.map(({ item, place, clip }) => <article key={item.dramaId} className={s.panel} data-place={place} aria-hidden={place !== "current"}>
-            <img className={s.poster} alt="" src={xumengVideoPosterUrl(clip.posterKey)} decoding="async" />
-            <div className={s.shade} />
-          </article>)}
+          {panels.map(({ item, place, clip }) => {
+            const hidePoster = place === "current" && frameShown && !isSliding && episodeOpen && !videoError;
+            return <article key={item.dramaId} className={s.panel} data-place={place} aria-hidden={place !== "current"}>
+              <img className={hidePoster ? `${s.poster} ${s.posterHidden}` : s.poster} alt="" src={xumengVideoPosterUrl(clip.posterKey)} decoding="async" />
+              <div className={s.shade} />
+            </article>;
+          })}
         </div>
         {([0, 1] as const).map(slot => {
           const isCurrent = activeSlot === slot;
+          const visible = isCurrent && frameShown && !isSliding && episodeOpen && !videoError;
           const ref = slot === 0 ? video0Ref : video1Ref;
           return <video
             key={slot}
             ref={ref}
-            className={`${s.video}${isCurrent && landscape ? ` ${s.landscape}` : ""}${!isCurrent ? ` ${s.standbyVideo}` : ""}`}
-            poster={isCurrent ? xumengVideoPosterUrl(episode.posterKey) : undefined}
+            className={`${s.video}${visible ? ` ${s.videoVisible}` : ""}${isCurrent && landscape ? ` ${s.landscape}` : ""}${!isCurrent ? ` ${s.standbyVideo}` : ""}`}
             playsInline
-            preload="auto"
+            preload={isCurrent ? "auto" : "metadata"}
             aria-hidden={!isCurrent}
             aria-label={isCurrent ? playing.title : undefined}
             onLoadedMetadata={() => {
@@ -984,28 +1038,43 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
               const node = ref.current;
               if (node) {
                 const nextTime = node.currentTime || 0;
-                setCurrentTime(nextTime);
-                if (episode && nextTime > 0 && Date.now() - lastProgressWriteRef.current >= 3000) {
-                  lastProgressWriteRef.current = Date.now();
-                  rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: Number.isFinite(node.duration) ? node.duration : 0, updatedAt: Date.now() });
+                if (!frameReady.current && nextTime > 0) {
+                  markFrameReady(slot, node);
+                }
+                const total = Number.isFinite(node.duration) && node.duration > 0 ? node.duration : 0;
+                if (scrubRef.current && total > 0) {
+                  scrubRef.current.style.setProperty("--played", `${Math.min(100, (nextTime / total) * 100)}%`);
+                }
+                const now = Date.now();
+                if (scrubbing || now - lastUiTimeRef.current >= 500) {
+                  lastUiTimeRef.current = now;
+                  setCurrentTime(nextTime);
+                }
+                if (episode && nextTime > 0 && now - lastProgressWriteRef.current >= 3000) {
+                  lastProgressWriteRef.current = now;
+                  rememberProgress({ dramaId: episode.dramaId, episodeId: episode.id, currentTime: nextTime, duration: total, updatedAt: now });
                 }
               }
             }}
             onPlay={() => { if (activeSlotRef.current === slot) setPaused(false); }}
-            onPlaying={() => { if (activeSlotRef.current === slot) { setPaused(false); setBuffering(false); } }}
+            onPlaying={() => {
+              if (activeSlotRef.current !== slot) return;
+              setPaused(false);
+              markFrameReady(slot, ref.current);
+            }}
             onWaiting={() => { if (activeSlotRef.current === slot) setBuffering(true); }}
             onStalled={() => { if (activeSlotRef.current === slot) setBuffering(true); }}
-            onCanPlay={() => { if (activeSlotRef.current === slot) setBuffering(false); }}
+            onCanPlay={() => {
+              if (activeSlotRef.current !== slot) return;
+              markFrameReady(slot, ref.current);
+            }}
+            onSeeked={() => {
+              if (activeSlotRef.current !== slot) return;
+              markFrameReady(slot, ref.current);
+            }}
             onPause={() => { if (activeSlotRef.current === slot) { setPaused(true); setBuffering(false); } }}
             onLoadedData={() => {
-              if (activeSlotRef.current !== slot) return;
-              const node = ref.current;
-              if (node) noteFrame(node);
-              setVideoError(false);
-              setBuffering(false);
-              frameReady.current = true;
-              setFrameShown(true);
-              revealFrame();
+              markFrameReady(slot, ref.current);
             }}
             onError={() => {
               if (activeSlotRef.current !== slot) return;
@@ -1041,6 +1110,7 @@ export default function VideoChannel({ characters = [], locale = "zh-Hans", sign
       </div>}
       {drama && episode && <>
         {duration > 0 && episodeOpen && <div
+          ref={scrubRef}
           className={s.scrub}
           data-dragging={scrubbing || undefined}
           role="slider"

@@ -50,10 +50,19 @@
   background: #000;
   pointer-events: none;
 }
+.poster {
+  transition: opacity 80ms linear;
+}
+.posterHidden {
+  opacity: 0;
+}
 .video {
   z-index: 2;
   opacity: 0;
-  transition: opacity 80ms linear;
+  transition: opacity 60ms linear;
+}
+.videoVisible {
+  opacity: 1;
 }
 .standbyVideo {
   z-index: 1;
