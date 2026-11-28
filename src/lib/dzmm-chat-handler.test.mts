@@ -355,3 +355,28 @@ test("WhatsToken routes non-Gemma models directly without OpenRouter key while k
   assert.equal(fallbackSent?.body.model, "anthropic/claude-sonnet-5.5");
   assert.equal(fallbackBill.quotes[0].model, "anthropic/claude-sonnet-5.5");
 });
+
+test("chat automatically retries once when the first completion emits reasoning without visible content", async () => {
+  const bill = costChatBilling();
+  const bodies: Record<string, unknown>[] = [];
+  const response = await handleDzmmChatPost(costChatRequest({ ...actualCostChatInput, model: "gemma31" }), actualCostEnvironment, {
+    ...bill,
+    providerFetch: async (_url, init) => {
+      bodies.push(JSON.parse(String(init?.body)));
+      if (bodies.length === 1) {
+        const reasoningOnly = `data: ${JSON.stringify({ id: "gen-empty-1", choices: [{ delta: { reasoning: "internal draft", content: "" } }] })}\n\n`
+          + `data: ${JSON.stringify({ id: "gen-empty-1", choices: [{ delta: {}, finish_reason: "stop" }], usage: { prompt_tokens: 300, completion_tokens: 600, cost: 0.0006 } })}\n\n`
+          + "data: [DONE]\n\n";
+        return new Response(reasoningOnly, { headers: { "Content-Type": "text/event-stream" } });
+      }
+      return new Response(costChatFrames(0.0008, "她抬眼看向你。") + "data: [DONE]\n\n", { headers: { "Content-Type": "text/event-stream" } });
+    },
+  });
+  assert.equal(response.status, 200);
+  assert.equal(await response.text(), "她抬眼看向你。");
+  assert.equal(bodies.length, 2);
+  assert.deepEqual(bodies[0].reasoning, { enabled: false });
+  assert.equal(bodies[1].include_reasoning, false);
+  assert.equal(bill.completions[0].outcome, "completed");
+  assert.equal(bill.completions[0].hasValidOutput, true);
+});

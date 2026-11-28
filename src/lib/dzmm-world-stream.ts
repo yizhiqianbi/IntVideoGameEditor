@@ -6,6 +6,7 @@ export const WORLD_CLOSE = "</xumeng-state>";
 /** Keeps marker fragments and the entire metadata tail out of visible streamed prose. */
 export function createDzmmWorldTailFilter() {
   let buffer = "", metadata = "", hidden = false, ended = false, invalid = false;
+  let emittedVisible = false, leadingStrips = 0, trimLeading = false;
   return {
     push(text: string): string {
       if (ended) { if (text.trim()) invalid = true; return ""; }
@@ -14,18 +15,35 @@ export function createDzmmWorldTailFilter() {
         if (metadata.length > 16000) { invalid = true; metadata = ""; ended = true; return ""; }
         const close = metadata.indexOf(WORLD_CLOSE);
         if (close >= 0) {
-          if (metadata.slice(close + WORLD_CLOSE.length).trim()) invalid = true;
+          const after = metadata.slice(close + WORLD_CLOSE.length);
+          if (!emittedVisible && leadingStrips < 3) {
+            // Model placed <xumeng-state>...</xumeng-state> ahead of the prose; strip the
+            // misplaced header block and keep streaming the actual story reply that follows.
+            leadingStrips += 1;
+            metadata = "";
+            hidden = false;
+            trimLeading = true;
+            return after ? this.push(after) : "";
+          }
+          if (after.trim()) invalid = true;
           metadata = metadata.slice(0, close); ended = true;
         }
         return "";
+      }
+      if (trimLeading) {
+        text = text.replace(/^\s+/, "");
+        if (!text) return "";
+        trimLeading = false;
       }
       buffer += text;
       const start = buffer.indexOf(WORLD_OPEN);
       if (start >= 0) {
         const visible = buffer.slice(0, start);
         const rest = buffer.slice(start + WORLD_OPEN.length);
-        buffer = ""; hidden = true; this.push(rest);
-        return visible;
+        if (visible.trim()) emittedVisible = true;
+        buffer = ""; hidden = true;
+        const recovered = this.push(rest);
+        return visible + recovered;
       }
       let keep = 0;
       for (let length = 1; length < WORLD_OPEN.length; length++) {
@@ -33,6 +51,7 @@ export function createDzmmWorldTailFilter() {
       }
       const visible = buffer.slice(0, buffer.length - keep);
       buffer = buffer.slice(buffer.length - keep);
+      if (visible.trim()) emittedVisible = true;
       return visible;
     },
     finish(): string {

@@ -175,3 +175,16 @@ test("copied messages rebind snapshots to new IDs; edits discard only unsupporte
   const changedOpening = original.map((message, index) => index === 0 ? { ...message, content: "她身在车站。" } : message);
   assert.equal(rebindDzmmWorldJournal(journal, changedOpening, changedOpening.map(message => ({ ...message, id: `new-${message.id}` }))), undefined);
 });
+
+test("leading world state tag before prose is stripped without discarding the story reply", () => {
+  const prose = "她轻轻推开咖啡店的门，微风吹动门铃。";
+  const source = WORLD_OPEN + '{"version":1,"changes":[]}' + WORLD_CLOSE + "\n" + prose;
+  for (let split = 0; split <= source.length; split++) {
+    const filter = createDzmmWorldTailFilter();
+    const answer = filter.push(source.slice(0, split)) + filter.push(source.slice(split)) + filter.finish();
+    assert.equal(answer, prose, `split at ${split}`);
+    assert.equal(filter.proposal(), undefined);
+  }
+  const singleChar = createDzmmWorldTailFilter();
+  assert.equal(source.split("").map(c => singleChar.push(c)).join("") + singleChar.finish(), prose);
+});

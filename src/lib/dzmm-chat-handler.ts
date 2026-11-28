@@ -260,37 +260,29 @@ export async function handleDzmmChatPost(
     if (request.signal.aborted || abortController.signal.aborted) throw new Error("Cancelled before billing reservation");
     if (options.billing) lease = await options.billing.reserve(prepared.preflight);
     if (request.signal.aborted || abortController.signal.aborted) throw new Error("Cancelled before provider request");
-    const upstreamResponse = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint, {
-      method: "POST",
-      headers: dzmmUpstreamHeaders(upstream.apiKey, upstream.direct, "Local Roleplay Prototype"),
-      body: prepared.providerBody,
-      signal: abortController.signal,
-    }, { retryDelayMs: options.providerFetch ? 0 : 350 });
-    if (abortController.signal.aborted) {
-      await upstreamResponse.body?.cancel();
-      throw new Error("Cancelled provider request");
-    }
-    if (!upstreamResponse.ok) {
-      const detail = await upstreamResponse.text().catch(() => "");
-      await finishBilling("failed");
-      cleanup();
-      return failure(sanitizeDzmmProviderError(upstreamResponse.status, detail), upstreamResponse.status === 429 ? 429 : 502);
-    }
-    if (!upstreamResponse.body || !upstreamResponse.headers.get("content-type")?.includes("text/event-stream")) {
-      await upstreamResponse.body?.cancel();
-      await finishBilling("failed");
-      cleanup();
-      return failure("模型服务没有返回流式回复，请检查模型服务配置。", 502);
-    }
+    const buildRetryBody = () => {
+      if (upstream.direct) return prepared.providerBody;
+      try {
+        const parsed = JSON.parse(prepared.providerBody) as Record<string, unknown>;
+        const effort = findDzmmProviderModel(upstream.model)?.reasoningEffort;
+        if (effort === null) {
+          parsed.reasoning = { enabled: false };
+          parsed.include_reasoning = false;
+        } else if (effort === "low") {
+          parsed.reasoning = { effort: "low", exclude: true };
+          parsed.include_reasoning = false;
+        }
+        return JSON.stringify(parsed);
+      } catch {
+        return prepared.providerBody;
+      }
+    };
 
-    upstreamReader = upstreamResponse.body.getReader();
-    const decoder = new TextDecoder();
     const encoder = new TextEncoder();
-    parser = createDzmmSseParser();
-    generationId = readDzmmGenerationId(upstreamResponse.headers.get("X-Generation-Id"));
-    const pending: string[] = [];
+    let decoder = new TextDecoder();
+    let pending: string[] = [];
     let finished = false;
-    const worldFilter = input.world ? createDzmmWorldTailFilter() : undefined;
+    let worldFilter = input.world ? createDzmmWorldTailFilter() : undefined;
     let visibleAnswer = "";
     function queue(parts: string[]) {
       for (const part of parts) {
@@ -321,15 +313,77 @@ export async function handleDzmmChatPost(
 
     // Read the first content delta before sending headers, so provider failures
     // and empty completions can still produce a useful JSON error response.
+    // Retry once silently when an upstream returns HTTP 200 with zero visible prose
+    // (e.g. a reasoning-only or empty completion from a hybrid-thinking provider).
     let firstText = "";
-    while (!firstText.trim()) {
-      const text = await nextText();
-      if (text === null || firstText.length > DZMM_MAX_MESSAGE_CHARS) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) {
+        try { await upstreamReader?.cancel(); } catch { /* Previous stream already closed. */ }
+        upstreamReader = undefined;
+        decoder = new TextDecoder();
+        pending = [];
+        finished = false;
+        worldFilter = input.world ? createDzmmWorldTailFilter() : undefined;
+        firstText = "";
+        if (idleTimer) { clearTimeout(idleTimer); idleTimer = undefined; }
+        if (!ttfbTimer) ttfbTimer = setTimeout(triggerTimeout, 40_000);
+      }
+      const upstreamResponse = await fetchDzmmUpstreamWithRetry(options.providerFetch ?? fetch, upstream.endpoint, {
+        method: "POST",
+        headers: dzmmUpstreamHeaders(upstream.apiKey, upstream.direct, "Local Roleplay Prototype"),
+        body: attempt === 0 ? prepared.providerBody : buildRetryBody(),
+        signal: abortController.signal,
+      }, { retryDelayMs: options.providerFetch ? 0 : 350 });
+      if (abortController.signal.aborted) {
+        await upstreamResponse.body?.cancel();
+        throw new Error("Cancelled provider request");
+      }
+      if (!upstreamResponse.ok) {
+        const detail = await upstreamResponse.text().catch(() => "");
+        await finishBilling("failed");
+        cleanup();
+        return failure(sanitizeDzmmProviderError(upstreamResponse.status, detail), upstreamResponse.status === 429 ? 429 : 502);
+      }
+      if (!upstreamResponse.body || !upstreamResponse.headers.get("content-type")?.includes("text/event-stream")) {
+        await upstreamResponse.body?.cancel();
+        await finishBilling("failed");
+        cleanup();
+        return failure("模型服务没有返回流式回复，请检查模型服务配置。", 502);
+      }
+
+      upstreamReader = upstreamResponse.body.getReader();
+      parser = createDzmmSseParser();
+      generationId = readDzmmGenerationId(upstreamResponse.headers.get("X-Generation-Id"));
+
+      let exceededLimit = false;
+      while (!firstText.trim()) {
+        const text = await nextText();
+        if (text === null) break;
+        firstText += text;
+        if (firstText.length > DZMM_MAX_MESSAGE_CHARS) {
+          exceededLimit = true;
+          break;
+        }
+      }
+      if (firstText.trim() && !exceededLimit) break;
+      if (exceededLimit || attempt === 1 || timedOut || request.signal.aborted || abortController.signal.aborted) {
+        console.warn("dzmm_chat_empty_completion", {
+          model: upstream.model,
+          attempt,
+          generationId: parser.generationId || generationId || null,
+          reasoningChars: parser.reasoningChars,
+          finishReason: parser.finishReason ?? null,
+        });
         await stopUpstream();
         await finishBilling("failed");
         return failure("模型没有回复，请重试或换个模型。", 502);
       }
-      firstText += text;
+      console.warn("dzmm_chat_empty_retry", {
+        model: upstream.model,
+        generationId: parser.generationId || generationId || null,
+        reasoningChars: parser.reasoningChars,
+        finishReason: parser.finishReason ?? null,
+      });
     }
     // A whitespace-only completion must fail before headers are sent. Removing
     // its leading whitespace also keeps a capped first chunk nonempty.

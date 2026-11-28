@@ -530,7 +530,7 @@ export function buildDzmmWorldInstruction(options: {
       ? `已预跳${options.appliedTimeJump.advanceMinutes}分钟，勿重复advanceMinutes/day；minuteOfDay/calendarLabel须新场景依据。`
       : "明确跳时可覆盖现实锚点；计划/回忆/引用台词不触发跳时。",
     "day/minuteOfDay/calendarLabel须明确依据；未知minuteOfDay:null，禁猜9点/现实日期。",
-    '剧情后另行<xumeng-state>{"version":1,"changes":[]}</xumeng-state>：0–6项必要变化，同目标一次，无进展为空.严格JSON/无未知字段;正文禁标签/JSON/数值.',
+    '先写正文，文末另行<xumeng-state>{"version":1,"changes":[]}</xumeng-state>：0–6项必要变化，同目标一次，无进展为空.严格JSON/无未知字段;正文禁标签/JSON/数值.',
     "type/from/quote必填，from=user|assistant;quote为本轮对应用户/可见回复连续原文4–500字，明确支持变更，禁历史/状态/标签.",
     "不可推断用户的感受、意图、同意或行为或代写行动.关系name=非用户角色稳定称呼，记其对用户态度;数值非许可/阶段，勿重置身份.重复同一句夸赞或同一承诺不能反复自动加分;离线/沉默不扣分.",
     `仍未完成的事项ID：${JSON.stringify(dueIds)}；到期保持open，仅相关场景提及；done须本轮完成证据，不替用户完成/惩罚。`,

@@ -664,6 +664,8 @@ export function createDzmmSseParser() {
   let initial = true;
   let usage: DzmmGenerationUsage | undefined;
   let generationId: string | undefined;
+  let reasoningChars = 0;
+  let finishReason: string | undefined;
 
   function dispatch(output: string[]) {
     if (!dataLines.length || ended) {
@@ -696,11 +698,24 @@ export function createDzmmSseParser() {
     const choice = payload.choices[0];
     if (!isRecord(choice)) return;
     if (choice.finish_reason === "error") throw new DzmmProviderStreamError();
-    if (typeof choice.finish_reason === "string" && choice.finish_reason) completionReceived = true;
+    if (typeof choice.finish_reason === "string" && choice.finish_reason) {
+      completionReceived = true;
+      finishReason = choice.finish_reason;
+    }
     const delta = choice.delta;
+    let emitted = false;
     if (isRecord(delta)) {
       const content = deltaText(delta.content);
-      if (content) output.push(content);
+      if (content) {
+        output.push(content);
+        emitted = true;
+      }
+      const reasoning = deltaText(delta.reasoning) || deltaText(delta.reasoning_content);
+      if (reasoning) reasoningChars += reasoning.length;
+    }
+    if (!emitted && isRecord(choice.message)) {
+      const messageContent = deltaText(choice.message.content);
+      if (messageContent) output.push(messageContent);
     }
   }
 
@@ -752,5 +767,7 @@ export function createDzmmSseParser() {
     get done() { return ended; },
     get usage() { return usage; },
     get generationId() { return generationId; },
+    get reasoningChars() { return reasoningChars; },
+    get finishReason() { return finishReason; },
   };
 }
