@@ -11,6 +11,7 @@ type NavigationItem<T extends string> = { view: T; label: string; icon: IconName
 export default function ResponsiveNavigation<T extends string>({
   items, tools, secondaryTools, currentView, onNavigate, onHome, footer,
   locale = "zh-Hans",
+  themeMode = "obsidian",
 }: {
   items: NavigationItem<T>[];
   tools: NavigationItem<T>[];
@@ -20,6 +21,7 @@ export default function ResponsiveNavigation<T extends string>({
   onHome?: () => boolean;
   footer?: ReactNode;
   locale?: XumengLocale;
+  themeMode?: "obsidian" | "dark" | "light";
 }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
@@ -63,7 +65,7 @@ export default function ResponsiveNavigation<T extends string>({
         event.preventDefault();
         if (onNavigate(item.view)) close();
       }}>
-      <Icon name={item.icon} size={22} /><span>{item.label}</span>
+      <Icon name={item.icon} size={19} /><span>{item.label}</span>
     </a>
   ));
 
@@ -76,26 +78,32 @@ export default function ResponsiveNavigation<T extends string>({
       <span className={styles.navTriggerLabel}>{xumengTranslate(locale, "mobileMenu")}</span>
     </button>
     {open && createPortal(
-      <div ref={portal} className={styles.navOverlay}>
+      <div ref={portal} className={styles.navOverlay} data-theme={themeMode}>
         <button type="button" className={styles.navBackdrop} tabIndex={-1} aria-label={xumengTranslate(locale, "closeNavigation")} onClick={close} />
         <div id={panelId} className={styles.navDrawer} role="dialog" aria-modal="true" aria-label={xumengTranslate(locale, "allFeatures")}>
-          <button type="button" ref={closeButton} className={styles.navClose} aria-label={xumengTranslate(locale, "closeNavigation")} onClick={close}>
-            <Icon name="close" size={18} />
-          </button>
-          <a className={styles.navBrand} href="#characters" onClick={event => {
-            event.preventDefault();
-            if (!onHome || onHome()) close();
-          }}>
-            <img src="/assets/xumeng/brand/xumeng-mark.svg" width="36" height="36" alt="" />
-            <span>叙梦<small>XUMENG</small></span>
-          </a>
+          <div className={styles.navHeader}>
+            <a className={styles.navBrand} href="#characters" onClick={event => {
+              event.preventDefault();
+              if (!onHome || onHome()) close();
+            }}>
+              <img src="/assets/xumeng/brand/xumeng-mark.svg" width="32" height="32" alt="" />
+              <span>叙梦<small>XUMENG</small></span>
+            </a>
+            <button type="button" ref={closeButton} className={styles.navClose} aria-label={xumengTranslate(locale, "closeNavigation")} onClick={close}>
+              <Icon name="close" size={17} />
+            </button>
+          </div>
           <nav className={styles.navList} aria-label={xumengTranslate(locale, "allFeatures")}>
-            {links(items)}
+            <div className={styles.navGroup}>
+              {links(items)}
+            </div>
             <div className={styles.navDivider} role="separator" />
-            {links(tools)}
+            <div className={styles.navGroup}>
+              {links(tools)}
+            </div>
             {secondaryTools && secondaryTools.length > 0 && (
               <details className={styles.navMoreFold} open={secondaryTools.some(item => item.view === currentView)}>
-                <summary>{locale === "en" ? "More tools" : "更多工具与设置"}</summary>
+                <summary>{locale === "en" ? "More & settings" : "更多与设置"}</summary>
                 <div className={styles.navMoreBody}>{links(secondaryTools)}</div>
               </details>
             )}

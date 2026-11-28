@@ -196,7 +196,28 @@
   .voice { min-width: min(250px, 74vw); }
 }
 @media (max-width: 780px) {
-  .chat .mobileBack { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 28px; width: 28px; height: 36px; margin-left: -4px; padding: 0; border: 0; background: transparent; color: var(--muted, #85858d); cursor: pointer; }
+  .chat .mobileBack {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    margin-left: -2px;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 999px;
+    background: rgba(12, 12, 18, 0.44);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: rgba(255, 255, 255, 0.94);
+    cursor: pointer;
+    transition: background 140ms ease, border-color 140ms ease;
+  }
+  .chat .mobileBack:hover {
+    background: rgba(255, 255, 255, 0.14);
+    border-color: rgba(255, 255, 255, 0.28);
+  }
 }
 @container (max-width: 380px) { .composerHint > span { font-size: 9px; } }
 @media (prefers-reduced-motion: reduce) { .chat, .message, .chatStage::before, .pictureLoading { animation: none; } }
